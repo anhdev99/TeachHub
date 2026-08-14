@@ -9,6 +9,7 @@ using TeachHub.Application;
 using TeachHub.Application.Common;
 using TeachHub.Infrastructure;
 using TeachHub.Infrastructure.Jobs;
+using TeachHub.Infrastructure.Storage;
 using TeachHub.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -71,6 +72,7 @@ builder.Services.AddRateLimiter(o =>
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
 builder.Services.AddJobs(builder.Configuration);
+builder.Services.AddStorage(builder.Configuration);
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
