@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    # ubuntu-latest đã có sẵn Docker daemon — Testcontainers cần nó để dựng
+    # Postgres 17 và MinIO thật. Không có runner nào khác dùng được.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet restore backend/TeachHub.sln
+
+      - run: dotnet build backend/TeachHub.sln --no-restore -warnaserror
+
+      - run: dotnet test backend/TeachHub.sln --no-build --verbosity normal
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      # Không ghim version ở đây: action đọc trường "packageManager" trong
+      # frontend/package.json, nên CI và máy phát triển luôn dùng đúng một bản pnpm.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # schema.d.ts được commit vào repo có chủ ý (xem .gitignore), nên bước này
+      # không cần dựng API trước — và mỗi thay đổi hợp đồng API hiện thành diff review được.
+      - run: pnpm lint
+
+      - run: pnpm build
