@@ -24,7 +24,22 @@ builder.Services.AddSingleton(TimeProvider.System);
 //  · AddJsonOptions            → cách MVC serialize phản hồi THẬT lúc chạy
 //  · ConfigureHttpJsonOptions  → cách Microsoft.AspNetCore.OpenApi sinh SCHEMA trong /openapi/v1.json
 // Chúng đọc hai IOptions khác nhau và KHÔNG kế thừa nhau.
-builder.Services.AddControllers()
+builder.Services.AddControllers(o =>
+    {
+        // API này chỉ nói JSON. Bỏ StringOutputFormatter đi thì mỗi endpoint khai đúng một
+        // content-type trong OpenAPI, thay vì kèm thêm text/plain — client TypeScript sinh ra
+        // sẽ có union thừa và người dùng phải tự đoán nhánh nào là thật.
+        // Không dùng [Produces("application/json")] để đạt việc này: attribute đó ép content-type
+        // cho CẢ phản hồi lỗi và làm 4xx/5xx mất nhãn application/problem+json theo RFC 9457.
+        o.OutputFormatters.RemoveType<Microsoft.AspNetCore.Mvc.Formatters.StringOutputFormatter>();
+
+        // Formatter JSON còn khai bí danh cũ "text/json". Bỏ nốt để mỗi endpoint chỉ có
+        // đúng một content-type trong tài liệu.
+        foreach (var f in o.OutputFormatters.OfType<Microsoft.AspNetCore.Mvc.Formatters.SystemTextJsonOutputFormatter>())
+            f.SupportedMediaTypes.Remove("text/json");
+        foreach (var f in o.InputFormatters.OfType<Microsoft.AspNetCore.Mvc.Formatters.SystemTextJsonInputFormatter>())
+            f.SupportedMediaTypes.Remove("text/json");
+    })
     .AddJsonOptions(o =>
     {
         // snake_case để khớp đúng hợp đồng API trong SRS mục 7
