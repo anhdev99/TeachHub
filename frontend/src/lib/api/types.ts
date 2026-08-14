@@ -13,6 +13,16 @@ export type LessonComponentDto = components["schemas"]["LessonComponentDto"];
 export type SubjectVersionStatus = components["schemas"]["SubjectVersionStatus"];
 export type LessonComponentType = components["schemas"]["LessonComponentType"];
 
+// Phase 2 — lớp học phần và trải nghiệm học
+export type OfferingDto = components["schemas"]["OfferingDto"];
+export type EnrollmentDto = components["schemas"]["EnrollmentDto"];
+export type MyOfferingDto = components["schemas"]["MyOfferingDto"];
+export type MyProgressDto = components["schemas"]["MyProgressDto"];
+export type MyChapterDto = components["schemas"]["MyChapterDto"];
+export type MyLessonDto = components["schemas"]["MyLessonDto"];
+export type LessonAccess = components["schemas"]["LessonAccess"];
+export type LessonContentType = components["schemas"]["LessonContentType"];
+
 export const NHAN_TRANG_THAI: Record<SubjectVersionStatus, string> = {
   draft: "Bản nháp",
   published: "Đã xuất bản",

@@ -111,6 +111,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangePasswordCommand"];
+                    "application/*+json": components["schemas"]["ChangePasswordCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/invites/{token}": {
         parameters: {
             query?: never;
@@ -621,6 +701,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lesson-components/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lesson-components/{id}/reorder": {
         parameters: {
             query?: never;
@@ -852,6 +976,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lessons/{id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    secondsSpent?: number;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lessons/{id}/file": {
         parameters: {
             query?: never;
@@ -907,6 +1077,421 @@ export interface paths {
                 };
                 /** @description Payload Too Large */
                 413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    subjectId?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OfferingDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateOfferingCommand"];
+                    "application/*+json": components["schemas"]["CreateOfferingCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OfferingDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OfferingDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{id}/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EnrollmentDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["JoinOfferingCommand"];
+                    "application/*+json": components["schemas"]["JoinOfferingCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/offerings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyOfferingDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{id}/my-progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyProgressDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{id}/enrollments/create-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateStudentAccountsResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{id}/enrollments/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ImportEnrollmentsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1373,6 +1958,12 @@ export interface components {
             full_name: string;
             password: string;
         };
+        ChangePasswordCommand: {
+            current_password: string;
+            new_password: string;
+            /** Format: uuid */
+            user_id?: string;
+        };
         ChapterDto: {
             /** Format: uuid */
             id: string;
@@ -1414,6 +2005,12 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        CreatedAccountDto: {
+            student_code: string;
+            login_email: string;
+            initial_password: null | string;
+            note: string;
+        };
         CreateLessonCommand: {
             title: string;
             content_type?: components["schemas"]["LessonContentType"];
@@ -1430,6 +2027,24 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        CreateOfferingCommand: {
+            /** Format: uuid */
+            subject_id: string;
+            semester: string;
+            class_code: string;
+            /** Format: uuid */
+            subject_version_id?: null | string;
+            time_zone_id?: null | string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        CreateStudentAccountsResponse: {
+            /** Format: int32 */
+            created: number;
+            /** Format: int32 */
+            skipped: number;
+            accounts: components["schemas"]["CreatedAccountDto"][];
+        };
         CreateSubjectCommand: {
             code: string;
             name: string;
@@ -1437,8 +2052,34 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        EnrollmentDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offering_id: string;
+            student_code: string;
+            full_name: string;
+            email: null | string;
+            class_name: null | string;
+            status: components["schemas"]["EnrollmentStatus"];
+            has_account: boolean;
+        };
+        /** @enum {unknown} */
+        EnrollmentStatus: "imported" | "active" | "dropped";
         /** Format: binary */
         IFormFile: string;
+        ImportEnrollmentsResponse: {
+            /** Format: int32 */
+            imported: number;
+            /** Format: int32 */
+            updated: number;
+            errors: components["schemas"]["ImportErrorDto"][];
+        };
+        ImportErrorDto: {
+            /** Format: int32 */
+            row_number: number;
+            message: string;
+        };
         InlineQuestion: {
             text: string;
             options?: string[];
@@ -1473,10 +2114,17 @@ export interface components {
             usable: boolean;
             email: null | string;
         };
+        JoinOfferingCommand: {
+            join_code: string;
+            /** Format: uuid */
+            user_id?: string;
+        };
         LearningOutcome: {
             code: string;
             text: string;
         };
+        /** @enum {unknown} */
+        LessonAccess: "locked" | "unlocked";
         LessonComponentDto: {
             /** Format: uuid */
             id: string;
@@ -1529,6 +2177,75 @@ export interface components {
             full_name: string;
             roles: string[];
         };
+        MyChapterDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            objective: null | string;
+            /** Format: int32 */
+            order_index: number;
+            unlock_rule: components["schemas"]["UnlockRule"];
+            /** Format: double */
+            completion_percent: number;
+            lessons: components["schemas"]["MyLessonDto"][];
+        };
+        MyLessonDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: int32 */
+            order_index: number;
+            content_type: components["schemas"]["LessonContentType"];
+            file_url: null | string;
+            completed: boolean;
+            access: components["schemas"]["LessonAccess"];
+            locked_reason: null | string;
+            /** Format: int32 */
+            component_count: number;
+        };
+        MyOfferingDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            subject_id: string;
+            subject_code: string;
+            subject_name: string;
+            semester: string;
+            class_code: string;
+            /** Format: uuid */
+            enrollment_id: string;
+        };
+        MyProgressDto: {
+            /** Format: uuid */
+            offering_id: string;
+            subject_code: string;
+            subject_name: string;
+            class_code: string;
+            /** Format: double */
+            overall_percent: number;
+            chapters: components["schemas"]["MyChapterDto"][];
+        };
+        OfferingDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            subject_id: string;
+            /** Format: uuid */
+            subject_version_id: string;
+            semester: string;
+            class_code: string;
+            join_code: null | string;
+            /** Format: date-time */
+            join_code_expires_at: null | string;
+            status: components["schemas"]["OfferingStatus"];
+            time_zone_id: string;
+            /** Format: int32 */
+            enrollment_count: number;
+            /** Format: date-time */
+            created_at: string;
+        };
+        /** @enum {unknown} */
+        OfferingStatus: "draft" | "active" | "closed";
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
