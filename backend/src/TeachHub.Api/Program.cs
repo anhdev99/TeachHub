@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.RateLimiting;
 using Scalar.AspNetCore;
 using Serilog;
+using TeachHub.Api.Common;
+using TeachHub.Application;
+using TeachHub.Application.Common;
 using TeachHub.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +36,11 @@ builder.Services.ConfigureHttpJsonOptions(o =>
 });
 
 builder.Services.AddProblemDetails();          // RFC 9457
+builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddApplication();
 builder.Services.AddOpenApi();                 // sinh OpenAPI 3.1, .NET 10 đọc được cả Controllers
 
 // Đăng ký NGAY TỪ PHASE 0, dù mãi Phase 3 mới nộp bài: Phase 1 đã gắn
