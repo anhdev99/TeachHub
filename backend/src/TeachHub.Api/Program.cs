@@ -1,14 +1,67 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.RateLimiting;
+using Scalar.AspNetCore;
+using Serilog;
 using TeachHub.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
 
 // TimeProvider tiêm khắp nơi: mọi logic phụ thuộc thời gian (hạn nộp, phạt trễ,
 // streak, lịch ôn tập) phải test được mà không cần Thread.Sleep.
 builder.Services.AddSingleton(TimeProvider.System);
 
+// PHẢI CẤU HÌNH CẢ HAI CHỖ — mỗi cái lo một nửa, thiếu cái nào cũng hỏng một nửa:
+//  · AddJsonOptions            → cách MVC serialize phản hồi THẬT lúc chạy
+//  · ConfigureHttpJsonOptions  → cách Microsoft.AspNetCore.OpenApi sinh SCHEMA trong /openapi/v1.json
+// Chúng đọc hai IOptions khác nhau và KHÔNG kế thừa nhau.
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    {
+        // snake_case để khớp đúng hợp đồng API trong SRS mục 7
+        o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
+
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+});
+
+builder.Services.AddProblemDetails();          // RFC 9457
+builder.Services.AddOpenApi();                 // sinh OpenAPI 3.1, .NET 10 đọc được cả Controllers
+
+// Đăng ký NGAY TỪ PHASE 0, dù mãi Phase 3 mới nộp bài: Phase 1 đã gắn
+// [EnableRateLimiting("upload")] lên endpoint upload bài giảng. Attribute không có
+// bộ đăng ký tương ứng là metadata trơ — không chặn gì, và cũng không báo lỗi gì.
+builder.Services.AddRateLimiter(o => o.AddFixedWindowLimiter("upload", w =>
+{
+    w.PermitLimit = 30;
+    w.Window = TimeSpan.FromMinutes(1);
+    w.QueueLimit = 0;
+}));
+
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+app.UseSerilogRequestLogging();
+app.UseRateLimiter();
+
+app.MapControllers();
+
+app.MapOpenApi();                  // ở mọi môi trường: CI cần nó để sinh client TS
+if (app.Environment.IsDevelopment())
+    app.MapScalarApiReference();   // UI duyệt API tại /scalar/v1
+
+app.MapHealthChecks("/health");
 
 app.Run();
 

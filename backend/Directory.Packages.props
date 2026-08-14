@@ -2,6 +2,12 @@
   <PropertyGroup>
     <!-- Enable central package management, https://learn.microsoft.com/en-us/nuget/consume-packages/Central-Package-Management -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Cho phép một dòng PackageVersion nâng cả dependency BẮC CẦU. Thiếu nó thì
+         PackageVersion chỉ có tác dụng với package được tham chiếu trực tiếp, và một
+         lỗ hổng nằm sâu trong đồ thị (SSH.NET qua Testcontainers, Newtonsoft.Json qua
+         Hangfire) không vá được nếu không khai một PackageReference giả ở project
+         chẳng dùng tới nó. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup Label="Data">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
@@ -42,6 +48,11 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <!-- Không dùng trực tiếp: Testcontainers kéo theo SSH.NET 2025.1.0 dính lỗ hổng high
+         (GHSA-q939-rpr3-3284). NuGet audit báo NU1903, và TreatWarningsAsErrors biến nó
+         thành lỗi build. Khai trực tiếp bản đã vá để nâng phiên bản được giải quyết —
+         cùng cách xử lý với Newtonsoft.Json ở Task 0.9. ĐỪNG tắt NuGetAudit để né. -->
+    <PackageVersion Include="SSH.NET" Version="2026.0.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" />
     <PackageVersion Include="Testcontainers.Minio" Version="4.13.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" />
