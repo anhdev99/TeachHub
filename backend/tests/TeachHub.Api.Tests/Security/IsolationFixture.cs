@@ -63,6 +63,14 @@ public sealed class IsolationFixture : TeachHubApiFactory
         _idCuaA["componentId"] =
             (await cp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
 
+        // ---- Lớp học phần của A (Phase 2) ----
+        // Dùng một MÔN RIÊNG, không dùng lại môn ở trên: mở lớp đòi phiên bản đã xuất bản,
+        // mà xuất bản thì [RequireDraftVersion] sẽ khiến các dòng sửa nội dung ở trên trả 409
+        // thay vì 404 — ma trận khi đó không còn kiểm được lớp phân quyền nữa.
+        var (subjectChoLop, versionChoLop) = await SeedPublishedSubjectAsync(GvA);
+        var offeringId = await CreateOfferingAsync(GvA, subjectChoLop, versionChoLop);
+        _idCuaA["offeringId"] = offeringId.ToString();
+
         // ---- Giảng viên B: độc lập hoàn toàn, được tạo qua đúng luồng lời mời ----
         var moiB = await GvA.PostAsJsonAsync("/api/instructor/invites", new { email = EmailB });
         var tokenB = (await moiB.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;

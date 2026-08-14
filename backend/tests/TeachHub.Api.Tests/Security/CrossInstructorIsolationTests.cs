@@ -38,7 +38,11 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassF
         ("DELETE", "/api/lesson-components/{componentId}",         null),
         ("PUT",    "/api/lesson-components/{componentId}/reorder", "{\"to_index\":0}"),
 
-        // Phase 2 bổ sung: offerings, enrollments, my-progress
+        // Phase 2
+        ("GET",    "/api/offerings/{offeringId}",                          null),
+        ("GET",    "/api/offerings/{offeringId}/enrollments",              null),
+        ("POST",   "/api/offerings/{offeringId}/enrollments/create-accounts", null),
+
         // Phase 3 bổ sung: assignments, submission-slots, submissions, file-tree, entry
         // Phase 4a bổ sung: groups, grade, final-assessments, dashboard
         // Phase 4b bổ sung: grade-columns, gradebook, bonus-points, export-excel, các *-templates
@@ -49,6 +53,7 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassF
     [
         "/api/instructor/invites",
         "/api/subjects",
+        "/api/offerings",
     ];
 
     public static TheoryData<string, string, string?> TaiNguyenCuaGiangVienA()
