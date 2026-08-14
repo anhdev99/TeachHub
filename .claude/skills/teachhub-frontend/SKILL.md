@@ -1,14 +1,19 @@
 ---
 name: teachhub-frontend
-description: Dựng và sửa frontend Next.js 15 (App Router, React 19, Tailwind v4, shadcn/ui, TanStack Query) của TeachHub — cấu trúc (instructor)/(student), client gọi API sinh tự động bằng pnpm gen:api, BFF route handler giữ JWT trong cookie httpOnly (ADR-007), cập nhật lạc quan cho kéo-thả, form react-hook-form + zod với payload snake_case, render an toàn nội dung sinh viên nộp bằng Shiki, và responsive cho điện thoại. Dùng skill này khi làm bất cứ thứ gì dưới frontend/src/**, khi tạo trang/màn hình mới (6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.10), khi thêm component shadcn, khi backend đổi DTO và cần sinh lại client TS, khi kéo-thả bị giật hoặc nhảy thứ tự, khi form gửi sai khoá JSON, và cả khi "chạy lại", "sửa", "bổ sung", "cập nhật", "làm tiếp", "review" một màn hình đã có.
+description: Dựng và sửa frontend Next.js 16 (App Router, React 19, Tailwind v4, shadcn/ui, TanStack Query) của TeachHub — cấu trúc (instructor)/(student), client gọi API sinh tự động bằng pnpm gen:api, BFF route handler giữ JWT trong cookie httpOnly (ADR-007), cập nhật lạc quan cho kéo-thả, form react-hook-form + zod với payload snake_case, render an toàn nội dung sinh viên nộp bằng Shiki, và responsive cho điện thoại. Dùng skill này khi làm bất cứ thứ gì dưới frontend/src/**, khi tạo trang/màn hình mới (6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.10), khi thêm component shadcn, khi backend đổi DTO và cần sinh lại client TS, khi kéo-thả bị giật hoặc nhảy thứ tự, khi form gửi sai khoá JSON, và cả khi "chạy lại", "sửa", "bổ sung", "cập nhật", "làm tiếp", "review" một màn hình đã có.
 ---
 
-# Frontend TeachHub — Next.js 15
+# Frontend TeachHub — Next.js 16
 
 Phạm vi: mọi thứ trong `frontend/`. Stack đã chốt ở ADR (bảng §2 tài liệu kiến trúc):
-**Next.js 15 App Router · React 19 · TypeScript · Tailwind v4 · shadcn/ui · TanStack Query ·
+**Next.js 16 App Router · React 19 · TypeScript · Tailwind v4 · shadcn/ui · TanStack Query ·
 openapi-fetch + openapi-typescript · react-hook-form + zod · dnd-kit**.
 Không thay thư viện nào trong danh sách này bằng lựa chọn khác mà không sửa ADR trước.
+
+> **Trước khi gõ dòng code frontend nào: đọc `frontend/node_modules/next/dist/docs/`.**
+> Dự án chạy Next **16.3.1**. Chính `create-next-app` sinh kèm `frontend/AGENTS.md` cảnh báo
+> *"This is NOT the Next.js you know — this version has breaking changes"*. Viết theo trí nhớ
+> về Next 15 là cách nhanh nhất để tạo ra code trông đúng mà không chạy.
 
 Backend chạy ở `http://localhost:5080`, frontend ở `http://localhost:3000`.
 Hợp đồng API là **snake_case** (§5 tài liệu kiến trúc), lỗi luôn là ProblemDetails RFC 9457.

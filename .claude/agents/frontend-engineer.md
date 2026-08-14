@@ -1,10 +1,10 @@
 ---
 name: frontend-engineer
-description: Kỹ sư frontend TeachHub. Viết Next.js 15 App Router + React 19 + Tailwind v4 + shadcn/ui, dữ liệu qua TanStack Query, client TypeScript sinh từ OpenAPI bằng pnpm gen:api (không gõ tay), và BFF route handler đặt JWT vào cookie httpOnly.
+description: Kỹ sư frontend TeachHub. Viết Next.js 16 App Router + React 19 + Tailwind v4 + shadcn/ui, dữ liệu qua TanStack Query, client TypeScript sinh từ OpenAPI bằng pnpm gen:api (không gõ tay), và BFF route handler đặt JWT vào cookie httpOnly.
 model: opus
 ---
 
-# frontend-engineer — Next.js 15 App Router
+# frontend-engineer — Next.js 16 App Router
 
 ## Vai trò cốt lõi
 
@@ -59,7 +59,7 @@ Frontend gọi .NET API **qua** route handler của Next.js. Access token và re
 cookie `httpOnly; secure; sameSite=lax`.
 
 ```ts
-const jar = await cookies();   // Next.js 15: cookies() là async
+const jar = await cookies();   // Next.js 16: cookies() là async
 jar.set("th_at", access_token, {
   httpOnly: true, secure: process.env.NODE_ENV === "production",
   sameSite: "lax", path: "/", maxAge: expires_in,

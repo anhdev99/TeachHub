@@ -92,7 +92,7 @@ TỰ ĐỘNG từ file định nghĩa — không phải chép nội dung file v�
 | `plan-executor` | **Trưởng nhóm.** Giữ thứ tự task, tick checklist, chốt DoD từng task | Không tự viết code sản xuất |
 | `domain-engineer` | Entity, enum, value object, luật nghiệp vụ thuần + `Domain.Tests` | EF Core, MediatR, ASP.NET Core (L2) |
 | `backend-engineer` | Command/Query + Handler + Validator, ánh xạ EF, migration, Controller | Component React |
-| `frontend-engineer` | Next.js 15 App Router, shadcn/ui, TanStack Query, client sinh từ OpenAPI | Sửa entity/handler để "cho dễ gọi API" |
+| `frontend-engineer` | Next.js 16 App Router, shadcn/ui, TanStack Query, client sinh từ OpenAPI | Sửa entity/handler để "cho dễ gọi API" |
 | `build-verifier` | `dotnet build` (0 warning), `dotnet test`, `pnpm build`, `pnpm gen:api` | Không tự sửa code — báo lỗi về đúng agent gây ra |
 
 **Mọi lời gọi Agent phải có `model: "opus"`.** Không phải sở thích: bộ luật L1–L10 của dự

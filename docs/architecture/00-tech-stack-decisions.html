@@ -69,14 +69,34 @@ Mọi quyết định đều ghi rõ lý do (ADR) để sau này đọc lại c�
 <tr><td>Auth</td><td>JWT + refresh token tự làm</td><td><strong>ASP.NET Core Identity</strong> (EF store) + JWT bearer + refresh token xoay vòng</td><td>Không tự viết password hashing/lockout/reset. .NET 10 Identity còn hỗ trợ passkey — để dành P2.</td></tr>
 <tr><td>Test</td><td>không nêu</td><td><strong>xUnit + Testcontainers.PostgreSql 4.13 + Shouldly + FakeTimeProvider</strong></td><td>Test tích hợp chạy trên Postgres thật (jsonb, CHECK constraint, partial index) thay vì InMemory provider vốn không mô phỏng đúng. Dùng template <code>dotnet new xunit</code> mặc định (xUnit 2.9.3) để không tốn công cấu hình; nâng lên xunit.v3 được bất cứ lúc nào, không ảnh hưởng code test.</td></tr>
 <tr><td>Excel</td><td>ClosedXML</td><td><span class="tag t-keep">GIỮ</span> ClosedXML 0.105.1 (cả import lẫn export)</td><td>Một dependency cho cả 2 chiều.</td></tr>
-<tr><td>Frontend</td><td>Next.js + TS + Tailwind + shadcn/ui</td><td><span class="tag t-keep">GIỮ</span> — Next.js 15 App Router, React 19, Tailwind v4</td><td>SRS đã chọn đúng. Không đổi sang Blazor: hệ sinh thái xem PPT/PDF/code-highlight/kéo-thả trên JS trưởng thành hơn nhiều.</td></tr>
+<tr><td>Frontend</td><td>Next.js + TS + Tailwind + shadcn/ui</td><td><span class="tag t-keep">GIỮ</span> — Next.js 16 App Router, React 19, Tailwind v4</td><td>SRS đã chọn đúng. Không đổi sang Blazor: hệ sinh thái xem PPT/PDF/code-highlight/kéo-thả trên JS trưởng thành hơn nhiều.</td></tr>
 </tbody>
 </table>
+
+<div class="danger">
+<strong>Next.js 16, không phải 15 — và hệ quả bắt buộc phải nhớ.</strong>
+Tài liệu này trước đây ghi Next.js 15. Khi thi công Phase 0 Task 0.11 (14/08/2026),
+<code>pnpm create next-app@latest</code> sinh ra <strong>Next 16.3.1</strong>; React 19.2.8 và
+Tailwind v4 thì đúng như đã chốt. Giữ bản công cụ sinh thay vì hạ xuống 15, vì ghim một major đã cũ
+ngay ngày đầu dự án là tự tạo nợ nâng cấp cho một hệ thống dự kiến sống nhiều năm học.
+<br><br>
+<strong>Hệ quả không được bỏ qua:</strong> chính <code>create-next-app</code> sinh kèm
+<code>frontend/AGENTS.md</code> mở đầu bằng <em>"This is NOT the Next.js you know — This version has
+breaking changes… Read the relevant guide in <code>node_modules/next/dist/docs/</code> before writing
+any code."</em> Nghĩa là với mọi việc frontend từ Phase 1 trở đi, <strong>đọc tài liệu trong
+<code>node_modules/next/dist/docs/</code> trước khi gõ code</strong>, đừng viết theo trí nhớ về Next 15 —
+API, quy ước và cấu trúc file đều có thể đã khác.
+<br><br>
+<strong>Đã kiểm chứng chạy được trên 16.3.1:</strong> App Router + route group <code>(instructor)</code>,
+route handler <code>src/app/api/**</code>, <code>await cookies()</code> đọc và ghi cookie httpOnly,
+<code>redirect()</code> trong server component, và <code>params</code> kiểu <code>Promise</code>
+trong catch-all route.
+</div>
 
 <h2>2. Sơ đồ kiến trúc (bản .NET 10)</h2>
 
 <pre><code>┌──────────────────────────────────────┐         ┌────────────────────────────────────────────┐
-│  frontend/  Next.js 15 (App Router)  │  HTTPS  │  backend/  .NET 10 Web API                 │
+│  frontend/  Next.js 16 (App Router)  │  HTTPS  │  backend/  .NET 10 Web API                 │
 │  React 19 · TS · Tailwind v4         │────────▶│  ┌──────────────────────────────────────┐  │
 │  shadcn/ui · TanStack Query          │  JWT    │  │ TeachHub.Api (Controllers → MediatR) │  │
 │  openapi-fetch (client sinh tự động) │◀────────│  │  auth · subjects · offerings ·       │  │
@@ -128,7 +148,7 @@ Mọi quyết định đều ghi rõ lý do (ADR) để sau này đọc lại c�
 │     ├─ TeachHub.Domain.Tests/      # unit, nhanh, không I/O
 │     ├─ TeachHub.Application.Tests/ # handler + behavior, fake port, KHÔNG dựng HTTP
 │     └─ TeachHub.Api.Tests/         # integration: WebApplicationFactory + Testcontainers
-├─ frontend/                         # Next.js 15
+├─ frontend/                         # Next.js 16
 │  ├─ src/app/(instructor)/ …
 │  ├─ src/app/(student)/ …
 │  ├─ src/lib/api/                   # client sinh từ OpenAPI

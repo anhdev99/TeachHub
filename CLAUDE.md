@@ -1,6 +1,6 @@
 # TeachHub — Hướng dẫn cho AI agent
 
-Hệ thống quản lý dạy học cá nhân. Backend .NET 10 + Controllers/MediatR, frontend Next.js 15,
+Hệ thống quản lý dạy học cá nhân. Backend .NET 10 + Controllers/MediatR, frontend Next.js 16,
 PostgreSQL 17. Tài liệu thiết kế đầy đủ ở [`docs/index.html`](docs/index.html).
 
 ---
@@ -110,7 +110,7 @@ về **nghiệp vụ**. Khi SRS và tài liệu kiến trúc mâu thuẫn về m
 | Trước khi gõ bất kỳ file khung nào (`.sln`, `.csproj`, migration, khởi tạo Next.js) | skill `teachhub-scaffold` |
 | Sửa `backend/src/TeachHub.Application` hoặc `TeachHub.Api` | skill `teachhub-backend` |
 | Entity, EF configuration, migration, truy vấn | skill `teachhub-data` |
-| Bất kỳ file nào dưới `frontend/` | skill `teachhub-frontend` |
+| Bất kỳ file nào dưới `frontend/` | skill `teachhub-frontend` — **đọc `frontend/node_modules/next/dist/docs/` trước khi gõ code**, xem ghi chú Next 16 bên dưới |
 | Chạy build/test, kiểm tuân thủ luật | skill `teachhub-verify` |
 
 Câu hỏi đơn giản (một dòng, một khái niệm) thì trả lời thẳng, không cần gọi skill.
@@ -128,6 +128,19 @@ Spawn bằng `Agent` với `subagent_type` đúng tên file, luôn `model: "opus
 |------|----------|-----------|-------|
 | 2026-08-14 | Dựng harness ban đầu | 5 agent + 6 skill | Chuẩn bị thi công Phase 0 |
 | 2026-08-14 | Vá 5 blocker + 19 major sau vòng kiểm chứng | agents + skills | "Đỏ đúng lý do" bị dạy ngược nguồn chân lý; BFF cookie không biên dịch trên Next.js 15; orchestrator dựng trên hai công cụ không tồn tại; 6 lệnh grep của build-verifier báo FAIL trên chính khuôn đúng của dự án |
+| 2026-08-15 | Cập nhật stack sang Next.js 16 + vá 8 chỗ sai trong plan Phase 0 | docs + agents + skills | Thi công Phase 0 thật cho thấy `create-next-app@latest` sinh Next 16; và plan sai ở 8 chỗ, nặng nhất là `AddAuth` đọc config lúc đăng ký service khiến mọi request có token trả 401 mà không log gì |
+
+## Next.js 16 — đọc tài liệu trong `node_modules`, đừng viết theo trí nhớ
+
+Frontend chạy **Next 16.3.1** (do `pnpm create next-app@latest` sinh ở Phase 0 Task 0.11), không
+phải 15 như bản tài liệu đầu tiên ghi. Chính `create-next-app` sinh kèm `frontend/AGENTS.md` mở đầu
+bằng *"This is NOT the Next.js you know — This version has breaking changes… Read the relevant guide
+in `node_modules/next/dist/docs/` before writing any code."*
+
+Vì thế: **mọi việc dưới `frontend/` phải đọc `frontend/node_modules/next/dist/docs/` trước.** API,
+quy ước và cấu trúc file có thể đã khác bản trong trí nhớ mô hình. Đã kiểm chứng chạy được trên
+16.3.1: App Router + route group, route handler `src/app/api/**`, `await cookies()` đọc/ghi cookie
+httpOnly, `redirect()` trong server component, `params` kiểu `Promise` trong catch-all route.
 
 ## Ngôn ngữ
 

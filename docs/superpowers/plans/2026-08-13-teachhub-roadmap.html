@@ -39,7 +39,7 @@ label.ck{display:block;margin:.25rem 0}
 <main>
 
 <h1>TeachHub — Roadmap triển khai</h1>
-<p class="meta">13/08/2026 · Backend .NET 10 (LTS) · Clean Architecture 4 tầng · Controllers + MediatR (CQRS) · Frontend Next.js 15 · PostgreSQL 17<br>
+<p class="meta">13/08/2026 · Backend .NET 10 (LTS) · Clean Architecture 4 tầng · Controllers + MediatR (CQRS) · Frontend Next.js 16 · PostgreSQL 17<br>
 Dựa trên <a href="../../requirements/SRS-LMS-GiangVien.md">SRS v1.0</a> và <a href="../../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a>.</p>
 
 <blockquote>
@@ -154,7 +154,7 @@ ma trận cách ly chỉ có giá trị khi nó lớn cùng nhịp với hệ th
 <h3><span class="tag t-mvp">MVP</span> Phase 0 — Nền móng</h3>
 <p><strong>Plan:</strong> <a href="2026-08-13-phase-0-foundation.html">2026-08-13-phase-0-foundation.html</a> · <strong>Ước lượng:</strong> 6–8 ngày</p>
 <p><strong>Kết quả bàn giao:</strong> chạy <code>docker compose up</code> + <code>dotnet run</code> + <code>pnpm dev</code> là có một API .NET 10 sống, đăng nhập được bằng tài khoản giảng viên, trang chủ Next.js gọi được endpoint có bảo vệ, CI xanh trên GitHub.</p>
-<p><strong>Bao gồm:</strong> solution 4 project + 3 test project (Clean Architecture: Domain ← Application ← Infrastructure ← Api) · Central Package Management · docker-compose (Postgres 17 + MinIO) · EF Core 10 + Npgsql + snake_case + UUIDv7 · <strong>Controllers</strong> (<code>[ApiController]</code>, fallback policy bắt buộc xác thực) · <strong>MediatR 12.5 + pipeline behaviors (logging / validation / transaction)</strong> · <strong>FluentValidation</strong> · ASP.NET Identity + JWT + refresh token · ProblemDetails RFC 9457 · OpenAPI 3.1 + Scalar · Serilog · health check · Hangfire + dashboard · <code>IFileStorage</code> (local + S3) · Testcontainers harness · Next.js 15 + Tailwind v4 + shadcn/ui + sinh client TS từ OpenAPI · GitHub Actions.</p>
+<p><strong>Bao gồm:</strong> solution 4 project + 3 test project (Clean Architecture: Domain ← Application ← Infrastructure ← Api) · Central Package Management · docker-compose (Postgres 17 + MinIO) · EF Core 10 + Npgsql + snake_case + UUIDv7 · <strong>Controllers</strong> (<code>[ApiController]</code>, fallback policy bắt buộc xác thực) · <strong>MediatR 12.5 + pipeline behaviors (logging / validation / transaction)</strong> · <strong>FluentValidation</strong> · ASP.NET Identity + JWT + refresh token · ProblemDetails RFC 9457 · OpenAPI 3.1 + Scalar · Serilog · health check · Hangfire + dashboard · <code>IFileStorage</code> (local + S3) · Testcontainers harness · Next.js 16 + Tailwind v4 + shadcn/ui + sinh client TS từ OpenAPI · GitHub Actions.</p>
 <p><strong>Vì sao ước lượng tăng từ 3–5 lên 6–8 ngày:</strong> thêm hẳn một lớp hạ tầng phải dựng đúng ngay từ đầu — hợp đồng <code>ICommand</code>/<code>IQuery</code>, ba pipeline behavior và thứ tự đăng ký của chúng (Logging → Validation → Transaction → Handler). Đăng ký sai thứ tự thì mỗi request sai dữ liệu vẫn mở một transaction rồi rollback vô ích, và lỗi kiểu đó không hiện ra ở test nào cả. Ghim <code>MediatR 12.5.0</code> (Apache-2.0), không nhảy lên 13.x — từ v13 giấy phép đổi sang RPL-1.5 hoặc bản thương mại.</p>
 <p><strong>Nghiệm thu:</strong> đăng nhập bằng tài khoản seed <code>instructor@teachhub.local</code> → nhận JWT → gọi <code>GET /api/me</code> trả đúng role → refresh token đổi được token mới → token cũ bị vô hiệu.</p>
 </div>

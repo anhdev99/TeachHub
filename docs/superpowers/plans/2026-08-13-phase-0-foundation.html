@@ -49,7 +49,7 @@ Khi bắt đầu, sinh kèm bản <code>.md</code> của file này để tick ti
 
 <p><strong>Kiến trúc:</strong> Clean Architecture 4 tầng (Domain ← Application ← Infrastructure ← Api) với <strong>Controllers</strong> ở tầng Api và <strong>MediatR</strong> làm xương sống CQRS giữa Api và Application. Controller chỉ định tuyến rồi <code>sender.Send(...)</code>; toàn bộ nghiệp vụ nằm trong Command/Query handler theo vertical slice. Domain thuần C#, không biết EF Core, để luật nghiệp vụ test được trong mili-giây. Toàn bộ phụ thuộc hạ tầng (DB, storage, job, thời gian) đi qua interface do Application định nghĩa.</p>
 
-<p><strong>Tech stack:</strong> .NET 10 (LTS) · C# 14 · ASP.NET Core Controllers · <strong>MediatR 12.5 (CQRS)</strong> + <strong>FluentValidation 12.1</strong> · EF Core 10 + Npgsql 10 · PostgreSQL 17 · ASP.NET Core Identity + JWT · Hangfire 1.8 (Postgres storage) · MinIO/S3 · xUnit + Testcontainers + Shouldly · Next.js 15 + React 19 + Tailwind v4 + shadcn/ui.</p>
+<p><strong>Tech stack:</strong> .NET 10 (LTS) · C# 14 · ASP.NET Core Controllers · <strong>MediatR 12.5 (CQRS)</strong> + <strong>FluentValidation 12.1</strong> · EF Core 10 + Npgsql 10 · PostgreSQL 17 · ASP.NET Core Identity + JWT · Hangfire 1.8 (Postgres storage) · MinIO/S3 · xUnit + Testcontainers + Shouldly · Next.js 16 + React 19 + Tailwind v4 + shadcn/ui.</p>
 
 <p class="meta"><strong>Vì sao Controllers chứ không Minimal API:</strong> hợp đồng API trong SRS mục 7 không đổi, nhưng với ~18 nhóm endpoint thì attribute routing trên class cho phép gắn policy, rate limit và giới hạn kích thước request một lần cho cả nhóm, và <code>ApiControllerBase</code> gom được phần quy đổi <code>Result</code> → HTTP về đúng một chỗ. MediatR gánh phần còn lại: mỗi use case là một Command/Query, các mối lo cắt ngang (log, validate, transaction) nằm trong pipeline behavior thay vì lặp lại trong từng handler.</p>
 
@@ -80,7 +80,7 @@ Khi bắt đầu, sinh kèm bản <code>.md</code> của file này để tick ti
 <tr><td><code>src/TeachHub.Api/Controllers/AuthController.cs</code></td><td><code>[Route("api/auth")]</code> — login / refresh / me</td></tr>
 <tr><td><code>src/TeachHub.Api/Common/ValidationExceptionHandler.cs</code>, <code>CurrentUser.cs</code></td><td>Quy đổi <code>ValidationException</code> → 400 <code>ValidationProblemDetails</code>; đọc userId từ claim</td></tr>
 <tr><td><code>tests/TeachHub.Api.Tests/TeachHubApiFactory.cs</code></td><td>Host test + Postgres container + migrate tự động</td></tr>
-<tr><td><code>frontend/</code></td><td>Next.js 15, BFF route handler, client TS sinh từ OpenAPI, trang đăng nhập</td></tr>
+<tr><td><code>frontend/</code></td><td>Next.js 16, BFF route handler, client TS sinh từ OpenAPI, trang đăng nhập</td></tr>
 <tr><td><code>.github/workflows/ci.yml</code></td><td>Build + test backend, build frontend</td></tr>
 </tbody>
 </table>
@@ -134,6 +134,10 @@ dotnet new packagesprops   # sinh Directory.Packages.props (Central Package Mana
 <pre><code>&lt;Project&gt;
   &lt;PropertyGroup&gt;
     &lt;ManagePackageVersionsCentrally&gt;true&lt;/ManagePackageVersionsCentrally&gt;
+    &lt;!-- BẮT BUỘC. Thiếu dòng này thì PackageVersion chỉ tác dụng với package được tham chiếu
+         TRỰC TIẾP, nên không vá được lỗ hổng nằm sâu trong đồ thị phụ thuộc — xem ghi chú
+         về SSH.NET ngay dưới, và về Newtonsoft.Json ở Task 0.9. --&gt;
+    &lt;CentralPackageTransitivePinningEnabled&gt;true&lt;/CentralPackageTransitivePinningEnabled&gt;
   &lt;/PropertyGroup&gt;
   &lt;ItemGroup Label="Data"&gt;
     &lt;PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" /&gt;
@@ -171,6 +175,10 @@ dotnet new packagesprops   # sinh Directory.Packages.props (Central Package Mana
     &lt;PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" /&gt;
     &lt;PackageVersion Include="Shouldly" Version="4.3.0" /&gt;
     &lt;PackageVersion Include="NSubstitute" Version="6.2.0" /&gt;
+    &lt;!-- Không dùng trực tiếp: Testcontainers kéo theo SSH.NET 2025.1.0 dính lỗ hổng high
+         (GHSA-q939-rpr3-3284). NuGet audit báo NU1903 và TreatWarningsAsErrors biến nó thành
+         LỖI build ngay khi thêm Testcontainers ở Task 0.5. ĐỪNG tắt NuGetAudit để né. --&gt;
+    &lt;PackageVersion Include="SSH.NET" Version="2026.0.0" /&gt;
     &lt;PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" /&gt;
     &lt;PackageVersion Include="Testcontainers.Minio" Version="4.13.0" /&gt;
     &lt;PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" /&gt;
@@ -198,7 +206,9 @@ comment cạnh nó làm rào chắn. Nếu một ngày cần rời MediatR, hai 
 
 <label class="ck"><input type="checkbox"> Bước 4 — Tạo solution &amp; các project</label>
 <pre><code>cd backend
-dotnet new sln -n TeachHub
+# -f sln là BẮT BUỘC: .NET 10 mặc định sinh TeachHub.slnx (định dạng XML mới), trong khi
+# CI, lệnh nghiệm thu DoD và mọi tài liệu đều tham chiếu backend/TeachHub.sln.
+dotnet new sln -n TeachHub -f sln
 
 dotnet new classlib -o src/TeachHub.Domain
 dotnet new classlib -o src/TeachHub.Application
@@ -299,7 +309,9 @@ public class EntityTests
         var truoc = Guid.CreateVersion7(t0);
         var sau   = Guid.CreateVersion7(t0.AddMinutes(1));
 
-        string Hex(Guid g) =&gt; Convert.ToHexString(g.ToByteArray(bigEndian: true));
+        // static là BẮT BUỘC: EnforceCodeStyleInBuild + TreatWarningsAsErrors biến
+        // IDE0062 ("local function can be made static") thành LỖI build.
+        static string Hex(Guid g) =&gt; Convert.ToHexString(g.ToByteArray(bigEndian: true));
 
         string.CompareOrdinal(Hex(truoc), Hex(sau)).ShouldBeLessThan(0);
     }
@@ -423,7 +435,12 @@ dotnet add src/TeachHub.Infrastructure  package Microsoft.EntityFrameworkCore
 dotnet add src/TeachHub.Infrastructure  package Microsoft.EntityFrameworkCore.Design
 dotnet add src/TeachHub.Infrastructure  package Npgsql.EntityFrameworkCore.PostgreSQL
 dotnet add src/TeachHub.Infrastructure  package EFCore.NamingConventions
-dotnet add src/TeachHub.Infrastructure  package Microsoft.AspNetCore.Identity.EntityFrameworkCore</code></pre>
+dotnet add src/TeachHub.Infrastructure  package Microsoft.AspNetCore.Identity.EntityFrameworkCore
+
+# BẮT BUỘC, dù trông thừa: dotnet ef đòi Design ở STARTUP project, mà PrivateAssets=all
+# của gói này chặn nó lan từ Infrastructure sang Api. Thiếu dòng dưới thì Bước 5 báo
+# "Your startup project 'TeachHub.Api' doesn't reference Microsoft.EntityFrameworkCore.Design".
+dotnet add src/TeachHub.Api             package Microsoft.EntityFrameworkCore.Design</code></pre>
 
 <div class="hint"><strong>Chờ đã — Domain tham chiếu <code>Microsoft.Extensions.Identity.Stores</code> có vi phạm <code>ArchitectureTests</code> không?</strong> Không: danh sách cấm là EF Core / Npgsql / Hangfire / AspNetCore / AWSSDK. <code>Identity.Stores</code> chỉ chứa <code>IdentityUser&lt;TKey&gt;</code> là POCO thuần, không kéo theo hạ tầng. Nếu bạn muốn Domain sạch tuyệt đối, thay bằng cách để <code>AppUser</code> nằm ở Infrastructure và Domain chỉ giữ <code>UserId</code> — nhưng đánh đổi đó không đáng cho quy mô này.</div>
 
@@ -528,6 +545,20 @@ public sealed class AppDbContext(DbContextOptions&lt;AppDbContext&gt; options, T
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
+
+        // BẮT BUỘC — không có khối này thì 7 bảng Identity giữ nguyên tên PascalCase.
+        // IdentityDbContext đặt tên chúng TƯỜNG MINH bằng ToTable("AspNetUsers"), và cấu hình
+        // tường minh luôn thắng convention. UseSnakeCaseNamingConvention() vẫn chạy đúng cho
+        // cột, khoá chính, khoá ngoại và index — nên schema sẽ lẫn lộn "AspNetUsers" với cột
+        // "normalized_email" nếu bỏ qua.
+        b.Entity&lt;AppUser&gt;().ToTable("asp_net_users");
+        b.Entity&lt;AppRole&gt;().ToTable("asp_net_roles");
+        b.Entity&lt;IdentityUserRole&lt;Guid&gt;&gt;().ToTable("asp_net_user_roles");
+        b.Entity&lt;IdentityUserClaim&lt;Guid&gt;&gt;().ToTable("asp_net_user_claims");
+        b.Entity&lt;IdentityUserLogin&lt;Guid&gt;&gt;().ToTable("asp_net_user_logins");
+        b.Entity&lt;IdentityRoleClaim&lt;Guid&gt;&gt;().ToTable("asp_net_role_claims");
+        b.Entity&lt;IdentityUserToken&lt;Guid&gt;&gt;().ToTable("asp_net_user_tokens");
+
         b.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 
@@ -600,7 +631,12 @@ dotnet ef database update -p src/TeachHub.Infrastructure -s src/TeachHub.Api</co
 
 <label class="ck"><input type="checkbox"> Bước 6 — Xác minh tên bảng đã đúng <code>snake_case</code></label>
 <pre><code>docker exec -it teachhub-db psql -U teachhub -d teachhub -c '\dt'</code></pre>
-<p>Kỳ vọng: thấy <code>asp_net_users</code>, <code>asp_net_roles</code>, <code>refresh_tokens</code> — <strong>không phải</strong> <code>AspNetUsers</code>. Nếu vẫn PascalCase thì <code>UseSnakeCaseNamingConvention()</code> chưa được gọi.</p>
+<p>Kỳ vọng: thấy <code>asp_net_users</code>, <code>asp_net_roles</code>, <code>refresh_tokens</code> — <strong>không phải</strong> <code>AspNetUsers</code>.</p>
+<div class="hint"><strong>Nếu vẫn thấy PascalCase, đừng đi tìm <code>UseSnakeCaseNamingConvention()</code>.</strong>
+Kiểm tên <em>cột</em> trước: nếu cột đã là <code>normalized_email</code> và khoá là <code>pk_asp_net_users</code>
+thì convention đang chạy đúng, và thủ phạm là khối <code>ToTable(...)</code> ở Bước 4 bị bỏ quên —
+<code>IdentityDbContext</code> đặt tên bảng tường minh nên convention không với tới được.
+Sửa model rồi <code>dotnet ef migrations remove</code> và sinh lại; <strong>đừng</strong> vá tay file migration.</div>
 
 <label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
 <pre><code>git add -A &amp;&amp; git commit -m "feat(data): add identity entities, AppDbContext with snake_case and initial migration"</code></pre>
@@ -629,9 +665,9 @@ namespace TeachHub.Api.Tests;
 /// &lt;/summary&gt;
 public sealed class TeachHubApiFactory : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder()
-        .WithImage("postgres:17-alpine")
-        .Build();
+    // Constructor rỗng đã obsolete từ Testcontainers 4.13 (CS0618 → lỗi build vì
+    // TreatWarningsAsErrors). Truyền image qua constructor.
+    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder("postgres:17-alpine").Build();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -1616,16 +1652,20 @@ public static class AuthDependencyInjection
             .AddRoles&lt;AppRole&gt;()
             .AddEntityFrameworkStores&lt;AppDbContext&gt;();
 
-        var key = config["Jwt:Key"]!;
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(o =&gt;
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+
+        // Đọc tham số kiểm token qua IOptions&lt;JwtOptions&gt;, KHÔNG đọc thẳng config["Jwt:Key"]
+        // ngay tại đây — xem khối cảnh báo bên dưới, đây là lỗi âm thầm nhất của cả phase.
+        services.AddOptions&lt;JwtBearerOptions&gt;(JwtBearerDefaults.AuthenticationScheme)
+            .Configure&lt;IOptions&lt;JwtOptions&gt;&gt;((bearer, jwt) =&gt;
             {
-                o.TokenValidationParameters = new TokenValidationParameters
+                var opt = jwt.Value;
+                bearer.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,   ValidIssuer   = config["Jwt:Issuer"],
-                    ValidateAudience = true, ValidAudience = config["Jwt:Audience"],
+                    ValidateIssuer = true,   ValidIssuer   = opt.Issuer,
+                    ValidateAudience = true, ValidAudience = opt.Audience,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(opt.Key)),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromSeconds(30),
                 };
@@ -1656,6 +1696,28 @@ public static class Policies
     public const string Student        = nameof(Student);
 }</code></pre>
 
+<div class="hint danger">
+<strong>Cấu hình bảo mật phải đọc qua <code>IOptions</code>, không đọc thẳng <code>IConfiguration</code>
+lúc đăng ký service.</strong> Đây là lỗi tốn nhiều thời gian nhất của Phase 0 và nó không để lại
+dấu vết nào.
+<br><br>
+<code>var key = config["Jwt:Key"]</code> đọc giá trị <em>ngay tại thời điểm đăng ký service</em>.
+Nhưng <code>TokenService</code> nhận <code>IOptions&lt;JwtOptions&gt;</code> và đọc <em>lúc chạy</em>.
+Hai thời điểm khác nhau, nên mọi nguồn cấu hình nạp <strong>sau</strong> lúc đăng ký chỉ tới được
+một vế: <code>ConfigureAppConfiguration</code> của <code>WebApplicationFactory</code> trong test,
+biến môi trường của container, Key Vault khi triển khai.
+<br><br>
+<strong>Triệu chứng thật đã gặp:</strong> test ký token bằng issuer <code>teachhub-test</code> (đúng
+cấu hình test) trong khi JwtBearer kiểm bằng <code>teachhub</code> (lấy từ <code>appsettings.json</code>
+lúc đăng ký). Kết quả: <code>POST /api/auth/login</code> trả 200 bình thường, nhưng <strong>mọi
+request kèm token đều 401</strong> — không exception, không log, không cảnh báo. Chạy API bằng tay
+thì mọi thứ đúng, chỉ test đỏ, nên rất dễ đi tìm nhầm ở phía test.
+<br><br>
+Quy tắc rút ra, áp cho <strong>mọi</strong> option của dự án (kể cả <code>StorageOptions.Provider</code>
+ở Task 0.10): <em>giá trị cấu hình chỉ được đọc bên trong một lambda chạy lúc phân giải service,
+không đọc ở thân hàm <code>AddXxx</code>.</em>
+</div>
+
 <label class="ck"><input type="checkbox"> Bước 6 — Command / Query cho Auth (Application)</label>
 <p><code>src/TeachHub.Application/Features/Auth/Commands/Login/LoginCommand.cs</code>:</p>
 <pre><code>using FluentValidation;
@@ -1672,8 +1734,14 @@ public sealed class LoginValidator : AbstractValidator&lt;LoginCommand&gt;
 {
     public LoginValidator()
     {
-        RuleFor(x =&gt; x.Email).NotEmpty().EmailAddress();
-        RuleFor(x =&gt; x.Password).NotEmpty();
+        // .WithMessage() là BẮT BUỘC cho mọi luật: thông báo mặc định của FluentValidation là
+        // tiếng Anh ("'Email' is not a valid email address.") và thư viện KHÔNG có gói ngôn ngữ
+        // tiếng Việt. Quy ước dự án: thông báo lỗi trả cho người dùng viết tiếng Việt.
+        RuleFor(x =&gt; x.Email)
+            .NotEmpty().WithMessage("Chưa nhập email.")
+            .EmailAddress().WithMessage("Email không đúng định dạng.");
+        RuleFor(x =&gt; x.Password)
+            .NotEmpty().WithMessage("Chưa nhập mật khẩu.");
     }
 }
 
@@ -1765,8 +1833,12 @@ using TeachHub.Application.Common;
 
 namespace TeachHub.Api.Controllers;
 
+// KHÔNG gắn [Produces("application/json")] ở đây. Nó ép content-type cho MỌI phản hồi của
+// mọi controller, kể cả phản hồi lỗi — nên 401/404/409 trả đúng thân ProblemDetails nhưng
+// gắn nhãn "application/json" thay vì "application/problem+json" theo RFC 9457, và bước 6
+// của kịch bản nghiệm thu Phase 0 sẽ đỏ. JSON vẫn là định dạng duy nhất vì chỉ có
+// formatter JSON được đăng ký.
 [ApiController]
-[Produces("application/json")]
 public abstract class ApiControllerBase : ControllerBase
 {
     /// &lt;summary&gt;
@@ -2515,7 +2587,7 @@ services.AddScoped&lt;IFileStorage&gt;(sp =&gt;
 </div>
 
 <div class="task">
-<h3>Task 0.11 — Frontend Next.js 15 + client sinh từ OpenAPI</h3>
+<h3>Task 0.11 — Frontend Next.js 16 + client sinh từ OpenAPI</h3>
 <div class="files"><b>Tạo:</b> <code>frontend/</code> · <code>frontend/src/lib/api/client.ts</code> · <code>frontend/src/app/api/[...path]/route.ts</code> · <code>frontend/src/app/login/page.tsx</code></div>
 
 <label class="ck"><input type="checkbox"> Bước 1 — Khởi tạo dự án</label>
