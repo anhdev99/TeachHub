@@ -41,6 +41,28 @@ public sealed class IsolationFixture : TeachHubApiFactory
         var inviteJson = await invite.Content.ReadFromJsonAsync<JsonElement>();
         _idCuaA["inviteId"] = inviteJson.GetProperty("id").GetString()!;
 
+        // ---- Thế giới nội dung của A: môn → phiên bản → chương → bài → component ----
+        var (subjectId, versionId) = await SeedSubjectWithDraftAsync(GvA);
+        _idCuaA["subjectId"] = subjectId.ToString();
+        _idCuaA["versionId"] = versionId.ToString();
+
+        var chuong = await GvA.PostAsJsonAsync($"/api/subject-versions/{versionId}/chapters",
+            new { title = "Chương của A" });
+        chuong.EnsureSuccessStatusCode();
+        var chapterId = (await chuong.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        _idCuaA["chapterId"] = chapterId.ToString();
+
+        var bai = await GvA.PostAsJsonAsync($"/api/chapters/{chapterId}/lessons",
+            new { title = "Bài của A" });
+        bai.EnsureSuccessStatusCode();
+        var lessonId = (await bai.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        _idCuaA["lessonId"] = lessonId.ToString();
+
+        var cp = await GvA.PostAsJsonAsync($"/api/lessons/{lessonId}/components", new { type = "hook" });
+        cp.EnsureSuccessStatusCode();
+        _idCuaA["componentId"] =
+            (await cp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
         // ---- Giảng viên B: độc lập hoàn toàn, được tạo qua đúng luồng lời mời ----
         var moiB = await GvA.PostAsJsonAsync("/api/instructor/invites", new { email = EmailB });
         var tokenB = (await moiB.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;

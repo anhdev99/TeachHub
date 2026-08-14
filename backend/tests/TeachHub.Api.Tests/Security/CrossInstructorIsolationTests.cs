@@ -12,10 +12,32 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassF
     /// Phase nào thêm loại tài nguyên mới thì thêm dòng vào đây — đó là điều kiện của
     /// Definition of Done mục 7, không phải việc tuỳ tâm.
     /// </summary>
-    internal static readonly (string Method, string Template)[] TaiNguyen =
+    /// <remarks>
+    /// <c>Body</c> là JSON hợp lệ cho method có thân request. BẮT BUỘC phải có: gửi POST/PUT
+    /// không kèm body thì request dừng ở 400 vì model binding, tức test đỏ vì lý do hoàn toàn
+    /// khác chứ không kiểm được lớp phân quyền. Body phải đủ hợp lệ để đi qua cả validator.
+    /// </remarks>
+    internal static readonly (string Method, string Template, string? Body)[] TaiNguyen =
     [
-        ("DELETE", "/api/instructor/invites/{inviteId}"),
-        // Phase 1 bổ sung: subjects, subject-versions, chapters, lessons, lesson-components
+        ("DELETE", "/api/instructor/invites/{inviteId}", null),
+
+        // Phase 1
+        ("GET",    "/api/subjects/{subjectId}",                    null),
+        ("GET",    "/api/subjects/{subjectId}/versions",           null),
+        ("POST",   "/api/subjects/{subjectId}/versions",           "{\"version_label\":\"ban-cua-b\"}"),
+        ("PUT",    "/api/subject-versions/{versionId}",            "{\"changelog\":\"b sua len\"}"),
+        ("POST",   "/api/subject-versions/{versionId}/publish",    null),
+        ("GET",    "/api/subject-versions/{versionId}/chapters",   null),
+        ("POST",   "/api/subject-versions/{versionId}/chapters",   "{\"title\":\"chuong cua b\"}"),
+        ("GET",    "/api/chapters/{chapterId}/lessons",            null),
+        ("POST",   "/api/chapters/{chapterId}/lessons",            "{\"title\":\"bai cua b\"}"),
+        ("DELETE", "/api/chapters/{chapterId}",                    null),
+        ("GET",    "/api/lessons/{lessonId}",                      null),
+        ("PUT",    "/api/lessons/{lessonId}/reorder",              "{\"to_index\":0}"),
+        ("POST",   "/api/lessons/{lessonId}/components",           "{\"type\":\"hook\"}"),
+        ("DELETE", "/api/lesson-components/{componentId}",         null),
+        ("PUT",    "/api/lesson-components/{componentId}/reorder", "{\"to_index\":0}"),
+
         // Phase 2 bổ sung: offerings, enrollments, my-progress
         // Phase 3 bổ sung: assignments, submission-slots, submissions, file-tree, entry
         // Phase 4a bổ sung: groups, grade, final-assessments, dashboard
@@ -26,13 +48,23 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassF
     internal static readonly string[] DanhSach =
     [
         "/api/instructor/invites",
+        "/api/subjects",
     ];
 
-    public static TheoryData<string, string> TaiNguyenCuaGiangVienA()
+    public static TheoryData<string, string, string?> TaiNguyenCuaGiangVienA()
     {
-        var data = new TheoryData<string, string>();
-        foreach (var (method, template) in TaiNguyen) data.Add(method, template);
+        var data = new TheoryData<string, string, string?>();
+        foreach (var (method, template, body) in TaiNguyen) data.Add(method, template, body);
         return data;
+    }
+
+    /// <summary>Dựng request kèm body JSON nếu có — dùng chung cho cả hai test của ma trận.</summary>
+    private static HttpRequestMessage TaoRequest(string method, string url, string? body)
+    {
+        var req = new HttpRequestMessage(new HttpMethod(method), url);
+        if (body is not null)
+            req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+        return req;
     }
 
     public static TheoryData<string> EndpointDanhSach()
@@ -44,11 +76,11 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassF
 
     [Theory]
     [MemberData(nameof(TaiNguyenCuaGiangVienA))]
-    public async Task Giang_vien_khac_luon_nhan_404(string method, string template)
+    public async Task Giang_vien_khac_luon_nhan_404(string method, string template, string? body)
     {
         var url = fx.Resolve(template);
 
-        var res = await fx.GvB.SendAsync(new HttpRequestMessage(new HttpMethod(method), url));
+        var res = await fx.GvB.SendAsync(TaoRequest(method, url, body));
 
         res.StatusCode.ShouldBe(HttpStatusCode.NotFound,
             $"{method} {url}: phải trả 404 cho giảng viên khác. Trả 403 là xác nhận id này CÓ TỒN TẠI, " +
@@ -80,10 +112,10 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassF
     {
         // Canh gác cho ADR-013: vai trò TeachingAssistant tồn tại nhưng KHÔNG được cấp quyền gì.
         // Test này đỏ ngay nếu ai đó về sau vô tình thêm lại một policy cho nó.
-        foreach (var (method, template) in TaiNguyen)
+        foreach (var (method, template, body) in TaiNguyen)
         {
             var url = fx.Resolve(template);
-            var res = await fx.TroGiang.SendAsync(new HttpRequestMessage(new HttpMethod(method), url));
+            var res = await fx.TroGiang.SendAsync(TaoRequest(method, url, body));
 
             res.StatusCode.ShouldBeOneOf(HttpStatusCode.Forbidden, HttpStatusCode.NotFound);
         }
