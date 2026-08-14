@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Hồ sơ thiết kế</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand-900:#0d59cf; --brand-700:#017fcc; --brand-500:#2281df;
+  --brand-300:#90b3ff; --brand-100:#e6f1fb;
+  --danger:#dc2626; --warning:#e58a00; --success:#2ca87f;
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --fg:var(--n800); --fg-muted:var(--n500);
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --fg:#f3f5f7; --fg-muted:#8996a4; --brand-100:#122436;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --fg:#f3f5f7; --fg-muted:#8996a4; --brand-100:#122436;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.65 var(--font);padding:2.5rem 1.25rem 6rem}
+main{max-width:960px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.25rem;font-weight:700;margin:2.8rem 0 .8rem;padding-bottom:.35rem;border-bottom:2px solid var(--brand-700)}
+.lede{color:var(--fg-muted);margin:0 0 2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+a{color:var(--brand-700)}
+.doc{display:block;border:1px solid var(--line);border-left:4px solid var(--brand-700);
+     border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:.9rem 1.1rem;margin:.6rem 0;
+     background:var(--surface);color:inherit;text-decoration:none;box-shadow:var(--shadow)}
+.doc:hover{border-left-color:var(--brand-900);background:var(--brand-100)}
+.doc .t{font-weight:650;color:var(--brand-700);font-size:1.02rem}
+.doc .s{font:500 .72rem var(--mono);color:var(--fg-muted);text-transform:uppercase;letter-spacing:.04em}
+.doc .d{color:var(--fg-muted);font-size:.9rem;margin-top:.2rem}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);padding:.7rem 1rem;
+     border-radius:0 var(--radius) var(--radius) 0;font-size:.93rem;margin:1rem 0}
+.note{border-left:3px solid var(--warning);background:var(--surface-2);padding:.7rem 1rem;
+      border-radius:0 var(--radius) var(--radius) 0;font-size:.93rem;margin:1rem 0}
+.sw{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0}
+.sw span{font:500 .68rem var(--mono);padding:.5rem .55rem;border-radius:var(--radius);
+         border:1px solid var(--line);min-width:78px;text-align:center}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0}
+th,td{border:1px solid var(--line);padding:.45rem .65rem;text-align:left}
+th{background:var(--surface-2);font-weight:600}
+ul{padding-left:1.2rem}li{margin:.3rem 0}
+.tog{position:fixed;top:1rem;right:1rem;font:600 .8rem var(--font);padding:.5rem .8rem;
+     border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius);cursor:pointer}
+</style>
+</head>
+<body>
+<button class="tog" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+<main>
+
+<h1>Hồ sơ thiết kế TeachHub</h1>
+<p class="lede">Mockup HTML render được cho toàn bộ màn hình. Mở trực tiếp trong trình duyệt là thấy
+đúng màu, đúng bố cục, đúng nội dung tiếng Việt — vừa xem được bằng mắt, vừa dùng làm đầu vào cho
+việc thiết kế tiếp vì đọc được cả mã nguồn.</p>
+
+<h2>Bảng màu</h2>
+<p>Lấy <strong>trực tiếp từ stylesheet của <a href="https://stm.mst.gov.vn/">stm.mst.gov.vn</a></strong>
+(Bộ Khoa học &amp; Công nghệ) — đo bằng cách tải trang và đếm tần suất, không tự chế.</p>
+<div class="sw">
+  <span style="background:#0d59cf;color:#fff">#0d59cf</span>
+  <span style="background:#017fcc;color:#fff">#017fcc ★</span>
+  <span style="background:#2281df;color:#fff">#2281df</span>
+  <span style="background:#90b3ff;color:#131920">#90b3ff</span>
+  <span style="background:#2ca87f;color:#fff">#2ca87f</span>
+  <span style="background:#e58a00;color:#fff">#e58a00</span>
+  <span style="background:#dc2626;color:#fff">#dc2626</span>
+  <span style="background:#8996a4;color:#fff">#8996a4</span>
+</div>
+<p class="lede" style="margin:0"><code>#017fcc</code> là màu chủ đạo — xuất hiện dày nhất trên trang gốc.
+Thang trung tính <code>--n0…--n800</code> cũng lấy nguyên từ bộ biến <code>--accent-*</code> của họ,
+vốn đã có sẵn cả bản sáng lẫn bản tối nên không phải nghĩ ra bảng màu thứ hai.</p>
+
+<h2>Tài liệu</h2>
+
+<a class="doc" href="00-gioi-thieu-he-thong.html">
+  <div class="s">Bối cảnh · đọc trước tiên</div>
+  <div class="t">Giới thiệu hệ thống</div>
+  <div class="d">Brief cho người được nhờ thiết kế: hệ thống này là gì, ai dùng trong hoàn cảnh nào, bốn ý tưởng gốc và hệ quả của chúng lên giao diện, từ vựng nghiệp vụ, danh sách màn hình kèm cái nào chưa vẽ, và mẫu lời nhờ AI thiết kế dùng được ngay. Đọc hết mất khoảng 8 phút, thay cho việc mở SRS 758 dòng.</div>
+</a>
+
+<a class="doc" href="00-design-system.html">
+  <div class="s">Nền tảng · đọc thứ hai</div>
+  <div class="t">Hệ thống thiết kế</div>
+  <div class="d">Token đầy đủ (sáng + tối) · thang chữ · thành phần mẫu render sẵn · ô điểm và các trạng thái của nó · hai chế độ mật độ · 6 luật bất di bất dịch. Khối <code>:root</code> trong file này chép thẳng được vào <code>globals.css</code>.</div>
+</a>
+
+<a class="doc" href="01-cham-bai.html">
+  <div class="s">SRS 6.7 · Phase 4a</div>
+  <div class="t">Màn hình chấm bài</div>
+  <div class="d">Bố cục 3 cột, danh sách thành viên nhóm, popover điểm cộng có bộ chọn đích và dòng hiện tác động thật lên điểm tổng. Màn hình được đầu tư nhiều nhất.</div>
+</a>
+
+<a class="doc" href="02-so-diem.html">
+  <div class="s">SRS 6.8 · Phase 4b</div>
+  <div class="t">Sổ điểm, cấu hình cột &amp; mẫu xuất Excel</div>
+  <div class="d">Bảng có cột ghim, ô sửa tay, điều kiện điểm sàn, công tắc xem điểm tạm tính. Trình cấu hình cột động với 7 quy tắc tổng hợp và cảnh báo tổng trọng số.</div>
+</a>
+
+<a class="doc" href="03-soan-noi-dung.html">
+  <div class="s">SRS 6.2 &amp; 6.10 · Phase 1</div>
+  <div class="t">Soạn nội dung &amp; lịch sử phiên bản</div>
+  <div class="d">Trình soạn thảo chương với component gắn kèm tuỳ ý, trạng thái chỉ đọc khi đã xuất bản, timeline phiên bản kèm danh sách lớp đang dùng.</div>
+</a>
+
+<a class="doc" href="04-bai-tap.html">
+  <div class="s">SRS 6.4, 6.5, 6.9 · Phase 3–4a</div>
+  <div class="t">Bài tập, chia nhóm &amp; đợt cuối môn</div>
+  <div class="d">Bảng slot nộp động, cấu trúc ZIP bắt buộc, trình soạn rubric có cảnh báo lệch điểm, chia nhóm kéo-thả.</div>
+</a>
+
+<a class="doc" href="05-sinh-vien.html">
+  <div class="s">SRS 6.3 &amp; 6.6 · Phase 2–3</div>
+  <div class="t">Trang học &amp; nộp bài của sinh viên</div>
+  <div class="d">Hai màn hình dùng nhiều trên điện thoại — có khung mô phỏng 360px cạnh bản desktop. Đèn trạng thái từng slot, checklist cấu trúc ZIP, bài khoá kèm lý do cụ thể.</div>
+</a>
+
+<a class="doc" href="06-dashboard-tai-khoan.html">
+  <div class="s">SRS 6.1 &amp; 6.7b · Phase 0, 4a–4b</div>
+  <div class="t">Dashboard, thư viện lý do &amp; tài khoản</div>
+  <div class="d">Dashboard "cần xử lý", thư viện lý do điểm cộng, và luồng tài khoản: thiết lập lần đầu, mời giảng viên, đăng ký bằng liên kết mời.</div>
+</a>
+
+<h2>Dùng thế nào</h2>
+<div class="why">
+<strong>Muốn nhờ thiết kế tiếp:</strong> đưa <em>ba</em> file — <code>00-gioi-thieu-he-thong.html</code>
+(bối cảnh nghiệp vụ), <code>00-design-system.html</code> (ràng buộc màu, chữ, thành phần) và
+một mockup gần nhất với màn hình cần làm. Nói rõ giữ nguyên bộ token.
+Đưa mỗi ảnh chụp màn hình sẽ mất phần quan trọng nhất: các trạng thái rỗng, lỗi, và ghi chú
+giải thích vì sao lại thiết kế như vậy. Mẫu lời nhờ dùng được ngay nằm ở
+<a href="00-gioi-thieu-he-thong.html#" style="color:inherit;text-decoration:underline">§8 của bản giới thiệu</a>.
+</div>
+<div class="why">
+<strong>Muốn code thẳng:</strong> chép khối <code>:root</code> của <code>00-design-system.html</code>
+vào <code>frontend/src/app/globals.css</code>, ánh xạ sang Tailwind v4 bằng <code>@theme</code>.
+Mọi mockup đều dùng đúng bộ token đó nên không phải quy đổi lại.
+</div>
+
+<h2>Hai mật độ, một hệ thống</h2>
+<table>
+<thead><tr><th>Nhóm màn hình</th><th>Mật độ</th><th>Vì sao</th></tr></thead>
+<tbody>
+<tr><td>Chấm bài, sổ điểm, dashboard</td><td>Đặc (mặc định)</td><td>Giảng viên quét bảng 40×6 ô; chiều cao dòng 40px giữ được nhiều dòng trong tầm mắt</td></tr>
+<tr><td>Trang học, nộp bài</td><td>Thoáng (<code>data-density="thoang"</code>)</td><td>Sinh viên xem trên điện thoại; vùng bấm phải ≥ 44px và nội dung cần khoảng thở</td></tr>
+</tbody>
+</table>
+
+<h2>Cố ý không có trong hồ sơ này</h2>
+<div class="note">
+<ul style="margin:0">
+<li><strong>Điểm chữ (A / B+ / C…)</strong> — chủ hệ thống chốt chỉ dùng thang số 0–10. Không màn hình nào được vẽ cột điểm chữ.</li>
+<li><strong>Mọi thứ liên quan trợ giảng</strong> — vai trò này đã tắt ở MVP (ADR-013), vì chưa có cách giới hạn quyền theo từng lớp.</li>
+<li><strong>Loại "Thi" ở đợt chấm cuối môn</strong> — hiển thị mờ kèm ghi chú "Chưa hỗ trợ", đúng như SRS mục 5.7.</li>
+<li><strong>Bảng xếp hạng hiện tên thật</strong> — mặc định ẩn danh; đây là lựa chọn có chủ ý, không phải thiếu sót.</li>
+</ul>
+</div>
+
+<h2>Liên quan</h2>
+<p><a href="../index.html">Mục lục tài liệu dự án</a> ·
+<a href="../requirements/SRS-LMS-GiangVien.md">SRS mục 6 — đặc tả màn hình</a> ·
+<a href="../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; ADR</a></p>
+
+</main>
+</body>
+</html>

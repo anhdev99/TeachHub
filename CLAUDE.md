@@ -97,6 +97,38 @@ về **nghiệp vụ**. Khi SRS và tài liệu kiến trúc mâu thuẫn về m
 - Phase nào thêm loại tài nguyên mới thuộc về giảng viên thì **phải** thêm dòng vào
   `CrossInstructorIsolationTests` (Phase 0 Task 0.8c) — thiếu thì task chưa được tick.
 
+## Harness
+
+**Mục tiêu:** thi công các plan trong `docs/superpowers/plans/` theo TDD mà không tái phạm
+13 blocker + 27 major đã tìm ra trong giai đoạn thiết kế.
+
+**Trigger:**
+
+| Khi nào | Dùng |
+|---|---|
+| "làm Phase 0", "thi công plan", "làm tiếp", "chạy lại phase" | skill `teachhub-build` (điều phối) |
+| Trước khi gõ bất kỳ file khung nào (`.sln`, `.csproj`, migration, khởi tạo Next.js) | skill `teachhub-scaffold` |
+| Sửa `backend/src/TeachHub.Application` hoặc `TeachHub.Api` | skill `teachhub-backend` |
+| Entity, EF configuration, migration, truy vấn | skill `teachhub-data` |
+| Bất kỳ file nào dưới `frontend/` | skill `teachhub-frontend` |
+| Chạy build/test, kiểm tuân thủ luật | skill `teachhub-verify` |
+
+Câu hỏi đơn giản (một dòng, một khái niệm) thì trả lời thẳng, không cần gọi skill.
+
+**Agent** (`.claude/agents/`): `plan-executor` (trưởng nhóm) · `domain-engineer` ·
+`backend-engineer` · `frontend-engineer` · `build-verifier` (cổng chất lượng).
+Spawn bằng `Agent` với `subagent_type` đúng tên file, luôn `model: "opus"`.
+
+> Môi trường này **không có** `TeamCreate`/`TaskCreate`. Điều phối bằng `Agent` +
+> `TodoWrite` + `SendMessage`.
+
+**Biến động:**
+
+| Ngày | Thay đổi | Đối tượng | Lý do |
+|------|----------|-----------|-------|
+| 2026-08-14 | Dựng harness ban đầu | 5 agent + 6 skill | Chuẩn bị thi công Phase 0 |
+| 2026-08-14 | Vá 5 blocker + 19 major sau vòng kiểm chứng | agents + skills | "Đỏ đúng lý do" bị dạy ngược nguồn chân lý; BFF cookie không biên dịch trên Next.js 15; orchestrator dựng trên hai công cụ không tồn tại; 6 lệnh grep của build-verifier báo FAIL trên chính khuôn đúng của dự án |
+
 ## Ngôn ngữ
 
 Tài liệu, chú thích code, tên test và thông báo lỗi trả cho người dùng: **tiếng Việt**.

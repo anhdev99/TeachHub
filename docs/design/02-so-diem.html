@@ -1,0 +1,1699 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Sổ điểm, cấu hình cột &amp; mẫu xuất Excel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   TOKEN — chép nguyên văn từ 00-design-system.html
+   (bảng màu đo từ stylesheet của stm.mst.gov.vn — Bộ KH&CN)
+   Không tự chế màu. Không đổi giá trị hex.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Thương hiệu */
+  --brand-900:#0d59cf;  --brand-700:#017fcc;  --brand-500:#2281df;
+  --brand-300:#90b3ff;  --brand-100:#e6f1fb;
+
+  /* Ngữ nghĩa */
+  --danger:#dc2626;   --danger-soft:#f5bebe;
+  --warning:#e58a00;  --warning-soft:#fdf0d9;
+  --success:#2ca87f;  --success-soft:#dcf1e9;
+  --teal:#20c997;     --cyan:#3ec9d6;   --violet:#673ab7;
+
+  /* Trung tính — thang accent-* của trang gốc, chế độ sáng */
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --line-strong:var(--n300);
+  --fg:var(--n800); --fg-muted:var(--n500); --fg-faint:var(--n400);
+
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --shadow-lg:0 4px 6px -1px rgba(19,25,32,.08),0 10px 20px -5px rgba(19,25,32,.12);
+
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+
+  /* Mật độ — hai chế độ, xem §6 */
+  --row-h:40px; --pad-x:12px; --fs:14px;
+}
+[data-density="thoang"]{ --row-h:52px; --pad-x:18px; --fs:15px; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    /* Thang trung tính đảo — cũng lấy từ trang gốc (accent-* dark) */
+    --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+    --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+    --n700:#f3f5f7; --n800:#f8f9fa;
+    --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+    --line:#2a3540; --line-strong:#3e4853;
+    --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+    --brand-100:#122436; --danger-soft:#3a1a1a;
+    --success-soft:#14302a; --warning-soft:#332612;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+  --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+  --n700:#f3f5f7; --n800:#f8f9fa;
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --line-strong:#3e4853;
+  --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+  --brand-100:#122436; --danger-soft:#3a1a1a;
+  --success-soft:#14302a; --warning-soft:#332612;
+  --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+}
+
+/* ─── Nền chung, chép từ hệ thống thiết kế ─────────────────────────────── */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 var(--font);
+     padding:2.5rem 1.25rem 6rem}
+main{max-width:1120px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.3rem;font-weight:700;margin:3.2rem 0 .2rem;letter-spacing:-.01em;
+   padding-bottom:.4rem;border-bottom:2px solid var(--brand-700)}
+h3{font-size:1rem;font-weight:600;margin:2rem 0 .6rem;color:var(--brand-700)}
+p{margin:.6rem 0}
+.lede{color:var(--fg-muted);margin-bottom:2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+      padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
+.grid{display:grid;gap:1rem}
+.note{border-left:3px solid var(--warning);background:var(--warning-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);
+     padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+
+/* Thành phần mẫu */
+.btn{font:600 var(--fs)/1 var(--font);padding:.62rem 1rem;border-radius:var(--radius);
+     border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--brand-700);color:#fff}
+.btn-primary:hover{background:var(--brand-900)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:.3rem;font:600 .74rem var(--font);
+      padding:.18rem .5rem;border-radius:99px;border:1px solid}
+.c-ok{color:var(--n800);border-color:var(--success);background:var(--success-soft)}
+.c-warn{color:var(--n800);border-color:var(--warning);background:var(--warning-soft)}
+.c-err{color:var(--n800);border-color:var(--danger);background:var(--danger-soft)}
+.c-info{color:var(--n800);border-color:var(--brand-700);background:var(--brand-100)}
+.c-mute{color:var(--fg-muted);border-color:var(--line-strong);background:var(--surface-2)}
+
+table.demo{width:100%;border-collapse:collapse;font-size:var(--fs)}
+table.demo th{background:var(--surface-2);font-weight:600;text-align:left;
+              padding:.5rem var(--pad-x);border-bottom:2px solid var(--line-strong);white-space:nowrap}
+table.demo td{padding:0 var(--pad-x);height:var(--row-h);border-bottom:1px solid var(--line)}
+.num{font:500 var(--fs) var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* Ô điểm — nguyên tử của cả sản phẩm */
+.cell{display:flex;align-items:center;justify-content:flex-end;gap:.35rem;height:100%}
+.cell .v{font:600 var(--fs) var(--mono);font-variant-numeric:tabular-nums}
+.cell .m{width:5px;height:5px;border-radius:99px;background:var(--warning);flex:none}
+.cell .b{font:600 .68rem var(--mono);color:var(--success);
+         background:var(--success-soft);padding:0 .28rem;border-radius:3px}
+.cell.fail .v{color:var(--danger)}
+.cell.empty .v{color:var(--fg-faint)}
+
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.9rem;margin:.5rem 0}
+.dl dt{font:500 .78rem var(--mono);color:var(--fg-muted)}
+.dl dd{margin:0}
+.tog{position:fixed;top:1rem;right:1rem;z-index:99;display:flex;gap:.4rem}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LỚP MỚI CỦA MÀN HÌNH NÀY — chỉ dùng biến token đã có ở trên
+   ═══════════════════════════════════════════════════════════════════════ */
+.meta{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.2rem 0 1.6rem}
+.src{font:500 .72rem var(--mono);color:var(--fg-muted);border:1px dashed var(--line-strong);
+     padding:.2rem .5rem;border-radius:99px;white-space:nowrap}
+.toc{display:flex;flex-wrap:wrap;gap:.4rem;margin:0 0 1rem}
+.toc a{font:600 .8rem var(--font);text-decoration:none;color:var(--brand-700);
+       border:1px solid var(--line);background:var(--surface);padding:.35rem .65rem;border-radius:99px}
+.toc a:hover{background:var(--brand-100)}
+
+/* Nhãn trạng thái đặt trên mỗi khung màn hình */
+.state{margin:1.5rem 0 0}
+.state-h{display:flex;align-items:center;gap:.5rem;margin:0 0 .5rem;
+         font:700 .76rem var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--fg-muted)}
+.state-h::before{content:"";width:10px;height:10px;border-radius:2px;background:var(--line-strong);flex:none}
+.s-ok .state-h::before{background:var(--success)}
+.s-warn .state-h::before{background:var(--warning)}
+.s-err .state-h::before{background:var(--danger)}
+.s-empty .state-h::before{background:var(--fg-faint)}
+.s-load .state-h::before{background:var(--brand-500)}
+
+/* Khung màn hình */
+.screen{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+        box-shadow:var(--shadow);overflow:hidden}
+.tb{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:space-between;
+    padding:.6rem .8rem;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.tb-g{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.tb-t{font:700 .95rem var(--font)}
+.tb-s{font:500 .76rem var(--mono);color:var(--fg-muted)}
+.btn-sm{font:600 .8rem/1 var(--font);padding:.45rem .7rem}
+.sw2{display:inline-flex;align-items:center;gap:.5rem;cursor:pointer;user-select:none;
+     font:500 .82rem var(--font);padding:.32rem .6rem;border:1px solid var(--line-strong);
+     border-radius:99px;background:var(--surface)}
+.sw2 input{width:16px;height:16px;margin:0;accent-color:var(--brand-700)}
+
+/* Dải thông báo trong màn hình */
+.bn{display:flex;gap:.6rem;align-items:flex-start;padding:.6rem .85rem;font-size:.88rem;
+    border-left:3px solid var(--line-strong);background:var(--surface-2);
+    border-bottom:1px solid var(--line)}
+.bn .ic{flex:none;font:700 .9rem var(--mono);line-height:1.55}
+.bn-warn{border-left-color:var(--warning);background:var(--warning-soft)}
+.bn-err{border-left-color:var(--danger);background:var(--danger-soft)}
+.bn-ok{border-left-color:var(--success);background:var(--success-soft)}
+.bn-info{border-left-color:var(--brand-700);background:var(--brand-100)}
+.fix{display:block;margin-top:.2rem;color:var(--fg-muted)}
+
+/* Bảng sổ điểm — hai cột đầu ghim khi cuộn ngang */
+.gb-scroll{overflow-x:auto}
+table.gb{border-collapse:separate;border-spacing:0;min-width:1226px;width:100%;font-size:var(--fs)}
+table.gb th{background:var(--surface-2);text-align:left;font-weight:600;white-space:nowrap;
+            padding:.45rem var(--pad-x);border-bottom:2px solid var(--line-strong);vertical-align:bottom}
+table.gb td{background:var(--surface);white-space:nowrap;padding:0 var(--pad-x);
+            height:var(--row-h);border-bottom:1px solid var(--line)}
+table.gb tbody tr:hover td{background:var(--surface-2)}
+table.gb th.r,table.gb td.r{text-align:right}
+.pin1,.pin2{position:sticky;z-index:2}
+.pin1{left:0;width:124px;min-width:124px}
+.pin2{left:124px;width:196px;min-width:196px;border-right:2px solid var(--line-strong)}
+thead .pin1,thead .pin2{z-index:3}
+.gcol{min-width:158px}
+.wt{display:block;font:400 .7rem var(--mono);color:var(--fg-muted);font-variant-numeric:tabular-nums}
+.agg{display:block;font:400 .68rem var(--font);color:var(--fg-faint)}
+.sid{font:500 var(--fs) var(--mono);font-variant-numeric:tabular-nums}
+.tot{background:var(--surface-2)}
+.tot .v{font-size:calc(var(--fs) + 1px)}
+.hint-scroll{font:500 .74rem var(--mono);color:var(--fg-muted);padding:.35rem .8rem;
+             background:var(--surface-2);border-bottom:1px solid var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem;padding:.6rem .85rem;font-size:.8rem;
+        color:var(--fg-muted);border-top:1px solid var(--line);background:var(--surface)}
+.legend b{color:var(--fg);font-weight:600}
+.dot{display:inline-block;width:6px;height:6px;border-radius:99px;background:var(--warning);
+     vertical-align:middle}
+
+/* Công tắc tạm tính — chỉ đổi cách xem */
+.v-tam{display:none}
+[data-tam="1"] .v-thuc{display:none}
+[data-tam="1"] .v-tam{display:inline}
+[data-tam="1"] table.gb thead th{background:var(--warning-soft)}
+.tam-bar{display:none}
+[data-tam="1"] .tam-bar{display:flex}
+
+/* Khung xương khi đang tải */
+.sk{display:block;height:11px;border-radius:3px;background:var(--surface-2);
+    border:1px solid var(--line);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* Trạng thái rỗng */
+.es{text-align:center;padding:2.3rem 1.2rem}
+.es .glyph{width:56px;height:56px;margin:0 auto .8rem;border:2px dashed var(--line-strong);
+           border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;
+           font:700 1.5rem var(--mono);color:var(--fg-faint)}
+.es-t{font:700 1.05rem var(--font);margin:0 0 .3rem}
+.es-d{color:var(--fg-muted);max-width:58ch;margin:0 auto 1rem;font-size:.92rem}
+.es-act{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap}
+
+/* Trình cấu hình cột */
+.body{padding:.9rem}
+.dz{display:grid;gap:.5rem}
+.drow{display:grid;grid-template-columns:24px minmax(150px,1.5fr) minmax(120px,1fr) 86px minmax(170px,1.4fr) 34px;
+      gap:.5rem;align-items:end;padding:.6rem;border:1px solid var(--line);
+      border-radius:var(--radius);background:var(--surface)}
+.drow.bad{border-color:var(--danger);background:var(--danger-soft)}
+.hdl{cursor:grab;color:var(--fg-faint);font:700 1.05rem var(--mono);text-align:center;
+     user-select:none;padding-bottom:.35rem}
+.f{display:flex;flex-direction:column;gap:.2rem;min-width:0}
+.f > label{font:500 .68rem var(--mono);color:var(--fg-muted)}
+.inp{font:500 var(--fs) var(--font);padding:.4rem .5rem;border:1px solid var(--line-strong);
+     border-radius:var(--radius);background:var(--surface);color:var(--fg);width:100%}
+.inp:disabled{background:var(--surface-2);color:var(--fg-muted);cursor:not-allowed}
+.inp.mono{font-family:var(--mono);font-size:.82rem}
+.inp.numin{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.inp.bad{border-color:var(--danger);border-width:2px}
+.icb{border:1px solid var(--line-strong);background:var(--surface);color:var(--fg-muted);
+     border-radius:var(--radius);cursor:pointer;height:34px;font:600 .9rem var(--mono)}
+.icb:hover{color:var(--danger);border-color:var(--danger)}
+.sub{grid-column:2/-1;display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:center;
+     font-size:.8rem;color:var(--fg-muted);padding-top:.15rem}
+.sub label{display:inline-flex;gap:.35rem;align-items:center;cursor:pointer}
+.sub input[type=checkbox]{accent-color:var(--brand-700);width:15px;height:15px}
+.sub input[type=number]{width:56px}
+.foot{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;
+      padding:.7rem .9rem;border-top:1px solid var(--line);background:var(--surface-2)}
+.tsum{font:600 .9rem var(--mono);font-variant-numeric:tabular-nums}
+.rule{border:1px solid var(--line);border-radius:var(--radius);padding:.7rem .8rem;
+      background:var(--surface-2);margin-top:.9rem}
+.rule h4{margin:0 0 .5rem;font:700 .78rem var(--font);letter-spacing:.05em;
+         text-transform:uppercase;color:var(--fg-muted)}
+.rline{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-size:.9rem}
+.rline .inp{width:auto}
+.tpl{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem}
+.tplcard{flex:1 1 240px;border:1px solid var(--line-strong);border-radius:var(--radius);
+         background:var(--surface);padding:.6rem .7rem}
+.tplcard b{display:block;font-size:.92rem}
+.tplcard .keys{font:500 .74rem var(--mono);color:var(--fg-muted);margin:.25rem 0 .5rem}
+
+/* Popover điểm cộng */
+.pop{max-width:430px;border:1px solid var(--line-strong);border-radius:var(--radius-lg);
+     background:var(--surface);box-shadow:var(--shadow-lg);padding:.9rem}
+.pop-h{font:700 .95rem var(--font);margin:0 0 .1rem}
+.pop-s{font:500 .76rem var(--mono);color:var(--fg-muted);margin:0 0 .7rem}
+.qb{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.7rem}
+.qb button{font:600 .76rem var(--font);padding:.4rem .6rem;border-radius:99px;cursor:pointer;
+           border:1px solid var(--line-strong);background:var(--surface-2);color:var(--fg)}
+.qb button.on{border-color:var(--brand-700);background:var(--brand-100);color:var(--brand-700)}
+.rad{display:flex;flex-direction:column;gap:.1rem;margin:.4rem 0}
+.rad label{display:flex;align-items:center;gap:.5rem;font-size:.88rem;padding:.3rem .15rem;cursor:pointer}
+.rad input{accent-color:var(--brand-700);width:16px;height:16px;margin:0}
+.rad .w{font:500 .74rem var(--mono);color:var(--fg-muted)}
+.impact{font:600 .88rem var(--mono);font-variant-numeric:tabular-nums;color:var(--success);
+        background:var(--success-soft);border:1px solid var(--success);
+        border-radius:var(--radius);padding:.45rem .6rem;margin:.6rem 0}
+.pop-f{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.6rem}
+
+/* Trình sửa mẫu xuất Excel */
+.two{display:grid;grid-template-columns:minmax(210px,.85fr) minmax(320px,1.7fr);gap:.9rem}
+.pane{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);padding:.7rem}
+.pane h4{margin:0 0 .55rem;font:700 .74rem var(--font);letter-spacing:.05em;
+         text-transform:uppercase;color:var(--fg-muted)}
+.item{display:flex;align-items:center;gap:.5rem;padding:.45rem .55rem;background:var(--surface);
+      border:1px solid var(--line);border-radius:var(--radius);margin-bottom:.4rem;font-size:.86rem}
+.item .k{font:500 .72rem var(--mono);color:var(--fg-muted);margin-left:auto}
+.erow{display:grid;grid-template-columns:24px minmax(120px,1fr) minmax(130px,1.15fr) 88px 34px;
+      gap:.5rem;align-items:end;padding:.5rem .55rem;border:1px solid var(--line);
+      border-radius:var(--radius);background:var(--surface);margin-bottom:.4rem}
+.prev{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table.xls{border-collapse:collapse;width:100%;font-size:.84rem;min-width:520px}
+table.xls th,table.xls td{border:1px solid var(--line);padding:.35rem .55rem;text-align:left}
+table.xls th{background:var(--success-soft);font-weight:600;white-space:nowrap}
+table.xls td.n{font:500 .84rem var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+table.xls td.s{font:500 .84rem var(--mono)}
+
+/* Khung di động 360px */
+.mobrow{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:flex-start}
+.mob{width:360px;max-width:100%;flex:none;border:1px solid var(--line-strong);
+     border-radius:18px;background:var(--surface);overflow:hidden;box-shadow:var(--shadow-lg)}
+.mob-top{background:var(--brand-100);color:var(--brand-700);padding:.7rem .9rem;
+         border-bottom:1px solid var(--line)}
+.mob-top b{display:block;font-size:.95rem}
+.mob-top span{font:500 .74rem var(--mono);opacity:.9}
+.mob-body{padding:.9rem}
+.big{font:700 2.4rem/1 var(--mono);font-variant-numeric:tabular-nums}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:.6rem;min-height:44px;
+      padding:.4rem 0;border-bottom:1px solid var(--line)}
+.mrow .lbl{font-size:.92rem}
+.mrow .lbl small{display:block;font:400 .72rem var(--mono);color:var(--fg-muted)}
+.mob .btn{min-height:44px;width:100%}
+.tap{outline:1px dashed var(--line-strong);outline-offset:2px}
+
+/* Bảng đối chiếu hai chế độ xem */
+table.cmp{width:100%;border-collapse:collapse;font-size:var(--fs)}
+table.cmp th,table.cmp td{padding:.45rem .7rem;border-bottom:1px solid var(--line);text-align:left}
+table.cmp th{background:var(--surface-2);font-weight:600;border-bottom:2px solid var(--line-strong)}
+table.cmp td.n{font:600 var(--fs) var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+table.cmp td.f{font:400 .8rem var(--mono);color:var(--fg-muted)}
+
+@media (max-width:900px){
+  .two{grid-template-columns:1fr}
+  .drow{grid-template-columns:24px 1fr 1fr;row-gap:.55rem}
+  .drow .icb{grid-column:3}
+  .erow{grid-template-columns:24px 1fr 1fr;row-gap:.55rem}
+}
+</style>
+</head>
+<body>
+<div class="tog">
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.density=document.documentElement.dataset.density==='thoang'?'':'thoang'">Mật độ</button>
+</div>
+
+<main>
+
+<h1>Sổ điểm, cấu hình cột &amp; mẫu xuất Excel</h1>
+<div class="meta">
+  <span class="src">SRS mục 6.8</span>
+  <span class="src">SRS mục 5.8</span>
+  <span class="src">Phase 4b — Sổ điểm động &amp; Điểm cộng</span>
+  <span class="src">Task 4b.10</span>
+  <span class="src">UC-15 · 16 · 17 · 17b · 18</span>
+</div>
+<p class="lede">Ba màn hình dùng chung một bộ dữ liệu: <strong>sổ điểm</strong> của lớp
+<code>DA24TIN01</code> — <code>IN4203 — Lập trình di động React Native</code>, học kỳ
+<code>HK1 2026–2027</code>, cấu hình 3 cột (Trắc nghiệm 20% / Bài tập 30% / Cuối môn 50%);
+<strong>trình cấu hình cột điểm</strong> sinh ra bộ cột đó; và <strong>trình sửa mẫu xuất Excel</strong>
+biến bộ cột đó thành bảng điểm nộp phòng đào tạo. Mọi trạng thái đều vẽ thật, kể cả trạng thái xấu.</p>
+
+<div class="toc">
+  <a href="#s1">1. Sổ điểm — có dữ liệu</a>
+  <a href="#s2">2. Công tắc tạm tính</a>
+  <a href="#s3">3. Rỗng · Đang tải · Chưa chấm</a>
+  <a href="#s4">4. Lỗi &amp; cảnh báo</a>
+  <a href="#s5">5. Popover điểm cộng</a>
+  <a href="#s6">6. Cấu hình cột điểm</a>
+  <a href="#s7">7. Mẫu xuất Excel</a>
+  <a href="#s8">8. Sinh viên xem điểm (360px)</a>
+  <a href="#s9">9. Truy vết &amp; câu hỏi mở</a>
+</div>
+
+<div class="note">
+<strong>Một khác biệt có chủ ý so với SRS 6.8.</strong> SRS viết "dòng tổng có điểm cuối cùng và
+<em>điểm chữ quy đổi</em>". Cột điểm chữ đã bị loại khỏi phạm vi (ADR-008 và bảng quyết định Phase 4a):
+thang điểm là số 0–10, không có A/B+/C. Vì vậy trong toàn bộ tài liệu này không có cột điểm chữ —
+đây là chủ ý, không phải sót.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s1">1. Sổ điểm — trạng thái bình thường</h2>
+<p>Hàng = sinh viên, cột = <code>GradeColumn</code> của chính lớp này. Bảng dài hơn màn hình theo chiều
+ngang; hai cột đầu ghim lại.</p>
+
+<div class="state s-ok">
+<div class="state-h">Trạng thái bình thường — 10 sinh viên, đã chấm phần lớn</div>
+<div class="screen" id="gb-main">
+
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Sổ điểm — DA24TIN01</span>
+      <span class="tb-s">IN4203 · HK1 2026–2027 · 10 SV</span>
+    </div>
+    <div class="tb-g">
+      <label class="sw2" title="Chỉ đổi cách xem, không ghi gì xuống cấu hình cột">
+        <input type="checkbox" onchange="document.getElementById('gb-main').dataset.tam=this.checked?'1':''">
+        Xem điểm tạm tính (bỏ qua bài chưa chấm)
+      </label>
+      <button class="btn btn-ghost btn-sm">Thêm điểm cộng</button>
+      <button class="btn btn-ghost btn-sm">Cấu hình cột</button>
+      <button class="btn btn-primary btn-sm">Xuất Excel</button>
+    </div>
+  </div>
+
+  <div class="bn bn-warn tam-bar">
+    <span class="ic">▲</span>
+    <span><b>ĐANG XEM TẠM TÍNH — KHÔNG PHẢI ĐIỂM CHÍNH THỨC.</b>
+    Bài chưa chấm đang bị loại khỏi mẫu số thay vì tính 0. Cấu hình cột <em>không</em> bị thay đổi;
+    tải lại trang là công tắc về mặc định tắt.
+    <span class="fix">Đừng chụp màn hình bảng này gửi cho sinh viên.</span></span>
+  </div>
+
+  <div class="hint-scroll">← cuộn ngang để xem hết cột · MSSV và Họ tên ghim tại chỗ →</div>
+
+  <div class="gb-scroll">
+  <table class="gb">
+    <thead>
+      <tr>
+        <th class="pin1">MSSV</th>
+        <th class="pin2">Họ tên</th>
+        <th class="gcol r">Trắc nghiệm<span class="wt">20% · trac_nghiem</span><span class="agg">Trung bình</span></th>
+        <th class="gcol r">Bài tập<span class="wt">30% · bai_tap</span><span class="agg">Bỏ 1 điểm thấp nhất</span></th>
+        <th class="gcol r">Cuối môn<span class="wt">50% · cuoi_mon</span><span class="agg">Nhập tay</span></th>
+        <th class="gcol r">Điểm cộng<span class="wt">đích: điểm tổng</span><span class="agg">không qua trọng số</span></th>
+        <th class="gcol r">Tổng<span class="wt">0–10</span><span class="agg">làm tròn 1 chữ số</span></th>
+        <th style="min-width:150px">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pin1"><span class="sid">2251012001</span></td>
+        <td class="pin2">Nguyễn Văn Ánh</td>
+        <td class="r"><div class="cell"><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell" title="7.5 + 0.5 điểm cộng — Thuyết trình tự tin · 12/11/2026"><span class="b">+0.5</span><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">8.5</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012002</span></td>
+        <td class="pin2">Trần Thị Bình</td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell" title="Sửa tay: GV. Nguyễn Anh Tuấn · 20/11/2026 · 7.0 → 8.0. Chấm lại bài không ghi đè giá trị này."><span class="m"></span><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">8.2</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012003</span></td>
+        <td class="pin2">Lê Minh Cường</td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">8.5</span></div></td>
+        <td class="r"><div class="cell fail" title="Dưới ngưỡng điểm sàn: Cuối môn &lt; 4.0"><span class="v">3.5 ⚠</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell fail" title="Điều kiện điểm sàn: Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9. Trước khi áp: 6.1"><span class="v">3.9 ⚠</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012004</span></td>
+        <td class="pin2">Phạm Thu Dung</td>
+        <td class="r"><div class="cell"><span class="v">7.5</span></div></td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell empty" title="Chưa chấm — chưa có bài nộp nào được chấm cho cột này"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v v-thuc">3.6</span><span class="v v-tam">7.2</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012005</span></td>
+        <td class="pin2">Võ Hoàng Duy</td>
+        <td class="r"><div class="cell"><span class="v">6.5</span></div></td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">7.5</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012006</span></td>
+        <td class="pin2">Đặng Thị Hà</td>
+        <td class="r"><div class="cell"><span class="v">10.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">9.2</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012007</span></td>
+        <td class="pin2">Bùi Gia Huy</td>
+        <td class="r"><div class="cell"><span class="v">5.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">6.0</span></div></td>
+        <td class="r"><div class="cell" title="Đúng ngưỡng. Điều kiện là &quot;&lt; 4.0&quot; nên 4.0 KHÔNG kích hoạt điểm sàn."><span class="v">4.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">4.8</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012008</span></td>
+        <td class="pin2">Ngô Khánh Linh</td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell" title="+0.5 · Trả lời đúng câu hỏi khó · 05/12/2026 — đích: điểm tổng"><span class="b">+0.5</span><span class="v">0.5</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">7.5</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012009</span></td>
+        <td class="pin2">Trịnh Minh Nhật</td>
+        <td class="r"><div class="cell empty" title="Chưa chấm — sinh viên chưa làm bài trắc nghiệm chương 3"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell"><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell" title="Sửa tay: GV. Nguyễn Anh Tuấn · 02/12/2026 · 8.5 → 9.0 (chấm bù phần bảo vệ). Chấm lại bài không ghi đè giá trị này."><span class="m"></span><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v v-thuc">6.9</span><span class="v v-tam">8.6</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012010</span></td>
+        <td class="pin2">Hoàng Thị Mai</td>
+        <td class="r"><div class="cell" title="8.0 + 0.5 điểm cộng — Phát biểu xây dựng bài · 28/11/2026"><span class="b">+0.5</span><span class="v">8.5</span></div></td>
+        <td class="r"><div class="cell"><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">6.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell"><span class="v">7.1</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot"></span> <b>chấm cam</b> = sửa tay, di chuột xem ai sửa / lúc nào / từ mấy sang mấy</span>
+    <span><span class="chip c-ok" style="padding:0 .28rem">+0.5</span> <b>nhãn xanh</b> = điểm cộng đã nằm trong giá trị của chính ô đó</span>
+    <span><b>⚠ đỏ</b> = bị điều kiện điểm sàn chặn</span>
+    <span><b>—</b> = chưa chấm</span>
+    <span>Cột "Điểm cộng" chỉ chứa điểm cộng đích <b>Điểm tổng</b>, không chứa điểm cộng đã gắn vào cột</span>
+  </div>
+
+</div><!-- /screen -->
+</div><!-- /state -->
+
+<div class="why">
+<strong>Vì sao ghim cột MSSV và Họ tên.</strong> Một lớp 40 sinh viên với 6 cột điểm tràn khỏi màn hình
+ngay từ đầu. Khi cuộn sang phải để nhập cột Cuối môn, hai cột định danh biến mất — và
+<em>không biết mình đang sửa điểm của ai là cách nhanh nhất để nhập nhầm</em>. Nhập nhầm điểm là loại lỗi
+phát hiện rất muộn: thường là sau khi bảng điểm đã nộp, do chính sinh viên khiếu nại.
+Ghim hai cột này tốn vài dòng CSS và loại bỏ trọn một họ lỗi.
+</div>
+
+<div class="why">
+<strong>Vì sao cột "Điểm cộng" chỉ hiện điểm cộng đích Điểm tổng.</strong> Điểm cộng gắn vào một cột
+<em>đã nằm sẵn trong giá trị của cột đó</em> (Ánh: Bài tập 7.5 + 0.5 = 8.0). Nếu cột "Điểm cộng" cộng thêm
+lần nữa thì bảng điểm nộp trường vênh với sổ điểm trên hệ thống, và không ai biết bên nào đúng.
+Hai loại điểm cộng phải hiện ở hai chỗ khác nhau, nếu không người đọc không cộng lại được bằng tay.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy: chấm lại bài không được ghi đè ô đã sửa tay.</strong> Ô Bài tập của Trần Thị Bình
+(chấm cam) là giá trị giảng viên ghi đè. Job chấm lại / chấm bù chạy sau đó phải bỏ qua ô này,
+và tooltip phải đọc được từ <code>GradeAuditLog</code>. Nếu một bản cài đặt nào đó "đồng bộ lại cho sạch",
+giảng viên sẽ mất công sửa lần hai mà không có gì báo cho họ biết.
+</div>
+
+<h3>Ô đúng ngưỡng — 4.0 không kích hoạt điều kiện "&lt; 4.0"</h3>
+<div class="note">
+Bùi Gia Huy có Cuối môn đúng <code>4.0</code>. Điều kiện là <code>&lt; 4.0</code> nên ô này
+<strong>không</strong> tô đỏ và điểm tổng 4.8 giữ nguyên. Đây là ca biên hay bị cài sai thành
+<code>&lt;=</code>; để nó trong bộ dữ liệu mẫu để ai làm giao diện cũng thấy sự khác nhau.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s2">2. Công tắc "Xem điểm tạm tính"</h2>
+<p>Bật công tắc trong thanh công cụ ở §1 để thấy bảng đổi ngay tại chỗ: hàng tiêu đề chuyển nền cam,
+dải "ĐANG XEM TẠM TÍNH" hiện ra, và hai sinh viên còn bài chưa chấm đổi điểm tổng.</p>
+
+<div class="card" style="padding:0;overflow:hidden">
+<table class="cmp">
+  <thead><tr>
+    <th>Sinh viên</th><th>Ô còn thiếu</th>
+    <th style="text-align:right">Chính thức</th><th style="text-align:right">Tạm tính</th>
+    <th>Phép tính</th>
+  </tr></thead>
+  <tbody>
+    <tr>
+      <td><span class="sid">2251012004</span> Phạm Thu Dung</td>
+      <td>Cuối môn (50%)</td>
+      <td class="n">3.6</td><td class="n">7.2</td>
+      <td class="f">(7.5×20 + 7.0×30 + <b>0</b>×50)/100 = 3.6 → bỏ cột thiếu: 3.6/0.50 = 7.2</td>
+    </tr>
+    <tr>
+      <td><span class="sid">2251012009</span> Trịnh Minh Nhật</td>
+      <td>Trắc nghiệm (20%)</td>
+      <td class="n">6.9</td><td class="n">8.6</td>
+      <td class="f">(<b>0</b>×20 + 8.0×30 + 9.0×50)/100 = 6.9 → 6.9/0.80 = 8.625 → 8.6</td>
+    </tr>
+    <tr>
+      <td colspan="5" style="color:var(--fg-muted);font-size:.86rem">
+        Tám sinh viên còn lại không đổi số — họ không còn ô nào thiếu, nên hai cách tính cho cùng kết quả.
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="why">
+<strong>Vì sao công tắc này chỉ đổi cách xem, không đổi dữ liệu.</strong> Mặc định
+<code>TreatMissingAsZero = true</code> — đúng về mặt cuối kỳ: bài không nộp thì là 0.
+Nhưng giữa học kỳ, cách tính đó khiến cả lớp trông như sắp rớt. Nhìn bảng đó mỗi tuần thì sớm muộn
+giảng viên sẽ <em>tự tay đổi cấu hình cột cho đỡ sợ</em>, rồi tới cuối kỳ quên đổi lại — và điểm cả lớp
+bị tính sai theo hướng nới tay, không có gì trong hệ thống báo ra.
+Một công tắc xem tạm giải quyết trọn vấn đề đó: nó dựng lại sổ điểm với <code>TreatMissingAsZero = false</code>
+cho <em>đúng lần đọc đó</em> và không ghi một byte nào xuống <code>GradeColumn</code>.
+Tải lại trang → công tắc về mặc định tắt, cấu hình cột nguyên vẹn.
+</div>
+
+<div class="note">
+<strong>Vì sao phải đổi màu hàng tiêu đề khi bật.</strong> Không có dấu hiệu thị giác thì một ảnh chụp
+màn hình bảng tạm tính sẽ được gửi cho sinh viên như điểm chính thức, và giảng viên phải giải thích
+vì sao điểm "tụt" vào cuối kỳ. Dải cảnh báo phải nằm <em>trong</em> vùng bị chụp, không phải ở
+thanh trạng thái dưới đáy trang.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s3">3. Rỗng · Đang tải · Lớp mới chưa ai được chấm</h2>
+
+<div class="state s-empty">
+<div class="state-h">Trạng thái rỗng — lớp chưa có cột điểm nào</div>
+<div class="screen">
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Sổ điểm — DA24TIN02</span>
+      <span class="tb-s">IN4203 · HK1 2026–2027 · 38 SV</span>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm" disabled>Thêm điểm cộng</button>
+      <button class="btn btn-primary btn-sm">Cấu hình cột</button>
+      <button class="btn btn-ghost btn-sm" disabled>Xuất Excel</button>
+    </div>
+  </div>
+  <div class="bn bn-info">
+    <span class="ic">i</span>
+    <span><b>Hai nút đang tắt vì lớp chưa có cột nào.</b>
+    Không có cột thì không có đích để cấp điểm cộng, và bảng điểm xuất ra sẽ chỉ có MSSV với họ tên.
+    <span class="fix">Gỡ khoá: tạo ít nhất một cột ở bước dưới.</span></span>
+  </div>
+  <div class="es">
+    <div class="glyph">∅</div>
+    <div class="es-t">Lớp này chưa có cột điểm nào</div>
+    <div class="es-d">38 sinh viên đã có trong lớp, nhưng chưa có cấu trúc điểm để ghi vào.
+      Cách nhanh nhất là áp một mẫu có sẵn — sửa lại sau vẫn được, chừng nào cột chưa có điểm.</div>
+    <div class="es-act">
+      <button class="btn btn-primary">Áp mẫu "3 cột có trắc nghiệm" (20/30/50)</button>
+      <button class="btn btn-ghost">Áp mẫu "2 cột chuẩn" (40/60)</button>
+      <button class="btn btn-ghost">+ Thêm cột thủ công</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="note">
+Trạng thái rỗng phải nói <em>hệ quả</em> ("không xuất được bảng điểm") chứ không chỉ nói sự thật
+("chưa có cột"). Một màn hình trống với dòng chữ "Không có dữ liệu" là lý do người dùng đi hỏi,
+không phải lý do họ bấm tiếp.
+</div>
+
+<div class="state s-load">
+<div class="state-h">Trạng thái đang tải — lớp 40 sinh viên, sổ điểm tính lại toàn bộ</div>
+<div class="screen">
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Sổ điểm — DA24TIN01</span>
+      <span class="tb-s">Đang tính lại 40 sinh viên × 3 cột…</span>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm" disabled>Thêm điểm cộng</button>
+      <button class="btn btn-ghost btn-sm" disabled>Cấu hình cột</button>
+      <button class="btn btn-primary btn-sm" disabled>Xuất Excel</button>
+    </div>
+  </div>
+  <div class="gb-scroll">
+  <table class="gb">
+    <thead>
+      <tr>
+        <th class="pin1">MSSV</th><th class="pin2">Họ tên</th>
+        <th class="gcol r">Trắc nghiệm<span class="wt">20%</span></th>
+        <th class="gcol r">Bài tập<span class="wt">30%</span></th>
+        <th class="gcol r">Cuối môn<span class="wt">50%</span></th>
+        <th class="gcol r">Điểm cộng<span class="wt">đích: điểm tổng</span></th>
+        <th class="gcol r">Tổng<span class="wt">0–10</span></th>
+        <th style="min-width:150px">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pin1"><span class="sk" style="width:84px"></span></td>
+        <td class="pin2"><span class="sk" style="width:140px"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r tot"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td><span class="sk" style="width:96px"></span></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sk" style="width:84px"></span></td>
+        <td class="pin2"><span class="sk" style="width:112px"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r tot"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td><span class="sk" style="width:96px"></span></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sk" style="width:84px"></span></td>
+        <td class="pin2"><span class="sk" style="width:158px"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td class="r tot"><span class="sk" style="width:38px;margin-left:auto"></span></td>
+        <td><span class="sk" style="width:96px"></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="legend"><span>Khung xương giữ đúng chiều rộng cột thật — bảng không nhảy khi dữ liệu về.</span></div>
+</div>
+</div>
+
+<div class="state s-warn">
+<div class="state-h">Trạng thái cảnh báo — lớp mới, chưa ai được chấm</div>
+<div class="screen" id="gb-moi">
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Sổ điểm — DA24TIN03</span>
+      <span class="tb-s">IN4203 · HK2 2026–2027 · 4 SV · mở lớp 10/02/2027</span>
+    </div>
+    <div class="tb-g">
+      <label class="sw2">
+        <input type="checkbox" onchange="document.getElementById('gb-moi').dataset.tam=this.checked?'1':''">
+        Xem điểm tạm tính (bỏ qua bài chưa chấm)
+      </label>
+      <button class="btn btn-ghost btn-sm">Cấu hình cột</button>
+      <button class="btn btn-primary btn-sm">Xuất Excel</button>
+    </div>
+  </div>
+  <div class="bn bn-warn">
+    <span class="ic">▲</span>
+    <span><b>Chưa có bài nào được chấm — mọi điểm tổng đang hiển thị 0.0.</b>
+    Đây không phải lỗi: bài chưa chấm tính là 0 (mặc định, và đúng về mặt cuối kỳ).
+    <span class="fix">Lưu ý: bật "Xem điểm tạm tính" ở lớp này <em>vẫn ra 0.0</em>, vì khi loại hết
+    ô chưa chấm thì không còn nguồn nào để tính. Chỉ khi có ít nhất một cột đã chấm thì công tắc mới đổi số.</span></span>
+  </div>
+  <div class="gb-scroll">
+  <table class="gb">
+    <thead>
+      <tr>
+        <th class="pin1">MSSV</th><th class="pin2">Họ tên</th>
+        <th class="gcol r">Trắc nghiệm<span class="wt">20% · trac_nghiem</span></th>
+        <th class="gcol r">Bài tập<span class="wt">30% · bai_tap</span></th>
+        <th class="gcol r">Cuối môn<span class="wt">50% · cuoi_mon</span></th>
+        <th class="gcol r">Điểm cộng<span class="wt">đích: điểm tổng</span></th>
+        <th class="gcol r">Tổng<span class="wt">0–10</span></th>
+        <th style="min-width:150px">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pin1"><span class="sid">2251012041</span></td><td class="pin2">Nguyễn Thị Phương</td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell empty"><span class="v">0.0</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012042</span></td><td class="pin2">Trần Đăng Quang</td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell empty"><span class="v">0.0</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012043</span></td><td class="pin2">Lý Thanh Sơn</td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell empty"><span class="v">0.0</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012044</span></td><td class="pin2">Đỗ Ngọc Trâm</td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell empty"><span class="v">0.0</span></div></td>
+        <td><button class="btn btn-ghost btn-sm">+ Điểm cộng</button></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="legend"><span>Cột vẫn hiện đầy đủ dù chưa có điểm — người dùng cần thấy cấu trúc điểm của lớp trước khi chấm bài đầu tiên.</span></div>
+</div>
+</div>
+
+<div class="note">
+<strong>Cạm bẫy đã có trong danh sách rủi ro của Phase 4b:</strong> khi mọi nguồn đều chưa chấm và
+<code>TreatMissingAsZero = false</code>, phép trung bình chia cho 0. Quy ước đã chốt: trả <code>0</code>,
+không ném lỗi — nếu không, một lớp mới mở sẽ làm cả trang sổ điểm trả 500 và không ai xem được gì.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s4">4. Trạng thái lỗi &amp; cảnh báo</h2>
+
+<div class="state s-err">
+<div class="state-h">Lỗi 1 — tổng trọng số ≠ 100%, điểm tổng đang sai</div>
+<div class="screen">
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Sổ điểm — DA24TIN04</span>
+      <span class="tb-s">IN4203 · HK1 2026–2027 · 35 SV</span>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm" disabled title="Bị khoá vì tổng trọng số ≠ 100%">Xuất Excel</button>
+      <button class="btn btn-danger btn-sm">Mở Cấu hình cột để sửa</button>
+    </div>
+  </div>
+  <div class="bn bn-err">
+    <span class="ic">✕</span>
+    <span><b>Tổng trọng số các cột = 105%, lệch +5% so với 100%.</b>
+    Trắc nghiệm 25% + Bài tập 30% + Cuối môn 50%. Mọi điểm tổng trong bảng dưới đây đang bị thổi lên
+    và <em>không được dùng để nộp</em>.
+    <span class="fix">Gỡ khoá "Xuất Excel": mở Cấu hình cột, đưa tổng về đúng 100% — ví dụ hạ
+    Trắc nghiệm về 20%.</span></span>
+  </div>
+  <div class="gb-scroll">
+  <table class="gb">
+    <thead>
+      <tr>
+        <th class="pin1">MSSV</th><th class="pin2">Họ tên</th>
+        <th class="gcol r">Trắc nghiệm<span class="wt" style="color:var(--danger)">25% ⚠</span></th>
+        <th class="gcol r">Bài tập<span class="wt">30%</span></th>
+        <th class="gcol r">Cuối môn<span class="wt">50%</span></th>
+        <th class="gcol r">Điểm cộng<span class="wt">đích: điểm tổng</span></th>
+        <th class="gcol r">Tổng<span class="wt">đang sai</span></th>
+        <th style="min-width:150px">Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="pin1"><span class="sid">2251012021</span></td><td class="pin2">Nguyễn Bảo An</td>
+        <td class="r"><div class="cell"><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">9.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell fail" title="8.0×25 + 7.0×30 + 9.0×50 = 8.6 — nhưng tổng trọng số là 105%, không phải 100%"><span class="v">8.6 ⚠</span></div></td>
+        <td><button class="btn btn-ghost btn-sm" disabled>+ Điểm cộng</button></td>
+      </tr>
+      <tr>
+        <td class="pin1"><span class="sid">2251012022</span></td><td class="pin2">Phan Thị Cẩm</td>
+        <td class="r"><div class="cell"><span class="v">6.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">8.0</span></div></td>
+        <td class="r"><div class="cell"><span class="v">7.0</span></div></td>
+        <td class="r"><div class="cell empty"><span class="v">—</span></div></td>
+        <td class="r tot"><div class="cell fail"><span class="v">7.4 ⚠</span></div></td>
+        <td><button class="btn btn-ghost btn-sm" disabled>+ Điểm cộng</button></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="legend"><span>Nút "+ Điểm cộng" cũng tắt: cấp điểm cộng vào một cột khi trọng số còn sai chỉ tạo thêm số liệu phải sửa lại.</span></div>
+</div>
+</div>
+
+<div class="state s-err">
+<div class="state-h">Lỗi 2 — điều kiện điểm sàn mất hiệu lực trong im lặng</div>
+<div class="screen">
+  <div class="bn bn-err">
+    <span class="ic">✕</span>
+    <span><b>Điều kiện điểm sàn không áp được: không tìm thấy cột có key <code>cuoi_mon</code> trong lớp này.</b>
+    Cột đó đã được đổi key thành <code>thi_cuoi_ky</code> ngày 03/12/2026. Hiện có
+    <b>3 sinh viên</b> có điểm cột Cuối môn &lt; 4.0 mà <em>không</em> bị chặn điểm tổng —
+    họ đang qua môn nhờ điểm các cột khác, trái với quy định của môn.
+    <span class="fix">Sửa theo một trong hai cách: (1) mở Cấu hình cột, đổi key trong điều kiện
+    từ <code>cuoi_mon</code> sang <code>thi_cuoi_ky</code>; hoặc (2) đổi key cột về lại
+    <code>cuoi_mon</code> — lưu ý cách này làm mẫu xuất Excel đang dùng key mới bị hỏng theo.</span></span>
+  </div>
+  <div class="bn bn-warn">
+    <span class="ic">▲</span>
+    <span><b>Cột "Trắc nghiệm" (<code>trac_nghiem</code>) không có trong mẫu xuất "Mẫu phòng đào tạo 2026".</b>
+    File nộp sẽ thiếu cột này.
+    <span class="fix">Gỡ: mở Trình sửa mẫu xuất, kéo "Trắc nghiệm" sang cột phải — hoặc bấm "Bỏ qua, tôi biết"
+    để tắt cảnh báo cho riêng mẫu này.</span></span>
+  </div>
+  <div class="body" style="color:var(--fg-muted);font-size:.88rem">
+    Hai dải trên nằm <strong>trên</strong> bảng điểm, không nằm trong một trang cài đặt riêng —
+    người thấy hậu quả và người sửa nguyên nhân là cùng một người, ở cùng một lúc.
+  </div>
+</div>
+</div>
+
+<div class="note">
+<strong>Vì sao không bao giờ bỏ qua trong im lặng.</strong> Một điều kiện điểm sàn trỏ vào key không tồn tại
+mà không báo gì là kịch bản tệ nhất của cả phase: hệ thống chạy bình thường, bảng điểm trông đẹp,
+và sinh viên thi 3.5 vẫn qua môn. <code>GradeConditionEvaluator</code> trả về
+<code>UnknownColumnKeys</code>; cả sổ điểm lẫn màn hình cấu hình đều phải hiện nó.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s5">5. Popover điểm cộng — dùng chung với màn hình chấm bài 6.7</h2>
+<p>Mở từ nút "Thêm điểm cộng" trên thanh công cụ hoặc nút "+ Điểm cộng" ở cuối mỗi hàng.
+Một bản duy nhất, cắm vào cả 6.7 lẫn 6.8.</p>
+
+<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+
+<div class="state s-ok" style="margin:0">
+<div class="state-h">Cộng vào một cột — đi qua trọng số</div>
+<div class="pop">
+  <p class="pop-h">Điểm cộng cho Hoàng Thị Mai</p>
+  <p class="pop-s">2251012010 · DA24TIN01 · bối cảnh: buổi báo cáo chương 5</p>
+  <div class="qb">
+    <button type="button">Thuyết trình tự tin +0.5</button>
+    <button type="button">Trả lời đúng câu khó +0.5</button>
+    <button type="button" class="on">Phát biểu xây dựng bài +0.5</button>
+  </div>
+  <div class="f" style="margin-bottom:.5rem">
+    <label for="ly-do-1">Lý do (bắt buộc)</label>
+    <input class="inp" id="ly-do-1" type="text" value="Phát biểu xây dựng bài">
+  </div>
+  <div class="f" style="max-width:120px">
+    <label for="diem-1">Điểm</label>
+    <input class="inp numin" id="diem-1" type="text" value="0.5">
+  </div>
+  <div class="rad">
+    <label><input type="radio" name="dich-1"> Điểm tổng <span class="w">không qua trọng số</span></label>
+    <label><input type="radio" name="dich-1" checked> Trắc nghiệm <span class="w">20%</span></label>
+    <label><input type="radio" name="dich-1"> Bài tập <span class="w">30%</span></label>
+    <label><input type="radio" name="dich-1"> Cuối môn <span class="w">50%</span></label>
+  </div>
+  <div class="impact">→ Điểm tổng: +0.1 &nbsp;<span style="font:400 .78rem var(--font)">(0.5 × 20% = 0.1)</span></div>
+  <div class="pop-f">
+    <button class="btn btn-ghost btn-sm">Hủy</button>
+    <button class="btn btn-primary btn-sm">Cấp điểm</button>
+  </div>
+</div>
+</div>
+
+<div class="state s-ok" style="margin:0">
+<div class="state-h">Cộng thẳng vào điểm tổng — nguyên giá trị</div>
+<div class="pop">
+  <p class="pop-h">Điểm cộng cho Ngô Khánh Linh</p>
+  <p class="pop-s">2251012008 · DA24TIN01 · bối cảnh: không gắn (điểm cộng độc lập)</p>
+  <div class="qb">
+    <button type="button">Thuyết trình tự tin +0.5</button>
+    <button type="button" class="on">Trả lời đúng câu khó +0.5</button>
+    <button type="button">Phát biểu xây dựng bài +0.5</button>
+  </div>
+  <div class="f" style="margin-bottom:.5rem">
+    <label for="ly-do-2">Lý do (bắt buộc)</label>
+    <input class="inp" id="ly-do-2" type="text" value="Trả lời đúng câu hỏi khó">
+  </div>
+  <div class="f" style="max-width:120px">
+    <label for="diem-2">Điểm</label>
+    <input class="inp numin" id="diem-2" type="text" value="0.5">
+  </div>
+  <div class="rad">
+    <label><input type="radio" name="dich-2" checked> Điểm tổng <span class="w">không qua trọng số</span></label>
+    <label><input type="radio" name="dich-2"> Trắc nghiệm <span class="w">20%</span></label>
+    <label><input type="radio" name="dich-2"> Bài tập <span class="w">30%</span></label>
+    <label><input type="radio" name="dich-2"> Cuối môn <span class="w">50%</span></label>
+  </div>
+  <div class="impact">→ Điểm tổng: +0.5 &nbsp;<span style="font:400 .78rem var(--font)">(cộng thẳng, không qua trọng số)</span></div>
+  <div class="pop-f">
+    <button class="btn btn-ghost btn-sm">Hủy</button>
+    <button class="btn btn-primary btn-sm">Cấp điểm</button>
+  </div>
+</div>
+</div>
+
+<div class="state s-err" style="margin:0">
+<div class="state-h">Bị từ chối — lý do trống</div>
+<div class="pop">
+  <p class="pop-h">Điểm cộng cho Võ Hoàng Duy</p>
+  <p class="pop-s">2251012005 · DA24TIN01</p>
+  <div class="f" style="margin-bottom:.5rem">
+    <label for="ly-do-3">Lý do (bắt buộc)</label>
+    <input class="inp bad" id="ly-do-3" type="text" value="   ">
+    <span style="font-size:.8rem;color:var(--danger)">Lý do không được để trống hoặc chỉ gồm dấu cách.
+      Sáu tháng nữa, khi sinh viên hỏi "0.5 điểm này ở đâu ra", đây là câu trả lời duy nhất bạn có.</span>
+  </div>
+  <div class="f" style="max-width:120px">
+    <label for="diem-3">Điểm</label>
+    <input class="inp numin" id="diem-3" type="text" value="0.5">
+  </div>
+  <div class="pop-f">
+    <button class="btn btn-ghost btn-sm">Hủy</button>
+    <button class="btn btn-primary btn-sm" disabled title="Bị khoá: ô Lý do đang trống">Cấp điểm</button>
+  </div>
+</div>
+</div>
+
+<div class="state s-err" style="margin:0">
+<div class="state-h">Bị từ chối — điểm âm &amp; chạm trần</div>
+<div class="pop">
+  <p class="pop-h">Điểm cộng cho Đặng Thị Hà</p>
+  <p class="pop-s">2251012006 · DA24TIN01 · đã nhận 0.8/1.0 điểm cộng trong lớp này</p>
+  <div class="f" style="margin-bottom:.5rem">
+    <label for="ly-do-4">Lý do (bắt buộc)</label>
+    <input class="inp" id="ly-do-4" type="text" value="Đi trễ buổi báo cáo">
+  </div>
+  <div class="f" style="max-width:120px;margin-bottom:.5rem">
+    <label for="diem-4">Điểm</label>
+    <input class="inp numin bad" id="diem-4" type="text" value="-0.5">
+  </div>
+  <div class="bn bn-err" style="border-bottom:0;border-radius:var(--radius)">
+    <span class="ic">✕</span>
+    <span><b>Điểm cộng phải lớn hơn 0.</b> Cơ chế điểm cộng không dùng để trừ điểm —
+    muốn trừ thì sửa điểm của cột tương ứng, để lịch sử ghi đúng là "sửa điểm" chứ không phải "cộng âm".</span>
+  </div>
+  <div class="bn bn-warn" style="border-bottom:0;border-radius:var(--radius);margin-top:.4rem">
+    <span class="ic">▲</span>
+    <span><b>Trần điểm cộng của lớp: 1.0 điểm/sinh viên.</b> Hà đã nhận 0.8.
+    Lần cấp tiếp theo tối đa còn <b>0.2</b>; phần vượt sẽ bị cắt và ghi rõ trong lịch sử.</span>
+  </div>
+  <div class="pop-f">
+    <button class="btn btn-ghost btn-sm">Hủy</button>
+    <button class="btn btn-primary btn-sm" disabled title="Bị khoá: điểm phải &gt; 0">Cấp điểm</button>
+  </div>
+</div>
+</div>
+
+</div>
+
+<div class="why">
+<strong>Dòng "→ Điểm tổng: +0.1" là phần bắt buộc của tính năng, không phải trang trí.</strong>
+Cộng +0.5 vào cột Trắc nghiệm (trọng số 20%) chỉ làm điểm tổng tăng <code>0.5 × 0.2 = 0.1</code>.
+Không hiện dòng này thì giảng viên tưởng mình vừa cho 0.5 điểm, sinh viên cũng tưởng vậy, và cả hai
+cùng ngạc nhiên khi nhìn bảng điểm. Dòng này phải cập nhật ngay khi đổi điểm hoặc đổi đích.
+</div>
+
+<div class="note">
+<strong>Danh sách đích phải dựng từ cột thật của lớp đang mở.</strong> Lớp 3 cột thấy 4 lựa chọn
+(Điểm tổng + 3 cột); lớp 5 cột thấy 6. Hard-code hai lựa chọn "Thường kỳ / Cuối môn" là làm hỏng đúng
+tính năng mà Phase 4b sinh ra để làm. Trần điểm cộng áp <em>một lần</em> trên toàn bộ điểm cộng của sinh viên
+(<code>BonusLedger</code>), không áp lại ở từng chỗ dùng — nếu không, ô sổ điểm và điểm tổng sẽ ra hai con số khác nhau.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s6">6. Trình cấu hình cột điểm</h2>
+
+<div class="state s-ok">
+<div class="state-h">Trạng thái bình thường — tổng đúng 100%</div>
+<div class="screen">
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Cấu hình sổ điểm — DA24TIN01</span>
+      <span class="tb-s">IN4203 · HK1 2026–2027</span>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm">Áp mẫu có sẵn ▾</button>
+      <button class="btn btn-ghost btn-sm">Lưu bộ cột này thành mẫu</button>
+    </div>
+  </div>
+
+  <div class="body">
+  <div class="dz">
+
+    <div class="drow">
+      <div class="hdl" title="Kéo để đổi thứ tự">⠿</div>
+      <div class="f"><label for="c1n">Tên cột</label><input class="inp" id="c1n" type="text" value="Trắc nghiệm"></div>
+      <div class="f"><label for="c1k">Key</label><input class="inp mono" id="c1k" type="text" value="trac_nghiem"></div>
+      <div class="f"><label for="c1w">Trọng số</label><input class="inp numin" id="c1w" type="text" value="20"></div>
+      <div class="f"><label for="c1a">Quy tắc tổng hợp</label>
+        <select class="inp" id="c1a" onchange="hienN(this,'n1')">
+          <option selected>Trung bình</option>
+          <option>Trung bình có trọng số</option>
+          <option>Lấy cao nhất</option>
+          <option>Lấy thấp nhất</option>
+          <option>Bỏ N thấp nhất</option>
+          <option>Lấy N tốt nhất</option>
+          <option>Cộng dồn</option>
+          <option>Nhập tay</option>
+        </select>
+      </div>
+      <button class="icb" title="Xóa cột">✕</button>
+      <div class="sub">
+        <span id="n1" style="display:none">N = <input class="inp numin" type="text" value="1" style="width:56px;display:inline-block"></span>
+        <label><input type="checkbox" checked> bài chưa chấm tính là 0</label>
+        <span>Nguồn: <span class="chip c-mute">Quiz chương 1–5 · 5 bài</span></span>
+      </div>
+    </div>
+
+    <div class="drow">
+      <div class="hdl" title="Kéo để đổi thứ tự">⠿</div>
+      <div class="f"><label for="c2n">Tên cột</label><input class="inp" id="c2n" type="text" value="Bài tập"></div>
+      <div class="f"><label for="c2k">Key</label><input class="inp mono" id="c2k" type="text" value="bai_tap"></div>
+      <div class="f"><label for="c2w">Trọng số</label><input class="inp numin" id="c2w" type="text" value="30"></div>
+      <div class="f"><label for="c2a">Quy tắc tổng hợp</label>
+        <select class="inp" id="c2a" onchange="hienN(this,'n2')">
+          <option>Trung bình</option>
+          <option>Trung bình có trọng số</option>
+          <option>Lấy cao nhất</option>
+          <option>Lấy thấp nhất</option>
+          <option selected>Bỏ N thấp nhất</option>
+          <option>Lấy N tốt nhất</option>
+          <option>Cộng dồn</option>
+          <option>Nhập tay</option>
+        </select>
+      </div>
+      <button class="icb" title="Xóa cột">✕</button>
+      <div class="sub">
+        <span id="n2">N = <input class="inp numin" type="text" value="1" style="width:56px;display:inline-block"></span>
+        <label><input type="checkbox" checked> bài chưa chấm tính là 0</label>
+        <span>Nguồn: <span class="chip c-mute">Bài tập chương 2 · 4 bài</span></span>
+      </div>
+    </div>
+
+    <div class="drow">
+      <div class="hdl" title="Kéo để đổi thứ tự">⠿</div>
+      <div class="f"><label for="c3n">Tên cột</label><input class="inp" id="c3n" type="text" value="Cuối môn"></div>
+      <div class="f"><label for="c3k">Key <span title="Đang khoá">🔒</span></label>
+        <input class="inp mono" id="c3k" type="text" value="cuoi_mon" disabled></div>
+      <div class="f"><label for="c3w">Trọng số</label><input class="inp numin" id="c3w" type="text" value="50"></div>
+      <div class="f"><label for="c3a">Quy tắc tổng hợp</label>
+        <select class="inp" id="c3a" onchange="hienN(this,'n3')">
+          <option>Trung bình</option>
+          <option>Trung bình có trọng số</option>
+          <option>Lấy cao nhất</option>
+          <option>Lấy thấp nhất</option>
+          <option>Bỏ N thấp nhất</option>
+          <option>Lấy N tốt nhất</option>
+          <option>Cộng dồn</option>
+          <option selected>Nhập tay</option>
+        </select>
+      </div>
+      <button class="icb" title="Xóa cột">✕</button>
+      <div class="sub">
+        <span id="n3" style="display:none">N = <input class="inp numin" type="text" value="1" style="width:56px;display:inline-block"></span>
+        <span class="chip c-warn">🔒 Key khoá</span>
+        <span>Cột đang có điểm của <b>38 sinh viên</b> và đang được điều kiện điểm sàn tham chiếu.
+          Đổi key sẽ làm điều kiện điểm sàn và mẫu xuất Excel trỏ vào hư không.
+          Gỡ khoá: xóa hết điểm của cột này (không khuyến khích) hoặc tạo cột mới với key khác.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="rule">
+    <h4>Điều kiện điểm sàn</h4>
+    <div class="rline">
+      Nếu
+      <select class="inp" style="width:auto"><option>Cuối môn (cuoi_mon)</option><option>Trắc nghiệm (trac_nghiem)</option><option>Bài tập (bai_tap)</option></select>
+      <select class="inp" style="width:auto"><option selected>&lt;</option><option>≤</option></select>
+      <input class="inp numin" type="text" value="4.0" style="width:76px">
+      → điểm tổng tối đa
+      <input class="inp numin" type="text" value="3.9" style="width:76px">
+      <button class="icb" title="Xóa điều kiện">✕</button>
+    </div>
+    <p style="margin:.5rem 0 0;font-size:.84rem;color:var(--fg-muted)">
+      Điều kiện áp <b>sau</b> khi đã cộng mọi điểm cộng. Sinh viên thi cuối môn 3.5 không được qua môn
+      nhờ điểm phát biểu trên lớp — đó chính là thứ quy định điểm sàn sinh ra để ngăn.
+    </p>
+    <button class="btn btn-ghost btn-sm" style="margin-top:.5rem">+ Thêm điều kiện</button>
+  </div>
+
+  <div class="rule">
+    <h4>Điểm cộng</h4>
+    <div class="rline">
+      Đích mặc định:
+      <select class="inp" style="width:auto"><option>Điểm tổng</option><option selected>Bài tập (bai_tap)</option><option>Trắc nghiệm (trac_nghiem)</option><option>Cuối môn (cuoi_mon)</option></select>
+      &nbsp;·&nbsp; Trần mỗi sinh viên:
+      <input class="inp numin" type="text" value="1.0" style="width:76px">
+      <span style="font-size:.84rem;color:var(--fg-muted)">để trống = không giới hạn</span>
+    </div>
+  </div>
+
+  </div><!-- /body -->
+
+  <div class="foot">
+    <div class="tb-g">
+      <span class="tsum">Tổng: 100%</span>
+      <span class="chip c-ok">✓ Hợp lệ</span>
+      <button class="btn btn-ghost btn-sm">+ Thêm cột</button>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm">Hủy</button>
+      <button class="btn btn-primary btn-sm">Lưu cấu hình</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="note">
+<strong>Ô key tự sinh từ tên nhưng sửa được — và khoá lại khi cột đã có điểm.</strong>
+"Thường kỳ" → <code>thuong_ky</code> (bỏ dấu, khoảng trắng thành <code>_</code>). Tự sinh để người dùng
+không phải nghĩ; sửa được để khớp key của mẫu xuất Excel đang dùng. Nhưng khi cột đã có điểm,
+key là sợi dây nối cột ↔ mẫu xuất ↔ điều kiện điểm sàn — cắt nó thì cả hai bên kia trỏ vào hư không
+mà không có lỗi nào bật ra. Vì thế ô key khoá lại <em>kèm lý do và cách gỡ</em>, không khoá câm.
+</div>
+
+<div class="state s-err">
+<div class="state-h">Trạng thái lỗi — tổng trọng số ≠ 100%</div>
+<div class="screen">
+  <div class="bn bn-err">
+    <span class="ic">✕</span>
+    <span><b>Tổng trọng số = 115%, lệch +15% so với 100%.</b>
+    Trắc nghiệm 25% + Bài tập 40% + Cuối môn 50% = 115%. Nút "Lưu cấu hình" bị khoá.
+    <span class="fix">Gỡ khoá: hạ tổng đúng 15 điểm phần trăm — ví dụ Bài tập 40% → 25%,
+    hoặc Trắc nghiệm 25% → 20% và Bài tập 40% → 30%.</span></span>
+  </div>
+  <div class="body">
+  <div class="dz">
+    <div class="drow bad">
+      <div class="hdl">⠿</div>
+      <div class="f"><label for="e1n">Tên cột</label><input class="inp" id="e1n" type="text" value="Trắc nghiệm"></div>
+      <div class="f"><label for="e1k">Key</label><input class="inp mono" id="e1k" type="text" value="trac_nghiem"></div>
+      <div class="f"><label for="e1w">Trọng số</label><input class="inp numin bad" id="e1w" type="text" value="25"></div>
+      <div class="f"><label for="e1a">Quy tắc tổng hợp</label>
+        <select class="inp" id="e1a"><option selected>Trung bình</option><option>Cộng dồn</option></select></div>
+      <button class="icb" title="Xóa cột">✕</button>
+    </div>
+    <div class="drow bad">
+      <div class="hdl">⠿</div>
+      <div class="f"><label for="e2n">Tên cột</label><input class="inp" id="e2n" type="text" value="Bài tập"></div>
+      <div class="f"><label for="e2k">Key</label><input class="inp mono" id="e2k" type="text" value="bai_tap"></div>
+      <div class="f"><label for="e2w">Trọng số</label><input class="inp numin bad" id="e2w" type="text" value="40"></div>
+      <div class="f"><label for="e2a">Quy tắc tổng hợp</label>
+        <select class="inp" id="e2a"><option selected>Bỏ N thấp nhất</option><option>Trung bình</option></select></div>
+      <button class="icb" title="Xóa cột">✕</button>
+    </div>
+    <div class="drow bad">
+      <div class="hdl">⠿</div>
+      <div class="f"><label for="e3n">Tên cột</label><input class="inp" id="e3n" type="text" value="Cuối môn"></div>
+      <div class="f"><label for="e3k">Key</label><input class="inp mono" id="e3k" type="text" value="cuoi_mon"></div>
+      <div class="f"><label for="e3w">Trọng số</label><input class="inp numin bad" id="e3w" type="text" value="50"></div>
+      <div class="f"><label for="e3a">Quy tắc tổng hợp</label>
+        <select class="inp" id="e3a"><option selected>Nhập tay</option><option>Trung bình</option></select></div>
+      <button class="icb" title="Xóa cột">✕</button>
+    </div>
+  </div>
+  </div>
+  <div class="foot">
+    <div class="tb-g">
+      <span class="tsum" style="color:var(--danger)">Tổng: 115%</span>
+      <span class="chip c-err">✕ Lệch +15%</span>
+      <button class="btn btn-ghost btn-sm">+ Thêm cột</button>
+    </div>
+    <div class="tb-g">
+      <span style="font-size:.82rem;color:var(--fg-muted)">Sửa tổng về 100% để mở nút Lưu</span>
+      <button class="btn btn-ghost btn-sm">Hủy</button>
+      <button class="btn btn-primary btn-sm" disabled title="Bị khoá: tổng trọng số = 115%, phải bằng 100%">Lưu cấu hình</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="note">
+Cảnh báo phải hiện <strong>con số thực tế</strong> ("115%, lệch +15%") chứ không phải câu chung chung
+"Tổng trọng số không hợp lệ". Người dùng cần biết phải bớt bao nhiêu, ngay tại chỗ, không phải tự cộng lại
+ba ô bằng đầu. Chặn ở client để thấy ngay lúc gõ; chặn lại ở server vì client không phải nguồn sự thật.
+</div>
+
+<div class="state s-empty">
+<div class="state-h">Trạng thái rỗng — chưa có cột nào &amp; danh sách mẫu có sẵn</div>
+<div class="screen">
+  <div class="tb">
+    <div class="tb-g"><span class="tb-t">Cấu hình sổ điểm — DA24TIN02</span></div>
+  </div>
+  <div class="es" style="padding-bottom:1rem">
+    <div class="glyph">∅</div>
+    <div class="es-t">Chưa có cột điểm nào</div>
+    <div class="es-d">Bắt đầu bằng một mẫu có sẵn thì nhanh hơn: mẫu đã có sẵn key, trọng số và quy tắc
+      tổng hợp, sửa lại sau vẫn được chừng nào cột chưa có điểm.</div>
+  </div>
+  <div class="body" style="padding-top:0">
+  <div class="tpl">
+    <div class="tplcard">
+      <b>2 cột chuẩn</b>
+      <div class="keys">thuong_ky 40% · cuoi_mon 60%</div>
+      <p style="margin:0 0 .5rem;font-size:.84rem;color:var(--fg-muted)">Thường kỳ (Trung bình) + Cuối môn (Nhập tay).
+        Mẫu dùng nhiều nhất, khớp quy định chung của khoa.</p>
+      <button class="btn btn-primary btn-sm">Áp mẫu này</button>
+    </div>
+    <div class="tplcard">
+      <b>3 cột có trắc nghiệm</b>
+      <div class="keys">trac_nghiem 20% · bai_tap 30% · cuoi_mon 50%</div>
+      <p style="margin:0 0 .5rem;font-size:.84rem;color:var(--fg-muted)">Trắc nghiệm (Trung bình) +
+        Bài tập (Bỏ 1 thấp nhất) + Cuối môn (Nhập tay). Dùng cho môn có quiz theo chương.</p>
+      <button class="btn btn-primary btn-sm">Áp mẫu này</button>
+    </div>
+    <div class="tplcard" style="border-style:dashed">
+      <b>+ Tạo mẫu mới</b>
+      <div class="keys">từ bộ cột của một lớp đang dạy</div>
+      <p style="margin:0 0 .5rem;font-size:.84rem;color:var(--fg-muted)">Mẫu thuộc về bạn, dùng lại cho
+        mọi môn và mọi học kỳ — không phải cấu hình lại mỗi lần mở lớp.</p>
+      <button class="btn btn-ghost btn-sm">Tạo mẫu</button>
+    </div>
+  </div>
+  </div>
+</div>
+</div>
+
+<div class="state s-warn">
+<div class="state-h">Áp mẫu — xem trước thay đổi trước khi xác nhận (đang bị chặn)</div>
+<div class="screen">
+  <div class="tb"><div class="tb-g"><span class="tb-t">Áp mẫu "3 cột có trắc nghiệm" vào DA24TIN05</span></div></div>
+  <div class="body">
+    <div class="card" style="box-shadow:none;margin-bottom:.6rem">
+      <div style="font:700 .78rem var(--font);letter-spacing:.05em;text-transform:uppercase;color:var(--success);margin-bottom:.3rem">Giữ nguyên — trùng key</div>
+      <table class="demo">
+        <tbody>
+          <tr><td style="width:44%">Cuối môn <code>cuoi_mon</code></td>
+              <td class="num">50% → 50%</td>
+              <td><span class="chip c-ok">✓ Điểm của 31 SV giữ nguyên</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="box-shadow:none;margin-bottom:.6rem">
+      <div style="font:700 .78rem var(--font);letter-spacing:.05em;text-transform:uppercase;color:var(--brand-700);margin-bottom:.3rem">Thêm mới</div>
+      <table class="demo">
+        <tbody>
+          <tr><td style="width:44%">Trắc nghiệm <code>trac_nghiem</code></td><td class="num">20%</td>
+              <td><span class="chip c-info">Cột trống, chưa có điểm</span></td></tr>
+          <tr><td>Bài tập <code>bai_tap</code></td><td class="num">30%</td>
+              <td><span class="chip c-info">Cột trống, chưa có điểm</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="box-shadow:none;border-color:var(--danger)">
+      <div style="font:700 .78rem var(--font);letter-spacing:.05em;text-transform:uppercase;color:var(--danger);margin-bottom:.3rem">Sẽ mất</div>
+      <table class="demo">
+        <tbody>
+          <tr><td style="width:44%">Thường kỳ <code>thuong_ky</code></td><td class="num">40%</td>
+              <td><span class="chip c-err">✕ Đang có điểm của 12 sinh viên</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="bn bn-err">
+    <span class="ic">✕</span>
+    <span><b>Không áp được mẫu ở chế độ thay thế: cột "Thường kỳ" đang có điểm của 12 sinh viên.</b>
+    Áp mẫu là thao tác một cú bấm mà hậu quả là xóa điểm — nên nó phải nói trước.
+    <span class="fix">Ba cách đi tiếp: (1) chọn chế độ <b>Giữ cột cũ</b> — cột Thường kỳ vẫn còn,
+    bạn tự đưa tổng trọng số về 100%; (2) Xuất Excel sao lưu rồi xóa cột thủ công;
+    (3) áp mẫu này cho lớp khác chưa có điểm.</span></span>
+  </div>
+  <div class="foot">
+    <div class="tb-g">
+      <label class="sw2"><input type="radio" name="che-do"> Thay thế toàn bộ</label>
+      <label class="sw2"><input type="radio" name="che-do" checked> Giữ cột cũ, chỉ thêm cột thiếu</label>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm">Hủy</button>
+      <button class="btn btn-primary btn-sm" disabled title="Bị khoá ở chế độ Thay thế: cột Thường kỳ đang có điểm của 12 SV">Xác nhận áp mẫu</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="why">
+<strong>Vì sao mở lớp là SAO CHÉP mẫu chứ không tham chiếu tới mẫu.</strong> Học kỳ sau bạn sửa mẫu
+"3 cột" từ 20/30/50 thành 30/20/50. Nếu cột của lớp chỉ là con trỏ tới mẫu thì bảng điểm của lớp
+<em>đã dạy xong và đã nộp</em> lập tức đổi số — không ai bấm nút nào cả, và không có gì trong hệ thống
+nói cho bạn biết. Lớp đã mở thì cách tính điểm của nó đóng băng, cùng nguyên tắc với việc lớp ghim
+<code>SubjectVersion</code>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s7">7. Trình sửa mẫu xuất Excel</h2>
+
+<div class="state s-warn">
+<div class="state-h">Trạng thái bình thường + cảnh báo cột bị bỏ sót</div>
+<div class="screen">
+  <div class="tb">
+    <div class="tb-g">
+      <span class="tb-t">Mẫu xuất — "Mẫu phòng đào tạo 2026"</span>
+      <span class="tb-s">thuộc giảng viên · dùng lại cho mọi lớp cùng bộ key</span>
+    </div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm">Nhân bản mẫu</button>
+      <button class="btn btn-primary btn-sm">Lưu mẫu</button>
+    </div>
+  </div>
+
+  <div class="bn bn-warn">
+    <span class="ic">▲</span>
+    <span><b>Cột "Trắc nghiệm" (<code>trac_nghiem</code>) có trong lớp DA24TIN01 nhưng không nằm trong mẫu xuất.</b>
+    File nộp phòng đào tạo sẽ không có cột này. Nếu đó là chủ ý (phòng đào tạo chỉ nhận
+    điểm quá trình + điểm thi) thì bỏ qua được.
+    <span class="fix">Gỡ cảnh báo: kéo "Trắc nghiệm" từ cột trái sang, hoặc bấm "Bỏ qua cho mẫu này".</span></span>
+  </div>
+
+  <div class="body">
+  <div class="two">
+
+    <div class="pane">
+      <h4>Nguồn còn lại</h4>
+      <div class="item"><span class="hdl" style="padding:0">⠿</span> Trắc nghiệm <span class="k">trac_nghiem</span></div>
+      <div class="item"><span class="hdl" style="padding:0">⠿</span> Điểm cộng (đích tổng) <span class="k">BonusTotal</span></div>
+      <div class="item"><span class="hdl" style="padding:0">⠿</span> Ghi chú của giảng viên <span class="k">Note</span></div>
+      <p style="margin:.5rem 0 0;font-size:.8rem;color:var(--fg-muted)">
+        Kéo sang phải để đưa vào mẫu. Nguồn nối vào cột bằng <b>key</b>, không phải id —
+        đó là lý do một mẫu dùng được cho mọi lớp có cùng bộ key.</p>
+    </div>
+
+    <div class="pane">
+      <h4>Mẫu đang dựng — thứ tự cột trong file</h4>
+
+      <div class="erow">
+        <div class="hdl">⠿</div>
+        <div class="f"><label>Nguồn</label><span style="font:500 .84rem var(--mono);color:var(--fg-muted)">StudentCode</span></div>
+        <div class="f"><label for="h1">Tiêu đề trong file</label><input class="inp" id="h1" type="text" value="MSSV"></div>
+        <div class="f"><label for="d1">Thập phân</label><input class="inp numin" id="d1" type="text" value="—" disabled></div>
+        <button class="icb" title="Bỏ khỏi mẫu">✕</button>
+        <div class="sub"><span class="chip c-info">Ép định dạng ô <code>"@"</code> — nếu không Excel biến 2251012001 thành 2.25101E+09</span></div>
+      </div>
+
+      <div class="erow">
+        <div class="hdl">⠿</div>
+        <div class="f"><label>Nguồn</label><span style="font:500 .84rem var(--mono);color:var(--fg-muted)">FullName</span></div>
+        <div class="f"><label for="h2">Tiêu đề trong file</label><input class="inp" id="h2" type="text" value="Họ và tên"></div>
+        <div class="f"><label for="d2">Thập phân</label><input class="inp numin" id="d2" type="text" value="—" disabled></div>
+        <button class="icb" title="Bỏ khỏi mẫu">✕</button>
+      </div>
+
+      <div class="erow">
+        <div class="hdl">⠿</div>
+        <div class="f"><label>Nguồn</label><span style="font:500 .84rem var(--mono);color:var(--fg-muted)">GradeColumn:bai_tap</span></div>
+        <div class="f"><label for="h3">Tiêu đề trong file</label><input class="inp" id="h3" type="text" value="Điểm quá trình"></div>
+        <div class="f"><label for="d3">Thập phân</label><input class="inp numin" id="d3" type="text" value="1"></div>
+        <button class="icb" title="Bỏ khỏi mẫu">✕</button>
+        <div class="sub"><span>Trong lớp cột này tên là <b>"Bài tập"</b> — tiêu đề file đổi thành "Điểm quá trình" theo yêu cầu phòng đào tạo.</span></div>
+      </div>
+
+      <div class="erow">
+        <div class="hdl">⠿</div>
+        <div class="f"><label>Nguồn</label><span style="font:500 .84rem var(--mono);color:var(--fg-muted)">GradeColumn:cuoi_mon</span></div>
+        <div class="f"><label for="h4">Tiêu đề trong file</label><input class="inp" id="h4" type="text" value="Điểm thi"></div>
+        <div class="f"><label for="d4">Thập phân</label><input class="inp numin" id="d4" type="text" value="1"></div>
+        <button class="icb" title="Bỏ khỏi mẫu">✕</button>
+      </div>
+
+      <div class="erow">
+        <div class="hdl">⠿</div>
+        <div class="f"><label>Nguồn</label><span style="font:500 .84rem var(--mono);color:var(--fg-muted)">FinalScore</span></div>
+        <div class="f"><label for="h5">Tiêu đề trong file</label><input class="inp" id="h5" type="text" value="Điểm tổng kết"></div>
+        <div class="f"><label for="d5">Thập phân</label><input class="inp numin" id="d5" type="text" value="2"></div>
+        <button class="icb" title="Bỏ khỏi mẫu">✕</button>
+      </div>
+
+    </div>
+  </div>
+
+  <h3 style="margin-top:1.4rem">Xem trước — một hàng dữ liệu thật</h3>
+  <div class="prev">
+    <table class="xls">
+      <thead><tr><th>MSSV</th><th>Họ và tên</th><th>Điểm quá trình</th><th>Điểm thi</th><th>Điểm tổng kết</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="s">2251012001</td><td>Nguyễn Văn Ánh</td>
+          <td class="n">8.0</td><td class="n">9.0</td><td class="n">8.50</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin:.5rem 0 0;font-size:.84rem;color:var(--fg-muted)">
+    Xem trước gọi đúng endpoint <code>/export-excel/preview</code> — không dựng lại logic cột ở frontend.
+    Hai bản dựng cột sẽ lệch nhau, và bản người dùng tin là bản họ đang nhìn, trong khi bản nộp cho trường
+    là bản của server.
+  </p>
+  </div>
+
+  <div class="foot">
+    <div class="tb-g"><span style="font-size:.84rem;color:var(--fg-muted)">Dòng đầu file ghi tên lớp, học kỳ, ngày xuất · hàng tiêu đề đóng băng</span></div>
+    <div class="tb-g">
+      <button class="btn btn-ghost btn-sm">Bỏ qua cảnh báo cho mẫu này</button>
+      <button class="btn btn-primary btn-sm">Xuất file .xlsx</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="state s-empty">
+<div class="state-h">Trạng thái rỗng — chưa có mẫu xuất nào</div>
+<div class="screen">
+  <div class="es">
+    <div class="glyph">∅</div>
+    <div class="es-t">Chưa có mẫu xuất nào</div>
+    <div class="es-d">Không có mẫu thì nút "Xuất Excel" vẫn chạy, nhưng dùng bố cục mặc định:
+      MSSV · Họ tên · từng cột theo đúng thứ tự trong lớp · Điểm cộng · Điểm tổng, một chữ số thập phân.
+      Tạo mẫu khi bảng của phòng đào tạo đòi tiêu đề hoặc thứ tự khác.</div>
+    <div class="es-act">
+      <button class="btn btn-primary">+ Tạo mẫu từ bố cục mặc định</button>
+      <button class="btn btn-ghost">Xuất luôn theo bố cục mặc định</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="note">
+<strong>Cạm bẫy số một của bảng điểm nộp trường: MSSV bị Excel biến thành số.</strong>
+<code>2251012001</code> mở ra thành <code>2.25101E+09</code>, và phòng đào tạo trả lại file.
+Ô MSSV phải ép <code>NumberFormat = "@"</code> khi ghi, và trên giao diện MSSV luôn dùng
+<code>var(--mono)</code> vì nó là chuỗi, không phải số.
+</div>
+
+<div class="why">
+<strong>Vì sao mẫu xuất nối vào cột bằng key chứ không bằng id.</strong> Mẫu xuất thuộc về
+<em>giảng viên</em>, còn cột điểm thuộc về <em>lớp</em> — mỗi lớp một bộ id mới. Nối bằng id thì
+"Mẫu phòng đào tạo 2026" chỉ dùng được cho đúng một lớp và người dùng phải soạn lại mẫu cho từng lớp,
+tức là tính năng coi như không tồn tại. Nối bằng key (<code>bai_tap</code>, <code>cuoi_mon</code>)
+thì một mẫu chạy cho mọi lớp có cùng bộ key.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s8">8. Sinh viên xem điểm của mình — khung 360px</h2>
+<p>Sinh viên chỉ thấy hàng của chính mình, theo đúng cấu hình cột của lớp. Đây là màn hình dùng trên
+điện thoại, nên đặt mật độ <em>thoáng</em> và mọi vùng bấm ≥ 44×44px.</p>
+
+<div class="mobrow">
+
+<div>
+<div class="state s-ok" style="margin-top:0"><div class="state-h">Bình thường — 360 × mật độ thoáng</div></div>
+<div class="mob" data-density="thoang">
+  <div class="mob-top">
+    <b>Điểm của tôi</b>
+    <span>IN4203 · DA24TIN01 · HK1 2026–2027</span>
+  </div>
+  <div class="mob-body">
+    <div style="display:flex;align-items:baseline;gap:.5rem">
+      <span class="big">8.5</span>
+      <span style="font:500 .8rem var(--mono);color:var(--fg-muted)">/ 10</span>
+      <span class="chip c-info" style="margin-left:auto">Tạm tính</span>
+    </div>
+    <p style="margin:.3rem 0 .9rem;font-size:.82rem;color:var(--fg-muted)">
+      Cập nhật 14/08/2026. Điểm chính thức được chốt khi lớp đóng.</p>
+
+    <div class="mrow">
+      <span class="lbl">Trắc nghiệm<small>trọng số 20% · trung bình 5 bài</small></span>
+      <span class="cell"><span class="v">8.0</span></span>
+    </div>
+    <div class="mrow">
+      <span class="lbl">Bài tập<small>trọng số 30% · bỏ 1 bài thấp nhất</small></span>
+      <span class="cell"><span class="b">+0.5</span><span class="v">8.0</span></span>
+    </div>
+    <div class="mrow">
+      <span class="lbl">Cuối môn<small>trọng số 50% · bài tập lớn</small></span>
+      <span class="cell"><span class="v">9.0</span></span>
+    </div>
+    <div class="mrow" style="border-bottom:0">
+      <span class="lbl"><b>Điểm tổng</b><small>8.0×20% + 8.0×30% + 9.0×50%</small></span>
+      <span class="cell"><span class="v" style="font-size:1.05rem">8.5</span></span>
+    </div>
+
+    <div class="bn bn-ok" style="border-bottom:0;border-radius:var(--radius);margin:.7rem 0">
+      <span class="ic">+</span>
+      <span><b>Điểm cộng đã nhận: 0.5</b><br>
+        <span style="font-size:.84rem">12/11/2026 · +0.5 vào <b>Bài tập</b> · "Thuyết trình tự tin"<br>
+        → làm điểm tổng tăng <b>0.15</b> (0.5 × 30%)</span></span>
+    </div>
+
+    <button class="btn btn-ghost tap">Xem chi tiết từng bài đã chấm</button>
+  </div>
+</div>
+</div>
+
+<div>
+<div class="state s-err" style="margin-top:0"><div class="state-h">Bị điều kiện điểm sàn — phải giải thích được</div></div>
+<div class="mob" data-density="thoang">
+  <div class="mob-top">
+    <b>Điểm của tôi</b>
+    <span>IN4203 · DA24TIN01 · HK1 2026–2027</span>
+  </div>
+  <div class="mob-body">
+    <div style="display:flex;align-items:baseline;gap:.5rem">
+      <span class="big" style="color:var(--danger)">3.9</span>
+      <span style="font:500 .8rem var(--mono);color:var(--fg-muted)">/ 10</span>
+      <span class="chip c-err" style="margin-left:auto">⚠ Bị chặn</span>
+    </div>
+
+    <div class="bn bn-err" style="border-bottom:0;border-radius:var(--radius);margin:.7rem 0">
+      <span class="ic">⚠</span>
+      <span><b>Điểm tổng bị chặn ở 3.9 vì điểm Cuối môn dưới 4.0.</b><br>
+        <span style="font-size:.84rem">Quy định của môn: <b>Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9</b>.
+        Nếu không có quy định này, điểm tổng của bạn sẽ là <b>6.1</b>.
+        Điểm cộng không gỡ được điều kiện này.</span></span>
+    </div>
+
+    <div class="mrow">
+      <span class="lbl">Trắc nghiệm<small>trọng số 20%</small></span>
+      <span class="cell"><span class="v">9.0</span></span>
+    </div>
+    <div class="mrow">
+      <span class="lbl">Bài tập<small>trọng số 30%</small></span>
+      <span class="cell"><span class="v">8.5</span></span>
+    </div>
+    <div class="mrow">
+      <span class="lbl">Cuối môn<small>trọng số 50% · dưới ngưỡng 4.0</small></span>
+      <span class="cell fail"><span class="v">3.5 ⚠</span></span>
+    </div>
+    <div class="mrow" style="border-bottom:0">
+      <span class="lbl"><b>Điểm tổng</b><small>6.1 → bị kẹp còn 3.9</small></span>
+      <span class="cell fail"><span class="v" style="font-size:1.05rem">3.9 ⚠</span></span>
+    </div>
+
+    <button class="btn btn-ghost tap" style="margin-top:.7rem">Gửi thắc mắc về điểm</button>
+  </div>
+</div>
+</div>
+
+</div>
+
+<div class="why">
+<strong>Màn hình này tồn tại để giảng viên không phải trả lời cùng một câu hỏi 40 lần.</strong>
+"Vì sao em 9.0 với 8.5 mà tổng có 3.9?" là tin nhắn chắc chắn sẽ đến nếu chỉ hiện con số 3.9.
+Hiện luôn <em>điều kiện nào đã chặn</em>, <em>ngưỡng bao nhiêu</em>, và <em>nếu không có nó thì bao nhiêu</em> —
+sinh viên tự đọc được, giảng viên không phải giải thích, và khi có khiếu nại thì màn hình này chính là bằng chứng.
+</div>
+
+<div class="note">
+Khung 360px: mỗi hàng điểm cao tối thiểu 44px và hai nút trải hết chiều ngang — ngón tay cái không có
+độ chính xác của con trỏ chuột. Viền nét đứt quanh nút chỉ là đánh dấu vùng bấm trong bản mockup này,
+không phải kiểu dáng thật.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2 id="s9">9. Truy vết nguồn &amp; câu hỏi còn mở</h2>
+
+<div class="card" style="padding:0;overflow:hidden">
+<table class="demo">
+  <thead><tr><th>Khu vực trong tài liệu này</th><th>Nguồn nghiệp vụ</th><th>Phase / Task thi công</th></tr></thead>
+  <tbody>
+    <tr><td>§1 Bảng sổ điểm, cột ghim</td><td>SRS 6.8 · SRS 5.8</td><td>Phase 4b · Task 4b.10 bước 1</td></tr>
+    <tr><td>§2 Công tắc "Xem điểm tạm tính"</td><td>Rủi ro "đổi cấu hình cột cho đỡ sợ" (Phase 4b)</td><td>Phase 4b · Task 4b.10 bước 2</td></tr>
+    <tr><td>§1 Ô sửa tay (chấm cam) + tooltip lịch sử</td><td>SRS 5.8 "sửa tay, ghi log ai sửa" · <code>GradeAuditLog</code></td><td>Phase 4b · Task 4b.10 bước 3</td></tr>
+    <tr><td>§1 Ô có điểm cộng gắn vào cột</td><td>SRS 5.8 · <code>BonusPoint.Target</code></td><td>Phase 4b · Task 4b.7 + 4b.10 bước 4</td></tr>
+    <tr><td>§1 §8 Điều kiện điểm sàn</td><td><code>GradeCondition</code> "cuoi_mon &lt; 4 → tối đa 3.9"</td><td>Phase 4b · Task 4b.5</td></tr>
+    <tr><td>§5 Popover điểm cộng (dùng chung 6.7 / 6.8)</td><td>SRS 6.7 · 6.7b · 6.8 · 5.8</td><td>Phase 4b · Task 4b.7 + 4b.10 bước 6</td></tr>
+    <tr><td>§6 Trình cấu hình cột + quy tắc tổng hợp</td><td><code>GradeColumn</code> · <code>GradeAggregation</code></td><td>Phase 4b · Task 4b.2 · 4b.3 · 4b.10 bước 7–11</td></tr>
+    <tr><td>§6 Áp mẫu có sẵn + xem trước</td><td><code>GradeSchemeTemplate</code></td><td>Phase 4b · Task 4b.1 · 4b.10 bước 10</td></tr>
+    <tr><td>§7 Trình sửa mẫu xuất Excel</td><td>SRS 5.8 "xuất Excel theo template tùy chỉnh"</td><td>Phase 4b · Task 4b.9 · 4b.10 bước 14–16</td></tr>
+    <tr><td>§8 Sinh viên xem điểm của mình</td><td>Kịch bản nghiệm thu Phase 4b, bước cuối</td><td>Phase 4b</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Thứ tự tính điểm mà mọi con số trong tài liệu này tuân theo</h3>
+<div class="card">
+<ol style="margin:0;padding-left:1.2rem;font-size:.92rem">
+  <li>Điểm gốc từng cột: sửa tay thì lấy giá trị sửa tay, không thì áp quy tắc tổng hợp lên các nguồn
+      (mọi nguồn quy về thang 10 <em>trước</em> khi gộp).</li>
+  <li>Chốt sổ điểm cộng một lần: sắp xếp tất định theo (thời điểm cấp, id) rồi áp trần <strong>một lần</strong>.</li>
+  <li>Điểm cột = kẹp(điểm gốc + điểm cộng vào cột đó, 0, 10).</li>
+  <li>Điểm tổng = Σ(điểm cột × trọng số/100) + điểm cộng đích Điểm tổng.</li>
+  <li>Áp điều kiện điểm sàn — <strong>sau</strong> bước 4, nên điểm cộng không gỡ được điểm sàn.</li>
+  <li>Làm tròn <strong>đúng một lần</strong>, 1 chữ số thập phân, ở bước cuối. Làm tròn từng cột rồi cộng lại
+      lệch tới 0.2–0.3 điểm trên lớp 6 cột.</li>
+</ol>
+</div>
+
+<h3>Câu hỏi còn mở — chưa quyết trong bản mockup này</h3>
+<div class="card">
+<ul style="margin:0;padding-left:1.2rem;font-size:.92rem">
+  <li><strong>Sửa điểm tại chỗ trong bảng.</strong> Tài liệu này vẽ ô ở chế độ đọc; cách vào chế độ sửa
+    (nhấp đúp? Enter? một nút "Chế độ nhập điểm"?) và cách di chuyển bằng bàn phím giữa 40×3 ô
+    chưa được chốt. Đây là thao tác tốn thời gian nhất của giảng viên, đáng có một bản phác riêng.</li>
+  <li><strong>Sắp xếp và lọc.</strong> Lớp 40 sinh viên cần lọc "chưa chấm", "dưới 4.0", sắp theo điểm tổng —
+    chưa vẽ. Nó ảnh hưởng tới thanh công cụ nên sẽ phải sửa lại phần đầu bảng.</li>
+  <li><strong>Kéo-thả thật.</strong> Các tay cầm <code>⠿</code> ở §6 và §7 là hình vẽ; thư viện kéo-thả
+    và hành vi bàn phím thay thế (kéo-thả phải có đường đi bằng phím) chưa chọn.</li>
+  <li><strong>Cột nhiều hơn 6.</strong> Bảng vẽ ở đây có 3 cột điểm. Lớp 6–8 cột sẽ cần cuộn nhiều hơn,
+    có thể phải cho phép ẩn tạm cột — chưa thiết kế.</li>
+  <li><strong>Đối chiếu bản chốt (<code>GradeSnapshot</code>).</strong> Khi lớp đóng và mở lại rồi đóng lần nữa,
+    cần một màn hình so sánh hai bản chốt. Chưa có trong tài liệu này.</li>
+</ul>
+</div>
+
+<p class="lede" style="margin-top:2rem">
+Bộ token của tài liệu này chép nguyên văn từ
+<a href="00-design-system.html" style="color:var(--brand-700)">00-design-system.html</a> —
+không có màu nào được khai thêm ngoài các biến đã có ở đó.
+</p>
+
+</main>
+
+<script>
+function hienN(sel, id){
+  var el = document.getElementById(id);
+  if (!el) return;
+  var v = sel.value;
+  el.style.display = (v === 'Bỏ N thấp nhất' || v === 'Lấy N tốt nhất') ? 'inline' : 'none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Hệ thống thiết kế</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   TOKEN — lấy nguyên từ stylesheet của stm.mst.gov.vn (Bộ KH&CN)
+   Không tự chế màu. Mọi giá trị dưới đây đều đo được từ trang gốc.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Thương hiệu */
+  --brand-900:#0d59cf;  --brand-700:#017fcc;  --brand-500:#2281df;
+  --brand-300:#90b3ff;  --brand-100:#e6f1fb;
+
+  /* Ngữ nghĩa */
+  --danger:#dc2626;   --danger-soft:#f5bebe;
+  --warning:#e58a00;  --warning-soft:#fdf0d9;
+  --success:#2ca87f;  --success-soft:#dcf1e9;
+  --teal:#20c997;     --cyan:#3ec9d6;   --violet:#673ab7;
+
+  /* Trung tính — thang accent-* của trang gốc, chế độ sáng */
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --line-strong:var(--n300);
+  --fg:var(--n800); --fg-muted:var(--n500); --fg-faint:var(--n400);
+
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --shadow-lg:0 4px 6px -1px rgba(19,25,32,.08),0 10px 20px -5px rgba(19,25,32,.12);
+
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+
+  /* Mật độ — hai chế độ, xem §6 */
+  --row-h:40px; --pad-x:12px; --fs:14px;
+}
+[data-density="thoang"]{ --row-h:52px; --pad-x:18px; --fs:15px; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    /* Thang trung tính đảo — cũng lấy từ trang gốc (accent-* dark) */
+    --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+    --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+    --n700:#f3f5f7; --n800:#f8f9fa;
+    --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+    --line:#2a3540; --line-strong:#3e4853;
+    --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+    --brand-100:#122436; --danger-soft:#3a1a1a;
+    --success-soft:#14302a; --warning-soft:#332612;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+  --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+  --n700:#f3f5f7; --n800:#f8f9fa;
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --line-strong:#3e4853;
+  --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+  --brand-100:#122436; --danger-soft:#3a1a1a;
+  --success-soft:#14302a; --warning-soft:#332612;
+  --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 var(--font);
+     padding:2.5rem 1.25rem 6rem}
+main{max-width:1120px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.3rem;font-weight:700;margin:3.2rem 0 .2rem;letter-spacing:-.01em;
+   padding-bottom:.4rem;border-bottom:2px solid var(--brand-700)}
+h3{font-size:1rem;font-weight:600;margin:2rem 0 .6rem;color:var(--brand-700)}
+p{margin:.6rem 0}
+.lede{color:var(--fg-muted);margin-bottom:2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+      padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
+.grid{display:grid;gap:1rem}
+.note{border-left:3px solid var(--warning);background:var(--warning-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);
+     padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+
+/* Ô màu */
+.sw{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:.5rem}
+.sw div{border-radius:var(--radius);padding:.55rem .6rem;font:500 .72rem/1.35 var(--mono);
+        border:1px solid var(--line);min-height:62px;display:flex;flex-direction:column;justify-content:flex-end}
+
+/* Thành phần mẫu */
+.btn{font:600 var(--fs)/1 var(--font);padding:.62rem 1rem;border-radius:var(--radius);
+     border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--brand-700);color:#fff}
+.btn-primary:hover{background:var(--brand-900)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:.3rem;font:600 .74rem var(--font);
+      padding:.18rem .5rem;border-radius:99px;border:1px solid}
+.c-ok{color:var(--n800);border-color:var(--success);background:var(--success-soft)}
+.c-warn{color:var(--n800);border-color:var(--warning);background:var(--warning-soft)}
+.c-err{color:var(--n800);border-color:var(--danger);background:var(--danger-soft)}
+.c-info{color:var(--n800);border-color:var(--brand-700);background:var(--brand-100)}
+.c-mute{color:var(--fg-muted);border-color:var(--line-strong);background:var(--surface-2)}
+
+table.demo{width:100%;border-collapse:collapse;font-size:var(--fs)}
+table.demo th{background:var(--surface-2);font-weight:600;text-align:left;
+              padding:.5rem var(--pad-x);border-bottom:2px solid var(--line-strong);white-space:nowrap}
+table.demo td{padding:0 var(--pad-x);height:var(--row-h);border-bottom:1px solid var(--line)}
+.num{font:500 var(--fs) var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* Ô điểm — nguyên tử của cả sản phẩm, xem §5 */
+.cell{display:flex;align-items:center;justify-content:flex-end;gap:.35rem;height:100%}
+.cell .v{font:600 var(--fs) var(--mono);font-variant-numeric:tabular-nums}
+.cell .m{width:5px;height:5px;border-radius:99px;background:var(--warning);flex:none}
+.cell .b{font:600 .68rem var(--mono);color:var(--success);
+         background:var(--success-soft);padding:0 .28rem;border-radius:3px}
+.cell.fail .v{color:var(--danger)}
+.cell.empty .v{color:var(--fg-faint)}
+
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.9rem;margin:.5rem 0}
+.dl dt{font:500 .78rem var(--mono);color:var(--fg-muted)}
+.dl dd{margin:0}
+.tog{position:fixed;top:1rem;right:1rem;z-index:9;display:flex;gap:.4rem}
+</style>
+</head>
+<body>
+<div class="tog">
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.density=document.documentElement.dataset.density==='thoang'?'':'thoang'">Mật độ</button>
+</div>
+<main>
+
+<h1>Hệ thống thiết kế TeachHub</h1>
+<p class="lede">Bảng màu lấy nguyên từ <code>stm.mst.gov.vn</code> (Bộ Khoa học &amp; Công nghệ) — đo trực tiếp
+từ stylesheet của trang, không tự chế. Hai nút góc trên phải đổi được chủ đề và mật độ để xem tại chỗ.</p>
+
+<div class="why">
+<strong>Quan điểm thiết kế: bảng điểm là một tài liệu có trách nhiệm pháp lý.</strong>
+Sản phẩm cuối của hệ thống này là bảng điểm nộp cho phòng đào tạo. Vì thế mọi lựa chọn hình thức
+đều phục vụ một việc: <em>làm cho con số đáng tin và truy được nguồn</em>. Không có gì trang trí mà
+che mất dữ liệu, không có màu nào dùng cho mục đích thẩm mỹ thuần tuý, mọi con số đều dùng chữ số
+đẳng chiều (<code>tabular-nums</code>) để cột thẳng hàng khi đọc dọc.
+</div>
+
+<h2>1. Màu thương hiệu</h2>
+<div class="sw">
+  <div style="background:#0d59cf;color:#fff">#0d59cf<br>brand-900</div>
+  <div style="background:#017fcc;color:#fff">#017fcc<br>brand-700 ★</div>
+  <div style="background:#2281df;color:#fff">#2281df<br>brand-500</div>
+  <div style="background:#90b3ff;color:#131920">#90b3ff<br>brand-300</div>
+  <div style="background:#e6f1fb;color:#131920">#e6f1fb<br>brand-100</div>
+</div>
+<p class="lede" style="margin:.7rem 0 0"><code>#017fcc</code> là màu chủ đạo — nó xuất hiện dày đặc nhất
+trên trang gốc. Dùng cho hành động chính, liên kết, và viền của phần tử đang được chọn.</p>
+
+<h3>Màu ngữ nghĩa</h3>
+<div class="sw">
+  <div style="background:#2ca87f;color:#fff">#2ca87f<br>đạt / đã nộp</div>
+  <div style="background:#e58a00;color:#fff">#e58a00<br>cảnh báo / sửa tay</div>
+  <div style="background:#dc2626;color:#fff">#dc2626<br>lỗi / dưới sàn</div>
+  <div style="background:#20c997;color:#131920">#20c997<br>teal</div>
+  <div style="background:#3ec9d6;color:#131920">#3ec9d6<br>cyan</div>
+  <div style="background:#673ab7;color:#fff">#673ab7<br>violet</div>
+</div>
+<div class="note">
+<strong>Ba màu đầu là màu mang nghĩa, không được dùng cho mục đích khác.</strong> Xanh lá nghĩa là
+"đạt / đã có dữ liệu", cam nghĩa là "cần người xem lại", đỏ nghĩa là "sai hoặc dưới ngưỡng".
+Dùng đỏ cho một nút chỉ vì nó nổi bật sẽ làm sinh viên tưởng mình bị điểm liệt.
+Teal, cyan, violet chỉ dùng để phân biệt chuỗi trong biểu đồ.
+</div>
+
+<h3>Trung tính</h3>
+<div class="sw">
+  <div style="background:#ffffff;color:#131920">#ffffff<br>n0</div>
+  <div style="background:#f8f9fa;color:#131920">#f8f9fa<br>n50</div>
+  <div style="background:#f3f5f7;color:#131920">#f3f5f7<br>n100</div>
+  <div style="background:#dbe0e5;color:#131920">#dbe0e5<br>n200</div>
+  <div style="background:#bec8d0;color:#131920">#bec8d0<br>n300</div>
+  <div style="background:#8996a4;color:#fff">#8996a4<br>n400</div>
+  <div style="background:#5b6b79;color:#fff">#5b6b79<br>n500</div>
+  <div style="background:#3e4853;color:#fff">#3e4853<br>n600</div>
+  <div style="background:#1d2630;color:#fff">#1d2630<br>n700</div>
+  <div style="background:#131920;color:#fff">#131920<br>n800</div>
+</div>
+<p class="lede" style="margin:.7rem 0 0">Chế độ tối đảo đúng thang này (trang gốc cũng làm vậy),
+nên không phải nghĩ ra bảng màu thứ hai.</p>
+
+<h2>2. Chữ</h2>
+<div class="card">
+  <div style="font:800 2rem/1.15 var(--font);letter-spacing:-.02em">Sổ điểm lớp DA24TIN01</div>
+  <div style="font:600 1.15rem/1.3 var(--font);margin-top:.5rem">Học kỳ 1 · 2026–2027</div>
+  <div style="margin-top:.6rem;max-width:62ch">Bài tập lớn cuối kỳ được chấm theo rubric bốn tiêu chí.
+  Điểm cộng phát sinh trong buổi báo cáo cộng vào cột Thường kỳ.</div>
+  <div style="font:500 1.05rem var(--mono);font-variant-numeric:tabular-nums;margin-top:.6rem">
+    8.5 &nbsp; 7.0 &nbsp; 10.0 &nbsp; 4.0 &nbsp; 0.5
+  </div>
+</div>
+<div class="dl">
+  <dt>Tiêu đề</dt><dd><strong>Be Vietnam Pro</strong> 600–800 — thiết kế riêng cho tiếng Việt, dấu đặt đúng chỗ và không chạm thân chữ</dd>
+  <dt>Nội dung</dt><dd>Be Vietnam Pro 400 · thân dòng 1.6 · tối đa 68 ký tự một dòng</dd>
+  <dt>Số liệu</dt><dd><strong>IBM Plex Mono</strong> 500 + <code>tabular-nums</code></dd>
+</div>
+<div class="why">
+<strong>Vì sao số liệu bắt buộc dùng chữ số đẳng chiều.</strong> Trong bảng điểm 40 dòng, chữ số
+tỉ lệ thường làm cột lệch nhau vài pixel mỗi dòng. Mắt phải dò lại từng ô thay vì quét dọc một mạch —
+và đó chính là lúc người ta nhập nhầm dòng. Đây là chi tiết rẻ nhất nhưng ảnh hưởng trực tiếp tới sai sót nhập điểm.
+</div>
+
+<h2>3. Nút &amp; nhãn trạng thái</h2>
+<div class="card" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+  <button class="btn btn-primary">Nộp chính thức</button>
+  <button class="btn btn-ghost">Lưu nháp</button>
+  <button class="btn btn-danger">Thu hồi</button>
+  <button class="btn btn-primary" disabled>Nộp chính thức</button>
+  <span class="chip c-ok">✓ Đã nộp</span>
+  <span class="chip c-warn">Sửa tay</span>
+  <span class="chip c-err">Thiếu bắt buộc</span>
+  <span class="chip c-info">Bản nháp</span>
+  <span class="chip c-mute">Đã lưu trữ</span>
+</div>
+<div class="note">
+Nút <em>Nộp chính thức</em> ở trạng thái tắt phải kèm lý do ngay cạnh — <span class="chip c-err">Thiếu bắt buộc</span>
+kèm tên slot còn thiếu. Một nút xám không lời giải thích là nguồn tin nhắn hỏi bài số một của mọi LMS.
+</div>
+
+<div class="why">
+<strong>Vì sao chữ trong nhãn dùng màu trung tính chứ không phải màu ngữ nghĩa.</strong>
+Bản đầu tôi cho chữ cùng màu với viền — <code>#e58a00</code> trên nền <code>#fdf0d9</code>.
+Đo ra <strong>2.34:1</strong>, trượt xa ngưỡng WCAG AA (4.5:1); <code>.c-ok</code> còn tệ hơn ở
+<strong>2.54:1</strong>. Cách sửa <em>không</em> phải đổi hex — bảng màu này lấy từ Bộ KH&amp;CN
+và phải giữ nguyên. Cách sửa là tách vai trò: <strong>nền và viền mang nghĩa, chữ lo việc đọc được</strong>.
+Chữ dùng <code>var(--n800)</code>, mà biến này tự đảo theo chế độ (<code>#131920</code> ở sáng,
+<code>#f8f9fa</code> ở tối) nên đạt <strong>10.9:1 – 15.7:1</strong> ở cả hai chiều mà không phải
+khai thêm biến nào. Nhãn vẫn phân biệt được bằng màu viền + nền + chữ bên trong, đúng luật §7.4.
+</div>
+
+<h2>4. Bảng dữ liệu</h2>
+<div class="card" style="padding:0;overflow:hidden">
+<table class="demo">
+  <thead><tr>
+    <th>MSSV</th><th>Họ tên</th>
+    <th style="text-align:right">Thường kỳ<br><span style="font:400 .7rem var(--mono);color:var(--fg-muted)">40%</span></th>
+    <th style="text-align:right">Cuối môn<br><span style="font:400 .7rem var(--mono);color:var(--fg-muted)">60%</span></th>
+    <th style="text-align:right">Tổng</th>
+  </tr></thead>
+  <tbody>
+    <tr>
+      <td class="num">2251012001</td><td>Nguyễn Văn Ánh</td>
+      <td><div class="cell"><span class="b">+0.5</span><span class="v">8.5</span></div></td>
+      <td><div class="cell"><span class="v">7.0</span></div></td>
+      <td><div class="cell"><span class="v">7.6</span></div></td>
+    </tr>
+    <tr>
+      <td class="num">2251012002</td><td>Trần Thị Bình</td>
+      <td><div class="cell"><span class="m" title="Giảng viên sửa tay"></span><span class="v">9.0</span></div></td>
+      <td><div class="cell"><span class="v">8.5</span></div></td>
+      <td><div class="cell"><span class="v">8.7</span></div></td>
+    </tr>
+    <tr>
+      <td class="num">2251012003</td><td>Lê Minh Cường</td>
+      <td><div class="cell"><span class="v">6.0</span></div></td>
+      <td><div class="cell fail"><span class="v">3.5</span></div></td>
+      <td><div class="cell fail"><span class="v">3.9</span></div></td>
+    </tr>
+    <tr>
+      <td class="num">2251012004</td><td>Phạm Thu Dung</td>
+      <td><div class="cell"><span class="v">7.5</span></div></td>
+      <td><div class="cell empty"><span class="v">—</span></div></td>
+      <td><div class="cell empty"><span class="v">3.0</span></div></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="dl">
+  <dt>MSSV</dt><dd>Luôn monospace. Nó là chuỗi, không phải số — cũng là lý do khi xuất Excel phải ép định dạng ô về <code>"@"</code></dd>
+  <dt>Dòng 3</dt><dd>Cuối môn 3.5 &lt; 4.0 kích hoạt điều kiện điểm sàn → tổng bị kẹp 3.9, cả hai ô tô đỏ để thấy <em>nguyên nhân</em> chứ không chỉ kết quả</dd>
+  <dt>Dòng 4</dt><dd>Chưa chấm hiện <code>—</code>, và tổng 3.0 là do bài chưa chấm tính 0. Bật công tắc "xem điểm tạm tính" thì tổng thành 7.5</dd>
+</div>
+
+<h2>5. Ô điểm — nguyên tử của sản phẩm</h2>
+<p>Đây là thành phần đáng đầu tư nhất. Một ô phải trả lời được bốn câu hỏi mà không cần bấm vào:
+điểm bao nhiêu, có ai sửa tay không, có điểm cộng không, có dưới ngưỡng không.</p>
+<div class="card" style="display:flex;gap:2rem;flex-wrap:wrap">
+  <div><div class="cell" style="justify-content:flex-start"><span class="v">8.5</span></div>
+       <div style="font:.72rem var(--mono);color:var(--fg-muted)">bình thường</div></div>
+  <div><div class="cell" style="justify-content:flex-start"><span class="m"></span><span class="v">9.0</span></div>
+       <div style="font:.72rem var(--mono);color:var(--fg-muted)">sửa tay (chấm cam)</div></div>
+  <div><div class="cell" style="justify-content:flex-start"><span class="b">+0.5</span><span class="v">8.5</span></div>
+       <div style="font:.72rem var(--mono);color:var(--fg-muted)">có điểm cộng</div></div>
+  <div><div class="cell fail" style="justify-content:flex-start"><span class="v">3.5</span></div>
+       <div style="font:.72rem var(--mono);color:var(--fg-muted)">dưới ngưỡng</div></div>
+  <div><div class="cell empty" style="justify-content:flex-start"><span class="v">—</span></div>
+       <div style="font:.72rem var(--mono);color:var(--fg-muted)">chưa chấm</div></div>
+</div>
+<div class="why">
+<strong>Chấm cam "sửa tay" không phải trang trí.</strong> Cột tự động tổng hợp điểm từ bài tập; khi giảng
+viên ghi đè bằng tay, việc chấm lại bài sau đó <em>không</em> được xoá giá trị đã sửa. Dấu chấm là thứ
+duy nhất cho biết ô này không còn đồng bộ với nguồn — và tooltip của nó phải hiện đủ ai sửa, lúc nào,
+từ mấy sang mấy, lấy từ <code>GradeAuditLog</code>. Đây là thứ bảo vệ giảng viên khi sinh viên khiếu nại điểm.
+</div>
+
+<h2>6. Hai mật độ, một hệ thống</h2>
+<p>Giảng viên nhìn bảng 40×6 ô và cần quét nhanh. Sinh viên xem bài giảng trên điện thoại và cần thoáng.
+Cùng một bộ token, khác nhau ba biến:</p>
+<div class="card">
+<table class="demo">
+  <thead><tr><th>Biến</th><th>Đặc (mặc định cho màn hình giảng viên)</th><th>Thoáng (màn hình sinh viên)</th></tr></thead>
+  <tbody>
+    <tr><td><code>--row-h</code></td><td class="num">40px</td><td class="num">52px</td></tr>
+    <tr><td><code>--pad-x</code></td><td class="num">12px</td><td class="num">18px</td></tr>
+    <tr><td><code>--fs</code></td><td class="num">14px</td><td class="num">15px</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="lede" style="margin-top:.6rem">Đặt bằng <code>data-density="thoang"</code> trên phần tử gốc của
+khu vực đó — không phải hai bộ CSS riêng. Bấm nút "Mật độ" ở góc trên để xem bảng §4 co giãn.</p>
+
+<h2>7. Luật bất di bất dịch</h2>
+<div class="card">
+<ol style="margin:0;padding-left:1.2rem">
+  <li><strong>Điểm luôn là monospace đẳng chiều.</strong> Không ngoại lệ, kể cả trong thẻ tóm tắt.</li>
+  <li><strong>Ba màu ngữ nghĩa chỉ mang đúng nghĩa của nó.</strong> Không dùng đỏ để nhấn mạnh.</li>
+  <li><strong>Trạng thái bị khoá phải kèm lý do.</strong> Nút xám, ô khoá, bài học khoá — tất cả phải nói vì sao và cần làm gì để mở.</li>
+  <li><strong>Không màu nào đứng một mình mang thông tin.</strong> Luôn kèm chữ hoặc biểu tượng — khoảng 8% nam giới khó phân biệt đỏ/xanh lá, và đây là hệ thống chấm điểm.</li>
+  <li><strong>Nội dung sinh viên nộp không bao giờ render thành HTML.</strong> Tô màu cú pháp bằng Shiki (nhận text, trả HTML đã thoát ký tự).</li>
+  <li><strong>Vùng bấm tối thiểu 44×44px trên di động.</strong> Trang học của sinh viên chủ yếu dùng trên điện thoại.</li>
+</ol>
+</div>
+
+<h2>8. Dùng tài liệu này thế nào</h2>
+<p>Khối <code>:root</code> ở đầu file này là bộ token hoàn chỉnh — chép thẳng vào
+<code>frontend/src/app/globals.css</code> rồi ánh xạ sang Tailwind v4 qua <code>@theme</code>.
+Các màn hình cụ thể nằm ở những file khác trong thư mục này; mỗi màn hình đều dùng đúng bộ token này,
+không tự khai màu mới.</p>
+
+</main>
+</body>
+</html>

@@ -952,6 +952,7 @@ public enum SubmittedByType { Individual, Group }</code></pre>
 <p>Partial unique index bắt buộc:</p>
 <pre><code>CREATE UNIQUE INDEX ux_submission_current
   ON submissions (assignment_id, final_assessment_id, enrollment_id, group_id)
+  NULLS NOT DISTINCT
   WHERE is_current;</code></pre>
 
 <label class="ck"><input type="checkbox"> Bước 4 — Action upload trong <code>AssignmentsController</code> có nhiều lớp kiểm tra</label>

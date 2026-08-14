@@ -40,3 +40,10 @@ appsettings.Production.json
 # Ghi chú: frontend/src/lib/api/schema.d.ts ĐƯỢC commit có chủ ý.
 # Nó sinh từ /openapi/v1.json, nhưng commit vào repo thì mỗi thay đổi hợp đồng API
 # hiện thành diff review được, và CI build frontend không cần dựng API trước.
+
+# CodeGraph (index cục bộ, không commit)
+.codegraph/
+
+# Ảnh chụp tạm do agent sinh ra khi tự kiểm
+.playwright-mcp/
+/*.png

@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Soạn nội dung &amp; Lịch sử phiên bản</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   TOKEN — chép nguyên văn từ 00-design-system.html
+   (bảng màu đo từ stylesheet stm.mst.gov.vn — Bộ KH&CN). Không thêm màu mới.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Thương hiệu */
+  --brand-900:#0d59cf;  --brand-700:#017fcc;  --brand-500:#2281df;
+  --brand-300:#90b3ff;  --brand-100:#e6f1fb;
+
+  /* Ngữ nghĩa */
+  --danger:#dc2626;   --danger-soft:#f5bebe;
+  --warning:#e58a00;  --warning-soft:#fdf0d9;
+  --success:#2ca87f;  --success-soft:#dcf1e9;
+  --teal:#20c997;     --cyan:#3ec9d6;   --violet:#673ab7;
+
+  /* Trung tính — thang accent-* của trang gốc, chế độ sáng */
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --line-strong:var(--n300);
+  --fg:var(--n800); --fg-muted:var(--n500); --fg-faint:var(--n400);
+
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --shadow-lg:0 4px 6px -1px rgba(19,25,32,.08),0 10px 20px -5px rgba(19,25,32,.12);
+
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+
+  /* Mật độ — hai chế độ, xem §6 */
+  --row-h:40px; --pad-x:12px; --fs:14px;
+}
+[data-density="thoang"]{ --row-h:52px; --pad-x:18px; --fs:15px; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    /* Thang trung tính đảo — cũng lấy từ trang gốc (accent-* dark) */
+    --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+    --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+    --n700:#f3f5f7; --n800:#f8f9fa;
+    --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+    --line:#2a3540; --line-strong:#3e4853;
+    --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+    --brand-100:#122436; --danger-soft:#3a1a1a;
+    --success-soft:#14302a; --warning-soft:#332612;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+  --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+  --n700:#f3f5f7; --n800:#f8f9fa;
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --line-strong:#3e4853;
+  --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+  --brand-100:#122436; --danger-soft:#3a1a1a;
+  --success-soft:#14302a; --warning-soft:#332612;
+  --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 var(--font);
+     padding:2.5rem 1.25rem 6rem}
+main{max-width:1120px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.3rem;font-weight:700;margin:3.2rem 0 .2rem;letter-spacing:-.01em;
+   padding-bottom:.4rem;border-bottom:2px solid var(--brand-700)}
+h3{font-size:1rem;font-weight:600;margin:2rem 0 .6rem;color:var(--brand-700)}
+p{margin:.6rem 0}
+.lede{color:var(--fg-muted);margin-bottom:2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+      padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
+.grid{display:grid;gap:1rem}
+.note{border-left:3px solid var(--warning);background:var(--warning-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);
+     padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+
+/* Thành phần mẫu */
+.btn{font:600 var(--fs)/1 var(--font);padding:.62rem 1rem;border-radius:var(--radius);
+     border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--brand-700);color:#fff}
+.btn-primary:hover{background:var(--brand-900)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:.3rem;font:600 .74rem var(--font);
+      padding:.18rem .5rem;border-radius:99px;border:1px solid}
+.c-ok{color:var(--n800);border-color:var(--success);background:var(--success-soft)}
+.c-warn{color:var(--n800);border-color:var(--warning);background:var(--warning-soft)}
+.c-err{color:var(--n800);border-color:var(--danger);background:var(--danger-soft)}
+.c-info{color:var(--n800);border-color:var(--brand-700);background:var(--brand-100)}
+.c-mute{color:var(--fg-muted);border-color:var(--line-strong);background:var(--surface-2)}
+
+table.demo{width:100%;border-collapse:collapse;font-size:var(--fs)}
+table.demo th{background:var(--surface-2);font-weight:600;text-align:left;
+              padding:.5rem var(--pad-x);border-bottom:2px solid var(--line-strong);white-space:nowrap}
+table.demo td{padding:0 var(--pad-x);height:var(--row-h);border-bottom:1px solid var(--line)}
+.num{font:500 var(--fs) var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+.cell{display:flex;align-items:center;justify-content:flex-end;gap:.35rem;height:100%}
+.cell .v{font:600 var(--fs) var(--mono);font-variant-numeric:tabular-nums}
+.cell .m{width:5px;height:5px;border-radius:99px;background:var(--warning);flex:none}
+.cell .b{font:600 .68rem var(--mono);color:var(--success);
+         background:var(--success-soft);padding:0 .28rem;border-radius:3px}
+.cell.fail .v{color:var(--danger)}
+.cell.empty .v{color:var(--fg-faint)}
+
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.9rem;margin:.5rem 0}
+.dl dt{font:500 .78rem var(--mono);color:var(--fg-muted)}
+.dl dd{margin:0}
+.tog{position:fixed;top:1rem;right:1rem;z-index:99;display:flex;gap:.4rem}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LỚP RIÊNG CỦA MÀN HÌNH NÀY — chỉ dùng biến token đã khai ở trên
+   ═══════════════════════════════════════════════════════════════════════ */
+.src{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center;margin:.5rem 0 1.1rem}
+.state-lbl{display:flex;align-items:center;gap:.55rem;margin:1.8rem 0 .55rem;
+           font:700 .76rem var(--font);letter-spacing:.05em;text-transform:uppercase;color:var(--fg-muted)}
+.state-lbl::after{content:"";flex:1;height:1px;background:var(--line)}
+.n{font:500 .95em var(--mono);font-variant-numeric:tabular-nums}
+
+/* Khung ứng dụng */
+.app{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+     box-shadow:var(--shadow);overflow:hidden}
+.app-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
+         padding:.6rem .9rem;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.crumb{font-size:.8rem;color:var(--fg-muted);line-height:1.35}
+.crumb b{color:var(--fg);font-weight:600}
+.spacer{flex:1 1 auto}
+.app-body{padding:.9rem}
+.btn-sm{font:600 .8rem/1 var(--font);padding:.52rem .72rem;border-radius:var(--radius);
+        border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);cursor:pointer}
+.btn-sm:hover{background:var(--surface-2)}
+.btn-sm.pri{background:var(--brand-700);border-color:var(--brand-700);color:#fff}
+.btn-sm.pri:hover{background:var(--brand-900)}
+.btn-sm:disabled{opacity:.45;cursor:not-allowed}
+
+/* Đầu chương */
+.chap-head{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);
+           padding:.75rem .85rem;margin-bottom:.9rem}
+.chap-title{font:700 1.05rem var(--font);letter-spacing:-.01em}
+.tags{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.45rem}
+
+/* Bài học */
+.lesson{border:1px solid var(--line);border-radius:var(--radius);margin:.55rem 0;background:var(--surface)}
+.lesson.open{border-color:var(--brand-300)}
+.lesson-head{display:flex;align-items:center;gap:.55rem;padding:.55rem .6rem;cursor:pointer;
+             background:none;border:0;width:100%;text-align:left;color:var(--fg);font:inherit}
+.lesson-head:hover{background:var(--surface-2)}
+.lesson.open .lesson-head{background:var(--brand-100)}
+.caret{font:600 .7rem var(--mono);color:var(--fg-muted);width:14px;flex:none}
+.lesson-no{font:600 .72rem var(--mono);color:var(--fg-muted);background:var(--surface-2);
+           border:1px solid var(--line);border-radius:99px;padding:.08rem .45rem;flex:none}
+.lesson-title{font-weight:600;font-size:.94rem}
+.lesson-sub{font:.74rem var(--mono);font-variant-numeric:tabular-nums;color:var(--fg-muted)}
+.lesson-body{border-top:1px solid var(--line);padding:.75rem;background:var(--surface-2);display:none}
+.lesson.open .lesson-body{display:block}
+.sec-lbl{font:700 .68rem var(--font);letter-spacing:.06em;text-transform:uppercase;
+         color:var(--fg-muted);margin:.15rem 0 .4rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:.65rem .7rem}
+.panel.dash{border-style:dashed;border-color:var(--line-strong)}
+.file-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.fname{font:500 .84rem var(--mono);word-break:break-all}
+.fmeta{font:.74rem var(--mono);font-variant-numeric:tabular-nums;color:var(--fg-muted)}
+
+/* Thẻ component */
+.ico{width:28px;height:28px;border-radius:var(--radius);display:inline-flex;align-items:center;
+     justify-content:center;font:600 .85rem var(--mono);background:var(--brand-100);
+     color:var(--brand-700);border:1px solid var(--line);flex:none}
+.grip{cursor:grab;color:var(--fg-faint);font:600 .85rem var(--mono);padding:.15rem .25rem;
+      border-radius:4px;flex:none;background:none;border:0;line-height:1}
+.grip:hover{background:var(--surface-2);color:var(--fg-muted)}
+.comp{display:flex;align-items:center;gap:.55rem;background:var(--surface);border:1px solid var(--line);
+      border-radius:var(--radius);padding:.45rem .55rem;margin:.4rem 0}
+.comp-main{min-width:0;flex:1 1 auto}
+.comp-t{font-weight:600;font-size:.87rem}
+.comp-s{font-size:.76rem;color:var(--fg-muted)}
+.acts{display:flex;gap:.25rem;flex:none}
+.mini{font:600 .74rem/1 var(--font);padding:.4rem .5rem;border-radius:var(--radius);
+      border:1px solid transparent;background:transparent;color:var(--fg-muted);cursor:pointer}
+.mini:hover{background:var(--surface-2);border-color:var(--line);color:var(--fg)}
+.mini.del:hover{color:var(--danger);border-color:var(--danger)}
+
+/* Dropdown "+ Thêm phần" */
+.menu-wrap{position:relative;display:inline-block}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;width:340px;max-width:88vw;
+      background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--radius-lg);
+      box-shadow:var(--shadow-lg);padding:.35rem}
+.menu-h{font:700 .68rem var(--font);letter-spacing:.05em;text-transform:uppercase;
+        color:var(--fg-muted);padding:.4rem .5rem .25rem}
+.menu-item{display:flex;align-items:center;gap:.55rem;padding:.4rem .5rem;border-radius:var(--radius);
+           cursor:pointer;background:none;border:0;width:100%;text-align:left;color:var(--fg);font:inherit}
+.menu-item:hover{background:var(--brand-100)}
+.mi-t{font-weight:600;font-size:.85rem}
+.mi-s{font-size:.73rem;color:var(--fg-muted)}
+.menu-foot{border-top:1px solid var(--line);margin-top:.3rem;padding:.45rem .5rem .25rem;
+           font-size:.75rem;color:var(--fg-muted)}
+
+/* Công tắc */
+.tgl{display:inline-flex;align-items:center;gap:.5rem;background:none;border:0;cursor:pointer;
+     color:var(--fg);font:500 .81rem var(--font);padding:.35rem 0}
+.track{width:34px;height:19px;border-radius:99px;background:var(--n300);border:1px solid var(--line-strong);
+       position:relative;flex:none;transition:background .12s}
+.knob{position:absolute;top:1px;left:1px;width:15px;height:15px;border-radius:99px;
+      background:var(--n0);box-shadow:var(--shadow);transition:left .12s}
+.tgl[data-on="1"] .track{background:var(--success);border-color:var(--success)}
+.tgl[data-on="1"] .knob{left:16px}
+.tgl-state{font:600 .72rem var(--mono);color:var(--fg-muted)}
+.tgl[data-on="1"] .tgl-state{color:var(--success)}
+
+/* Băng thông báo */
+.banner{display:flex;gap:.65rem;align-items:flex-start;padding:.65rem .85rem;border-radius:var(--radius);
+        font-size:.86rem;border:1px solid;margin:0 0 .8rem;line-height:1.5}
+.banner .bi{font:600 .9rem var(--mono);flex:none;line-height:1.5}
+.b-warn{background:var(--warning-soft);border-color:var(--warning)}
+.b-err{background:var(--danger-soft);border-color:var(--danger)}
+.b-info{background:var(--brand-100);border-color:var(--brand-300)}
+.b-ok{background:var(--success-soft);border-color:var(--success)}
+.b-mute{background:var(--surface-2);border-color:var(--line-strong)}
+.banner b{font-weight:700}
+.fix{margin-top:.3rem;font-size:.82rem;color:var(--fg-muted)}
+
+/* Chỉ đọc */
+.ro{opacity:.55;pointer-events:none;user-select:none}
+
+/* Trạng thái rỗng */
+.empty{text-align:center;padding:2rem 1.1rem;border:1px dashed var(--line-strong);
+       border-radius:var(--radius-lg);background:var(--surface-2)}
+.empty .eb{font:700 1rem var(--font);margin-bottom:.25rem}
+.empty .es{font-size:.86rem;color:var(--fg-muted);max-width:52ch;margin:0 auto .8rem}
+
+/* Đang tải */
+.skel{height:12px;border-radius:4px;background:var(--surface-2);position:relative;overflow:hidden}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,
+             var(--surface-2) 0%,var(--line) 50%,var(--surface-2) 100%);
+             background-size:200% 100%;animation:sh 1.3s linear infinite}
+@keyframes sh{from{background-position:200% 0}to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.skel::after{animation:none}}
+
+/* Dòng thời gian phiên bản */
+.tl{position:relative;padding-left:2.1rem;margin:.2rem 0 0}
+.tl::before{content:"";position:absolute;left:10px;top:.6rem;bottom:.6rem;width:2px;background:var(--line)}
+.tl-item{position:relative;margin:0 0 1rem}
+.tl-dot{position:absolute;left:-2.1rem;top:.55rem;width:22px;height:22px;border-radius:99px;
+        border:3px solid var(--surface);display:flex;align-items:center;justify-content:center;
+        font:700 .62rem var(--mono);color:#fff}
+.d-draft{background:var(--warning)}
+.d-pub{background:var(--success)}
+.d-arc{background:var(--n400)}
+.ver{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+     padding:.75rem .85rem;box-shadow:var(--shadow)}
+.ver.cur{border-color:var(--success)}
+.ver-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ver-lbl{font:700 1rem var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.ver-date{font:.76rem var(--mono);font-variant-numeric:tabular-nums;color:var(--fg-muted)}
+.chlog{font-size:.85rem;margin:.45rem 0 .55rem;color:var(--fg)}
+.off{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:var(--radius);
+     border:1px solid var(--line);background:var(--surface-2);margin:.3rem 0;flex-wrap:wrap}
+.off code{background:var(--surface);border:1px solid var(--line)}
+.off-meta{font:.76rem var(--mono);font-variant-numeric:tabular-nums;color:var(--fg-muted)}
+.ver-acts{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.6rem}
+
+/* Cặp desktop + điện thoại */
+.pair{display:flex;gap:1.1rem;align-items:flex-start;flex-wrap:wrap}
+.pair .desk{flex:1 1 560px;min-width:0}
+.phone{width:360px;flex:0 0 360px;max-width:100%;border:1px solid var(--line-strong);
+       border-radius:16px;background:var(--surface);overflow:hidden;box-shadow:var(--shadow-lg)}
+.phone-bar{height:28px;background:var(--surface-2);border-bottom:1px solid var(--line);
+           display:flex;align-items:center;justify-content:center;
+           font:.68rem var(--mono);color:var(--fg-muted)}
+.phone-body{padding:.75rem}
+.tap{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.tap-row{min-height:44px;display:flex;align-items:center}
+</style>
+</head>
+<body>
+<div class="tog">
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.density=document.documentElement.dataset.density==='thoang'?'':'thoang'">Mật độ</button>
+</div>
+<main>
+
+<h1>Soạn nội dung &amp; Lịch sử phiên bản</h1>
+<p class="lede">Hai màn hình gắn liền nhau của Phase 1: nơi giảng viên <em>viết</em> nội dung
+(<strong>trình soạn thảo chương</strong>) và nơi giảng viên <em>bảo vệ</em> nội dung đã dạy
+(<strong>lịch sử phiên bản</strong>). Toàn bộ màu và chữ lấy từ
+<code>00-design-system.html</code> — không khai thêm màu nào.</p>
+
+<div class="src">
+  <span class="chip c-info">SRS mục 6.2</span>
+  <span class="chip c-info">SRS mục 6.10</span>
+  <span class="chip c-mute">Phase 1 — Nội dung dạy học &amp; Versioning</span>
+  <span class="chip c-mute">Task 1.8 · Task 1.9</span>
+  <span class="chip c-mute">Chỉ giảng viên</span>
+</div>
+
+<div class="why">
+<strong>Một câu tóm tắt cả trang này.</strong> Nội dung dạy học không gắn vào <em>môn học</em>, nó gắn vào
+<em>một phiên bản của môn học</em> (<code>SubjectVersion</code>). Vì thế mọi thao tác soạn thảo ở màn hình 6.2
+luôn diễn ra <strong>bên trong một phiên bản cụ thể</strong>, và màn hình 6.10 là thứ cho biết phiên bản
+đó đang bị lớp nào ghim. Giao diện phải làm hai thông tin này hiện diện thường trực, nếu không giảng viên
+sẽ sửa nhầm bản đang dạy — đó là lỗi không hoàn tác được.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     A. TRÌNH SOẠN THẢO CHƯƠNG — SRS 6.2
+     ═══════════════════════════════════════════════════════════════════ -->
+<h2>A. Trình soạn thảo chương</h2>
+<div class="src">
+  <span class="chip c-info">SRS mục 6.2</span>
+  <span class="chip c-info">SRS mục 5.1</span>
+  <span class="chip c-mute">Phase 1 · Chunk 3 · Task 1.8</span>
+  <span class="chip c-mute">frontend/src/app/(instructor)/chapters/[id]/page.tsx</span>
+</div>
+<p>Chương → N bài học → 0..N khối gắn kèm. Không có khuôn cố định: số bài tùy ý, mỗi bài có thể
+không kèm gì cả.</p>
+
+<div class="state-lbl">A1 · Trạng thái bình thường — bản nháp đang soạn, có dữ liệu</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb">
+      <b>IN4203 — Lập trình di động React Native</b><br>
+      Phiên bản <code>2027-2028</code> · Chương 2
+    </div>
+    <span class="chip c-warn">✎ Bản nháp — sửa được</span>
+    <span class="spacer"></span>
+    <button class="btn-sm">Xem trước như sinh viên</button>
+    <button class="btn-sm pri">Xuất bản phiên bản</button>
+  </div>
+
+  <div class="app-body">
+    <div class="chap-head">
+      <div class="chap-title">Chương 2 — React Native cơ bản</div>
+      <div style="font-size:.85rem;color:var(--fg-muted);margin-top:.2rem">
+        Mục tiêu: dựng được ứng dụng đầu tiên, hiểu component/props/state và vòng đời render.
+      </div>
+      <div class="tags">
+        <span class="chip c-mute">◆ react-native-core</span>
+        <span class="chip c-mute">◆ jsx</span>
+        <span class="chip c-mute">◆ hooks-co-ban</span>
+        <span class="chip c-info">Mở khoá: theo thứ tự bài</span>
+      </div>
+    </div>
+
+    <!-- Bài 1 — đang mở -->
+    <div class="lesson open" id="l1">
+      <button class="lesson-head" onclick="document.getElementById('l1').classList.toggle('open')">
+        <span class="grip" title="Kéo để đổi thứ tự bài">⠿</span>
+        <span class="caret">▾</span>
+        <span class="lesson-no">Bài 1</span>
+        <span class="lesson-title">Giới thiệu &amp; môi trường</span>
+        <span class="spacer"></span>
+        <span class="lesson-sub">12 phút · 3 phần</span>
+        <span class="chip c-info">Bắt buộc để mở bài sau</span>
+      </button>
+
+      <div class="lesson-body">
+        <div class="sec-lbl">Nội dung chính của bài</div>
+        <div class="panel">
+          <div class="file-row">
+            <span class="ico">▤</span>
+            <span class="comp-main">
+              <span class="fname">02-01-gioi-thieu-moi-truong.pptx</span><br>
+              <span class="fmeta">PowerPoint · 4.2 MB · tải lên 09/08/2027 14:32</span>
+            </span>
+            <span class="chip c-ok">✓ Đã có nội dung</span>
+            <span class="acts">
+              <button class="mini">Xem trước</button>
+              <button class="mini">Thay file</button>
+              <button class="mini del">Gỡ</button>
+            </span>
+          </div>
+        </div>
+
+        <div class="sec-lbl" style="margin-top:.8rem">Các phần gắn kèm (kéo ⠿ để đổi vị trí)</div>
+
+        <div class="comp">
+          <button class="grip" title="Kéo để đổi vị trí trong bài">⠿</button>
+          <span class="ico" title="Ôn lại đầu bài">↺</span>
+          <span class="comp-main">
+            <div class="comp-t">Ôn lại đầu bài</div>
+            <div class="comp-s"><span class="n">5</span> câu tự chọn từ Chương 1 · theo tag <code>javascript-es6</code></div>
+          </span>
+          <span class="chip c-mute">Không bắt buộc</span>
+          <span class="acts">
+            <button class="mini">Sửa</button>
+            <button class="mini del">Xoá</button>
+          </span>
+        </div>
+
+        <div class="comp">
+          <button class="grip" title="Kéo để đổi vị trí trong bài">⠿</button>
+          <span class="ico" title="Bài tập">✎</span>
+          <span class="comp-main">
+            <div class="comp-t">Bài tập — Dựng màn hình Hello World bằng Expo</div>
+            <div class="comp-s">Thang <span class="n">10.0</span> · hạn <span class="n">20/09/2027</span> ·
+              <span class="n">2</span> slot nộp (mã nguồn <code>.zip</code>, ảnh chụp màn hình)</div>
+          </span>
+          <span class="chip c-info">Bắt buộc hoàn thành</span>
+          <span class="acts">
+            <button class="mini">Sửa</button>
+            <button class="mini del">Xoá</button>
+          </span>
+        </div>
+
+        <div class="comp">
+          <button class="grip" title="Kéo để đổi vị trí trong bài">⠿</button>
+          <span class="ico" title="Suy ngẫm cuối bài">❝</span>
+          <span class="comp-main">
+            <div class="comp-t">Suy ngẫm cuối bài</div>
+            <div class="comp-s">Câu gợi ý: “3 điều em nhớ nhất sau bài này là gì?”</div>
+          </span>
+          <span class="chip c-mute">Không bắt buộc</span>
+          <span class="acts">
+            <button class="mini">Sửa</button>
+            <button class="mini del">Xoá</button>
+          </span>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-top:.65rem">
+          <div class="menu-wrap">
+            <button class="btn-sm pri" onclick="var m=document.getElementById('m1');m.style.display=m.style.display==='block'?'none':'block'">+ Thêm phần</button>
+            <!-- Dropdown 8 loại — đóng ở đây để không che Bài 2/Bài 3; xem trạng thái A1b hoặc bấm nút -->
+            <div class="menu" id="m1" style="display:none">
+              <div class="menu-h">Chọn loại phần muốn gắn vào bài này</div>
+              <button class="menu-item"><span class="ico">↺</span><span><span class="mi-t">Ôn lại đầu bài</span><br><span class="mi-s"><code>recap</code> · tự bốc 3–5 câu từ chương trước</span></span></button>
+              <button class="menu-item"><span class="ico">✦</span><span><span class="mi-t">Mở đầu gây tò mò</span><br><span class="mi-s"><code>hook</code> · một câu hỏi/tình huống dẫn nhập</span></span></button>
+              <button class="menu-item"><span class="ico">◉</span><span><span class="mi-t">Chốt nhanh giữa bài</span><br><span class="mi-s"><code>checkpoint_quiz</code> · vài câu hỏi ngắn</span></span></button>
+              <button class="menu-item"><span class="ico">{}</span><span><span class="mi-t">Làm cùng nhau</span><br><span class="mi-s"><code>code_along</code> · các bước gõ code theo</span></span></button>
+              <button class="menu-item"><span class="ico">✎</span><span><span class="mi-t">Bài tập</span><br><span class="mi-s"><code>assignment</code> · tạo mới hoặc lấy từ thư viện</span></span></button>
+              <button class="menu-item"><span class="ico">?</span><span><span class="mi-t">Trắc nghiệm</span><br><span class="mi-s"><code>quiz</code> · tạo mới hoặc lấy từ thư viện</span></span></button>
+              <button class="menu-item"><span class="ico">❝</span><span><span class="mi-t">Suy ngẫm cuối bài</span><br><span class="mi-s"><code>reflection</code> · ô nhập tự do cho sinh viên</span></span></button>
+              <button class="menu-item"><span class="ico">▤</span><span><span class="mi-t">Ghi chú tự do</span><br><span class="mi-s"><code>custom_note</code> · đoạn văn bản nhúng thẳng</span></span></button>
+              <div class="menu-foot">Không bắt buộc thêm phần nào. Bài chỉ có nội dung chính vẫn hợp lệ.</div>
+            </div>
+          </div>
+
+          <button class="tgl" data-on="1" onclick="this.dataset.on=this.dataset.on==='1'?'0':'1'">
+            <span class="track"><span class="knob"></span></span>
+            <span>Bắt buộc hoàn thành để mở bài tiếp theo</span>
+            <span class="tgl-state">BẬT</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bài 2 — thu gọn -->
+    <div class="lesson" id="l2">
+      <button class="lesson-head" onclick="document.getElementById('l2').classList.toggle('open')">
+        <span class="grip" title="Kéo để đổi thứ tự bài">⠿</span>
+        <span class="caret">▸</span>
+        <span class="lesson-no">Bài 2</span>
+        <span class="lesson-title">Component &amp; Props</span>
+        <span class="spacer"></span>
+        <span class="lesson-sub">15 phút · 2 phần</span>
+        <span class="chip c-info">Bắt buộc để mở bài sau</span>
+      </button>
+      <div class="lesson-body">
+        <div class="panel">
+          <div class="file-row">
+            <span class="ico">▤</span>
+            <span class="comp-main"><span class="fname">02-02-component-props.pdf</span><br>
+              <span class="fmeta">PDF · 1.8 MB · tải lên 09/08/2027 15:10</span></span>
+            <span class="chip c-ok">✓ Đã có nội dung</span>
+          </div>
+        </div>
+        <div class="comp"><button class="grip">⠿</button><span class="ico">◉</span>
+          <span class="comp-main"><div class="comp-t">Chốt nhanh giữa bài</div>
+          <div class="comp-s"><span class="n">3</span> câu về phân biệt props và state</div></span>
+          <span class="chip c-mute">Không bắt buộc</span>
+          <span class="acts"><button class="mini">Sửa</button><button class="mini del">Xoá</button></span></div>
+        <div class="comp"><button class="grip">⠿</button><span class="ico">✎</span>
+          <span class="comp-main"><div class="comp-t">Bài tập — Tách thẻ sinh viên thành component tái dùng</div>
+          <div class="comp-s">Thang <span class="n">10.0</span> · hạn <span class="n">27/09/2027</span> · <span class="n">1</span> slot nộp</div></span>
+          <span class="chip c-info">Bắt buộc hoàn thành</span>
+          <span class="acts"><button class="mini">Sửa</button><button class="mini del">Xoá</button></span></div>
+        <button class="btn-sm pri" style="margin-top:.55rem">+ Thêm phần</button>
+      </div>
+    </div>
+
+    <!-- Bài 3 — thu gọn, 0 component -->
+    <div class="lesson" id="l3">
+      <button class="lesson-head" onclick="document.getElementById('l3').classList.toggle('open')">
+        <span class="grip" title="Kéo để đổi thứ tự bài">⠿</span>
+        <span class="caret">▸</span>
+        <span class="lesson-no">Bài 3</span>
+        <span class="lesson-title">State &amp; Hooks</span>
+        <span class="spacer"></span>
+        <span class="lesson-sub">24 phút · 0 phần</span>
+        <span class="chip c-mute">✓ Chỉ nội dung học — hợp lệ</span>
+      </button>
+      <div class="lesson-body">
+        <div class="banner b-mute">
+          <span class="bi">i</span>
+          <span><b>Bài này không gắn phần nào — đây là trạng thái hợp lệ, không phải lỗi.</b>
+          Một bài chỉ có nội dung học (video/PPT) là đủ. Chỉ thêm phần khi bạn thực sự cần
+          bài tập, trắc nghiệm hay ô suy ngẫm.
+          <div class="fix">SRS mục 5.1 — <code>LessonComponent</code> là quan hệ 0..N, không có khuôn 8 phần cố định.</div></span>
+        </div>
+        <div class="panel">
+          <div class="file-row">
+            <span class="ico">▶</span>
+            <span class="comp-main"><span class="fname">youtube.com/watch?v=state-hooks-rn</span><br>
+              <span class="fmeta">Video nhúng · <span class="n">24</span> phút</span></span>
+            <span class="chip c-ok">✓ Đã có nội dung</span>
+          </div>
+        </div>
+        <div class="banner b-warn" style="margin:.6rem 0 0">
+          <span class="bi">!</span>
+          <span><b>Bài dài <span class="n">24</span> phút, vượt khuyến nghị <span class="n">20</span> phút.</b>
+          Đây là gợi ý, không phải lỗi — vẫn lưu và xuất bản bình thường.
+          <div class="fix">Muốn tách: bấm “Sửa bài” → “Tách thành 2 bài” để cắt tại mốc bạn chọn. Hoặc bỏ qua cảnh báo này.</div></span>
+        </div>
+        <button class="btn-sm pri" style="margin-top:.55rem">+ Thêm phần</button>
+      </div>
+    </div>
+
+    <button class="btn-sm" style="margin-top:.7rem">+ Thêm bài học</button>
+  </div>
+</div>
+
+<div class="state-lbl">A1b · Dropdown “+ Thêm phần” — đủ <span class="n">8</span> loại</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>Chương 2 · Bài 1 — Giới thiệu &amp; môi trường</b><br>
+      Đang mở danh sách loại phần</div>
+    <span class="spacer"></span>
+    <span class="chip c-mute">Trong sản phẩm thật, menu này che phần bên dưới cho tới khi bạn chọn hoặc bấm ra ngoài</span>
+  </div>
+  <div class="app-body" style="min-height:680px">
+    <div class="comp" style="margin-top:0">
+      <span class="ico">❝</span>
+      <span class="comp-main"><div class="comp-t">Suy ngẫm cuối bài</div>
+        <div class="comp-s">Phần cuối cùng đang có trong bài</div></span>
+    </div>
+    <div class="menu-wrap">
+      <button class="btn-sm pri" onclick="var m=document.getElementById('m2');m.style.display=m.style.display==='none'?'block':'none'">+ Thêm phần</button>
+      <div class="menu" id="m2">
+        <div class="menu-h">Chọn loại phần muốn gắn vào bài này</div>
+        <button class="menu-item"><span class="ico">↺</span><span><span class="mi-t">Ôn lại đầu bài</span><br><span class="mi-s"><code>recap</code> · tự bốc 3–5 câu từ chương trước theo <code>foundation_tags</code></span></span></button>
+        <button class="menu-item"><span class="ico">✦</span><span><span class="mi-t">Mở đầu gây tò mò</span><br><span class="mi-s"><code>hook</code> · một câu hỏi/tình huống dẫn nhập</span></span></button>
+        <button class="menu-item"><span class="ico">◉</span><span><span class="mi-t">Chốt nhanh giữa bài</span><br><span class="mi-s"><code>checkpoint_quiz</code> · vài câu hỏi ngắn tại chỗ</span></span></button>
+        <button class="menu-item"><span class="ico">{}</span><span><span class="mi-t">Làm cùng nhau</span><br><span class="mi-s"><code>code_along</code> · các bước gõ code theo</span></span></button>
+        <button class="menu-item"><span class="ico">✎</span><span><span class="mi-t">Bài tập</span><br><span class="mi-s"><code>assignment</code> · tạo mới hoặc lấy từ thư viện đã có</span></span></button>
+        <button class="menu-item"><span class="ico">?</span><span><span class="mi-t">Trắc nghiệm</span><br><span class="mi-s"><code>quiz</code> · tạo mới hoặc lấy từ thư viện đã có</span></span></button>
+        <button class="menu-item"><span class="ico">❝</span><span><span class="mi-t">Suy ngẫm cuối bài</span><br><span class="mi-s"><code>reflection</code> · ô nhập tự do cho sinh viên</span></span></button>
+        <button class="menu-item"><span class="ico">▤</span><span><span class="mi-t">Ghi chú tự do</span><br><span class="mi-s"><code>custom_note</code> · đoạn văn bản nhúng thẳng vào bài</span></span></button>
+        <div class="menu-foot">Không bắt buộc thêm phần nào. Bài chỉ có nội dung chính vẫn hợp lệ.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+<strong>Dòng chân menu là dòng quan trọng nhất của menu.</strong> “Không bắt buộc thêm phần nào” đứng ngay
+dưới <span class="n">8</span> lựa chọn hấp dẫn là thứ ngăn giảng viên nhồi phần cho “đủ bộ”.
+Hai loại <code>assignment</code> và <code>quiz</code> ghi rõ “tạo mới hoặc lấy từ thư viện” ngay trong menu,
+vì tái sử dụng là cách tiết kiệm công lớn nhất mà người dùng sẽ không tự phát hiện ra (SRS mục 6.2).
+</div>
+
+<div class="why">
+<strong>Vì sao “0 phần” phải được hiển thị như một kết quả tự tin, không phải một chỗ trống.</strong>
+SRS mục 5.1 nói rõ: một chương gồm N bài tuỳ ý, mỗi bài gắn <em>0 hoặc nhiều</em>
+<code>LessonComponent</code>, không có ràng buộc bắt buộc. Nếu giao diện vẽ Bài 3 bằng một ô xám trống
+với dấu chấm than, giảng viên sẽ tưởng mình chưa làm xong và đi thêm một cái quiz vô nghĩa cho “đủ bộ”.
+Vì thế Bài 3 mang nhãn <span class="chip c-mute">✓ Chỉ nội dung học — hợp lệ</span> ở dạng trung tính
+(không cam, không đỏ) và mở ra thì có một dòng giải thích thẳng. Đây là khác biệt giữa
+“hệ thống không có dữ liệu” và “bạn chưa làm gì” — hai thứ trông giống nhau nếu không cố ý tách.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy: đếm “phần” và đếm “nội dung chính” là hai chuyện khác nhau.</strong>
+Dòng tóm tắt của bài ghi <code>24 phút · 0 phần</code> — con số <span class="n">0</span> chỉ đếm
+<code>LessonComponent</code>, không nói gì về việc bài đã có video hay chưa. Đừng gộp hai chỉ số này
+vào một badge “trống”, vì bài <em>không có nội dung chính</em> mới là vấn đề thật sự cần cảnh báo
+(xem A4), còn bài không có component thì không.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy: kéo-thả phải cập nhật lạc quan.</strong> Kế hoạch Phase 1 (Task 1.8, bước 3) chốt dùng
+<code>onMutate</code> của TanStack Query để đổi thứ tự ngay trên màn hình rồi mới đồng bộ. Nếu chờ
+round-trip mới thấy thứ tự đổi, việc sắp một chương <span class="n">20</span> bài sẽ khó chịu tới mức
+giảng viên bỏ dùng. Nhưng lạc quan thì <em>bắt buộc</em> phải có nhánh hoàn tác — xem A4.
+</div>
+
+<div class="state-lbl">A2 · Trạng thái rỗng — chương chưa có bài học nào</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4203 — Lập trình di động React Native</b><br>
+      Phiên bản <code>2027-2028</code> · Chương 5</div>
+    <span class="chip c-warn">✎ Bản nháp — sửa được</span>
+    <span class="spacer"></span>
+    <button class="btn-sm" disabled title="Chưa có bài nào để xem trước">Xem trước như sinh viên</button>
+  </div>
+  <div class="app-body">
+    <div class="chap-head">
+      <div class="chap-title">Chương 5 — Điều hướng với Expo Router</div>
+      <div style="font-size:.85rem;color:var(--fg-muted);margin-top:.2rem">
+        Mục tiêu: chưa nhập. Chương vừa được tạo lúc <span class="n">10/08/2027 09:14</span>.
+      </div>
+    </div>
+    <div class="empty">
+      <div class="eb">Chương này chưa có bài học nào</div>
+      <div class="es">Một chương gồm bao nhiêu bài là tuỳ bạn — không có số lượng tối thiểu.
+        Gợi ý bắt đầu: mỗi bài <span class="n">8</span>–<span class="n">15</span> phút, một ý chính một bài.</div>
+      <button class="btn btn-primary">+ Thêm bài học đầu tiên</button>
+      <button class="btn btn-ghost">Sao chép bài từ chương khác</button>
+      <div style="margin-top:.8rem;font-size:.8rem;color:var(--fg-muted)">
+        Chương rỗng vẫn xuất bản được — sinh viên sẽ thấy chương này với ghi chú “Đang cập nhật”.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Trạng thái rỗng phải trả lời “giờ tôi làm gì” chứ không chỉ nói “chưa có gì”.</strong>
+Ba thứ bắt buộc trong khối này: một hành động chính rõ ràng (<em>Thêm bài học đầu tiên</em>),
+một lối tắt tiết kiệm công (<em>Sao chép bài từ chương khác</em> — vì soạn lại từ đầu mỗi năm là việc
+người ta ghét nhất), và một câu gỡ lo lắng (chương rỗng <em>vẫn</em> xuất bản được). Nút
+“Xem trước như sinh viên” bị tắt kèm <code>title</code> nói lý do — theo luật 3 của hệ thống thiết kế.
+</div>
+
+<div class="state-lbl">A3 · Trạng thái đang tải — chờ nội dung chương</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4203 — Lập trình di động React Native</b><br>Đang tải chương…</div>
+    <span class="spacer"></span>
+    <span class="chip c-mute">Đang tải…</span>
+  </div>
+  <div class="app-body">
+    <div class="chap-head">
+      <div class="skel" style="width:44%;height:18px"></div>
+      <div class="skel" style="width:70%;margin-top:.5rem"></div>
+    </div>
+    <div class="lesson"><div class="lesson-head" style="cursor:default">
+      <span class="skel" style="width:14px;height:14px;border-radius:99px"></span>
+      <span class="skel" style="width:52px;height:16px;border-radius:99px"></span>
+      <span class="skel" style="flex:1;height:14px"></span>
+      <span class="skel" style="width:88px;height:14px"></span></div></div>
+    <div class="lesson"><div class="lesson-head" style="cursor:default">
+      <span class="skel" style="width:14px;height:14px;border-radius:99px"></span>
+      <span class="skel" style="width:52px;height:16px;border-radius:99px"></span>
+      <span class="skel" style="flex:1;height:14px"></span>
+      <span class="skel" style="width:88px;height:14px"></span></div></div>
+    <div class="lesson"><div class="lesson-head" style="cursor:default">
+      <span class="skel" style="width:14px;height:14px;border-radius:99px"></span>
+      <span class="skel" style="width:52px;height:16px;border-radius:99px"></span>
+      <span class="skel" style="flex:1;height:14px"></span>
+      <span class="skel" style="width:88px;height:14px"></span></div></div>
+  </div>
+</div>
+
+<div class="note">
+<strong>Khung xương phải có đúng số dòng và đúng chiều cao dòng thật.</strong> Nếu khung xương vẽ
+<span class="n">3</span> dòng rồi dữ liệu về <span class="n">12</span> dòng, trang nhảy và giảng viên
+bấm nhầm. Dùng số bài đã biết từ danh sách chương (đã tải trước ở sidebar) để dựng đúng số dòng;
+không biết thì mặc định <span class="n">3</span> và giữ nguyên <code>--row-h</code>.
+</div>
+
+<div class="state-lbl">A4 · Trạng thái lỗi &amp; cảnh báo — bốn tình huống thật</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4203 — Lập trình di động React Native</b><br>
+      Phiên bản <code>2027-2028</code> · Chương 2</div>
+    <span class="chip c-warn">✎ Bản nháp — sửa được</span>
+    <span class="spacer"></span>
+    <button class="btn-sm pri" disabled>Xuất bản phiên bản</button>
+    <span class="chip c-err">✕ Còn <span class="n">1</span> bài thiếu nội dung</span>
+  </div>
+  <div class="app-body">
+
+    <div class="banner b-err">
+      <span class="bi">✕</span>
+      <span><b>Không tải lên được <code>bai-giang.pdf.exe</code>.</b>
+      Bốn byte đầu của file là <code>4D 5A</code> — chữ ký của file thực thi Windows, không phải
+      <code>%PDF</code>. Hệ thống đọc byte thật chứ không tin phần mở rộng hay <code>Content-Type</code>
+      trình duyệt gửi lên.
+      <div class="fix">Cần làm: xuất lại slide sang PDF thật (Tệp → Xuất → PDF) rồi tải lên.
+      Định dạng nhận: <code>.pdf</code> <code>.pptx</code> <code>.docx</code> <code>.png</code>
+      <code>.jpg</code> <code>.mp4</code>, tối đa <span class="n">200</span> MB.</div></span>
+    </div>
+
+    <div class="banner b-err">
+      <span class="bi">✕</span>
+      <span><b>Chưa xuất bản được phiên bản: Bài 4 “Danh sách &amp; FlatList” chưa có nội dung chính.</b>
+      Bài không có PPT/PDF/video sẽ hiện ra màn hình trắng phía sinh viên.
+      <div class="fix">Cần làm: mở Bài 4 → tải nội dung lên, <em>hoặc</em> xoá Bài 4 nếu năm nay không dạy,
+      <em>hoặc</em> bấm “Ẩn bài khỏi bản xuất bản” để giữ bài lại mà không phát cho sinh viên.</div></span>
+    </div>
+
+    <div class="banner b-warn">
+      <span class="bi">↺</span>
+      <span><b>Không lưu được thứ tự mới — mất kết nối máy chủ.</b>
+      Thứ tự trên màn hình đã tự hoàn tác về trạng thái trước khi bạn kéo, để những gì bạn thấy
+      luôn khớp với những gì đã lưu.
+      <div class="fix">Cần làm: kiểm tra mạng rồi bấm <em>Thử lại</em>. Các thay đổi khác trong phiên
+      soạn thảo này không bị ảnh hưởng.</div>
+      <div style="margin-top:.45rem"><button class="btn-sm">Thử lại</button>
+      <button class="btn-sm">Bỏ qua</button></div></span>
+    </div>
+
+    <div class="banner b-warn">
+      <span class="bi">!</span>
+      <span><b>Không xoá được phần “Bài tập — Dựng màn hình Hello World bằng Expo”.</b>
+      Bài tập này đang được gắn ở <span class="n">2</span> bài khác trong cùng phiên bản
+      (Chương 4 · Bài 1 và Chương 7 · Bài 3) — nó nằm trong thư viện dùng lại, xoá là mất ở cả ba chỗ.
+      <div class="fix">Cần làm: chọn <em>“Chỉ gỡ khỏi bài này”</em> để bỏ liên kết mà giữ nguyên hai chỗ kia,
+      hoặc gỡ ở cả hai bài kia trước rồi mới xoá hẳn.</div>
+      <div style="margin-top:.45rem"><button class="btn-sm pri">Chỉ gỡ khỏi bài này</button>
+      <button class="btn-sm">Xem 2 bài đang dùng</button></div></span>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-head" style="cursor:default">
+        <span class="grip">⠿</span><span class="caret">▸</span>
+        <span class="lesson-no">Bài 4</span>
+        <span class="lesson-title">Danh sách &amp; FlatList</span>
+        <span class="spacer"></span>
+        <span class="lesson-sub">— phút · 1 phần</span>
+        <span class="chip c-err">✕ Thiếu nội dung chính</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Mỗi thông báo lỗi phải nói ra con số đã đo được.</strong> “File không hợp lệ” là thứ khiến người
+dùng thử lại đúng file đó ba lần rồi nhắn tin cho bạn. “Bốn byte đầu là <code>4D 5A</code>, không phải
+<code>%PDF</code>” thì họ hiểu ngay là mình chọn nhầm file. Cùng lý do, lỗi chặn xuất bản gọi thẳng tên
+bài và cho <em>ba</em> cách gỡ khác nhau — vì trong ba cách đó, “xoá bài” và “ẩn bài” là hai ý định
+hoàn toàn khác nhau mà hệ thống không có quyền đoán hộ.
+</div>
+
+<div class="note">
+<strong>Bốn khối này không bao giờ xuất hiện cùng lúc trong sản phẩm thật.</strong> Ở đây xếp cạnh nhau
+để bàn giao. Khi thi công: lỗi tải file hiện tại chỗ vùng tải lên của đúng bài đó; lỗi chặn xuất bản
+hiện trong hộp thoại xuất bản kèm liên kết nhảy tới bài lỗi; lỗi kéo-thả là toast góc màn hình
+tự tắt sau <span class="n">8</span> giây; lỗi xoá là hộp thoại chặn. Đừng dồn hết lên đầu trang.
+</div>
+
+<div class="state-lbl">A5 · Trạng thái chỉ đọc — phiên bản đã xuất bản</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4203 — Lập trình di động React Native</b><br>
+      Phiên bản <code>2026-2027</code> · Chương 2</div>
+    <span class="chip c-ok">✓ Đã xuất bản</span>
+    <span class="spacer"></span>
+    <button class="btn-sm pri">Tạo phiên bản mới từ đây</button>
+  </div>
+  <div class="app-body">
+    <div class="banner b-warn">
+      <span class="bi">🔒</span>
+      <span><b>Phiên bản này đã xuất bản, chỉ xem.</b>
+      <span class="n">3</span> lớp học phần đang ghim phiên bản <code>2026-2027</code>:
+      <code>DA24TIN01</code>, <code>DA24TIN02</code> (đang dạy HK1 2026–2027) và <code>DA24TIN03</code>
+      (mở HK2 2026–2027). Sửa ở đây là đổi nội dung dưới chân sinh viên giữa học kỳ.
+      <div class="fix">Cách mở khoá: bấm <em>“Tạo phiên bản mới từ đây”</em> — hệ thống chép toàn bộ
+      chương/bài/phần sang một bản nháp mới, bạn sửa thoải mái, các lớp đang chạy không đổi gì cả.</div>
+      <div style="margin-top:.5rem"><button class="btn-sm pri">Tạo phiên bản mới từ đây</button>
+      <button class="btn-sm">Xem 3 lớp đang dùng</button></div></span>
+    </div>
+
+    <div class="ro" aria-disabled="true">
+      <div class="chap-head">
+        <div class="chap-title">Chương 2 — React Native cơ bản</div>
+        <div style="font-size:.85rem;color:var(--fg-muted);margin-top:.2rem">
+          Mục tiêu: dựng được ứng dụng đầu tiên, hiểu component/props/state và vòng đời render.
+        </div>
+        <div class="tags">
+          <span class="chip c-mute">◆ react-native-core</span>
+          <span class="chip c-mute">◆ jsx</span>
+          <span class="chip c-info">Mở khoá: theo thứ tự bài</span>
+        </div>
+      </div>
+
+      <div class="lesson open">
+        <div class="lesson-head" style="cursor:default">
+          <span class="caret">▾</span>
+          <span class="lesson-no">Bài 1</span>
+          <span class="lesson-title">Giới thiệu &amp; môi trường</span>
+          <span class="spacer"></span>
+          <span class="lesson-sub">12 phút · 3 phần</span>
+          <span class="chip c-info">Bắt buộc để mở bài sau</span>
+        </div>
+        <div class="lesson-body">
+          <div class="panel">
+            <div class="file-row">
+              <span class="ico">▤</span>
+              <span class="comp-main"><span class="fname">02-01-gioi-thieu-moi-truong.pptx</span><br>
+                <span class="fmeta">PowerPoint · 4.2 MB</span></span>
+              <span class="acts"><button class="btn-sm" disabled>Thay file</button></span>
+            </div>
+          </div>
+          <div class="comp"><span class="ico">↺</span>
+            <span class="comp-main"><div class="comp-t">Ôn lại đầu bài</div>
+            <div class="comp-s"><span class="n">5</span> câu tự chọn từ Chương 1</div></span>
+            <span class="acts"><button class="mini" disabled>Sửa</button><button class="mini" disabled>Xoá</button></span></div>
+          <div class="comp"><span class="ico">✎</span>
+            <span class="comp-main"><div class="comp-t">Bài tập — Dựng màn hình Hello World bằng Expo</div>
+            <div class="comp-s">Thang <span class="n">10.0</span> · <span class="n">2</span> slot nộp</div></span>
+            <span class="acts"><button class="mini" disabled>Sửa</button><button class="mini" disabled>Xoá</button></span></div>
+          <div style="display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-top:.6rem">
+            <button class="btn-sm pri" disabled>+ Thêm phần</button>
+            <span class="tgl" data-on="1"><span class="track"><span class="knob"></span></span>
+              <span>Bắt buộc hoàn thành để mở bài tiếp theo</span><span class="tgl-state">BẬT</span></span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-sm" disabled style="margin-top:.7rem">+ Thêm bài học</button>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Vì sao bản đã xuất bản phải khoá cứng, không phải “cảnh báo rồi cho sửa”.</strong>
+<code>CourseOffering</code> giữ nguyên <code>subject_version_id</code> đã chọn lúc mở lớp (SRS mục 5.2).
+Nghĩa là <span class="n">3</span> lớp ở trên đang <em>đọc trực tiếp</em> chính những bản ghi này —
+sửa một câu hỏi ở đây là câu hỏi trên điện thoại sinh viên đổi ngay lập tức, giữa học kỳ, sau khi có
+người đã trả lời phiên bản cũ. Tệ hơn: nếu đổi trọng số hay hạn nộp của một Assignment đã có bài nộp
+và đã chấm, điểm đã lưu không còn giải thích được bằng nội dung đang hiển thị — và đó là lúc khiếu nại
+điểm trở thành lời khai của hai bên chứ không phải một bản ghi tra được.
+Một cảnh báo “bạn có chắc không?” không ngăn được điều này, vì người ta luôn bấm Có.
+Khoá cứng + một nút thoát rõ ràng (<em>Tạo phiên bản mới</em>) mới là thứ đúng.
+</div>
+
+<div class="note">
+<strong>Băng khoá phải nêu đích danh lớp, không nói “một số lớp”.</strong> Giảng viên chỉ tin vào việc
+khoá khi thấy đúng mã lớp mình đang dạy. “Nội dung đang được sử dụng” là câu khiến người ta đi tìm cách
+lách; “<code>DA24TIN01</code> đang học tới Chương 4” là câu khiến người ta dừng lại.
+Dữ liệu này lấy từ chính truy vấn của màn hình 6.10 — dùng lại, không đếm lại ở frontend.
+</div>
+
+<div class="state-lbl">A6 · Vì sao trình soạn thảo không có khung điện thoại</div>
+
+<div class="pair">
+  <div class="desk">
+    <div class="card">
+      <p style="margin-top:0"><strong>Màn hình 6.2 là màn hình chỉ giảng viên, chỉ máy tính.</strong>
+      Nó là bàn làm việc: kéo-thả hai tầng lồng nhau (bài trong chương, phần trong bài), tải tệp
+      hàng chục MB, xem trước PPT. Không có kịch bản nào trong SRS mô tả việc soạn nội dung trên
+      điện thoại. Ép nó chạy vừa <span class="n">360</span>px sẽ tốn công thi công cho một tình huống
+      không tồn tại, và tệ hơn là tạo ra một giao diện kéo-thả bằng ngón tay đủ tệ để gây sắp nhầm thứ tự.</p>
+      <p>Thay vì vậy: dưới <span class="n">1024</span>px hiện thẳng thông báo bên cạnh, kèm hai việc
+      <em>làm được</em> trên điện thoại. Khung <span class="n">360</span>px cho <em>sinh viên</em> nằm ở
+      màn hình 6.3 (trang học) và 6.6 (trang nộp bài), không phải ở đây.</p>
+      <div class="note" style="margin-bottom:0">Vùng bấm trong khung hẹp đặt tối thiểu
+      <span class="n">44</span>×<span class="n">44</span>px theo luật 6 — kể cả với hai nút thoát hiểm này.</div>
+    </div>
+  </div>
+
+  <div class="phone">
+    <div class="phone-bar">360 × 780 — màn hình hẹp</div>
+    <div class="phone-body">
+      <div class="crumb" style="margin-bottom:.6rem"><b>IN4203 — Lập trình di động React Native</b><br>
+        Phiên bản <code>2027-2028</code> · Chương 2</div>
+      <div class="banner b-info" style="margin-bottom:.7rem">
+        <span class="bi">i</span>
+        <span><b>Màn hình quá hẹp để soạn thảo.</b>
+        Việc sắp xếp bài và phần cần kéo-thả hai tầng, nên chỉ mở trên máy tính (từ
+        <span class="n">1024</span>px).
+        <div class="fix">Trên điện thoại bạn vẫn làm được hai việc dưới đây.</div></span>
+      </div>
+      <button class="btn btn-primary tap" style="width:100%;margin-bottom:.5rem">Xem nội dung chương (chỉ đọc)</button>
+      <button class="btn btn-ghost tap" style="width:100%">Xem lịch sử phiên bản</button>
+      <div style="margin-top:.7rem;font-size:.78rem;color:var(--fg-muted)">
+        Cần sửa gấp? Mở đúng liên kết này trên máy tính — địa chỉ giống hệt.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     B. LỊCH SỬ PHIÊN BẢN — SRS 6.10
+     ═══════════════════════════════════════════════════════════════════ -->
+<h2>B. Lịch sử phiên bản môn học</h2>
+<div class="src">
+  <span class="chip c-info">SRS mục 6.10</span>
+  <span class="chip c-info">SRS mục 5.2</span>
+  <span class="chip c-mute">Phase 1 · Chunk 3 · Task 1.9</span>
+  <span class="chip c-mute">frontend/src/app/(instructor)/subjects/[id]/versions/page.tsx</span>
+</div>
+<p>Timeline dọc, mới nhất trên cùng. Mỗi mốc là một <code>SubjectVersion</code>: nhãn, trạng thái,
+ngày xuất bản, changelog rút gọn, và <strong>danh sách lớp học phần đang dùng phiên bản đó</strong>.</p>
+
+<div class="state-lbl">B1 · Trạng thái bình thường — ba mốc phiên bản</div>
+
+<div class="pair">
+<div class="desk">
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4203 — Lập trình di động React Native</b><br>
+      <span class="n">3</span> tín chỉ · <span class="n">3</span> phiên bản nội dung</div>
+    <span class="spacer"></span>
+    <button class="btn-sm pri">+ Tạo phiên bản mới</button>
+  </div>
+  <div class="app-body">
+    <div class="tl">
+
+      <!-- 2027-2028 — nháp -->
+      <div class="tl-item">
+        <span class="tl-dot d-draft" title="Bản nháp">✎</span>
+        <div class="ver">
+          <div class="ver-top">
+            <span class="ver-lbl">2027-2028</span>
+            <span class="chip c-warn">✎ Bản nháp — chưa xuất bản</span>
+            <span class="spacer"></span>
+            <span class="ver-date">Tạo 09/08/2027 · sửa lần cuối 10/08/2027 09:14</span>
+          </div>
+          <div class="chlog"><strong>Ghi chú thay đổi:</strong> Thêm Chương 5 “Điều hướng với Expo Router”.
+            Bỏ chương Redux, thay bằng Zustand. Cập nhật toàn bộ ví dụ lên React Native 0.79.</div>
+          <div style="font-size:.8rem;color:var(--fg-muted)">
+            Chép từ <code>2026-2027</code> · <span class="n">7</span> chương ·
+            <span class="n">31</span> bài · <span class="n">54</span> phần
+          </div>
+          <div class="banner b-mute" style="margin:.55rem 0 0">
+            <span class="bi">i</span>
+            <span><b>Chưa lớp học phần nào dùng phiên bản này.</b>
+            Bản nháp không mở lớp được — chỉ phiên bản đã xuất bản mới xuất hiện trong ô chọn khi tạo lớp.
+            <div class="fix">Xuất bản xong, <code>2026-2027</code> sẽ tự chuyển sang lưu trữ.</div></span>
+          </div>
+          <div class="ver-acts">
+            <button class="btn-sm pri">Mở trình soạn thảo</button>
+            <button class="btn-sm">Xuất bản</button>
+            <button class="btn-sm">So sánh với 2026-2027</button>
+            <button class="btn-sm">Xoá bản nháp</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2026-2027 — đã xuất bản -->
+      <div class="tl-item">
+        <span class="tl-dot d-pub" title="Đã xuất bản">✓</span>
+        <div class="ver cur">
+          <div class="ver-top">
+            <span class="ver-lbl">2026-2027</span>
+            <span class="chip c-ok">✓ Đã xuất bản — đang dùng</span>
+            <span class="spacer"></span>
+            <span class="ver-date">Xuất bản 12/08/2026 08:40</span>
+          </div>
+          <div class="chlog"><strong>Ghi chú thay đổi:</strong> Nâng ví dụ từ React Native 0.74 lên 0.76.
+            Gộp chương Navigation vào Chương 4. Thêm bài tập lớn cuối môn làm theo nhóm
+            <span class="n">3</span>–<span class="n">4</span> người.</div>
+          <div style="font-size:.8rem;color:var(--fg-muted);margin-bottom:.4rem">
+            Chép từ <code>2025-2026</code> · <span class="n">6</span> chương ·
+            <span class="n">28</span> bài · <span class="n">47</span> phần
+          </div>
+
+          <div class="sec-lbl" style="margin-top:.6rem">Lớp học phần đang ghim phiên bản này —
+            <span class="n">3</span> lớp</div>
+          <div class="off">
+            <span class="chip c-ok">● Đang dạy</span>
+            <code>DA24TIN01</code>
+            <span class="off-meta">HK1 2026–2027 · <span class="n">42</span> SV · học tới Chương 4</span>
+            <span class="spacer"></span>
+            <button class="mini">Mở lớp</button>
+          </div>
+          <div class="off">
+            <span class="chip c-ok">● Đang dạy</span>
+            <code>DA24TIN02</code>
+            <span class="off-meta">HK1 2026–2027 · <span class="n">38</span> SV · học tới Chương 3</span>
+            <span class="spacer"></span>
+            <button class="mini">Mở lớp</button>
+          </div>
+          <div class="off">
+            <span class="chip c-info">◷ Sắp mở</span>
+            <code>DA24TIN03</code>
+            <span class="off-meta">HK2 2026–2027 · <span class="n">0</span> SV · chưa nhập danh sách</span>
+            <span class="spacer"></span>
+            <button class="mini">Mở lớp</button>
+          </div>
+
+          <div class="banner b-warn" style="margin:.6rem 0 0">
+            <span class="bi">🔒</span>
+            <span><b>Chỉ đọc vì <span class="n">2</span> lớp đang dạy dở dang.</b>
+            Sửa phiên bản này là đổi nội dung của <code>DA24TIN01</code> và <code>DA24TIN02</code>
+            ngay giữa học kỳ.
+            <div class="fix">Muốn sửa: bấm “Tạo phiên bản mới từ đây”. Muốn lớp đang chạy dùng bản mới:
+            phải chuyển tay từng lớp — hệ thống không bao giờ tự chuyển.</div></span>
+          </div>
+
+          <div class="ver-acts">
+            <button class="btn-sm pri">Tạo phiên bản mới từ đây</button>
+            <button class="btn-sm">Xem chỉ đọc</button>
+            <button class="btn-sm">Xuất đề cương PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2025-2026 — lưu trữ -->
+      <div class="tl-item">
+        <span class="tl-dot d-arc" title="Đã lưu trữ">▪</span>
+        <div class="ver">
+          <div class="ver-top">
+            <span class="ver-lbl">2025-2026</span>
+            <span class="chip c-mute">▪ Đã lưu trữ</span>
+            <span class="spacer"></span>
+            <span class="ver-date">Xuất bản 05/08/2025 · lưu trữ 12/08/2026</span>
+          </div>
+          <div class="chlog"><strong>Ghi chú thay đổi:</strong> Phiên bản đầu tiên của môn.
+            <span class="n">6</span> chương theo đề cương duyệt tháng 07/2025.</div>
+          <div style="font-size:.8rem;color:var(--fg-muted);margin-bottom:.4rem">
+            <span class="n">6</span> chương · <span class="n">26</span> bài · <span class="n">39</span> phần
+          </div>
+          <div class="sec-lbl" style="margin-top:.6rem">Lớp học phần đã dùng phiên bản này —
+            <span class="n">2</span> lớp</div>
+          <div class="off">
+            <span class="chip c-mute">✓ Đã kết thúc</span>
+            <code>DA23TIN01</code>
+            <span class="off-meta">HK1 2025–2026 · <span class="n">45</span> SV · đã nộp điểm 15/01/2026</span>
+            <span class="spacer"></span>
+            <button class="mini">Xem sổ điểm</button>
+          </div>
+          <div class="off">
+            <span class="chip c-mute">✓ Đã kết thúc</span>
+            <code>DA23TIN02</code>
+            <span class="off-meta">HK2 2025–2026 · <span class="n">40</span> SV · đã nộp điểm 12/06/2026</span>
+            <span class="spacer"></span>
+            <button class="mini">Xem sổ điểm</button>
+          </div>
+          <div class="banner b-mute" style="margin:.6rem 0 0">
+            <span class="bi">i</span>
+            <span><b>Giữ vĩnh viễn, không xoá được.</b>
+            <span class="n">85</span> sinh viên có điểm gắn với nội dung phiên bản này. Xoá là mất căn cứ
+            khi có khiếu nại điểm sau kỳ.
+            <div class="fix">Vẫn xem và chép lại được: bấm “Tạo phiên bản mới từ đây” nếu muốn quay lại
+            cách dạy năm đó.</div></span>
+          </div>
+          <div class="ver-acts">
+            <button class="btn-sm">Xem chỉ đọc</button>
+            <button class="btn-sm">Tạo phiên bản mới từ đây</button>
+            <button class="btn-sm" disabled title="Không xoá được: 85 sinh viên có điểm gắn với phiên bản này">Xoá</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="phone">
+  <div class="phone-bar">360 × 780 — xem lịch sử trên điện thoại</div>
+  <div class="phone-body">
+    <div class="crumb" style="margin-bottom:.6rem"><b>IN4203 — Lập trình di động React Native</b><br>
+      <span class="n">3</span> phiên bản nội dung</div>
+    <div class="tl" style="padding-left:1.8rem">
+      <div class="tl-item">
+        <span class="tl-dot d-draft">✎</span>
+        <div class="ver" style="padding:.6rem .65rem">
+          <div class="ver-lbl" style="font-size:.92rem">2027-2028</div>
+          <div style="margin:.3rem 0"><span class="chip c-warn">✎ Bản nháp</span></div>
+          <div class="chlog" style="font-size:.8rem;margin:.35rem 0">Thêm Chương 5 Expo Router; bỏ Redux.</div>
+          <div class="off-meta">Chưa lớp nào dùng</div>
+          <button class="btn btn-ghost tap" style="width:100%;margin-top:.5rem">Xem chi tiết</button>
+        </div>
+      </div>
+      <div class="tl-item">
+        <span class="tl-dot d-pub">✓</span>
+        <div class="ver cur" style="padding:.6rem .65rem">
+          <div class="ver-lbl" style="font-size:.92rem">2026-2027</div>
+          <div style="margin:.3rem 0"><span class="chip c-ok">✓ Đã xuất bản</span></div>
+          <div class="chlog" style="font-size:.8rem;margin:.35rem 0">RN 0.74 → 0.76; thêm bài tập lớn nhóm.</div>
+          <div class="tap-row"><code>DA24TIN01</code><span class="off-meta">&nbsp;· <span class="n">42</span> SV</span></div>
+          <div class="tap-row"><code>DA24TIN02</code><span class="off-meta">&nbsp;· <span class="n">38</span> SV</span></div>
+          <div class="tap-row"><code>DA24TIN03</code><span class="off-meta">&nbsp;· sắp mở</span></div>
+          <button class="btn btn-ghost tap" style="width:100%;margin-top:.5rem">Xem chi tiết</button>
+        </div>
+      </div>
+      <div class="tl-item">
+        <span class="tl-dot d-arc">▪</span>
+        <div class="ver" style="padding:.6rem .65rem">
+          <div class="ver-lbl" style="font-size:.92rem">2025-2026</div>
+          <div style="margin:.3rem 0"><span class="chip c-mute">▪ Đã lưu trữ</span></div>
+          <div class="off-meta"><span class="n">2</span> lớp đã kết thúc</div>
+          <button class="btn btn-ghost tap" style="width:100%;margin-top:.5rem">Xem chi tiết</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="why">
+<strong>Danh sách lớp không phải phần phụ — nó là lý do màn hình này tồn tại.</strong>
+Timeline đẹp nhưng thiếu cột “lớp nào đang dùng” chỉ trả lời được “tôi từng sửa gì”. Câu hỏi thật của
+giảng viên đầu mỗi năm học là: <em>“bản này còn ai đang học không, tôi đụng vào có sao không?”</em>
+Vì thế mỗi mốc liệt kê đích danh mã lớp, học kỳ, sĩ số và tiến độ (“học tới Chương 4”) — đủ để quyết định
+mà không cần mở thêm trang nào. SRS mục 6.10 yêu cầu đúng thông tin này.
+</div>
+
+<div class="why">
+<strong>Vì sao dùng ba màu này cho ba trạng thái.</strong>
+Xanh lá cho <em>đã xuất bản</em> vì nó đúng nghĩa “đã có dữ liệu / đang hiệu lực” theo luật 2.
+Cam cho <em>bản nháp</em> vì nháp nghĩa là “cần bạn xem lại rồi xuất bản” — cũng đúng nghĩa cam, và khớp
+với SRS mục 6.10 (badge vàng cho <code>draft</code>). Xám cho <em>lưu trữ</em> vì nó không cần hành động gì.
+Đỏ không xuất hiện ở đây — không có trạng thái phiên bản nào là “sai”. Cả ba chấm tròn đều mang thêm
+ký hiệu (<code>✎</code> <code>✓</code> <code>▪</code>) và nhãn chữ, theo luật 4.
+</div>
+
+<div class="note">
+<strong>Lệch với hệ thống thiết kế cần chốt lại.</strong> Trong <code>00-design-system.html</code> §3,
+nhãn “Bản nháp” dùng <span class="chip c-info">Bản nháp</span> (xanh thương hiệu) — đó là nháp
+<em>bài nộp của sinh viên</em>. Ở đây nháp <em>phiên bản môn học</em> dùng
+<span class="chip c-warn">✎ Bản nháp</span> (cam) theo SRS mục 6.10. Hai thứ khác nhau về ngữ nghĩa:
+nháp bài nộp là trạng thái bình thường trong lúc làm; nháp phiên bản là việc còn dở đang chờ giảng viên
+xuất bản. Cần một quyết định ghi vào hệ thống thiết kế trước khi thi công, đừng để hai màn hình tự chọn.
+</div>
+
+<div class="state-lbl">B2 · Trạng thái rỗng — môn mới chưa có phiên bản nào</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4210 — Kiểm thử phần mềm</b><br>
+      <span class="n">2</span> tín chỉ · vừa tạo <span class="n">13/08/2027 16:05</span></div>
+    <span class="spacer"></span>
+    <span class="chip c-warn">Chưa có nội dung</span>
+  </div>
+  <div class="app-body">
+    <div class="empty">
+      <div class="eb">Môn này chưa có phiên bản nội dung nào</div>
+      <div class="es">Ở TeachHub, chương và bài học không gắn thẳng vào môn — chúng nằm trong một
+        <strong>phiên bản</strong> (ví dụ <code>2027-2028</code>). Nhờ vậy sang năm bạn cập nhật nội dung
+        mà không đụng gì tới lớp đã dạy. Tạo phiên bản đầu tiên để bắt đầu soạn.</div>
+      <button class="btn btn-primary">+ Tạo phiên bản đầu tiên</button>
+      <button class="btn btn-ghost">Chép nội dung từ môn khác</button>
+      <div style="margin-top:.9rem;font-size:.8rem;color:var(--fg-muted)">
+        Chưa tạo phiên bản thì chưa mở được lớp học phần cho môn này.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+<strong>Đây là chỗ duy nhất giải thích được khái niệm “phiên bản” đúng lúc người ta cần.</strong>
+Giảng viên gặp trạng thái rỗng này ngay sau khi tạo môn — là lúc họ đang tự hỏi “sao tạo môn xong lại
+chưa soạn được?”. Ba dòng giải thích ở đây tiết kiệm cả một trang hướng dẫn. Đừng thay bằng
+“Không có dữ liệu” và một nút dấu cộng.
+</div>
+
+<div class="state-lbl">B3 · Trạng thái lỗi — xung đột khi xuất bản</div>
+
+<div class="app">
+  <div class="app-bar">
+    <div class="crumb"><b>IN4203 — Lập trình di động React Native</b><br>
+      Đang xuất bản <code>2027-2028</code></div>
+    <span class="spacer"></span>
+    <button class="btn-sm pri" disabled>Xuất bản</button>
+  </div>
+  <div class="app-body">
+    <div class="banner b-err">
+      <span class="bi">✕</span>
+      <span><b>Không xuất bản được: phiên bản <code>2027-2028</code> không còn ở trạng thái bản nháp.</b>
+      Nó đã được xuất bản lúc <span class="n">13/08/2027 16:02</span> từ một tab khác của bạn.
+      Trạng thái hiện tại: <span class="chip c-ok">✓ Đã xuất bản</span>
+      <div class="fix">Cần làm: tải lại trang để xem trạng thái mới nhất. Nếu bạn còn thay đổi chưa lưu
+      trong tab này, chép nội dung đó ra trước khi tải lại — thao tác sửa trên bản đã xuất bản sẽ bị từ chối.</div>
+      <div style="margin-top:.45rem"><button class="btn-sm pri">Tải lại trang</button>
+      <button class="btn-sm">Xem thay đổi chưa lưu</button></div></span>
+    </div>
+
+    <div class="banner b-warn">
+      <span class="bi">!</span>
+      <span><b>Chưa ghi ghi chú thay đổi (changelog).</b>
+      Không bắt buộc, nhưng sang năm bạn sẽ không nhớ vì sao bỏ chương Redux.
+      <div class="fix">Có thể bỏ qua và xuất bản — bổ sung sau ở màn hình lịch sử phiên bản.</div></span>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Lỗi xung đột phải nói ra ai đã làm gì lúc nào.</strong> Kế hoạch Phase 1 chốt thông điệp từ tầng
+domain: <em>“Chỉ xuất bản được bản nháp. Phiên bản '2027-2028' đang ở trạng thái published.”</em>
+Đó là câu đúng cho log nhưng chưa đủ cho người dùng — giao diện phải bổ sung <em>thời điểm</em> và
+<em>việc cần làm tiếp</em>, đặc biệt là cảnh báo mất thay đổi chưa lưu. Hai tab mở song song là chuyện
+bình thường khi soạn nội dung, không phải trường hợp hiếm.
+</div>
+
+<h2>C. Tóm tắt để thi công</h2>
+<div class="card" style="padding:0;overflow:hidden">
+<table class="demo">
+  <thead><tr><th>Trạng thái</th><th>Điều kiện xuất hiện</th><th>Nguồn</th></tr></thead>
+  <tbody>
+    <tr><td>Soạn thảo bình thường</td><td><code>version.status = draft</code></td><td>SRS 6.2 · Task 1.8</td></tr>
+    <tr><td>Chương rỗng</td><td><code>chapter.lessons.length = 0</code></td><td>SRS 5.1</td></tr>
+    <tr><td>Bài <span class="n">0</span> phần — hợp lệ</td><td><code>lesson.components.length = 0</code></td><td>SRS 5.1 (0..N)</td></tr>
+    <tr><td>Đang tải</td><td>Truy vấn chương chưa trả về</td><td>Task 1.8</td></tr>
+    <tr><td>Lỗi tệp tải lên</td><td>Chữ ký byte không khớp phần mở rộng</td><td>Task 1.7 · SRS 9</td></tr>
+    <tr><td>Chặn xuất bản</td><td>Có bài thiếu nội dung chính</td><td>Task 1.8</td></tr>
+    <tr><td>Hoàn tác kéo-thả</td><td><code>onError</code> của mutation đổi thứ tự</td><td>Task 1.8 bước 3</td></tr>
+    <tr><td>Chỉ đọc</td><td><code>version.status ≠ draft</code></td><td>SRS 5.2 · Task 1.8 bước 4</td></tr>
+    <tr><td>Timeline phiên bản</td><td>Luôn có khi môn có ≥ <span class="n">1</span> phiên bản</td><td>SRS 6.10 · Task 1.9</td></tr>
+    <tr><td>Môn chưa có phiên bản</td><td><code>subject.versions.length = 0</code></td><td>SRS 5.2</td></tr>
+    <tr><td>Xung đột xuất bản</td><td>Domain trả <code>Conflict</code></td><td>Task 1.6</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note" style="margin-top:1.2rem">
+<strong>Chưa giải quyết trong bản này, cần chốt trước khi code.</strong>
+(1) Màn hình <em>So sánh hai phiên bản</em> — SRS mục 5.2 xếp là tuỳ chọn P1/P2, ở đây mới có cái nút.
+(2) Luồng <em>chuyển lớp đang chạy sang phiên bản mới</em> — SRS nói phải làm thủ công nhưng chưa có màn hình.
+(3) Hộp thoại chọn <em>tạo mới hay lấy từ thư viện</em> khi thêm phần loại bài tập/trắc nghiệm (SRS mục 6.2)
+— ở đây mới dừng ở dòng mô tả trong dropdown.
+(4) Cấu hình chi tiết từng loại phần sau khi chọn trong dropdown — thuộc màn hình 6.4.
+</div>
+
+</main>
+</body>
+</html>

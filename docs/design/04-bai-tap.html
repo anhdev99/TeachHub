@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Cấu hình bài tập, chia nhóm &amp; đợt chấm cuối môn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   TOKEN — chép nguyên văn từ 00-design-system.html
+   (gốc: stylesheet của stm.mst.gov.vn — Bộ KH&CN). Không thêm màu mới.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Thương hiệu */
+  --brand-900:#0d59cf;  --brand-700:#017fcc;  --brand-500:#2281df;
+  --brand-300:#90b3ff;  --brand-100:#e6f1fb;
+
+  /* Ngữ nghĩa */
+  --danger:#dc2626;   --danger-soft:#f5bebe;
+  --warning:#e58a00;  --warning-soft:#fdf0d9;
+  --success:#2ca87f;  --success-soft:#dcf1e9;
+  --teal:#20c997;     --cyan:#3ec9d6;   --violet:#673ab7;
+
+  /* Trung tính — thang accent-* của trang gốc, chế độ sáng */
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --line-strong:var(--n300);
+  --fg:var(--n800); --fg-muted:var(--n500); --fg-faint:var(--n400);
+
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --shadow-lg:0 4px 6px -1px rgba(19,25,32,.08),0 10px 20px -5px rgba(19,25,32,.12);
+
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+
+  /* Mật độ — hai chế độ, xem §6 */
+  --row-h:40px; --pad-x:12px; --fs:14px;
+}
+[data-density="thoang"]{ --row-h:52px; --pad-x:18px; --fs:15px; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    /* Thang trung tính đảo — cũng lấy từ trang gốc (accent-* dark) */
+    --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+    --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+    --n700:#f3f5f7; --n800:#f8f9fa;
+    --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+    --line:#2a3540; --line-strong:#3e4853;
+    --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+    --brand-100:#122436; --danger-soft:#3a1a1a;
+    --success-soft:#14302a; --warning-soft:#332612;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+  --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+  --n700:#f3f5f7; --n800:#f8f9fa;
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --line-strong:#3e4853;
+  --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+  --brand-100:#122436; --danger-soft:#3a1a1a;
+  --success-soft:#14302a; --warning-soft:#332612;
+  --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 var(--font);
+     padding:2.5rem 1.25rem 6rem}
+main{max-width:1120px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.3rem;font-weight:700;margin:3.2rem 0 .2rem;letter-spacing:-.01em;
+   padding-bottom:.4rem;border-bottom:2px solid var(--brand-700)}
+h3{font-size:1rem;font-weight:600;margin:2rem 0 .6rem;color:var(--brand-700)}
+p{margin:.6rem 0}
+.lede{color:var(--fg-muted);margin-bottom:2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+      padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
+.grid{display:grid;gap:1rem}
+.note{border-left:3px solid var(--warning);background:var(--warning-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);
+     padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+
+/* Thành phần mẫu */
+.btn{font:600 var(--fs)/1 var(--font);padding:.62rem 1rem;border-radius:var(--radius);
+     border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--brand-700);color:#fff}
+.btn-primary:hover{background:var(--brand-900)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.chip{display:inline-flex;align-items:center;gap:.3rem;font:600 .74rem var(--font);
+      padding:.18rem .5rem;border-radius:99px;border:1px solid}
+.c-ok{color:var(--n800);border-color:var(--success);background:var(--success-soft)}
+.c-warn{color:var(--n800);border-color:var(--warning);background:var(--warning-soft)}
+.c-err{color:var(--n800);border-color:var(--danger);background:var(--danger-soft)}
+.c-info{color:var(--n800);border-color:var(--brand-700);background:var(--brand-100)}
+.c-mute{color:var(--fg-muted);border-color:var(--line-strong);background:var(--surface-2)}
+
+table.demo{width:100%;border-collapse:collapse;font-size:var(--fs)}
+table.demo th{background:var(--surface-2);font-weight:600;text-align:left;
+              padding:.5rem var(--pad-x);border-bottom:2px solid var(--line-strong);white-space:nowrap}
+table.demo td{padding:0 var(--pad-x);height:var(--row-h);border-bottom:1px solid var(--line)}
+.num{font:500 var(--fs) var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+/* Ô điểm */
+.cell{display:flex;align-items:center;justify-content:flex-end;gap:.35rem;height:100%}
+.cell .v{font:600 var(--fs) var(--mono);font-variant-numeric:tabular-nums}
+.cell .m{width:5px;height:5px;border-radius:99px;background:var(--warning);flex:none}
+.cell .b{font:600 .68rem var(--mono);color:var(--success);
+         background:var(--success-soft);padding:0 .28rem;border-radius:3px}
+.cell.fail .v{color:var(--danger)}
+.cell.empty .v{color:var(--fg-faint)}
+
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.9rem;margin:.5rem 0}
+.dl dt{font:500 .78rem var(--mono);color:var(--fg-muted)}
+.dl dd{margin:0}
+.tog{position:fixed;top:1rem;right:1rem;z-index:9;display:flex;gap:.4rem}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LỚP BỔ SUNG cho màn hình 6.4 / 6.5 / 6.9 — chỉ dùng biến token ở trên
+   ═══════════════════════════════════════════════════════════════════════ */
+.tag{display:inline-block;font:600 .68rem/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;
+     color:var(--fg-muted);border:1px dashed var(--line-strong);border-radius:4px;
+     padding:.3rem .5rem;margin:1.4rem 0 .4rem}
+.screen{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+        box-shadow:var(--shadow);overflow:hidden;margin:.4rem 0 1rem}
+.screen>header{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;justify-content:space-between;
+        padding:.65rem .9rem;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.crumb{font:500 .78rem var(--font);color:var(--fg-muted)}
+.crumb b{color:var(--fg);font-weight:600}
+.sbody{padding:.9rem}
+.sec{border:1px solid var(--line);border-radius:var(--radius);margin:0 0 .9rem;overflow:hidden}
+.sec>.hd{font:600 .84rem var(--font);padding:.5rem .75rem;background:var(--surface-2);
+         border-bottom:1px solid var(--line);display:flex;justify-content:space-between;
+         align-items:center;gap:.6rem;flex-wrap:wrap}
+.sec>.in{padding:.75rem}
+.f{display:grid;gap:.25rem;margin:0 0 .7rem}
+.f>span.lb{font:600 .74rem var(--font);color:var(--fg-muted)}
+.inp{font:400 var(--fs) var(--font);color:var(--fg);background:var(--surface);
+     border:1px solid var(--line-strong);border-radius:var(--radius);
+     padding:.45rem .6rem;min-height:38px;display:flex;align-items:center;gap:.4rem}
+.inp.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.inp.ta{align-items:flex-start;min-height:64px;line-height:1.5}
+.inp .ph{color:var(--fg-faint)}
+.hint{font:400 .75rem/1.45 var(--font);color:var(--fg-muted);margin:.1rem 0 0}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:0 1rem}
+.cols3{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:0 1rem}
+.rowb{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.rowb.nw{flex-wrap:nowrap;white-space:nowrap}
+.btn-sm{font:600 .76rem/1 var(--font);padding:.45rem .65rem;border-radius:var(--radius);
+        border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);cursor:pointer}
+.btn-sm.pri{background:var(--brand-700);border-color:var(--brand-700);color:#fff}
+.btn-sm:disabled{opacity:.45;cursor:not-allowed}
+.drag{cursor:grab;color:var(--fg-faint);font:400 .95rem/1 var(--mono);user-select:none}
+.flag{font:600 .74rem var(--mono);color:var(--fg-faint);white-space:nowrap}
+.flag.on{color:var(--brand-700)}
+.wrapx{overflow-x:auto}
+.toggle{display:inline-flex;align-items:center;gap:.5rem;font:600 .84rem var(--font)}
+.track{width:38px;height:22px;border-radius:99px;background:var(--line-strong);position:relative;flex:none}
+.track i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:99px;background:var(--surface)}
+.track.on{background:var(--brand-700)}
+.track.on i{left:19px}
+.radio{display:flex;align-items:center;gap:.4rem;font-size:.86rem;min-height:32px}
+.radio .dot{width:15px;height:15px;border-radius:99px;border:1px solid var(--line-strong);flex:none;
+            display:flex;align-items:center;justify-content:center}
+.radio.on .dot{border-color:var(--brand-700)}
+.radio.on .dot::after{content:"";width:7px;height:7px;border-radius:99px;background:var(--brand-700)}
+.box{display:inline-flex;width:16px;height:16px;border-radius:3px;border:1px solid var(--line-strong);
+     align-items:center;justify-content:center;font:700 .7rem/1 var(--mono);flex:none}
+.box.on{background:var(--brand-700);border-color:var(--brand-700);color:#fff}
+.lv{display:inline-flex;gap:.35rem;align-items:baseline;border:1px solid var(--line);
+    border-radius:99px;padding:.15rem .55rem;font:500 .74rem var(--font);background:var(--surface-2)}
+.lv b{font:600 .74rem var(--mono);font-variant-numeric:tabular-nums}
+.crit{border:1px solid var(--line);border-radius:var(--radius);margin:0 0 .55rem;background:var(--surface)}
+.crit>.ch{display:flex;gap:.6rem;align-items:center;padding:.5rem .65rem;flex-wrap:wrap}
+.crit>.cb{padding:0 .65rem .65rem;border-top:1px dashed var(--line)}
+.total{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:.6rem .75rem;
+       border-radius:var(--radius);background:var(--surface-2);border:1px solid var(--line)}
+.total.bad{border-color:var(--danger);background:var(--danger-soft)}
+.big{font:600 1.05rem var(--mono);font-variant-numeric:tabular-nums}
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:.7rem}
+.grp{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);padding:.55rem}
+.grp.warn{border-color:var(--warning);background:var(--warning-soft)}
+.grp>h5{margin:0 0 .45rem;font:600 .85rem var(--font);display:flex;justify-content:space-between;
+        align-items:center;gap:.4rem}
+.stu{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--line);
+     border-radius:var(--radius);padding:.3rem .45rem;margin:0 0 .35rem;min-height:44px}
+.stu>span{min-width:0}
+.stu .nm{font:500 .82rem/1.2 var(--font)}
+.stu .id{font:500 .72rem var(--mono);color:var(--fg-muted);display:block}
+.av{width:28px;height:28px;border-radius:99px;background:var(--brand-100);color:var(--brand-700);
+    font:700 .72rem var(--font);display:flex;align-items:center;justify-content:center;flex:none}
+.pool{border:1px dashed var(--line-strong);border-radius:var(--radius);padding:.6rem;background:var(--surface)}
+.drop{border:1px dashed var(--brand-700);background:var(--brand-100);border-radius:var(--radius);
+      padding:.5rem;font:500 .78rem var(--font);color:var(--brand-700);text-align:center}
+.phones{display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start}
+.phone{width:360px;max-width:100%;border:1px solid var(--line-strong);border-radius:20px;
+       background:var(--surface);box-shadow:var(--shadow-lg);overflow:hidden}
+.phone .bar{height:28px;background:var(--surface-2);border-bottom:1px solid var(--line);
+            display:flex;align-items:center;justify-content:space-between;padding:0 .85rem;
+            font:500 .68rem var(--mono);color:var(--fg-muted)}
+.phone .pb{padding:.85rem;font-size:var(--fs)}
+.tap{min-height:44px;display:flex;align-items:center;justify-content:center;gap:.4rem}
+.led{width:10px;height:10px;border-radius:99px;display:inline-block;flex:none;
+     background:var(--line-strong);border:1px solid var(--line-strong)}
+.led.ok{background:var(--success);border-color:var(--success)}
+.led.err{background:var(--danger);border-color:var(--danger)}
+.slotline{display:flex;align-items:center;gap:.5rem;min-height:44px;border-bottom:1px solid var(--line);
+          font-size:.85rem}
+.fcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(298px,1fr));gap:.8rem}
+.fcard{border:1px solid var(--line);border-left:3px solid var(--brand-700);border-radius:var(--radius);
+       background:var(--surface);padding:.75rem .85rem}
+.fcard.warn{border-left-color:var(--warning)}
+.fcard.done{border-left-color:var(--success)}
+.fcard h5{margin:0 0 .3rem;font:600 .95rem/1.35 var(--font)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:.28rem .7rem;font-size:.84rem;margin:.5rem 0 0}
+.kv dt{font:500 .72rem var(--mono);color:var(--fg-muted)}
+.kv dd{margin:0}
+.bar2{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;
+      border:1px solid var(--line);margin:.45rem 0 .2rem}
+.bar2 i{display:block;height:100%;background:var(--success)}
+.menu{width:340px;max-width:100%;border:1px solid var(--line-strong);border-radius:var(--radius);
+      background:var(--surface);box-shadow:var(--shadow-lg);overflow:hidden}
+.menu .mi{display:flex;gap:.6rem;align-items:flex-start;width:100%;text-align:left;background:transparent;
+          border:0;border-bottom:1px solid var(--line);padding:.7rem .8rem;cursor:pointer;color:var(--fg);
+          font:400 .85rem/1.45 var(--font)}
+.menu .mi:last-child{border-bottom:0}
+.menu .mi.dim{cursor:not-allowed;color:var(--fg-faint)}
+.menu .mi b{display:block;font:600 .88rem var(--font);color:var(--fg)}
+.menu .mi.dim b{color:var(--fg-faint)}
+.mico{width:26px;height:26px;border-radius:var(--radius);background:var(--brand-100);color:var(--brand-700);
+      display:flex;align-items:center;justify-content:center;font:700 .8rem var(--mono);flex:none}
+.menu .mi.dim .mico{background:var(--surface-2);color:var(--fg-faint)}
+.empty{text-align:center;padding:1.6rem 1rem;border:1px dashed var(--line-strong);
+       border-radius:var(--radius);background:var(--surface)}
+.empty .ic{font:700 1.4rem var(--mono);color:var(--fg-faint)}
+.empty h5{margin:.5rem 0 .25rem;font:600 1rem var(--font)}
+.empty p{margin:.2rem auto .8rem;max-width:52ch;color:var(--fg-muted);font-size:.88rem}
+.sk{height:12px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line);
+    animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.spin{width:14px;height:14px;border-radius:99px;border:2px solid var(--line-strong);
+      border-top-color:var(--brand-700);display:inline-block;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.blocked{display:flex;gap:.6rem;align-items:flex-start;border:1px solid var(--danger);
+         background:var(--danger-soft);border-radius:var(--radius);padding:.6rem .75rem;font-size:.88rem}
+.path{font:500 .8rem var(--mono)}
+.mini{font:500 .72rem var(--mono);color:var(--fg-muted)}
+.legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:var(--fg-muted);margin:.5rem 0 0}
+</style>
+</head>
+<body>
+<div class="tog">
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.density=document.documentElement.dataset.density==='thoang'?'':'thoang'">Mật độ</button>
+</div>
+<main>
+
+<h1>Cấu hình bài tập · Chia nhóm · Đợt chấm cuối môn</h1>
+<p class="lede">
+  Bản dựng giao diện cho ba màn hình dùng chung một hạ tầng: <strong>slot nộp bài động</strong>.
+  Nguồn: <span class="chip c-info">SRS 6.4</span> <span class="chip c-info">SRS 6.5</span>
+  <span class="chip c-info">SRS 6.9</span> · Thi công: <span class="chip c-mute">Phase 3 — Bài tập &amp; Nộp bài</span>
+  <span class="chip c-mute">Phase 4a — Chấm điểm &amp; Nhóm</span>.
+  Bối cảnh dữ liệu: <code>IN4203 — Lập trình di động React Native</code> · lớp <code>DA24TIN01</code> ·
+  <code>HK1 2026–2027</code> · sĩ số <span class="num">12</span>.
+</p>
+
+<div class="why">
+  <strong>Vì sao ba màn hình này nằm chung một tài liệu.</strong> Trong SRS, "bài tập trong chương"
+  (6.4) và "bài tập lớn cuối môn" (6.9 loại <code>final_project</code>) <em>không</em> có hai hệ thống nộp bài
+  riêng — cả hai đều là <code>SubmissionSlot</code> + <code>Submission</code> với <code>owner_type</code>
+  khác nhau. Chia nhóm (6.5) là công tắc bật trong chính màn hình cấu hình đó. Nếu vẽ ba màn hình tách rời,
+  đội thi công sẽ dựng ba UI trùng nhau — đúng điều mục 6.9 dặn không được làm.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>A. Trang cấu hình bài tập <span class="chip c-info" style="vertical-align:middle">SRS 6.4</span> <span class="chip c-mute" style="vertical-align:middle">Phase 3</span></h2>
+<p>Màn hình giảng viên, mật độ đặc. Bốn khối theo thứ tự thao tác thực tế: thông tin chung →
+định dạng nộp → chế độ nhóm → rubric chấm.</p>
+
+<div class="tag">A1 · Trạng thái bình thường — bài đã cấu hình đủ</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 · Chương 4 — Điều hướng &amp; State &nbsp;›&nbsp; <b>Bài tập: Ứng dụng quản lý chi tiêu cá nhân</b></div>
+    <div class="rowb">
+      <span class="chip c-info">Bản nháp</span>
+      <button class="btn-sm">Xem như sinh viên</button>
+      <button class="btn-sm pri">Lưu &amp; Xuất bản</button>
+    </div>
+  </header>
+  <div class="sbody">
+
+    <!-- Thông tin chung -->
+    <div class="sec">
+      <div class="hd"><span>1 · Thông tin chung</span><span class="mini">Assignment</span></div>
+      <div class="in">
+        <div class="f"><span class="lb">Tên bài tập</span>
+          <div class="inp">Ứng dụng quản lý chi tiêu cá nhân (React Native + SQLite)</div>
+        </div>
+        <div class="f"><span class="lb">Mô tả / yêu cầu</span>
+          <div class="inp ta">Xây dựng ứng dụng ghi lại khoản thu — chi theo ngày, có màn hình thống kê theo tháng.
+            Bắt buộc dùng SQLite lưu cục bộ, không gọi API ngoài. Nộp kèm ảnh chụp màn hình chạy trên máy thật
+            và video demo dài tối đa 3 phút.</div>
+        </div>
+        <div class="cols3">
+          <div class="f"><span class="lb">Hạn nộp</span>
+            <div class="inp mono">23:59 · 15/09/2026</div>
+          </div>
+          <div class="f"><span class="lb">Điểm tối đa</span>
+            <div class="inp mono">10.0 <span class="mini">/ thang 0–10</span></div>
+          </div>
+          <div class="f"><span class="lb">Chế độ nộp</span>
+            <div class="inp">Theo nhóm <span class="chip c-info">3–4 SV</span></div>
+          </div>
+        </div>
+        <div class="cols2">
+          <div class="f"><span class="lb">Cho phép nộp trễ</span>
+            <div class="inp"><span class="toggle"><span class="track on"><i></i></span> Có</span></div>
+          </div>
+          <div class="f"><span class="lb">Phạt mỗi ngày trễ</span>
+            <div class="inp mono">10% <span class="mini">· tối đa 5 ngày, sau đó khoá nộp</span></div>
+          </div>
+        </div>
+        <p class="hint">Ví dụ hệ thống tự tính: nộp lúc <span class="path">08:12 · 17/09/2026</span> = trễ
+          <span class="path">2 ngày</span> → điểm chấm <span class="path">8.0</span> ghi vào sổ là
+          <span class="path">6.4</span> (8.0 × 0.8). Sinh viên thấy đúng dòng này <em>trước khi</em> bấm nộp.</p>
+      </div>
+    </div>
+
+    <!-- Slot nộp bài -->
+    <div class="sec">
+      <div class="hd">
+        <span>2 · Định dạng nộp bài <span class="mini">SubmissionSlot — kéo <span class="drag">⠿</span> để đổi thứ tự</span></span>
+        <span class="rowb">
+          <button class="btn-sm">Dùng mẫu gợi ý</button>
+          <button class="btn-sm pri">+ Thêm slot</button>
+        </span>
+      </div>
+      <div class="in">
+        <div class="wrapx">
+        <table class="demo">
+          <thead><tr>
+            <th style="width:26px"></th>
+            <th>Tên slot</th>
+            <th>Loại tệp chấp nhận</th>
+            <th>Bắt buộc?</th>
+            <th>Nhiều tệp?</th>
+            <th>Cho link?</th>
+            <th style="text-align:right">Dung lượng tối đa</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="drag">⠿</span></td>
+              <td>Source code<span class="mini" style="display:block">source_code</span></td>
+              <td><span class="path">.zip</span></td>
+              <td><span class="chip c-info">Bắt buộc</span></td>
+              <td><span class="flag">— Không · 1 tệp</span></td>
+              <td><span class="flag">— Không</span></td>
+              <td class="num">50 MB</td>
+              <td><span class="rowb nw"><button class="btn-sm">Sửa</button><button class="btn-sm">Xoá</button></span></td>
+            </tr>
+            <tr>
+              <td colspan="8" style="height:auto;padding:.1rem .75rem .75rem 2.2rem;background:var(--surface-2)">
+                <div class="sec" style="margin:0;background:var(--surface)">
+                  <div class="hd"><span>Cấu trúc bắt buộc trong tệp .zip <span class="mini">required_structure_json</span></span>
+                    <button class="btn-sm">+ Thêm mục</button></div>
+                  <div class="in">
+                    <div class="rowb" style="gap:.5rem 1.2rem">
+                      <span class="rowb"><span class="box on">✓</span><span class="path">README.md</span>
+                        <span class="mini">tệp — bắt buộc</span></span>
+                      <span class="rowb"><span class="box on">✓</span><span class="path">src/</span>
+                        <span class="mini">thư mục — bắt buộc</span></span>
+                      <span class="rowb"><span class="box">&nbsp;</span><span class="path">package.json</span>
+                        <span class="mini">tệp — tuỳ chọn</span></span>
+                    </div>
+                    <p class="hint">Thiếu mục bắt buộc thì hệ thống <strong>vẫn cho nộp</strong> nhưng gắn cờ
+                      <span class="chip c-warn">Sai cấu trúc</span> để giảng viên thấy khi chấm
+                      (SRS UC-08 bước 4). Chặn nộp ở đây sẽ tạo ra tin nhắn 23:50 đêm hạn nộp.</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><span class="drag">⠿</span></td>
+              <td>Hình ảnh minh chứng<span class="mini" style="display:block">images</span></td>
+              <td><span class="path">.jpg .png</span></td>
+              <td><span class="chip c-mute">Tuỳ chọn</span></td>
+              <td><span class="flag on">✓ Có · tối đa 10 tệp</span></td>
+              <td><span class="flag">— Không</span></td>
+              <td class="num">10 MB</td>
+              <td><span class="rowb nw"><button class="btn-sm">Sửa</button><button class="btn-sm">Xoá</button></span></td>
+            </tr>
+            <tr>
+              <td><span class="drag">⠿</span></td>
+              <td>Video demo<span class="mini" style="display:block">video_demo</span></td>
+              <td><span class="path">.mp4</span> <span class="mini">hoặc link</span></td>
+              <td><span class="chip c-mute">Tuỳ chọn</span></td>
+              <td><span class="flag">— Không · 1 tệp</span></td>
+              <td><span class="flag on">✓ Có · YouTube / Drive</span></td>
+              <td class="num">200 MB</td>
+              <td><span class="rowb nw"><button class="btn-sm">Sửa</button><button class="btn-sm">Xoá</button></span></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <p class="hint">Slot chấp nhận <span class="path">.zip</span> mới mở khu vực "Cấu trúc bắt buộc" —
+          các slot ảnh/video không có khu vực này vì không giải nén được.</p>
+      </div>
+    </div>
+
+    <!-- Nhóm -->
+    <div class="sec">
+      <div class="hd"><span>3 · Chế độ làm bài</span>
+        <span class="toggle"><span class="track on"><i></i></span> Làm theo nhóm</span></div>
+      <div class="in">
+        <div class="cols3">
+          <div class="f"><span class="lb">Số thành viên tối thiểu</span><div class="inp mono">3</div></div>
+          <div class="f"><span class="lb">Số thành viên tối đa</span><div class="inp mono">4</div></div>
+          <div class="f"><span class="lb">Hạn chốt danh sách nhóm</span><div class="inp mono">23:59 · 05/09/2026</div></div>
+        </div>
+        <div class="cols2">
+          <div>
+            <span class="lb" style="font:600 .74rem var(--font);color:var(--fg-muted)">Ai được tạo nhóm?</span>
+            <div class="radio"><span class="dot"></span> Giảng viên chia toàn bộ</div>
+            <div class="radio on"><span class="dot"></span> Sinh viên tự lập nhóm, giảng viên chỉnh sau</div>
+            <div class="radio"><span class="dot"></span> Sinh viên tự lập, cần giảng viên duyệt</div>
+          </div>
+          <div>
+            <span class="lb" style="font:600 .74rem var(--font);color:var(--fg-muted)">Tuỳ chọn khác</span>
+            <div class="radio"><span class="box on">✓</span> Dùng lại nhóm đã tạo ở bài trước trong lớp này</div>
+            <div class="radio"><span class="box">&nbsp;</span> Cho đổi nhóm sau khi đã chốt danh sách</div>
+            <div class="radio"><span class="box on">✓</span> Chỉ nhóm trưởng được bấm "Nộp chính thức"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rubric -->
+    <div class="sec">
+      <div class="hd"><span>4 · Rubric chấm điểm <span class="mini">4 tiêu chí</span></span>
+        <span class="rowb"><button class="btn-sm">Nhập từ bài khác</button><button class="btn-sm pri">+ Thêm tiêu chí</button></span></div>
+      <div class="in">
+
+        <div class="crit">
+          <div class="ch">
+            <span class="drag">⠿</span>
+            <span style="flex:1;min-width:220px"><strong>Chức năng đầy đủ theo đề bài</strong>
+              <span class="mini" style="display:block">Thêm/sửa/xoá khoản chi, lưu SQLite, thống kê theo tháng chạy đúng</span></span>
+            <span class="mini">Điểm tối đa</span><span class="big">4.0</span>
+            <button class="btn-sm">Thu gọn</button>
+          </div>
+          <div class="cb">
+            <p class="hint" style="margin:.5rem 0 .4rem">Các mức — chọn mức nào thì ô điểm tự điền, vẫn sửa tay được:</p>
+            <div class="wrapx">
+            <table class="demo">
+              <thead><tr><th>Mức</th><th>Mô tả</th><th style="text-align:right">Điểm</th></tr></thead>
+              <tbody>
+                <tr><td>Xuất sắc</td><td>Đủ 3 chức năng, có xử lý lỗi nhập liệu, không crash khi xoay màn hình</td><td class="num">4.0</td></tr>
+                <tr><td>Khá</td><td>Đủ 3 chức năng, còn lỗi nhỏ khi nhập số âm hoặc để trống</td><td class="num">3.0</td></tr>
+                <tr><td>Trung bình</td><td>Thiếu màn hình thống kê hoặc dữ liệu không lưu được sau khi tắt app</td><td class="num">2.0</td></tr>
+                <tr><td>Yếu</td><td>Chỉ chạy được màn hình danh sách, chưa ghi được vào SQLite</td><td class="num">1.0</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="crit">
+          <div class="ch">
+            <span class="drag">⠿</span>
+            <span style="flex:1;min-width:220px"><strong>Chất lượng mã nguồn &amp; tổ chức thư mục</strong>
+              <span class="mini" style="display:block">Tách component, đặt tên rõ nghĩa, đúng cấu trúc <span class="path">src/</span> đã yêu cầu</span></span>
+            <span class="mini">Điểm tối đa</span><span class="big">2.0</span>
+            <button class="btn-sm">Mở rộng</button>
+          </div>
+          <div class="cb" style="padding-top:.5rem">
+            <span class="lv">Xuất sắc <b>2.0</b></span> <span class="lv">Khá <b>1.5</b></span>
+            <span class="lv">Trung bình <b>1.0</b></span> <span class="lv">Yếu <b>0.5</b></span>
+          </div>
+        </div>
+
+        <div class="crit">
+          <div class="ch">
+            <span class="drag">⠿</span>
+            <span style="flex:1;min-width:220px"><strong>Giao diện &amp; trải nghiệm trên máy thật</strong>
+              <span class="mini" style="display:block">Vùng bấm đủ lớn, chữ đọc được ngoài nắng, không tràn màn hình 360px</span></span>
+            <span class="mini">Điểm tối đa</span><span class="big">2.0</span>
+            <button class="btn-sm">Mở rộng</button>
+          </div>
+          <div class="cb" style="padding-top:.5rem">
+            <span class="lv">Xuất sắc <b>2.0</b></span> <span class="lv">Khá <b>1.5</b></span>
+            <span class="lv">Trung bình <b>1.0</b></span> <span class="lv">Yếu <b>0.5</b></span>
+          </div>
+        </div>
+
+        <div class="crit">
+          <div class="ch">
+            <span class="drag">⠿</span>
+            <span style="flex:1;min-width:220px"><strong>Báo cáo &amp; video demo</strong>
+              <span class="mini" style="display:block">README nêu rõ cách chạy, video quay đủ 3 chức năng chính</span></span>
+            <span class="mini">Điểm tối đa</span><span class="big">2.0</span>
+            <button class="btn-sm">Mở rộng</button>
+          </div>
+          <div class="cb" style="padding-top:.5rem">
+            <span class="lv">Xuất sắc <b>2.0</b></span> <span class="lv">Khá <b>1.5</b></span>
+            <span class="lv">Trung bình <b>1.0</b></span> <span class="lv">Yếu <b>0.5</b></span>
+          </div>
+        </div>
+
+        <div class="total">
+          <span>Tổng điểm rubric</span><span class="big">10.0</span>
+          <span class="mini">·</span>
+          <span>Điểm tối đa của bài</span><span class="big">10.0</span>
+          <span class="chip c-ok">✓ Khớp</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rowb" style="justify-content:flex-end">
+      <button class="btn btn-ghost">Lưu nháp</button>
+      <button class="btn btn-primary">Lưu &amp; Xuất bản cho lớp DA24TIN01</button>
+    </div>
+  </div>
+</div>
+
+<!-- A2 rỗng -->
+<div class="tag">A2 · Trạng thái rỗng — bài tập chưa có slot nào (sinh viên KHÔNG nộp được)</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 · Chương 2 — Component &amp; Props &nbsp;›&nbsp; <b>Bài tập: Dựng lại màn hình đăng nhập</b></div>
+    <div class="rowb"><span class="chip c-err">Chưa xuất bản được</span></div>
+  </header>
+  <div class="sbody">
+    <div class="blocked">
+      <span class="chip c-err">Đang chặn</span>
+      <div>
+        <strong>Sinh viên chưa nộp được bài này.</strong>
+        Lý do: bài tập có <span class="path">0</span> slot nộp — hệ thống không biết phải nhận tệp gì.
+        <br>Cách gỡ: bấm <strong>"Dùng mẫu gợi ý"</strong> để có sẵn 3 slot rồi xoá bớt, hoặc
+        <strong>"+ Thêm slot"</strong> để khai một slot duy nhất (thường là Source code
+        <span class="path">.zip</span>). Chỉ cần <span class="path">1</span> slot là nút
+        "Xuất bản" mở khoá.
+      </div>
+    </div>
+    <div class="sec" style="margin-top:.9rem">
+      <div class="hd"><span>2 · Định dạng nộp bài</span>
+        <span class="rowb"><button class="btn-sm">Dùng mẫu gợi ý</button><button class="btn-sm pri">+ Thêm slot</button></span></div>
+      <div class="in">
+        <div class="empty">
+          <div class="ic">[ ]</div>
+          <h5>Chưa khai báo slot nộp nào</h5>
+          <p>Bài này chỉ cần source code? Bấm <strong>+ Thêm slot</strong> và khai một dòng.
+             Bài cần cả ảnh chụp màn hình và video? Bấm <strong>Dùng mẫu gợi ý</strong> để có sẵn
+             bộ ba Source code / Hình ảnh / Video rồi xoá dòng thừa.</p>
+          <div class="rowb" style="justify-content:center">
+            <button class="btn btn-ghost">Dùng mẫu gợi ý</button>
+            <button class="btn btn-primary">+ Thêm slot</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rowb" style="justify-content:flex-end">
+      <span class="chip c-err">Thiếu slot nộp</span>
+      <button class="btn btn-primary" disabled>Lưu &amp; Xuất bản</button>
+    </div>
+  </div>
+</div>
+
+<!-- A3 rubric lệch -->
+<div class="tag">A3 · Trạng thái lỗi — tổng rubric lệch điểm tối đa của bài</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 &nbsp;›&nbsp; <b>Bài tập: Ứng dụng quản lý chi tiêu cá nhân</b> · Rubric</div>
+    <div class="rowb"><span class="chip c-err">Lệch 2.0 điểm</span></div>
+  </header>
+  <div class="sbody">
+    <div class="wrapx">
+    <table class="demo">
+      <thead><tr><th>Tiêu chí</th><th>Các mức</th><th style="text-align:right">Điểm tối đa</th></tr></thead>
+      <tbody>
+        <tr><td>Chức năng đầy đủ theo đề bài</td><td><span class="lv">XS <b>4.0</b></span> <span class="lv">Khá <b>3.0</b></span> <span class="lv">TB <b>2.0</b></span> <span class="lv">Yếu <b>1.0</b></span></td><td class="num">4.0</td></tr>
+        <tr><td>Chất lượng mã nguồn &amp; tổ chức thư mục</td><td><span class="lv">XS <b>3.0</b></span> <span class="lv">Khá <b>2.0</b></span> <span class="lv">TB <b>1.5</b></span> <span class="lv">Yếu <b>0.5</b></span></td><td class="num">3.0</td></tr>
+        <tr><td>Giao diện &amp; trải nghiệm trên máy thật</td><td><span class="lv">XS <b>3.0</b></span> <span class="lv">Khá <b>2.0</b></span> <span class="lv">TB <b>1.5</b></span> <span class="lv">Yếu <b>0.5</b></span></td><td class="num">3.0</td></tr>
+        <tr><td>Báo cáo &amp; video demo</td><td><span class="lv">XS <b>2.0</b></span> <span class="lv">Khá <b>1.5</b></span> <span class="lv">TB <b>1.0</b></span> <span class="lv">Yếu <b>0.5</b></span></td><td class="num">2.0</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="total bad" style="margin-top:.7rem">
+      <span>Tổng điểm rubric</span><span class="big" style="color:var(--danger)">12.0</span>
+      <span class="mini">·</span>
+      <span>Điểm tối đa của bài</span><span class="big">10.0</span>
+      <span class="chip c-err">Lệch +2.0</span>
+    </div>
+    <div class="blocked" style="margin-top:.7rem">
+      <span class="chip c-err">Phải xử lý trước khi chấm</span>
+      <div>
+        Chấm hết 4 tiêu chí ở mức cao nhất sẽ ra <span class="path">12.0</span> trên thang
+        <span class="path">0–10</span> — hệ thống buộc phải cắt xuống <span class="path">10.0</span>,
+        nghĩa là hai bài khác nhau (11.5 và 12.0) nhận cùng một điểm.
+        <div class="rowb" style="margin-top:.5rem">
+          <button class="btn-sm pri">Chia lại tỉ lệ về 10.0</button>
+          <button class="btn-sm">Nâng điểm tối đa của bài lên 12.0</button>
+          <button class="btn-sm">Để nguyên (sẽ bị kẹp ở 10.0)</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint">Nút "Lưu &amp; Xuất bản" vẫn bấm được — lệch rubric là cảnh báo nghiệp vụ, không phải lỗi dữ liệu.
+      Nhưng cờ <span class="chip c-err">Lệch +2.0</span> đi theo bài sang tận màn hình chấm (6.7).</p>
+  </div>
+</div>
+
+<!-- A4 loading -->
+<div class="tag">A4 · Trạng thái đang tải — mở lại bài đã có bài nộp</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 &nbsp;›&nbsp; <b>Đang tải cấu hình bài tập…</b></div>
+    <div class="rowb"><span class="spin"></span> <span class="mini">Kiểm tra 9 bài đã nộp trước khi cho sửa slot</span></div>
+  </header>
+  <div class="sbody">
+    <div class="sec"><div class="hd"><span>2 · Định dạng nộp bài</span></div>
+      <div class="in">
+        <div class="sk" style="width:38%;margin-bottom:.6rem"></div>
+        <div class="sk" style="width:100%;height:34px;margin-bottom:.4rem"></div>
+        <div class="sk" style="width:100%;height:34px;margin-bottom:.4rem"></div>
+        <div class="sk" style="width:100%;height:34px"></div>
+      </div>
+    </div>
+    <div class="note" style="margin:0">
+      Không dựng khung rỗng rồi nhảy sang khung có dữ liệu: giảng viên hay bấm "Xoá slot" đúng
+      lúc dữ liệu vừa về, và xoá nhầm slot đã có 9 bài nộp. Khi đang tải, các nút thao tác slot
+      ở trạng thái tắt kèm dòng lý do trên thanh tiêu đề.
+    </div>
+  </div>
+</div>
+
+<div class="why">
+  <strong>Vì sao slot phải động chứ không phải một ô "nộp file ZIP" cố định (SRS mục 5.4).</strong>
+  Cùng một môn <code>IN4203</code>, bài "Ứng dụng quản lý chi tiêu" cần <em>source code + ảnh chụp máy thật +
+  video demo</em> — vì sản phẩm di động không đánh giá được qua mã nguồn tĩnh; còn bài "Dựng lại màn hình
+  đăng nhập" chỉ cần <em>một tệp .zip</em>. Nếu khoá cứng định dạng nộp trong bảng
+  <code>Assignment</code>, mỗi loại bài mới lại phải sửa schema và deploy lại. Tách ra
+  <code>SubmissionSlot</code> (0..N dòng, <code>owner_type = assignment | final_assessment</code>) làm cho
+  bài tập trong chương và bài tập lớn cuối môn dùng chung đúng một màn hình cấu hình, một màn hình nộp
+  (6.6) và một màn hình chấm (6.7) — SRS 6.9 ghi rõ "dùng chung UI, không xây riêng".
+</div>
+
+<div class="note">
+  <strong>Cạm bẫy: sửa slot sau khi đã có bài nộp.</strong> Xoá slot "Video demo" khi 6 nhóm đã upload
+  video sẽ làm mồ côi các <code>SubmissionFile</code> đang trỏ tới slot đó. Quy tắc giao diện:
+  slot đã có tệp thì nút "Xoá" đổi thành "Ngừng nhận" (ẩn với sinh viên, giữ tệp cũ để chấm), và hộp
+  thoại phải ghi rõ <em>số tệp đang chịu ảnh hưởng</em> — "6 tệp của 6 nhóm sẽ không hiện ở màn hình nộp nữa".
+</div>
+
+<div class="note">
+  <strong>Cạm bẫy lớn hơn: lệch rubric chỉ lộ ra lúc đang chấm dở.</strong> Rubric tổng
+  <span class="path">12.0</span> cho bài thang <span class="path">10.0</span> không sai cú pháp, không
+  làm hỏng dữ liệu — nó chạy êm cho tới khi giảng viên chấm tới bài thứ 7 và thấy hai nhóm giỏi nhất
+  cùng ra <span class="path">10.0</span>. Lúc đó sửa rubric nghĩa là <em>chấm lại từ bài số 1</em>.
+  Vì vậy phép kiểm tra tổng đặt ngay dưới trình soạn rubric, chạy mỗi lần gõ, và cờ cảnh báo đi theo
+  bài sang màn hình chấm — không phải một dòng đỏ hiện lúc bấm Lưu rồi biến mất.
+</div>
+
+<div class="why">
+  <strong>Vì sao "Bắt buộc" dùng chip xanh dương chứ không phải xanh lá.</strong> Theo luật §7.2 của hệ
+  thống thiết kế, xanh lá chỉ mang nghĩa "đạt / đã có dữ liệu". Một slot bắt buộc <em>chưa</em> có dữ
+  liệu — nó là thuộc tính cấu hình, không phải trạng thái đạt. Dùng xanh lá ở đây sẽ làm giảng viên
+  quen mắt rồi đọc nhầm đèn trạng thái ở màn hình nộp bài (6.6), nơi xanh lá thật sự nghĩa là "đã nộp".
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>B. Trang chia nhóm <span class="chip c-info" style="vertical-align:middle">SRS 6.5</span> <span class="chip c-mute" style="vertical-align:middle">Phase 4a</span></h2>
+<p>Chỉ hiện khi bài tập bật <code>submission_mode = group</code>. Bảng kéo-thả: kéo thẻ sinh viên từ
+  khay "Chưa vào nhóm" thả vào một nhóm, hoặc kéo qua lại giữa các nhóm.</p>
+
+<div class="tag">B1 · Trạng thái bình thường — đã chia 4 nhóm, còn 1 SV chưa vào nhóm</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 · HK1 2026–2027 &nbsp;›&nbsp; <b>Chia nhóm — Ứng dụng quản lý chi tiêu cá nhân</b></div>
+    <div class="rowb">
+      <span class="mini">Sĩ số 12 · nhóm 3–4 SV · chốt 23:59 · 05/09/2026</span>
+      <button class="btn-sm">Dùng lại nhóm của bài trước</button>
+      <button class="btn-sm">Chia ngẫu nhiên</button>
+      <button class="btn-sm pri">Lưu danh sách nhóm</button>
+    </div>
+  </header>
+  <div class="sbody">
+
+    <div class="note" style="margin:0 0 .8rem">
+      <strong>2 việc cần xử lý trước khi chốt.</strong>
+      ① <strong>Mai Xuân Nghĩa</strong> (<span class="path">2251012012</span>) chưa vào nhóm nào — nếu chốt
+      danh sách bây giờ, sinh viên này không nộp được bài và sẽ nhận <span class="path">0</span> ở cột Cuối môn.
+      ② <strong>Nhóm 4</strong> đang có 2 thành viên, dưới mức tối thiểu 3 đã cấu hình.
+      Kéo Mai Xuân Nghĩa vào Nhóm 4 là xử lý được cả hai.
+    </div>
+
+    <div class="cols2" style="gap:1rem">
+      <div>
+        <div class="board">
+          <div class="grp">
+            <h5>Nhóm 1 <span class="chip c-ok">3/4 ✓ Đủ</span></h5>
+            <div class="stu"><span class="av">NA</span><span><span class="nm">Nguyễn Văn Ánh</span><span class="id">2251012001 · Nhóm trưởng</span></span></div>
+            <div class="stu"><span class="av">TB</span><span><span class="nm">Trần Thị Bình</span><span class="id">2251012002</span></span></div>
+            <div class="stu"><span class="av">LC</span><span><span class="nm">Lê Minh Cường</span><span class="id">2251012003</span></span></div>
+          </div>
+          <div class="grp">
+            <h5>Nhóm 2 <span class="chip c-ok">3/4 ✓ Đủ</span></h5>
+            <div class="stu"><span class="av">PD</span><span><span class="nm">Phạm Thu Dung</span><span class="id">2251012004 · Nhóm trưởng</span></span></div>
+            <div class="stu"><span class="av">HD</span><span><span class="nm">Hoàng Đức Duy</span><span class="id">2251012005</span></span></div>
+            <div class="stu"><span class="av">VE</span><span><span class="nm">Vũ Thị Én</span><span class="id">2251012006</span></span></div>
+          </div>
+          <div class="grp">
+            <h5>Nhóm 3 <span class="chip c-ok">3/4 ✓ Đủ</span></h5>
+            <div class="stu"><span class="av">ĐH</span><span><span class="nm">Đặng Quốc Huy</span><span class="id">2251012007 · Nhóm trưởng</span></span></div>
+            <div class="stu"><span class="av">BH</span><span><span class="nm">Bùi Thị Hương</span><span class="id">2251012008</span></span></div>
+            <div class="stu"><span class="av">NK</span><span><span class="nm">Ngô Gia Khánh</span><span class="id">2251012009</span></span></div>
+          </div>
+          <div class="grp warn">
+            <h5>Nhóm 4 <span class="chip c-warn">2/4 · thiếu 1</span></h5>
+            <div class="stu"><span class="av">LL</span><span><span class="nm">Lý Thanh Lâm</span><span class="id">2251012010 · Nhóm trưởng</span></span></div>
+            <div class="stu"><span class="av">TL</span><span><span class="nm">Trịnh Mỹ Linh</span><span class="id">2251012011</span></span></div>
+            <div class="drop">Thả sinh viên vào đây — cần thêm ít nhất 1</div>
+          </div>
+        </div>
+        <div class="legend">
+          <span><span class="chip c-ok">✓ Đủ</span> đạt số thành viên tối thiểu</span>
+          <span><span class="chip c-warn">thiếu n</span> dưới mức tối thiểu, chưa chốt được</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="sec" style="margin:0">
+          <div class="hd"><span>Chưa vào nhóm <span class="chip c-warn">1 SV</span></span>
+            <button class="btn-sm">Xếp tự động</button></div>
+          <div class="in">
+            <div class="pool">
+              <div class="stu" style="border-color:var(--warning)">
+                <span class="av">MN</span>
+                <span style="flex:1"><span class="nm">Mai Xuân Nghĩa</span><span class="id">2251012012</span></span>
+                <span class="drag">⠿</span>
+              </div>
+              <p class="hint" style="margin-top:.5rem">Kéo thẻ này vào một nhóm, hoặc bấm
+                <strong>Xếp tự động</strong> để hệ thống thả vào nhóm còn thiếu người nhất (hiện là Nhóm 4).</p>
+            </div>
+            <div class="blocked" style="margin-top:.7rem">
+              <span class="chip c-err">Khoá</span>
+              <div><strong>Chưa chốt được danh sách.</strong> Lý do: còn 1 sinh viên chưa vào nhóm và
+                Nhóm 4 chưa đủ 3 thành viên. Gỡ khoá: xếp nốt sinh viên còn lại, hoặc hạ
+                "số thành viên tối thiểu" xuống 2 ở mục 3 của màn hình cấu hình bài tập.</div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:.6rem" disabled>Chốt danh sách nhóm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tag">B2 · Trạng thái rỗng — lớp chưa chia nhóm lần nào</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 &nbsp;›&nbsp; <b>Chia nhóm — Ứng dụng quản lý chi tiêu cá nhân</b></div>
+    <div class="rowb"><span class="chip c-mute">0/12 SV đã có nhóm</span></div>
+  </header>
+  <div class="sbody">
+    <div class="empty">
+      <div class="ic">( )</div>
+      <h5>Lớp này chưa có nhóm nào</h5>
+      <p>Bài tập đang bật chế độ nhóm (3–4 SV) nhưng chưa có <code>StudentGroup</code> nào.
+        Sinh viên mở màn hình nộp bài sẽ thấy dòng "Bạn chưa thuộc nhóm nào" và không nộp được.</p>
+      <div class="rowb" style="justify-content:center">
+        <button class="btn btn-primary">Chia ngẫu nhiên 12 SV thành 4 nhóm</button>
+        <button class="btn btn-ghost">Dùng lại nhóm của bài trước</button>
+        <button class="btn btn-ghost">Để sinh viên tự lập nhóm</button>
+      </div>
+      <p class="hint" style="margin-top:.7rem">"Dùng lại nhóm của bài trước" lấy từ
+        <strong>Bài tập 3 — Danh bạ điện thoại</strong> (4 nhóm, chốt ngày 12/08/2026). Sinh viên đã
+        rút khỏi lớp sẽ tự bị loại khỏi nhóm sao chép.</p>
+    </div>
+  </div>
+</div>
+
+<div class="tag">B3 · Trạng thái đang tải — vừa bấm "Chia ngẫu nhiên"</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 &nbsp;›&nbsp; <b>Chia nhóm</b></div>
+    <div class="rowb"><span class="spin"></span> <span class="mini">Đang xếp 12 sinh viên vào 4 nhóm…</span></div>
+  </header>
+  <div class="sbody">
+    <div class="board">
+      <div class="grp"><h5>Nhóm 1</h5><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px"></div></div>
+      <div class="grp"><h5>Nhóm 2</h5><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px"></div></div>
+      <div class="grp"><h5>Nhóm 3</h5><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px"></div></div>
+      <div class="grp"><h5>Nhóm 4</h5><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px;margin-bottom:.35rem"></div><div class="sk" style="height:44px"></div></div>
+    </div>
+    <p class="hint">Kết quả chia ngẫu nhiên chỉ là <strong>bản nháp</strong> — hiện ra để giảng viên kéo
+      chỉnh rồi mới bấm "Chốt danh sách nhóm". Không ghi thẳng vào cơ sở dữ liệu, vì thao tác này
+      thường phải bấm lại vài lần.</p>
+  </div>
+</div>
+
+<h3>B4 · Màn hình sinh viên trên điện thoại (khung 360px)</h3>
+<p>Sinh viên gần như luôn lập nhóm trên điện thoại, ngay trong lớp, ngay sau khi giảng viên nói.
+  Hai trạng thái quan trọng nhất:</p>
+<div class="phones">
+
+  <div class="phone" data-density="thoang">
+    <div class="bar"><span>09:41</span><span>DA24TIN01</span></div>
+    <div class="pb">
+      <div style="font:700 1rem/1.3 var(--font)">Ứng dụng quản lý chi tiêu cá nhân</div>
+      <div class="mini" style="margin:.2rem 0 .6rem">Bài tập nhóm · 3–4 SV · hạn nộp 23:59 · 15/09</div>
+
+      <div class="blocked">
+        <span class="chip c-err">!</span>
+        <div><strong>Bạn chưa thuộc nhóm nào.</strong> Chưa vào nhóm thì không nộp được bài này.
+          Hạn chốt nhóm còn <strong>2 ngày</strong> (23:59 · 05/09).</div>
+      </div>
+
+      <button class="btn btn-primary tap" style="width:100%;margin:.7rem 0 .5rem">+ Tạo nhóm mới</button>
+      <button class="btn btn-ghost tap" style="width:100%">Nhập mã nhóm bạn bè gửi</button>
+
+      <div style="font:600 .85rem var(--font);margin:1rem 0 .4rem">Nhóm còn chỗ trống</div>
+      <div class="stu" style="min-height:56px">
+        <span class="av">LL</span>
+        <span style="flex:1"><span class="nm">Nhóm 4 · Lý Thanh Lâm</span><span class="id">2/4 chỗ · còn 2 chỗ</span></span>
+        <button class="btn-sm pri tap" style="min-width:76px">Xin vào</button>
+      </div>
+      <div class="stu" style="min-height:56px">
+        <span class="av">NA</span>
+        <span style="flex:1"><span class="nm">Nhóm 1 · Nguyễn Văn Ánh</span><span class="id">3/4 chỗ · còn 1 chỗ</span></span>
+        <button class="btn-sm pri tap" style="min-width:76px">Xin vào</button>
+      </div>
+      <div class="stu" style="min-height:56px;opacity:.55">
+        <span class="av">PD</span>
+        <span style="flex:1"><span class="nm">Nhóm 2 · Phạm Thu Dung</span><span class="id">4/4 chỗ · đã đầy</span></span>
+        <span class="chip c-mute">Hết chỗ</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone" data-density="thoang">
+    <div class="bar"><span>09:41</span><span>DA24TIN01</span></div>
+    <div class="pb">
+      <div style="font:700 1rem/1.3 var(--font)">Ứng dụng quản lý chi tiêu cá nhân</div>
+      <div class="mini" style="margin:.2rem 0 .6rem">Bài tập nhóm · hạn nộp 23:59 · 15/09</div>
+
+      <div class="why" style="margin:0 0 .7rem">
+        <strong>Bạn đang ở Nhóm 4.</strong> Nhóm trưởng: Lý Thanh Lâm. Chỉ nhóm trưởng bấm được
+        "Nộp chính thức", nhưng mọi thành viên đều tải tệp lên được.
+      </div>
+
+      <div class="stu"><span class="av">LL</span><span><span class="nm">Lý Thanh Lâm</span><span class="id">2251012010 · Nhóm trưởng</span></span></div>
+      <div class="stu"><span class="av">TL</span><span><span class="nm">Trịnh Mỹ Linh</span><span class="id">2251012011</span></span></div>
+      <div class="stu"><span class="av">MN</span><span><span class="nm">Mai Xuân Nghĩa</span><span class="id">2251012012 · bạn</span></span></div>
+
+      <div style="font:600 .85rem var(--font);margin:1rem 0 .3rem">Tình trạng nộp của nhóm</div>
+      <div class="slotline"><span class="led ok"></span><span style="flex:1">Source code <span class="mini">.zip · bắt buộc</span></span><span class="chip c-ok">✓ Đã nộp</span></div>
+      <div class="slotline"><span class="led"></span><span style="flex:1">Hình ảnh minh chứng <span class="mini">tuỳ chọn</span></span><span class="chip c-mute">Chưa nộp</span></div>
+      <div class="slotline" style="border-bottom:0"><span class="led"></span><span style="flex:1">Video demo <span class="mini">tuỳ chọn</span></span><span class="chip c-mute">Chưa nộp</span></div>
+
+      <button class="btn btn-primary tap" style="width:100%;margin-top:.8rem">Mở màn hình nộp bài</button>
+      <p class="hint">Rời nhóm được tới 23:59 · 05/09. Sau giờ đó nút "Rời nhóm" tắt, muốn đổi phải nhắn giảng viên.</p>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+  <strong>Vì sao khung di động dùng mật độ "thoáng" và vùng bấm 56px.</strong> Luật §7.6 đặt sàn 44×44px;
+  ở đây các thẻ sinh viên đẩy lên 56px vì thao tác "Xin vào nhóm" diễn ra trong lớp học, tay cầm điện
+  thoại một tay, và bấm nhầm vào nhóm khác thì phải chờ nhóm trưởng duyệt lại. Giá của một pixel thừa
+  rẻ hơn giá của một lần bấm nhầm.
+</div>
+
+<div class="note">
+  <strong>Cạm bẫy: "Chia ngẫu nhiên" ghi đè nhóm đang có.</strong> Nếu 3 nhóm đã tự lập và giảng viên
+  bấm chia ngẫu nhiên, hộp thoại phải nói rõ "3 nhóm hiện có sẽ bị xoá và xếp lại từ đầu" kèm nút
+  "Chỉ xếp 1 SV chưa có nhóm" — đó mới là điều giảng viên thực sự muốn trong 9/10 trường hợp.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>C. Trang đợt chấm điểm cuối môn <span class="chip c-info" style="vertical-align:middle">SRS 6.9</span> <span class="chip c-mute" style="vertical-align:middle">Phase 4a · loại Trắc nghiệm chờ Phase 5</span></h2>
+<p><code>FinalAssessment</code> nằm ở cấp lớp học phần, không thuộc chương nào. Mỗi đợt phải gắn vào một
+  cột điểm — đó là đường duy nhất để điểm chấm chảy được vào sổ điểm.</p>
+
+<div class="tag">C1 · Trạng thái bình thường — 3 đợt, 1 đợt có cảnh báo</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 · HK1 2026–2027 &nbsp;›&nbsp; <b>Đợt chấm điểm cuối môn</b></div>
+    <div class="rowb">
+      <span class="mini">Cột điểm của lớp: Trắc nghiệm 20% · Bài tập 30% · Cuối môn 50% = 100%</span>
+      <button class="btn-sm pri">+ Tạo đợt mới</button>
+    </div>
+  </header>
+  <div class="sbody">
+    <div class="fcards">
+
+      <div class="fcard done">
+        <h5>Trắc nghiệm tổng kết học phần</h5>
+        <div class="rowb"><span class="chip c-info">Trắc nghiệm</span><span class="chip c-ok">✓ Đã đóng</span></div>
+        <dl class="kv">
+          <dt>Cột điểm</dt><dd>Trắc nghiệm · <span class="num">20%</span></dd>
+          <dt>Hạn làm</dt><dd><span class="num">23:59 · 05/12/2026</span></dd>
+          <dt>Hình thức</dt><dd>Cá nhân · 40 câu · 45 phút · 1 lượt</dd>
+          <dt>Đã làm</dt><dd><span class="num">12/12</span> sinh viên</dd>
+        </dl>
+        <div class="bar2"><i style="width:100%"></i></div>
+        <div class="mini">12 đã làm · 0 chưa làm</div>
+        <div class="rowb" style="margin-top:.55rem"><button class="btn-sm">Xem kết quả</button><button class="btn-sm">Mở lại cho 1 SV</button></div>
+      </div>
+
+      <div class="fcard">
+        <h5>Bài tập lớn cuối môn — Ứng dụng đặt lịch phòng máy</h5>
+        <div class="rowb"><span class="chip c-info">Bài tập lớn</span><span class="chip c-ok">Đang mở</span></div>
+        <dl class="kv">
+          <dt>Cột điểm</dt><dd>Cuối môn · <span class="num">50%</span></dd>
+          <dt>Hạn nộp</dt><dd><span class="num">23:59 · 20/12/2026</span></dd>
+          <dt>Hình thức</dt><dd>Theo nhóm · 3–4 SV · 4 nhóm</dd>
+          <dt>Slot nộp</dt><dd>Báo cáo <span class="path">.pdf</span> · Source <span class="path">.zip</span> · Video (link)</dd>
+        </dl>
+        <div class="bar2"><i style="width:75%"></i></div>
+        <div class="mini">3/4 nhóm đã nộp · Nhóm 3 chưa nộp</div>
+        <div class="rowb" style="margin-top:.55rem"><button class="btn-sm">Sửa slot nộp</button><button class="btn-sm">Chia nhóm</button><button class="btn-sm pri">Chấm bài</button></div>
+      </div>
+
+      <div class="fcard warn">
+        <h5>Báo cáo giữa kỳ — Phân tích ứng dụng mẫu</h5>
+        <div class="rowb"><span class="chip c-info">Bài tập lớn</span><span class="chip c-warn">Chưa gắn cột điểm</span></div>
+        <dl class="kv">
+          <dt>Cột điểm</dt><dd><span style="color:var(--warning);font-weight:600">— chưa gắn —</span></dd>
+          <dt>Hạn nộp</dt><dd><span class="num">23:59 · 30/10/2026</span></dd>
+          <dt>Hình thức</dt><dd>Theo nhóm · 4 nhóm</dd>
+          <dt>Slot nộp</dt><dd>Báo cáo <span class="path">.pdf</span> · Slide <span class="path">.pptx</span></dd>
+        </dl>
+        <div class="bar2"><i style="width:100%"></i></div>
+        <div class="mini">4/4 nhóm đã nộp · đã chấm 4</div>
+        <div class="note" style="margin:.55rem 0 0">
+          <strong>Điểm đã chấm đang không chảy vào sổ điểm.</strong> Đợt này chưa gắn
+          <code>GradeColumn</code>, nên 4 điểm vừa chấm chỉ nằm trong <code>Submission.score</code>.
+          Gỡ: gắn vào cột <strong>Bài tập (30%)</strong> — hệ thống sẽ ghi ngay 4 điểm đã có,
+          <em>không ghi đè</em> ô nào giảng viên đã sửa tay.
+          <div class="rowb" style="margin-top:.45rem"><button class="btn-sm pri">Gắn vào cột Bài tập (30%)</button><button class="btn-sm">Tạo cột mới</button></div>
+        </div>
+      </div>
+
+    </div>
+
+    <h3 style="margin:1.6rem 0 .5rem">Popover "Tạo đợt mới"</h3>
+    <div class="menu">
+      <div class="mi"><span class="mico">TN</span><span><b>Trắc nghiệm</b>
+        Dùng lại ngân hàng câu hỏi &amp; engine Quiz sẵn có — giới hạn thời gian, random câu hỏi, tự chấm.</span></div>
+      <div class="mi"><span class="mico">BT</span><span><b>Bài tập lớn</b>
+        Mở đúng màn hình cấu hình slot (6.4) và chia nhóm (6.5) đã có — không phải màn hình mới.</span></div>
+      <div class="mi dim"><span class="mico">TH</span><span><b>Thi &nbsp;<span class="chip c-mute">Chưa hỗ trợ</span></b>
+        Loại <code>exam</code> chưa triển khai ở giai đoạn này (SRS mục 5.7) — chưa có coi thi, chống gian lận
+        và phòng thi. Cách làm thay: tạo đợt <strong>Trắc nghiệm</strong> giới hạn 45 phút, 1 lượt làm,
+        random câu hỏi.</span></div>
+    </div>
+    <p class="hint">Mục "Thi" vẫn hiện chứ không ẩn — để giảng viên biết hệ thống có tính tới nó, và để
+      không ai đi hỏi "sao không có thi". Nhưng theo luật §7.3, mục mờ phải kèm lý do và lối đi thay thế.</p>
+  </div>
+</div>
+
+<div class="tag">C2 · Trạng thái rỗng — lớp chưa tạo đợt chấm cuối môn nào</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN02 · HK1 2026–2027 &nbsp;›&nbsp; <b>Đợt chấm điểm cuối môn</b></div>
+    <div class="rowb"><button class="btn-sm pri">+ Tạo đợt mới</button></div>
+  </header>
+  <div class="sbody">
+    <div class="empty">
+      <div class="ic">0</div>
+      <h5>Lớp này chưa có đợt chấm cuối môn nào</h5>
+      <p>Cột <strong>Cuối môn (50%)</strong> trong sổ điểm đang không có nguồn điểm nào đổ vào —
+        cuối kỳ sẽ phải nhập tay 12 dòng. Tạo một đợt để điểm chấm tự chảy vào cột đó.</p>
+      <div class="rowb" style="justify-content:center">
+        <button class="btn btn-primary">+ Tạo đợt Bài tập lớn</button>
+        <button class="btn btn-ghost">+ Tạo đợt Trắc nghiệm</button>
+      </div>
+      <p class="hint" style="margin-top:.7rem">Hoặc để cột Cuối môn ở chế độ nhập tay
+        (<code>source_type = manual</code>) nếu môn này chấm bằng vấn đáp trực tiếp.</p>
+    </div>
+  </div>
+</div>
+
+<div class="tag">C3 · Trạng thái cảnh báo — tổng trọng số cột điểm chưa đủ 100%</div>
+<div class="screen">
+  <header>
+    <div class="crumb">DA24TIN01 &nbsp;›&nbsp; <b>Đợt chấm điểm cuối môn</b> · gắn cột điểm</div>
+    <div class="rowb"><span class="chip c-err">Tổng trọng số 80%</span></div>
+  </header>
+  <div class="sbody">
+    <div class="wrapx">
+    <table class="demo">
+      <thead><tr><th>Cột điểm</th><th>Nguồn</th><th style="text-align:right">Trọng số</th><th style="text-align:right">Đợt/bài đang đổ vào</th></tr></thead>
+      <tbody>
+        <tr><td>Trắc nghiệm</td><td>Tự động từ Quiz</td><td class="num">20%</td><td class="num">1</td></tr>
+        <tr><td>Bài tập</td><td>Tự động từ Assignment</td><td class="num">30%</td><td class="num">4</td></tr>
+        <tr><td>Cuối môn</td><td>Tự động từ đợt cuối môn</td><td class="num">30%</td><td class="num">1</td></tr>
+        <tr><td colspan="2" style="font-weight:600">Tổng</td><td><div class="cell fail"><span class="v">80%</span></div></td><td class="num">—</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="blocked" style="margin-top:.7rem">
+      <span class="chip c-err">Thiếu 20%</span>
+      <div><strong>Không xuất được bảng điểm khi tổng ≠ 100%.</strong> Hiện đang thiếu
+        <span class="path">20%</span> — điểm tổng của mọi sinh viên sẽ bị hụt đúng phần đó.
+        Gỡ: nâng cột Cuối môn lên <span class="path">50%</span>, hoặc thêm một cột mới
+        (ví dụ Chuyên cần <span class="path">20%</span>).
+        <div class="rowb" style="margin-top:.5rem">
+          <button class="btn-sm pri">Nâng Cuối môn lên 50%</button>
+          <button class="btn-sm">Thêm cột Chuyên cần 20%</button>
+        </div>
+      </div>
+    </div>
+    <p class="hint">Điều kiện điểm sàn của lớp đang bật: <strong>Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9</strong>.
+      Đổi trọng số không đổi luật này; hai thứ được kiểm tra độc lập.</p>
+  </div>
+</div>
+
+<div class="why">
+  <strong>Vì sao "cột điểm gắn vào" đứng ngay trên thẻ, không giấu trong trang cài đặt.</strong>
+  Đợt chấm cuối môn là <em>nguồn</em> của một cột trong sổ điểm. Nếu chấm xong 4 nhóm rồi mới phát hiện
+  chưa gắn cột, điểm nằm mồ côi trong <code>Submission.score</code> và bảng điểm nộp phòng đào tạo bị
+  thiếu — phát hiện thường vào ngày cuối cùng của hạn nộp điểm. Cột điểm và số nhóm đã nộp là hai
+  con số duy nhất đáng chiếm chỗ trên thẻ.
+</div>
+
+<div class="note">
+  <strong>Cạm bẫy: gắn cột điểm cho đợt đã chấm xong.</strong> Khi bấm "Gắn vào cột Bài tập (30%)",
+  hệ thống đổ 4 điểm đã có vào cột đó — nhưng phải <strong>bỏ qua các ô đã bị sửa tay</strong>
+  (ô có chấm cam), theo đúng luật ở §5 hệ thống thiết kế. Hộp xác nhận ghi rõ:
+  "Ghi 4 điểm · bỏ qua 1 ô giảng viên đã sửa tay (Trần Thị Bình — 8.0 → 8.5, sửa ngày 02/11)".
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>D. Đối chiếu với luật thiết kế §7</h2>
+<div class="card" style="padding:0;overflow:hidden">
+<table class="demo">
+  <thead><tr><th>Luật</th><th>Áp dụng ở màn hình này</th></tr></thead>
+  <tbody>
+    <tr><td>1 · Điểm luôn monospace đẳng chiều</td>
+        <td>Điểm tối đa, điểm từng mức rubric, tổng rubric, trọng số cột, dung lượng slot — tất cả dùng
+            <code>var(--mono)</code> + <code>tabular-nums</code>; MSSV cũng vậy vì nó là chuỗi.</td></tr>
+    <tr><td>2 · Ba màu ngữ nghĩa giữ đúng nghĩa</td>
+        <td>Xanh lá chỉ dùng cho "đã nộp / đủ thành viên / khớp rubric"; cam cho "cần xem lại"
+            (nhóm thiếu người, chưa gắn cột điểm); đỏ cho "sai" (rubric lệch, tổng trọng số ≠ 100%).
+            Thuộc tính cấu hình như "Bắt buộc" dùng xanh dương thương hiệu.</td></tr>
+    <tr><td>3 · Trạng thái khoá kèm lý do &amp; cách gỡ</td>
+        <td>4 chỗ khoá: xuất bản khi 0 slot · chốt nhóm khi thiếu người · mục "Thi" trong menu ·
+            xuất bảng điểm khi tổng ≠ 100%. Mỗi chỗ có 1 câu lý do + ít nhất 1 nút gỡ.</td></tr>
+    <tr><td>4 · Màu không đứng một mình</td>
+        <td>Đèn slot luôn kèm chữ "Đã nộp / Chưa nộp / Thiếu bắt buộc"; nhóm thiếu người kèm số
+            <span class="num">2/4</span>; thẻ cảnh báo có viền trái + chip chữ.</td></tr>
+    <tr><td>5 · Vùng bấm ≥ 44×44px trên di động</td>
+        <td>Khung 360px dùng <code>data-density="thoang"</code>; thẻ nhóm 56px, nút chính rộng hết
+            chiều ngang.</td></tr>
+    <tr><td>6 · MSSV monospace</td>
+        <td>Mọi thẻ sinh viên hiện MSSV dạng <code>2251012001</code> bằng <code>var(--mono)</code>.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="why" style="margin-top:1.2rem">
+  <strong>Điều màn hình này cố tình KHÔNG có.</strong> Không có cột điểm chữ (thang 0–10 thuần, theo
+  quyết định nghiệp vụ). Không có gì liên quan tới trợ giảng — vai trò này đã tắt ở MVP. Không có ô
+  "loại nộp bài" dạng dropdown cố định — đó chính là thứ <code>SubmissionSlot</code> thay thế.
+  Khu vực điểm cộng và ô sửa tay thuộc màn hình chấm bài (6.7) và sổ điểm (6.8), không lặp lại ở đây.
+</div>
+
+</main>
+</body>
+</html>

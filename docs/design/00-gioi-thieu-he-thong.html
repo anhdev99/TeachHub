@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Giới thiệu hệ thống (brief thiết kế)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --brand-900:#0d59cf; --brand-700:#017fcc; --brand-500:#2281df;
+  --brand-300:#90b3ff; --brand-100:#e6f1fb;
+  --danger:#dc2626; --warning:#e58a00; --success:#2ca87f;
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --fg:var(--n800); --fg-muted:var(--n500);
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --fg:#f3f5f7; --fg-muted:#8996a4; --brand-100:#122436;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --fg:#f3f5f7; --fg-muted:#8996a4; --brand-100:#122436;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.65 var(--font);padding:2.5rem 1.25rem 6rem}
+main{max-width:980px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.25rem;font-weight:700;margin:2.8rem 0 .8rem;padding-bottom:.35rem;border-bottom:2px solid var(--brand-700)}
+h3{font-size:1.02rem;font-weight:650;margin:1.7rem 0 .5rem;color:var(--brand-700)}
+.lede{color:var(--fg-muted);margin:0 0 2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+a{color:var(--brand-700)}
+pre{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:1rem 1.1rem;overflow-x:auto;box-shadow:var(--shadow)}
+pre code{background:none;padding:0;font-size:.8rem;line-height:1.7}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:1rem 0;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.45rem .65rem;text-align:left;vertical-align:top}
+th{background:var(--surface-2);font-weight:600;white-space:nowrap}
+td.mono,th.mono{font:500 .84em var(--mono)}
+ul,ol{padding-left:1.2rem}li{margin:.3rem 0}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);padding:.7rem 1rem;
+     border-radius:0 var(--radius) var(--radius) 0;font-size:.93rem;margin:1rem 0}
+.note{border-left:3px solid var(--warning);background:var(--surface-2);padding:.7rem 1rem;
+      border-radius:0 var(--radius) var(--radius) 0;font-size:.93rem;margin:1rem 0}
+.stop{border-left:3px solid var(--danger);background:var(--surface-2);padding:.7rem 1rem;
+      border-radius:0 var(--radius) var(--radius) 0;font-size:.93rem;margin:1rem 0}
+.idea{border:1px solid var(--line);border-left:4px solid var(--brand-700);
+      border-radius:0 var(--radius-lg) var(--radius-lg) 0;padding:.85rem 1.1rem;margin:.7rem 0;
+      background:var(--surface);box-shadow:var(--shadow)}
+.idea .t{font-weight:650;color:var(--brand-700)}
+.idea .c{color:var(--fg-muted);font-size:.9rem;margin-top:.35rem}
+.idea .c b{color:var(--fg);font-weight:600}
+.sw{display:flex;gap:.4rem;flex-wrap:wrap;margin:.8rem 0}
+.sw span{font:500 .68rem var(--mono);padding:.5rem .55rem;border-radius:var(--radius);
+         border:1px solid var(--line);min-width:78px;text-align:center}
+.pill{display:inline-block;font:600 .7rem var(--font);padding:.05rem .45rem;border-radius:999px;
+      border:1px solid currentColor;vertical-align:middle}
+.p-ok{color:var(--success)}.p-no{color:var(--fg-muted)}.p-warn{color:var(--warning)}
+.tog{position:fixed;top:1rem;right:1rem;font:600 .8rem var(--font);padding:.5rem .8rem;
+     border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:var(--radius);cursor:pointer;z-index:9}
+</style>
+</head>
+<body>
+<button class="tog" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+<main>
+
+<h1>TeachHub — Giới thiệu hệ thống</h1>
+<p class="lede">Brief dành cho người (hoặc AI) được nhờ thiết kế màn hình cho hệ thống này.
+Đọc hết mất khoảng 8 phút và sau đó không cần mở SRS 758 dòng nữa.
+Đây là <strong>bối cảnh nghiệp vụ</strong>; ràng buộc thị giác nằm ở
+<a href="00-design-system.html">Hệ thống thiết kế</a> — cần cả hai file.</p>
+
+<h2>1. Hệ thống này là gì</h2>
+
+<p>Một <strong>LMS cá nhân cho một giảng viên đại học</strong>: tập trung nội dung dạy học có phiên bản
+theo từng năm, nhận bài nộp đa định dạng, chấm theo rubric, và tự tính sổ điểm rồi xuất Excel đúng mẫu
+phòng đào tạo.</p>
+
+<p>Bài toán gốc: bài giảng nằm ở Drive, thông báo qua Zalo, điểm số trong Excel — ba nơi không nói chuyện
+với nhau, nên khó theo dõi ai đã nộp gì và rất dễ cộng nhầm điểm cuối kỳ.</p>
+
+<div class="why">
+<strong>Một chi tiết chi phối mọi quyết định thiết kế:</strong> người dùng và người viết phần mềm là
+<em>cùng một người</em>, làm song song với việc đi dạy. Không có phòng IT, không có người vận hành,
+không ai training. Màn hình nào cần đọc hướng dẫn mới dùng được thì màn hình đó hỏng.
+</div>
+
+<h2>2. Ai dùng, trong hoàn cảnh nào</h2>
+
+<p>Hoàn cảnh sử dụng quan trọng hơn danh sách tính năng — nó quyết định mật độ, kích thước, và thứ gì
+phải nằm trong một màn hình thay vì hai.</p>
+
+<table>
+<thead><tr><th>Vai trò</th><th>Thiết bị &amp; bối cảnh thật</th><th>Hệ quả thiết kế</th></tr></thead>
+<tbody>
+<tr>
+  <td><strong>Giảng viên</strong><br><span class="pill p-ok">chủ hệ thống</span></td>
+  <td>Laptop 13–15", trong phòng làm việc hoặc <em>ngay trên bục giảng</em>. Lớp 40 sinh viên.
+      Tình huống điển hình nhất: một nhóm vừa thuyết trình xong, cần chấm và cộng điểm ngay
+      trong lúc nhóm sau chuẩn bị — khoảng 2 phút.</td>
+  <td>Mật độ <strong>đặc</strong>. Quét được bảng 40×6 ô. Chấm bài và cấp điểm cộng phải xong
+      trong <em>một</em> màn hình, không chuyển trang. Phím tắt là tính năng, không phải trang trí.</td>
+</tr>
+<tr>
+  <td><strong>Sinh viên</strong></td>
+  <td>Điện thoại là chính, thỉnh thoảng laptop. Xem bài giảng lúc đi lại, nộp bài lúc 11 giờ đêm sát hạn.</td>
+  <td>Mật độ <strong>thoáng</strong>, vùng bấm ≥ 44×44px, khung 360px phải hoạt động. Trạng thái nộp bài
+      phải đọc được trong một cái liếc.</td>
+</tr>
+<tr>
+  <td><strong>Trợ giảng</strong></td>
+  <td colspan="2"><span class="pill p-no">không tồn tại ở MVP</span> — vai trò có trong schema nhưng
+      chưa cấp quyền gì (ADR-013). <strong>Không thiết kế màn hình nào cho vai trò này.</strong></td>
+</tr>
+</tbody>
+</table>
+
+<p>Hệ thống hỗ trợ <strong>nhiều giảng viên độc lập</strong>: mỗi người một khoang dữ liệu cách ly tuyệt đối,
+không cộng tác, không đồng sở hữu môn. Tài khoản tạo bằng lời mời, không có đăng ký công khai —
+nên không cần thiết kế trang marketing, trang giá, hay luồng onboarding kiểu SaaS.</p>
+
+<h2>3. Bốn ý tưởng gốc</h2>
+<p>Nếu chỉ đọc được một mục trong tài liệu này thì đọc mục này. Bốn ý tưởng dưới đây là thứ phân biệt
+TeachHub với một LMS thông thường, và mỗi cái đều để lại dấu vết trên giao diện.</p>
+
+<div class="idea">
+  <div class="t">① Nội dung dạy học tách rời khỏi lần dạy cụ thể</div>
+  <div class="c">Một <b>Môn học</b> chứa nhiều <b>Phiên bản nội dung</b> theo năm
+  (<code>2025-2026</code>, <code>2026-2027</code>…). Mỗi <b>Lớp học phần</b> khi mở sẽ
+  <b>ghim cứng</b> một phiên bản. Sang năm sửa nội dung không hề đụng vào lớp đã dạy xong.<br>
+  <b>Hệ quả:</b> mọi màn hình nội dung phải trả lời ngay hai câu — <em>đang xem phiên bản nào</em> và
+  <em>phiên bản này còn sửa được không</em>. Bản <code>draft</code> sửa được; bản đã xuất bản và bản lưu trữ
+  chỉ đọc, và trạng thái chỉ-đọc phải nói rõ lý do chứ không chỉ làm mờ nút.</div>
+</div>
+
+<div class="idea">
+  <div class="t">② Cấu trúc bài học hoàn toàn động</div>
+  <div class="c">Chương có bao nhiêu bài tùy ý. Mỗi bài gắn <b>0 đến N</b> phần kèm theo
+  (bài tập, trắc nghiệm, ôn lại đầu bài, code-along, suy ngẫm cuối bài…). Không có khuôn cứng.
+  Chương có thể có bài 1 kèm bài tập + trắc nghiệm, còn bài 2 không kèm gì cả.<br>
+  <b>Hệ quả:</b> trình soạn thảo là kéo-thả với nút "+ Thêm phần", và
+  <b>trạng thái rỗng là trạng thái hợp lệ</b> — một bài không có phần kèm nào không phải lỗi,
+  đừng vẽ nó như chỗ còn thiếu.</div>
+</div>
+
+<div class="idea">
+  <div class="t">③ Format nộp bài do giảng viên tự khai báo</div>
+  <div class="c">Không khóa cứng vào ZIP. Mỗi bài tập tự định nghĩa danh sách <b>ô nộp</b>
+  (<code>SubmissionSlot</code>): bài này cần source <code>.zip</code> + ảnh + video, bài kia chỉ cần source.
+  Cùng một cơ chế dùng cho cả bài tập trong chương lẫn bài tập lớn cuối môn.<br>
+  <b>Hệ quả:</b> màn hình nộp bài và màn hình chấm bài đều phải <b>vẽ được với số ô nộp bất kỳ từ 1 đến 6</b>,
+  và cột xem nội dung phải đổi hình dạng theo loại ô: cây thư mục có tô màu cú pháp cho ZIP,
+  lưới ảnh cho hình, trình phát cho video, preview cho PDF.</div>
+</div>
+
+<div class="idea">
+  <div class="t">④ Sổ điểm mỗi lớp một kiểu</div>
+  <div class="c">Lớp tự định nghĩa bộ cột điểm (2 cột, 3 cột, hay nhiều hơn), chọn quy tắc tổng hợp
+  cho từng cột trong 7 quy tắc có sẵn, đặt điều kiện điểm sàn kiểu "cuối môn dưới 4.0 thì tổng tối đa 3.9".
+  Điểm cộng bắt buộc có lý do và chọn được đích đến.<br>
+  <b>Hệ quả:</b> bảng sổ điểm có số cột thay đổi → cần cột ghim bên trái và cuộn ngang.
+  Và giao diện phải chủ động chống một hiểu nhầm phổ biến: cộng <code>+0.5</code> vào một cột
+  trọng số 20% chỉ làm điểm tổng tăng <code>0.1</code> — con số này phải hiện ngay khi chọn đích.</div>
+</div>
+
+<h2>4. Từ vựng — dùng đúng nhãn, đừng tự đặt lại</h2>
+
+<p>Mockup và code dùng nhất quán bộ nhãn này. Đặt tên khác trong bản thiết kế sẽ tạo ra một lớp
+biên dịch thừa giữa thiết kế và hiện thực.</p>
+
+<table>
+<thead><tr><th class="mono">Tên trong code</th><th>Nhãn tiếng Việt trên giao diện</th><th>Là gì</th></tr></thead>
+<tbody>
+<tr><td class="mono">Subject</td><td>Môn học</td><td>Vỏ ngoài cố định, dùng lại nhiều học kỳ. VD "Lập trình di động".</td></tr>
+<tr><td class="mono">SubjectVersion</td><td>Phiên bản nội dung</td><td>Nội dung thật của môn theo một năm. Trạng thái: <em>Bản nháp</em> / <em>Đã xuất bản</em> / <em>Lưu trữ</em>.</td></tr>
+<tr><td class="mono">Chapter</td><td>Chương</td><td>Thuộc về một phiên bản, không thuộc về môn.</td></tr>
+<tr><td class="mono">Lesson</td><td>Bài học</td><td>PPT / PDF / video / text. Khuyến nghị 8–15 phút.</td></tr>
+<tr><td class="mono">LessonComponent</td><td>Phần gắn kèm</td><td>8 loại, gắn 0..N vào mỗi bài học.</td></tr>
+<tr><td class="mono">CourseOffering</td><td>Lớp học phần</td><td>Một đợt dạy cụ thể. VD "DA24TIN01 · HK1 2026-2027".</td></tr>
+<tr><td class="mono">Enrollment</td><td>Sinh viên trong lớp</td><td>Import từ Excel. Có MSSV, họ tên, email.</td></tr>
+<tr><td class="mono">StudentGroup</td><td>Nhóm</td><td>Dùng lại được giữa nhiều bài tập trong cùng lớp.</td></tr>
+<tr><td class="mono">Assignment</td><td>Bài tập</td><td>Gắn vào bài học qua phần kèm theo.</td></tr>
+<tr><td class="mono">SubmissionSlot</td><td>Ô nộp</td><td>Một khoản phải nộp: "Source code (nén ZIP)", "Ảnh minh chứng"…</td></tr>
+<tr><td class="mono">Submission</td><td>Bài nộp</td><td>Của một cá nhân hoặc một nhóm. Có nháp và nộp chính thức.</td></tr>
+<tr><td class="mono">Rubric</td><td>Rubric</td><td>Bộ tiêu chí chấm, mỗi tiêu chí có điểm tối đa và thang mô tả.</td></tr>
+<tr><td class="mono">FinalAssessment</td><td>Đợt chấm cuối môn</td><td>Cấp lớp học phần. Loại: Trắc nghiệm hoặc Bài tập lớn.</td></tr>
+<tr><td class="mono">GradeColumn</td><td>Cột điểm</td><td>"Thường kỳ 30%", "Cuối môn 70%"… cấu hình theo từng lớp.</td></tr>
+<tr><td class="mono">BonusPoint</td><td>Điểm cộng</td><td>Luôn gắn vào một sinh viên cụ thể, luôn kèm lý do.</td></tr>
+<tr><td class="mono">BonusPointReasonTemplate</td><td>Thư viện lý do điểm cộng</td><td>Danh sách lý do soạn sẵn để bấm nhanh.</td></tr>
+<tr><td class="mono">Quiz</td><td>Trắc nghiệm</td><td>Loại chốt nhanh (không tính điểm) và loại tính điểm.</td></tr>
+<tr><td class="mono">ReviewQueueItem</td><td>Ôn tập ngắt quãng</td><td>Câu trả lời sai quay lại sau 3 ngày → 1 tuần → 2 tuần.</td></tr>
+</tbody>
+</table>
+
+<h2>5. Danh sách màn hình</h2>
+
+<p>Cột cuối cho biết đã có mockup HTML render được hay chưa. Những dòng
+<span class="pill p-warn">chưa vẽ</span> chính là phần cần nhờ thiết kế tiếp.</p>
+
+<table>
+<thead><tr><th>SRS</th><th>Màn hình</th><th>Ai dùng</th><th>Mật độ</th><th>Phase</th><th>Mockup</th></tr></thead>
+<tbody>
+<tr><td class="mono">6.1</td><td>Dashboard giảng viên — "cần xử lý"</td><td>GV</td><td>Đặc</td><td>4a</td><td><a href="06-dashboard-tai-khoan.html">06</a></td></tr>
+<tr><td class="mono">6.2</td><td>Soạn thảo chương &amp; bài học</td><td>GV</td><td>Đặc</td><td>1</td><td><a href="03-soan-noi-dung.html">03</a></td></tr>
+<tr><td class="mono">6.3</td><td>Trang học của sinh viên</td><td>SV</td><td>Thoáng</td><td>2</td><td><a href="05-sinh-vien.html">05</a></td></tr>
+<tr><td class="mono">6.4</td><td>Cấu hình bài tập (ô nộp, rubric, nhóm)</td><td>GV</td><td>Đặc</td><td>3</td><td><a href="04-bai-tap.html">04</a></td></tr>
+<tr><td class="mono">6.5</td><td>Chia nhóm</td><td>GV / SV</td><td>Đặc</td><td>4a</td><td><a href="04-bai-tap.html">04</a></td></tr>
+<tr><td class="mono">6.6</td><td>Nộp bài theo ô nộp</td><td>SV</td><td>Thoáng</td><td>3</td><td><a href="05-sinh-vien.html">05</a></td></tr>
+<tr><td class="mono">6.7</td><td><strong>Chấm bài — 3 cột</strong> (màn hình quan trọng nhất)</td><td>GV</td><td>Đặc</td><td>4a</td><td><a href="01-cham-bai.html">01</a></td></tr>
+<tr><td class="mono">6.7b</td><td>Thư viện lý do điểm cộng</td><td>GV</td><td>Đặc</td><td>4b</td><td><a href="06-dashboard-tai-khoan.html">06</a></td></tr>
+<tr><td class="mono">6.8</td><td>Sổ điểm + cấu hình cột + mẫu xuất Excel</td><td>GV</td><td>Đặc</td><td>4b</td><td><a href="02-so-diem.html">02</a></td></tr>
+<tr><td class="mono">6.9</td><td>Đợt chấm điểm cuối môn</td><td>GV</td><td>Đặc</td><td>4a</td><td><a href="04-bai-tap.html">04</a></td></tr>
+<tr><td class="mono">6.10</td><td>Lịch sử phiên bản môn học</td><td>GV</td><td>Đặc</td><td>1</td><td><a href="03-soan-noi-dung.html">03</a></td></tr>
+<tr><td class="mono">—</td><td>Tài khoản: thiết lập lần đầu · mời giảng viên · nhận lời mời</td><td>GV</td><td>Đặc</td><td>0</td><td><a href="06-dashboard-tai-khoan.html">06</a></td></tr>
+<tr><td class="mono">—</td><td>Ngân hàng câu hỏi &amp; soạn trắc nghiệm</td><td>GV</td><td>Đặc</td><td>5</td><td><span class="pill p-warn">chưa vẽ</span></td></tr>
+<tr><td class="mono">—</td><td>Sinh viên làm trắc nghiệm (có đếm giờ)</td><td>SV</td><td>Thoáng</td><td>5</td><td><span class="pill p-warn">chưa vẽ</span></td></tr>
+<tr><td class="mono">—</td><td>So sánh hai bài nộp nghi trùng lặp</td><td>GV</td><td>Đặc</td><td>6</td><td><span class="pill p-warn">chưa vẽ</span></td></tr>
+<tr><td class="mono">—</td><td>XP · huy hiệu · streak · bảng xếp hạng ẩn danh</td><td>SV</td><td>Thoáng</td><td>7</td><td><span class="pill p-warn">chưa vẽ</span></td></tr>
+<tr><td class="mono">—</td><td>"Ôn tập hôm nay"</td><td>SV</td><td>Thoáng</td><td>8</td><td><span class="pill p-warn">chưa vẽ</span></td></tr>
+</tbody>
+</table>
+
+<h2>6. Ràng buộc không được phá</h2>
+
+<h3>Sáu luật thị giác</h3>
+<p>Chi tiết và ví dụ render sẵn ở <a href="00-design-system.html">Hệ thống thiết kế §7</a>.</p>
+<ol>
+<li><strong>Điểm luôn là chữ monospace đẳng chiều.</strong> Không ngoại lệ, kể cả trong thẻ tóm tắt — vì mắt phải so sánh được các con số theo cột.</li>
+<li><strong>Ba màu ngữ nghĩa chỉ mang đúng nghĩa của nó.</strong> Đỏ là lỗi, cam là cảnh báo, xanh lá là thành công. Không dùng đỏ để nhấn mạnh.</li>
+<li><strong>Trạng thái bị khóa phải kèm lý do.</strong> Nút xám, ô khóa, bài học khóa — tất cả phải nói vì sao và cần làm gì để mở.</li>
+<li><strong>Không màu nào đứng một mình mang thông tin.</strong> Luôn kèm chữ hoặc biểu tượng: khoảng 8% nam giới khó phân biệt đỏ/xanh lá, và đây là hệ thống chấm điểm.</li>
+<li><strong>Nội dung sinh viên nộp không bao giờ render thành HTML.</strong> Tô màu cú pháp bằng Shiki (nhận text, trả HTML đã thoát ký tự).</li>
+<li><strong>Vùng bấm tối thiểu 44×44px trên di động.</strong></li>
+</ol>
+
+<h3>Ràng buộc nghiệp vụ đã chốt</h3>
+<div class="stop">
+<ul style="margin:0">
+<li><strong>Thang điểm chỉ 0–10.</strong> Không quy đổi điểm chữ A/B+/C. Không màn hình nào được vẽ cột điểm chữ.</li>
+<li><strong>Không có trợ giảng.</strong> Không vẽ màn hình phân quyền, mời trợ giảng, hay chia việc chấm.</li>
+<li><strong>Loại "Thi" ở đợt chấm cuối môn hiển thị mờ</strong> kèm ghi chú "Chưa hỗ trợ" — giữ chỗ có chủ ý, không phải xóa.</li>
+<li><strong>Bảng xếp hạng mặc định ẩn danh.</strong> Hiện tên thật là công tắc giảng viên bật cho từng lớp.</li>
+<li><strong>Điểm cộng bắt buộc có lý do và phải &gt; 0.</strong> Popover cấp điểm cộng bắt buộc hiện dòng
+    "→ Điểm tổng: +0.1" tính theo trọng số thật của cột đích.</li>
+<li><strong>Cảnh báo trùng lặp không bao giờ tự trừ điểm.</strong> Chỉ báo để giảng viên tự quyết định.</li>
+</ul>
+</div>
+
+<h2>7. Ngôn ngữ thị giác — tóm tắt</h2>
+
+<p>Bảng màu lấy <strong>trực tiếp từ stylesheet của <a href="https://stm.mst.gov.vn/">stm.mst.gov.vn</a></strong>
+(Bộ Khoa học &amp; Công nghệ), đo bằng cách tải trang và đếm tần suất. <code>#017fcc</code> là màu chủ đạo.</p>
+
+<div class="sw">
+  <span style="background:#0d59cf;color:#fff">#0d59cf</span>
+  <span style="background:#017fcc;color:#fff">#017fcc ★</span>
+  <span style="background:#2281df;color:#fff">#2281df</span>
+  <span style="background:#90b3ff;color:#131920">#90b3ff</span>
+  <span style="background:#2ca87f;color:#fff">#2ca87f</span>
+  <span style="background:#e58a00;color:#fff">#e58a00</span>
+  <span style="background:#dc2626;color:#fff">#dc2626</span>
+  <span style="background:#8996a4;color:#fff">#8996a4</span>
+</div>
+
+<table>
+<tbody>
+<tr><th>Chữ</th><td>Be Vietnam Pro (giao diện) · IBM Plex Mono (mọi con số điểm, mã, đường dẫn file)</td></tr>
+<tr><th>Chế độ</th><td>Sáng và tối đều bắt buộc. Bộ token đã có sẵn cả hai bản, không cần nghĩ ra bảng màu thứ hai.</td></tr>
+<tr><th>Mật độ</th><td><strong>Đặc</strong> (mặc định, chiều cao dòng 40px) cho màn hình giảng viên ·
+    <strong>Thoáng</strong> (<code>data-density="thoang"</code>) cho trang học và nộp bài của sinh viên</td></tr>
+<tr><th>Bo góc</th><td><code>6px</code> mặc định, <code>10px</code> cho thẻ lớn</td></tr>
+</tbody>
+</table>
+
+<h3>Nền tảng hiện thực — ảnh hưởng đến thiết kế</h3>
+<p>Frontend là <strong>Next.js 15 + React 19 + Tailwind v4 + shadcn/ui</strong>. Bản thiết kế nên diễn đạt
+được bằng các thành phần shadcn (Dialog, Popover, Table, Command, Sheet, Tabs…) và utility Tailwind.
+Đề xuất thư viện UI khác hoặc hiệu ứng cần thư viện animation riêng sẽ không được dùng.</p>
+
+<h2>8. Cách nhờ AI thiết kế màn hình mới</h2>
+
+<div class="why">
+<strong>Đưa ba thứ:</strong> file này (bối cảnh nghiệp vụ) ·
+<code>00-design-system.html</code> (ràng buộc thị giác + token) ·
+một mockup có sẵn gần nhất với màn hình cần làm (để bắt đúng văn phong).
+<br><br>
+<strong>Đừng đưa ảnh chụp màn hình thay cho file HTML.</strong> Ảnh mất đúng phần quan trọng nhất:
+các trạng thái rỗng, đang tải, lỗi, và những ghi chú giải thích vì sao lại thiết kế như vậy.
+</div>
+
+<p>Mẫu lời nhờ dùng được ngay:</p>
+
+<pre><code>Thiết kế màn hình [TÊN MÀN HÌNH] cho TeachHub.
+
+Bối cảnh hệ thống: file 00-gioi-thieu-he-thong.html đính kèm.
+Ràng buộc thị giác: file 00-design-system.html đính kèm — GIỮ NGUYÊN bộ token
+  trong khối :root, không đổi màu, không đổi font, không đổi bo góc.
+Văn phong tham chiếu: file [01-cham-bai.html / 05-sinh-vien.html] đính kèm.
+
+Người dùng màn hình này: [giảng viên trên laptop / sinh viên trên điện thoại]
+Việc họ cần làm xong: [mô tả một câu, kèm khoảng thời gian thực tế họ có]
+
+Trả về một file HTML tự chứa, render được khi mở bằng trình duyệt, nội dung
+tiếng Việt, có cả chế độ sáng và tối, và vẽ đủ các trạng thái sau:
+  · bình thường (có dữ liệu thật, không phải lorem ipsum)
+  · rỗng / lớp mới chưa có gì
+  · đang tải
+  · lỗi và cảnh báo cụ thể của màn hình này
+Kèm ghi chú giải thích các quyết định thiết kế và những chỗ còn để ngỏ.</code></pre>
+
+<div class="note">
+<strong>Chất lượng của bản thiết kế nằm ở các trạng thái phụ, không ở trạng thái đẹp.</strong>
+Mọi mockup trong hồ sơ này đều vẽ đủ rỗng / đang tải / lỗi / cảnh báo, vì đó là những trạng thái
+chiếm phần lớn thời gian dùng thật: lớp mới mở thì chưa có ai nộp gì, và ZIP hỏng thì vẫn phải
+nói cho giảng viên biết hỏng ở đâu.
+</div>
+
+<h2>9. Cố ý nằm ngoài phạm vi</h2>
+<ul>
+<li>Ứng dụng di động riêng — dùng web responsive.</li>
+<li>Dạy trực tuyến real-time, video call.</li>
+<li>Chấm code tự động bằng test case (để Phase 9+).</li>
+<li>Điểm danh (Attendance) — cột "Chuyên cần" nhập tay là đủ cho MVP.</li>
+<li>Trang công khai: marketing, bảng giá, đăng ký mở. Vào hệ thống chỉ bằng lời mời.</li>
+</ul>
+
+<h2>10. Đọc thêm</h2>
+<p>
+<a href="index.html">Hồ sơ thiết kế — mục lục</a> ·
+<a href="00-design-system.html">Hệ thống thiết kế</a> ·
+<a href="../requirements/SRS-LMS-GiangVien.md">SRS v1.0 — nguồn chân lý nghiệp vụ</a> ·
+<a href="../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; 13 ADR</a> ·
+<a href="../superpowers/plans/2026-08-13-teachhub-roadmap.html">Roadmap 10 phase</a>
+</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,1470 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Dashboard, Thư viện lý do điểm cộng &amp; Tài khoản</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════════════
+   TOKEN — chép NGUYÊN VĂN từ 00-design-system.html
+   (lấy từ stylesheet của stm.mst.gov.vn — Bộ KH&CN). Không tự chế màu.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Thương hiệu */
+  --brand-900:#0d59cf;  --brand-700:#017fcc;  --brand-500:#2281df;
+  --brand-300:#90b3ff;  --brand-100:#e6f1fb;
+
+  /* Ngữ nghĩa */
+  --danger:#dc2626;   --danger-soft:#f5bebe;
+  --warning:#e58a00;  --warning-soft:#fdf0d9;
+  --success:#2ca87f;  --success-soft:#dcf1e9;
+  --teal:#20c997;     --cyan:#3ec9d6;   --violet:#673ab7;
+
+  /* Trung tính — thang accent-* của trang gốc, chế độ sáng */
+  --n0:#ffffff; --n50:#f8f9fa; --n100:#f3f5f7; --n200:#dbe0e5;
+  --n300:#bec8d0; --n400:#8996a4; --n500:#5b6b79; --n600:#3e4853;
+  --n700:#1d2630; --n800:#131920;
+
+  --bg:var(--n50); --surface:var(--n0); --surface-2:var(--n100);
+  --line:var(--n200); --line-strong:var(--n300);
+  --fg:var(--n800); --fg-muted:var(--n500); --fg-faint:var(--n400);
+
+  --radius:6px; --radius-lg:10px;
+  --shadow:0 1px 2px rgba(19,25,32,.06),0 1px 3px rgba(19,25,32,.1);
+  --shadow-lg:0 4px 6px -1px rgba(19,25,32,.08),0 10px 20px -5px rgba(19,25,32,.12);
+
+  --font:"Be Vietnam Pro",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+
+  /* Mật độ — hai chế độ, xem §6 của hệ thống thiết kế */
+  --row-h:40px; --pad-x:12px; --fs:14px;
+}
+[data-density="thoang"]{ --row-h:52px; --pad-x:18px; --fs:15px; }
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    /* Thang trung tính đảo — cũng lấy từ trang gốc (accent-* dark) */
+    --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+    --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+    --n700:#f3f5f7; --n800:#f8f9fa;
+    --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+    --line:#2a3540; --line-strong:#3e4853;
+    --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+    --brand-100:#122436; --danger-soft:#3a1a1a;
+    --success-soft:#14302a; --warning-soft:#332612;
+    --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --n0:#131920; --n50:#1d2630; --n100:#1d2630; --n200:#3e4853;
+  --n300:#5b6b79; --n400:#8996a4; --n500:#bec8d0; --n600:#dbe0e5;
+  --n700:#f3f5f7; --n800:#f8f9fa;
+  --bg:#0f151c; --surface:#131920; --surface-2:#1d2630;
+  --line:#2a3540; --line-strong:#3e4853;
+  --fg:#f3f5f7; --fg-muted:#8996a4; --fg-faint:#5b6b79;
+  --brand-100:#122436; --danger-soft:#3a1a1a;
+  --success-soft:#14302a; --warning-soft:#332612;
+  --shadow:0 1px 3px rgba(0,0,0,.4); --shadow-lg:0 10px 24px rgba(0,0,0,.5);
+}
+
+/* ── Nền chung (chép từ hệ thống thiết kế) ───────────────────────────── */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:400 16px/1.6 var(--font);
+     padding:2.5rem 1.25rem 6rem}
+main{max-width:1120px;margin:0 auto}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.02em;margin:0 0 .3rem}
+h2{font-size:1.3rem;font-weight:700;margin:3.2rem 0 .2rem;letter-spacing:-.01em;
+   padding-bottom:.4rem;border-bottom:2px solid var(--brand-700)}
+h3{font-size:1rem;font-weight:600;margin:2rem 0 .6rem;color:var(--brand-700)}
+h4{font-size:.86rem;font-weight:700;margin:1.6rem 0 .4rem}
+p{margin:.6rem 0}
+.lede{color:var(--fg-muted);margin-bottom:2rem}
+code{font:500 .86em var(--mono);background:var(--surface-2);padding:.1em .4em;border-radius:4px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+      padding:1.1rem 1.2rem;box-shadow:var(--shadow)}
+.grid{display:grid;gap:1rem}
+.note{border-left:3px solid var(--warning);background:var(--warning-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+.why{border-left:3px solid var(--brand-700);background:var(--brand-100);
+     padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.92rem;margin:.9rem 0}
+
+.btn{font:600 var(--fs)/1 var(--font);padding:.62rem 1rem;border-radius:var(--radius);
+     border:1px solid transparent;cursor:pointer}
+.btn-primary{background:var(--brand-700);color:#fff}
+.btn-primary:hover{background:var(--brand-900)}
+.btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-sm{font-size:.78rem;padding:.4rem .65rem}
+.chip{display:inline-flex;align-items:center;gap:.3rem;font:600 .74rem var(--font);
+      padding:.18rem .5rem;border-radius:99px;border:1px solid}
+.c-ok{color:var(--n800);border-color:var(--success);background:var(--success-soft)}
+.c-warn{color:var(--n800);border-color:var(--warning);background:var(--warning-soft)}
+.c-err{color:var(--n800);border-color:var(--danger);background:var(--danger-soft)}
+.c-info{color:var(--n800);border-color:var(--brand-700);background:var(--brand-100)}
+.c-mute{color:var(--fg-muted);border-color:var(--line-strong);background:var(--surface-2)}
+
+table.demo{width:100%;border-collapse:collapse;font-size:var(--fs)}
+table.demo th{background:var(--surface-2);font-weight:600;text-align:left;
+              padding:.5rem var(--pad-x);border-bottom:2px solid var(--line-strong);white-space:nowrap}
+table.demo td{padding:0 var(--pad-x);height:var(--row-h);border-bottom:1px solid var(--line)}
+.num{font:500 var(--fs) var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+
+.cell{display:flex;align-items:center;justify-content:flex-end;gap:.35rem;height:100%}
+.cell .v{font:600 var(--fs) var(--mono);font-variant-numeric:tabular-nums}
+.cell .m{width:5px;height:5px;border-radius:99px;background:var(--warning);flex:none}
+.cell .b{font:600 .68rem var(--mono);color:var(--success);
+         background:var(--success-soft);padding:0 .28rem;border-radius:3px}
+.cell.fail .v{color:var(--danger)}
+.cell.empty .v{color:var(--fg-faint)}
+
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.9rem;margin:.5rem 0}
+.dl dt{font:500 .78rem var(--mono);color:var(--fg-muted)}
+.dl dd{margin:0}
+.tog{position:fixed;top:1rem;right:1rem;z-index:9;display:flex;gap:.4rem}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LỚP MỚI CỦA FILE NÀY — chỉ dùng biến token ở trên, không màu mới
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Nguồn của màn hình */
+.src{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin:.5rem 0 0}
+
+/* Khung mô phỏng màn hình */
+.screen{border:1px solid var(--line-strong);border-radius:var(--radius-lg);overflow:hidden;
+        background:var(--surface);box-shadow:var(--shadow-lg);margin:.7rem 0 0}
+.chrome{display:flex;align-items:center;gap:.5rem;background:var(--surface-2);
+        border-bottom:1px solid var(--line);padding:.4rem .7rem}
+.chrome .dot{width:9px;height:9px;border-radius:99px;background:var(--line-strong);flex:none}
+.chrome .url{font:500 .74rem var(--mono);color:var(--fg-muted);background:var(--surface);
+             border:1px solid var(--line);border-radius:99px;padding:.1rem .6rem;margin-left:.4rem}
+.scr-body{padding:1rem}
+.appbar{display:flex;align-items:center;gap:.7rem;padding:.6rem 1rem;border-bottom:1px solid var(--line);
+        background:var(--surface);flex-wrap:wrap}
+.logo{font:800 .95rem var(--font);letter-spacing:-.02em;color:var(--brand-700)}
+.tabs{display:flex;gap:.15rem;margin-left:.5rem;flex-wrap:wrap}
+.tabs span{font:500 .8rem var(--font);color:var(--fg-muted);padding:.3rem .55rem;border-radius:var(--radius)}
+.tabs span.on{color:var(--fg);background:var(--surface-2);font-weight:600}
+.who{margin-left:auto;display:flex;align-items:center;gap:.5rem;font:500 .8rem var(--font);color:var(--fg-muted)}
+.av{width:26px;height:26px;border-radius:99px;background:var(--brand-100);border:1px solid var(--brand-300);
+    color:var(--brand-700);font:700 .7rem var(--font);display:flex;align-items:center;justify-content:center;flex:none}
+
+/* Nhãn trạng thái của từng biến thể */
+.stt{display:flex;align-items:center;gap:.5rem;margin:1.6rem 0 0;font:700 .82rem var(--font)}
+.stt .no{font:600 .72rem var(--mono);color:var(--fg-muted);border:1px solid var(--line-strong);
+         border-radius:var(--radius);padding:.05rem .35rem;background:var(--surface-2)}
+
+/* Thẻ tổng quan */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.7rem}
+.stat{border:1px solid var(--line);border-radius:var(--radius);padding:.7rem .85rem;background:var(--surface)}
+.stat .k{font:500 .76rem var(--font);color:var(--fg-muted);display:flex;align-items:center;gap:.35rem}
+.stat .n{font:700 1.9rem/1.15 var(--mono);font-variant-numeric:tabular-nums;margin:.15rem 0 0}
+.stat .s{font:400 .74rem/1.35 var(--font);color:var(--fg-muted)}
+.stat.attn{border-color:var(--warning);background:var(--warning-soft)}
+.stat.attn .n{color:var(--warning)}
+
+/* Danh sách "Cần xử lý" */
+.sect{border:1px solid var(--line);border-radius:var(--radius);margin-top:.9rem;overflow:hidden;background:var(--surface)}
+.sect > header{display:flex;align-items:center;gap:.5rem;padding:.5rem .85rem;background:var(--surface-2);
+               border-bottom:1px solid var(--line);font:700 .82rem var(--font)}
+.sect > header .more{margin-left:auto;font:500 .76rem var(--font);color:var(--brand-700)}
+.task{display:grid;grid-template-columns:104px 1fr auto;gap:.85rem;align-items:center;
+      padding:.55rem .85rem;border-bottom:1px solid var(--line);text-decoration:none;color:inherit}
+.task:last-child{border-bottom:0}
+.task:hover{background:var(--brand-100)}
+.task .t1{font:600 var(--fs) var(--font)}
+.task .t2{font:400 .78rem var(--font);color:var(--fg-muted)}
+.task .go{font:600 .76rem var(--font);color:var(--brand-700);white-space:nowrap}
+.due{font:600 .72rem/1.3 var(--mono);font-variant-numeric:tabular-nums;text-align:center;
+     border:1px solid var(--line-strong);border-radius:var(--radius);padding:.2rem .3rem;
+     background:var(--surface-2);color:var(--fg-muted)}
+.due.over{border-color:var(--danger);background:var(--danger-soft);color:var(--danger)}
+.due.today{border-color:var(--warning);background:var(--warning-soft);color:var(--warning)}
+
+/* Biểu đồ tiến độ — chỉ div + CSS */
+.pgrp{padding:.7rem .85rem;border-bottom:1px solid var(--line)}
+.pgrp:last-child{border-bottom:0}
+.pgrp > .h{display:flex;align-items:center;gap:.5rem;font:600 .82rem var(--font);margin-bottom:.4rem}
+.pgrp > .h .sub{font:400 .74rem var(--mono);color:var(--fg-muted)}
+.prow{display:grid;grid-template-columns:minmax(96px,150px) 1fr 3.6em auto;gap:.6rem;align-items:center;padding:.16rem 0}
+.prow .lb{font:500 .78rem var(--font);color:var(--fg-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ptrack{display:block;height:10px;border-radius:99px;background:var(--surface-2);
+        border:1px solid var(--line);overflow:hidden}
+.pfill{display:block;height:100%;background:var(--brand-700)}
+.pfill.warn{background:var(--warning)}
+.pfill.none{background:var(--line-strong)}
+.pct{font:600 .78rem var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.pnote{font:500 .72rem var(--font);color:var(--fg-muted);white-space:nowrap}
+
+/* Trạng thái rỗng */
+.empty{padding:2rem 1.2rem;text-align:center}
+.empty .ttl{font:700 1rem var(--font);margin-bottom:.25rem}
+.empty .txt{font-size:.88rem;color:var(--fg-muted);max-width:52ch;margin:0 auto .9rem}
+.steps{display:inline-grid;gap:.35rem;text-align:left;font-size:.85rem;margin:0 0 1rem;padding:0;list-style:none}
+.steps li{display:flex;gap:.5rem;align-items:flex-start}
+.steps .i{font:700 .7rem var(--mono);color:var(--brand-700);background:var(--brand-100);
+          border:1px solid var(--brand-300);border-radius:99px;width:18px;height:18px;flex:none;
+          display:flex;align-items:center;justify-content:center;margin-top:.15rem}
+
+/* Đang tải */
+.sk{background:var(--surface-2);border-radius:4px;height:.75rem;animation:pulse 1.4s ease-in-out infinite}
+.sk.big{height:1.85rem}
+.sk.line{height:.62rem}
+@keyframes pulse{50%{opacity:.42}}
+
+/* Hộp thông báo lỗi / thành công */
+.stop{border-left:3px solid var(--danger);background:var(--danger-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.9rem;margin:.9rem 0}
+.done{border-left:3px solid var(--success);background:var(--success-soft);
+      padding:.6rem .9rem;border-radius:0 var(--radius) var(--radius) 0;font-size:.9rem;margin:.9rem 0}
+
+/* Bảng kéo-thả */
+td .chip{white-space:nowrap}
+.dh{cursor:grab;color:var(--fg-faint);font:600 1rem var(--mono);user-select:none}
+tr.hidden-row td{opacity:.62}
+.inline-ed{border:1px dashed var(--line-strong);border-radius:var(--radius);padding:.1rem .35rem;
+           background:var(--surface-2);font:500 var(--fs) var(--font)}
+.keytag{font:500 .76rem var(--mono);background:var(--surface-2);border:1px solid var(--line);
+        border-radius:4px;padding:.05rem .35rem}
+
+/* Popover điểm cộng */
+.pop{width:330px;border:1px solid var(--line-strong);border-radius:var(--radius-lg);background:var(--surface);
+     box-shadow:var(--shadow-lg);padding:.85rem}
+.pop h5{margin:0 0 .5rem;font:700 .84rem var(--font)}
+.qrow{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.6rem}
+.qbtn{font:600 .74rem var(--font);padding:.32rem .55rem;border-radius:99px;border:1px solid var(--line-strong);
+      background:var(--surface-2);color:var(--fg);cursor:pointer}
+.qbtn.on{border-color:var(--brand-700);background:var(--brand-100);color:var(--brand-700)}
+.calc{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface-2);
+      padding:.45rem .6rem;font-size:.8rem;margin:.55rem 0}
+.calc .eq{font:500 .78rem var(--mono);font-variant-numeric:tabular-nums;color:var(--fg-muted)}
+.calc .res{font:700 .86rem var(--mono);font-variant-numeric:tabular-nums;color:var(--success);display:block;margin-top:.2rem}
+
+/* Biểu mẫu tài khoản */
+.auth{max-width:392px;margin:0 auto;padding:.4rem 0 .2rem}
+.auth h4{margin:.2rem 0 .1rem;font-size:1.05rem;font-weight:700}
+.auth .sub{font-size:.84rem;color:var(--fg-muted);margin:0 0 1rem}
+.field{margin-bottom:.7rem}
+.field > label{display:block;font:600 .78rem var(--font);margin-bottom:.25rem}
+.inp{width:100%;font:400 var(--fs) var(--font);padding:.55rem .7rem;border:1px solid var(--line-strong);
+     border-radius:var(--radius);background:var(--surface);color:var(--fg)}
+.inp.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.inp.bad{border-color:var(--danger);background:var(--danger-soft)}
+.hint{font-size:.76rem;color:var(--fg-muted);margin-top:.25rem}
+.fieldmsg{display:flex;gap:.35rem;align-items:flex-start;font:500 .78rem var(--font);color:var(--danger);margin-top:.3rem}
+.token{font:500 .78rem/1.5 var(--mono);background:var(--surface-2);border:1px dashed var(--line-strong);
+       padding:.5rem .6rem;border-radius:var(--radius);word-break:break-all}
+.rules{list-style:none;padding:0;margin:.4rem 0 0;font-size:.8rem;display:grid;gap:.18rem}
+.rules li{display:flex;gap:.4rem;align-items:center}
+.rules .y{color:var(--success);font-weight:700}
+.rules .n{color:var(--fg-faint);font-weight:700}
+
+/* Khung điện thoại 360px */
+.side{display:flex;gap:1.1rem;flex-wrap:wrap;align-items:flex-start}
+.side > .grow{flex:1 1 460px;min-width:0}
+.phone{width:360px;flex:none;border:1px solid var(--line-strong);border-radius:20px;overflow:hidden;
+       background:var(--surface);box-shadow:var(--shadow-lg)}
+.phone .notch{height:26px;background:var(--surface-2);border-bottom:1px solid var(--line);
+              display:flex;align-items:center;justify-content:center;gap:.5rem;
+              font:500 .68rem var(--mono);color:var(--fg-muted)}
+.phone .scr-body{padding:1rem .9rem}
+.phone .btn{min-height:44px;width:100%}
+.phone .inp{min-height:44px}
+.phone .tapnote{font:500 .68rem var(--mono);color:var(--fg-faint);text-align:center;margin-top:.5rem}
+.capw{font:600 .74rem var(--font);color:var(--fg-muted);margin-bottom:.3rem}
+.scrollx{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="tog">
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">Sáng / Tối</button>
+  <button class="btn btn-ghost" onclick="document.documentElement.dataset.density=document.documentElement.dataset.density==='thoang'?'':'thoang'">Mật độ</button>
+</div>
+<main>
+
+<h1>Dashboard, Thư viện lý do điểm cộng &amp; Tài khoản</h1>
+<p class="lede">Ba nhóm màn hình: <strong>Dashboard giảng viên</strong> (SRS mục 6.1, Phase 4a),
+<strong>Thư viện lý do điểm cộng</strong> (SRS mục 6.7b, Phase 4b) và <strong>toàn bộ luồng tài khoản</strong>
+(Phase 0 — Task 0.8b, cộng màn hình đổi mật khẩu lần đầu ở Phase 2 Task 2.3).
+Token màu chép nguyên từ <code>00-design-system.html</code>. Hai nút góc trên phải đổi chủ đề và mật độ.</p>
+
+<div class="why">
+<strong>Ba màn hình này nhìn thì rời nhau, nhưng chung một câu hỏi: “bây giờ tôi phải làm gì?”</strong>
+Dashboard trả lời cho một buổi dạy (bài nào sắp tới hạn, ai chưa nộp). Thư viện lý do trả lời cho cả học kỳ
+(soạn một lần, bấm một phát khi đứng lớp). Màn hình tài khoản trả lời cho lần đầu mở hệ thống
+(chưa có ai thì làm sao vào được, và làm sao thêm đồng nghiệp mà không mở cửa cho cả internet).
+Không màn hình nào ở đây được phép để người dùng nhìn một nút xám mà không biết vì sao nó xám.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>A. Dashboard giảng viên</h2>
+<div class="src">
+  <span class="chip c-info">SRS mục 6.1</span>
+  <span class="chip c-mute">Phase 4a · Task 4a.5</span>
+  <span class="chip c-mute">GET /api/instructor/dashboard</span>
+  <span class="chip c-mute">Máy tính · không có bản di động</span>
+</div>
+<p style="font-size:.9rem;color:var(--fg-muted);margin-top:.4rem">
+Đây là trang chủ sau khi giảng viên đăng nhập. Không có bản 360px vì màn hình này chỉ giảng viên dùng,
+và luôn dùng trên máy tính lúc soạn bài hoặc chấm bài — sinh viên không bao giờ thấy trang này.</p>
+
+<div class="stt"><span class="no">A1</span> Trạng thái bình thường — đang giữa học kỳ, có dữ liệu</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor</span></div>
+  <div class="appbar">
+    <span class="logo">TeachHub</span>
+    <span class="tabs"><span class="on">Bảng điều khiển</span><span>Môn học</span><span>Lớp học phần</span><span>Sổ điểm</span><span>Thư viện lý do</span></span>
+    <span class="who">HK1 2026–2027 <span class="av">NN</span> TS. Nguyễn Hoàng Nam</span>
+  </div>
+  <div class="scr-body">
+
+    <div class="stats">
+      <div class="stat">
+        <div class="k">Lớp đang dạy</div>
+        <div class="n">3</div>
+        <div class="s">115 sinh viên · HK1 2026–2027</div>
+      </div>
+      <div class="stat attn">
+        <div class="k">⚠ Bài chưa chấm</div>
+        <div class="n">27</div>
+        <div class="s">Trong đó <strong>6</strong> bài đã quá hạn chấm 2 ngày</div>
+      </div>
+      <div class="stat">
+        <div class="k">SV chưa nộp, sắp tới hạn</div>
+        <div class="n">14</div>
+        <div class="s">Tính trong 72 giờ tới, không tính bài đã quá hạn</div>
+      </div>
+      <div class="stat">
+        <div class="k">Điểm cộng đã cấp tuần này</div>
+        <div class="n">9</div>
+        <div class="s">Tổng <span style="font-family:var(--mono);font-variant-numeric:tabular-nums">+3.75</span> điểm · 4 lý do khác nhau</div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <header>Cần xử lý <span class="chip c-mute">sắp theo hạn gần nhất</span><span class="more">Bấm một dòng để mở thẳng màn hình chấm →</span></header>
+
+      <a class="task" href="#">
+        <span class="due over">QUÁ HẠN<br>2 ngày</span>
+        <span>
+          <span class="t1">Bài tập lớn cuối môn — Ứng dụng quản lý chi tiêu</span><br>
+          <span class="t2">DA24TIN01 · IN4203 — Lập trình di động React Native · <strong>6/11 nhóm</strong> chưa chấm</span>
+        </span>
+        <span class="go">Chấm bài →</span>
+      </a>
+
+      <a class="task" href="#">
+        <span class="due today">HÔM NAY<br>23:59</span>
+        <span>
+          <span class="t1">Chương 4 · Bài tập: Điều hướng &amp; Deep Link</span><br>
+          <span class="t2">DA24TIN01 · <strong>12 bài</strong> chưa chấm · 3 SV chưa nộp</span>
+        </span>
+        <span class="go">Chấm bài →</span>
+      </a>
+
+      <a class="task" href="#">
+        <span class="due">Còn<br>2 ngày</span>
+        <span>
+          <span class="t1">Chương 3 · Trắc nghiệm: Vòng đời component</span><br>
+          <span class="t2">DA24TIN02 · trắc nghiệm tự chấm · <strong>5 câu tự luận</strong> chờ chấm tay</span>
+        </span>
+        <span class="go">Chấm bài →</span>
+      </a>
+
+      <a class="task" href="#">
+        <span class="due">Còn<br>4 ngày</span>
+        <span>
+          <span class="t1">Chương 6 · Bài tập: Thiết kế kiến trúc phân lớp</span><br>
+          <span class="t2">DA23PMM01 · IN3210 — Kiến trúc phần mềm · chưa có bài nào cần chấm · <strong>9 SV</strong> chưa nộp</span>
+        </span>
+        <span class="go">Xem bài nộp →</span>
+      </a>
+
+      <a class="task" href="#">
+        <span class="due">Còn<br>6 ngày</span>
+        <span>
+          <span class="t1">Chương 5 · Bài tập: Gọi API và xử lý lỗi mạng</span><br>
+          <span class="t2">DA24TIN02 · <strong>4 bài</strong> chưa chấm · hạn 20/08/2026 23:59</span>
+        </span>
+        <span class="go">Chấm bài →</span>
+      </a>
+    </div>
+
+    <div class="sect">
+      <header>% sinh viên hoàn thành từng chương <span class="chip c-mute">theo lớp</span></header>
+
+      <div class="pgrp">
+        <div class="h">DA24TIN01 <span class="sub">IN4203 · 42 SV · phiên bản nội dung v2026.1</span></div>
+        <div class="prow"><span class="lb">C1 · Khởi tạo dự án</span><span class="ptrack"><span class="pfill" style="width:100%"></span></span><span class="pct">100%</span><span class="pnote">42/42 SV</span></div>
+        <div class="prow"><span class="lb">C2 · Component &amp; State</span><span class="ptrack"><span class="pfill" style="width:98%"></span></span><span class="pct">98%</span><span class="pnote">41/42 SV</span></div>
+        <div class="prow"><span class="lb">C3 · Styling &amp; Layout</span><span class="ptrack"><span class="pfill" style="width:93%"></span></span><span class="pct">93%</span><span class="pnote">39/42 SV</span></div>
+        <div class="prow"><span class="lb">C4 · Điều hướng</span><span class="ptrack"><span class="pfill" style="width:71%"></span></span><span class="pct">71%</span><span class="pnote">30/42 SV · đang học</span></div>
+        <div class="prow"><span class="lb">C5 · Gọi API</span><span class="ptrack"><span class="pfill warn" style="width:34%"></span></span><span class="pct">34%</span><span class="pnote">⚠ 14/42 SV · chậm hơn kế hoạch</span></div>
+        <div class="prow"><span class="lb">C6 · Lưu trữ cục bộ</span><span class="ptrack"><span class="pfill none" style="width:0%"></span></span><span class="pct">0%</span><span class="pnote">chưa mở — mở ngày 24/08</span></div>
+      </div>
+
+      <div class="pgrp">
+        <div class="h">DA24TIN02 <span class="sub">IN4203 · 38 SV · phiên bản nội dung v2026.1</span></div>
+        <div class="prow"><span class="lb">C1 · Khởi tạo dự án</span><span class="ptrack"><span class="pfill" style="width:100%"></span></span><span class="pct">100%</span><span class="pnote">38/38 SV</span></div>
+        <div class="prow"><span class="lb">C2 · Component &amp; State</span><span class="ptrack"><span class="pfill" style="width:88%"></span></span><span class="pct">88%</span><span class="pnote">33/38 SV</span></div>
+        <div class="prow"><span class="lb">C3 · Styling &amp; Layout</span><span class="ptrack"><span class="pfill" style="width:62%"></span></span><span class="pct">62%</span><span class="pnote">24/38 SV</span></div>
+        <div class="prow"><span class="lb">C4 · Điều hướng</span><span class="ptrack"><span class="pfill warn" style="width:21%"></span></span><span class="pct">21%</span><span class="pnote">⚠ 8/38 SV · chậm hơn DA24TIN01 hai chương</span></div>
+      </div>
+
+      <div class="pgrp">
+        <div class="h">DA23PMM01 <span class="sub">IN3210 · 35 SV · phiên bản nội dung v2025.2</span></div>
+        <div class="prow"><span class="lb">C4 · Mẫu thiết kế</span><span class="ptrack"><span class="pfill" style="width:97%"></span></span><span class="pct">97%</span><span class="pnote">34/35 SV</span></div>
+        <div class="prow"><span class="lb">C5 · Kiến trúc phân lớp</span><span class="ptrack"><span class="pfill" style="width:83%"></span></span><span class="pct">83%</span><span class="pnote">29/35 SV</span></div>
+        <div class="prow"><span class="lb">C6 · Kiểm thử kiến trúc</span><span class="ptrack"><span class="pfill" style="width:46%"></span></span><span class="pct">46%</span><span class="pnote">16/35 SV · đang học</span></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <header>Sinh viên cần chú ý <span class="chip c-warn">chưa nộp từ 3 bài trở lên</span></header>
+      <div class="scrollx">
+      <table class="demo">
+        <thead><tr>
+          <th>MSSV</th><th>Họ tên</th><th>Lớp</th>
+          <th style="text-align:right">Bài chưa nộp</th>
+          <th style="text-align:right">% hoàn thành</th>
+          <th>Hoạt động gần nhất</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="num">2251012017</td><td>Đặng Quốc Huy</td><td>DA24TIN01</td>
+            <td><div class="cell"><span class="v">5</span></div></td>
+            <td><div class="cell fail"><span class="v">38%</span></div></td>
+            <td>19 ngày trước · 25/07/2026</td>
+            <td><span class="chip c-err">Nguy cơ trượt</span></td>
+          </tr>
+          <tr>
+            <td class="num">2251012023</td><td>Bùi Thị Lan</td><td>DA24TIN02</td>
+            <td><div class="cell"><span class="v">4</span></div></td>
+            <td><div class="cell"><span class="v">52%</span></div></td>
+            <td>8 ngày trước · 05/08/2026</td>
+            <td><span class="chip c-warn">Chậm nhiều</span></td>
+          </tr>
+          <tr>
+            <td class="num">2251012004</td><td>Phạm Thu Dung</td><td>DA24TIN01</td>
+            <td><div class="cell"><span class="v">3</span></div></td>
+            <td><div class="cell"><span class="v">64%</span></div></td>
+            <td>2 ngày trước · 11/08/2026</td>
+            <td><span class="chip c-warn">Chậm nhiều</span></td>
+          </tr>
+          <tr>
+            <td class="num">2251012009</td><td>Ngô Thị Kim Giang</td><td>DA23PMM01</td>
+            <td><div class="cell"><span class="v">3</span></div></td>
+            <td><div class="cell"><span class="v">67%</span></div></td>
+            <td>Hôm nay · 13/08/2026</td>
+            <td><span class="chip c-warn">Chậm nhiều</span></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="hint" style="padding:.5rem .85rem;margin:0;border-top:1px solid var(--line)">
+        Số đỏ ở cột <em>% hoàn thành</em> nghĩa là <strong>dưới ngưỡng 40% — không đủ điều kiện dự thi cuối môn</strong>.
+        Cột <em>Bài chưa nộp</em> để màu chữ thường: nó là số đếm, không phải ngưỡng.</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="stt"><span class="no">A2</span> Trạng thái rỗng — tài khoản mới, chưa có lớp nào</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor</span></div>
+  <div class="appbar">
+    <span class="logo">TeachHub</span>
+    <span class="tabs"><span class="on">Bảng điều khiển</span><span>Môn học</span><span>Lớp học phần</span><span>Sổ điểm</span><span>Thư viện lý do</span></span>
+    <span class="who">Chưa chọn học kỳ <span class="av">TL</span> ThS. Trần Thanh Lâm</span>
+  </div>
+  <div class="scr-body">
+    <div class="stats">
+      <div class="stat"><div class="k">Lớp đang dạy</div><div class="n">0</div><div class="s">Chưa mở lớp học phần nào</div></div>
+      <div class="stat"><div class="k">Bài chưa chấm</div><div class="n">0</div><div class="s">Chưa có bài nộp nào</div></div>
+      <div class="stat"><div class="k">SV chưa nộp, sắp tới hạn</div><div class="n">0</div><div class="s">Chưa có sinh viên nào trong hệ thống</div></div>
+      <div class="stat"><div class="k">Điểm cộng đã cấp tuần này</div><div class="n">0</div><div class="s">Thư viện lý do cũng chưa soạn</div></div>
+    </div>
+
+    <div class="sect">
+      <div class="empty">
+        <div class="ttl">Chưa có gì để xử lý — vì chưa có lớp nào</div>
+        <p class="txt">Dashboard chỉ tổng hợp lại thứ đã có. Muốn nó có nội dung thì cần đi hết ba bước dưới đây;
+          bước nào cũng mở được ngay từ đây và làm một lần cho cả học kỳ.</p>
+        <ol class="steps">
+          <li><span class="i">1</span><span><strong>Tạo môn học</strong> và một phiên bản nội dung (VD: <code>IN4203 — Lập trình di động React Native</code>, phiên bản <code>v2026.1</code>). Chưa có nội dung thì chưa có chương để đo tiến độ.</span></li>
+          <li><span class="i">2</span><span><strong>Mở lớp học phần</strong> cho học kỳ HK1 2026–2027 và chọn phiên bản nội dung dùng cho lớp đó.</span></li>
+          <li><span class="i">3</span><span><strong>Nhập danh sách sinh viên</strong> từ file Excel của phòng đào tạo, rồi phát mã lớp hoặc tạo tài khoản cho cả lớp.</span></li>
+        </ol>
+        <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary">Tạo môn học đầu tiên</button>
+          <button class="btn btn-ghost" disabled>Mở lớp học phần</button>
+        </div>
+        <p class="hint" style="max-width:46ch;margin:.6rem auto 0">
+          Nút <em>Mở lớp học phần</em> đang tắt vì <strong>chưa có môn học nào để gắn lớp vào</strong>.
+          Làm xong bước 1 là nó tự bật.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">A3</span> Trạng thái đang tải — khung xương, giữ nguyên bố cục</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor</span></div>
+  <div class="appbar">
+    <span class="logo">TeachHub</span>
+    <span class="tabs"><span class="on">Bảng điều khiển</span><span>Môn học</span><span>Lớp học phần</span><span>Sổ điểm</span><span>Thư viện lý do</span></span>
+    <span class="who">HK1 2026–2027 <span class="av">NN</span> TS. Nguyễn Hoàng Nam</span>
+  </div>
+  <div class="scr-body">
+    <div class="stats">
+      <div class="stat"><div class="sk line" style="width:60%"></div><div class="sk big" style="width:38%;margin:.35rem 0 .35rem"></div><div class="sk line" style="width:80%"></div></div>
+      <div class="stat"><div class="sk line" style="width:52%"></div><div class="sk big" style="width:30%;margin:.35rem 0 .35rem"></div><div class="sk line" style="width:72%"></div></div>
+      <div class="stat"><div class="sk line" style="width:68%"></div><div class="sk big" style="width:34%;margin:.35rem 0 .35rem"></div><div class="sk line" style="width:64%"></div></div>
+      <div class="stat"><div class="sk line" style="width:58%"></div><div class="sk big" style="width:26%;margin:.35rem 0 .35rem"></div><div class="sk line" style="width:76%"></div></div>
+    </div>
+    <div class="sect">
+      <header>Cần xử lý <span class="chip c-mute">đang tải…</span></header>
+      <div style="padding:.6rem .85rem;display:grid;gap:.75rem">
+        <div style="display:grid;grid-template-columns:104px 1fr;gap:.85rem;align-items:center">
+          <div class="sk" style="height:2.1rem"></div>
+          <div><div class="sk" style="width:56%"></div><div class="sk line" style="width:38%;margin-top:.35rem"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:104px 1fr;gap:.85rem;align-items:center">
+          <div class="sk" style="height:2.1rem"></div>
+          <div><div class="sk" style="width:48%"></div><div class="sk line" style="width:44%;margin-top:.35rem"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:104px 1fr;gap:.85rem;align-items:center">
+          <div class="sk" style="height:2.1rem"></div>
+          <div><div class="sk" style="width:62%"></div><div class="sk line" style="width:30%;margin-top:.35rem"></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="hint" style="text-align:center">Khung xương giữ đúng chiều cao của nội dung thật — trang không nhảy khi dữ liệu về.</p>
+  </div>
+</div>
+
+<div class="stt"><span class="no">A4</span> Trạng thái lỗi một phần — thẻ tổng quan có, biểu đồ tiến độ hỏng</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor</span></div>
+  <div class="appbar">
+    <span class="logo">TeachHub</span>
+    <span class="tabs"><span class="on">Bảng điều khiển</span><span>Môn học</span><span>Lớp học phần</span><span>Sổ điểm</span><span>Thư viện lý do</span></span>
+    <span class="who">HK1 2026–2027 <span class="av">NN</span> TS. Nguyễn Hoàng Nam</span>
+  </div>
+  <div class="scr-body">
+    <div class="stats">
+      <div class="stat"><div class="k">Lớp đang dạy</div><div class="n">3</div><div class="s">115 sinh viên · HK1 2026–2027</div></div>
+      <div class="stat attn"><div class="k">⚠ Bài chưa chấm</div><div class="n">27</div><div class="s">Trong đó <strong>6</strong> bài đã quá hạn chấm 2 ngày</div></div>
+      <div class="stat"><div class="k">SV chưa nộp, sắp tới hạn</div><div class="n">14</div><div class="s">Tính trong 72 giờ tới</div></div>
+      <div class="stat">
+        <div class="k">Điểm cộng đã cấp tuần này</div>
+        <div class="n" style="color:var(--fg-faint)">—</div>
+        <div class="s">Không đọc được, xem cảnh báo bên dưới</div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <header>% sinh viên hoàn thành từng chương <span class="chip c-err">Không dựng được biểu đồ</span></header>
+      <div style="padding:.85rem">
+        <div class="stop">
+          <strong>Lớp DA24TIN03 chưa gắn phiên bản nội dung nào, nên không có chương để tính phần trăm.</strong><br>
+          Lớp được tạo lúc 09:12 hôm nay và bỏ trống ô “Phiên bản nội dung”. Hai lớp còn lại vẫn tính được —
+          phần dưới là số liệu của chúng.
+          <div style="margin-top:.55rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm">Gắn phiên bản cho DA24TIN03</button>
+            <button class="btn btn-ghost btn-sm">Ẩn lớp này khỏi biểu đồ</button>
+          </div>
+        </div>
+
+        <div class="pgrp" style="border:1px solid var(--line);border-radius:var(--radius);margin-top:.6rem">
+          <div class="h">DA24TIN01 <span class="sub">IN4203 · 42 SV · v2026.1</span></div>
+          <div class="prow"><span class="lb">C4 · Điều hướng</span><span class="ptrack"><span class="pfill" style="width:71%"></span></span><span class="pct">71%</span><span class="pnote">30/42 SV</span></div>
+          <div class="prow"><span class="lb">C5 · Gọi API</span><span class="ptrack"><span class="pfill warn" style="width:34%"></span></span><span class="pct">34%</span><span class="pnote">⚠ 14/42 SV · chậm hơn kế hoạch</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <header>Điểm cộng tuần này <span class="chip c-err">Lỗi máy chủ</span></header>
+      <div style="padding:.85rem">
+        <div class="stop">
+          <strong>Máy chủ trả lỗi khi đọc thư viện lý do điểm cộng (HTTP 500 · mã sự cố <code>c7f4a91b</code> · 14:38 13/08/2026).</strong><br>
+          Số điểm cộng trong tuần <em>không phải bằng 0</em> — hệ thống đơn giản là chưa đọc được, nên hiển thị dấu <code>—</code>
+          thay vì con số. Bấm thử lại; nếu vẫn lỗi, gửi mã sự cố ở trên cho người quản trị máy chủ.
+          <div style="margin-top:.55rem"><button class="btn btn-ghost btn-sm">Thử lại</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Vì sao “0” và “—” phải là hai thứ khác nhau.</strong> Ở trạng thái A2 con số <code>0</code> là sự thật:
+chưa có lớp nào. Ở A4 con số thật có thể là 9, nhưng hệ thống chưa đọc được — nên nó hiện <code>—</code> màu nhạt
+kèm câu giải thích. Một dashboard hiện <code>0</code> khi đang lỗi sẽ khiến giảng viên yên tâm sai chỗ và bỏ sót
+bài chưa chấm. Đây cũng là lý do lỗi hiển thị <em>ngay trong khối bị hỏng</em> chứ không phải một dải đỏ trên đầu trang:
+người đọc phải biết chính xác phần nào tin được, phần nào không.
+</div>
+
+<div class="why">
+<strong>Vì sao mỗi dòng “Cần xử lý” là một liên kết mở thẳng màn hình chấm.</strong> SRS mục 6.1 chỉ yêu cầu
+“danh sách sắp theo hạn gần nhất”, nhưng danh sách chỉ để đọc thì giảng viên vẫn phải tự đi Lớp → Chương → Bài tập →
+Danh sách nộp, bốn cú bấm cho mỗi bài. Dòng bấm được biến dashboard từ bản báo cáo thành nơi bắt đầu công việc.
+Chữ “Chấm bài →” hiện luôn ở cuối dòng để rõ là bấm sẽ đi đâu — hàng nào không có bài cần chấm thì chữ đổi thành
+“Xem bài nộp →”, không dẫn người ta tới một màn hình chấm trống.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy 1 — thanh tiến độ dễ bị đọc nhầm thành điểm.</strong> Thanh ở đây là <em>tỷ lệ sinh viên hoàn thành chương</em>,
+không phải điểm số. Vì thế thanh dùng màu thương hiệu (xanh dương) làm mặc định chứ không dùng xanh lá:
+xanh lá trong hệ thống này nghĩa là “đạt”, mà một chương 100% người học xong vẫn có thể toàn điểm kém.
+Chỉ khi chương chậm hơn kế hoạch, thanh mới chuyển cam — và luôn kèm chữ “chậm hơn kế hoạch”,
+không để màu đứng một mình. Chương chưa mở dùng màu xám cùng chữ “chưa mở — mở ngày 24/08”, không phải 0% màu đỏ.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy 2 — “Sinh viên cần chú ý” là danh sách nhạy cảm.</strong> Nó nêu đích danh người học đang có nguy cơ trượt,
+nên tuyệt đối không được lọt vào bất kỳ màn hình nào sinh viên xem được, kể cả bảng xếp hạng ẩn danh.
+Ngưỡng “từ 3 bài trở lên” phải hiện thành chữ ngay cạnh tiêu đề — nếu không, người đọc sẽ tự suy ra một ngưỡng khác
+và tranh cãi về danh sách thay vì gọi cho sinh viên.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy 3 — truy vấn dashboard là chỗ dễ sinh N+1 nhất (Phase 4a Task 4a.5).</strong>
+Bốn khối trên trang này đều đếm theo lớp và theo chương. Viết ngây thơ thì mỗi lớp một truy vấn, mỗi chương một truy vấn nữa,
+và trang chủ chậm dần theo sĩ số mà không ai để ý cho tới khi lớp thứ ba mở. Plan yêu cầu một truy vấn có projection
+và một test khẳng định số câu truy vấn là hằng số — giao diện này không được thêm khối nào cần thêm một vòng gọi API riêng.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>B. Thư viện lý do điểm cộng</h2>
+<div class="src">
+  <span class="chip c-info">SRS mục 6.7b</span>
+  <span class="chip c-mute">Phase 4b · Task 4b.7 + 4b.10</span>
+  <span class="chip c-mute">GET/POST /api/instructor/bonus-reason-templates</span>
+  <span class="chip c-mute">Máy tính</span>
+</div>
+<p style="font-size:.9rem;color:var(--fg-muted);margin-top:.4rem">
+Thư viện thuộc về <strong>giảng viên</strong>, không thuộc về lớp: soạn một lần, dùng cho mọi lớp và mọi học kỳ về sau.
+Đây chính là nguồn của dãy nút bấm nhanh trong popover “+ Điểm cộng” ở màn hình chấm bài (6.7) và sổ điểm (6.8).</p>
+
+<div class="stt"><span class="no">B1</span> Trạng thái bình thường — đã soạn, đang bật bộ lọc hiện cả lý do đã ẩn</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/bonus-reasons</span></div>
+  <div class="appbar">
+    <span class="logo">TeachHub</span>
+    <span class="tabs"><span>Bảng điều khiển</span><span>Môn học</span><span>Lớp học phần</span><span>Sổ điểm</span><span class="on">Thư viện lý do</span></span>
+    <span class="who">HK1 2026–2027 <span class="av">NN</span> TS. Nguyễn Hoàng Nam</span>
+  </div>
+  <div class="scr-body">
+    <div style="display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin-bottom:.2rem">
+      <h4 style="margin:0;font-size:1.05rem">Thư viện lý do điểm cộng</h4>
+      <span class="chip c-info">Dùng chung cho mọi lớp, mọi học kỳ</span>
+    </div>
+    <p style="font-size:.85rem;color:var(--fg-muted);margin:.15rem 0 .8rem">
+      Thứ tự trong bảng này chính là thứ tự các nút bấm nhanh khi bạn đang đứng lớp — kéo lý do hay dùng nhất lên đầu.</p>
+
+    <div class="sect" style="margin-top:0">
+      <div class="scrollx">
+      <table class="demo">
+        <thead><tr>
+          <th style="width:32px"></th>
+          <th>Lý do</th>
+          <th style="text-align:right;width:110px">Điểm mặc định</th>
+          <th style="width:190px">Đích mặc định</th>
+          <th style="width:110px">Trạng thái</th>
+          <th style="width:150px"></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="dh" title="Kéo để đổi thứ tự">⠿</span></td>
+            <td>Thuyết trình tự tin, trả lời tốt câu hỏi phản biện</td>
+            <td><div class="cell"><span class="v">0.50</span></div></td>
+            <td><span class="chip c-info">Điểm tổng</span></td>
+            <td><span class="chip c-ok">✓ Đang dùng</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Sửa</button> <button class="btn btn-ghost btn-sm">Ẩn</button></td>
+          </tr>
+          <tr>
+            <td><span class="dh">⠿</span></td>
+            <td>Trả lời đúng câu hỏi khó trên lớp</td>
+            <td><div class="cell"><span class="v">0.50</span></div></td>
+            <td><span class="keytag">thuong_ky</span></td>
+            <td><span class="chip c-ok">✓ Đang dùng</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Sửa</button> <button class="btn btn-ghost btn-sm">Ẩn</button></td>
+          </tr>
+          <tr>
+            <td><span class="dh">⠿</span></td>
+            <td>Phát biểu xây dựng bài</td>
+            <td><div class="cell"><span class="v">0.25</span></div></td>
+            <td><span class="keytag">thuong_ky</span></td>
+            <td><span class="chip c-ok">✓ Đang dùng</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Sửa</button> <button class="btn btn-ghost btn-sm">Ẩn</button></td>
+          </tr>
+          <tr>
+            <td><span class="dh">⠿</span></td>
+            <td>
+              <span class="inline-ed">Giúp bạn cùng nhóm gỡ lỗi môi trường</span>
+              <span class="chip c-info" style="margin-left:.35rem">đang sửa tại chỗ</span>
+            </td>
+            <td><div class="cell"><span class="v">0.25</span></div></td>
+            <td><span class="keytag">bai_tap</span></td>
+            <td><span class="chip c-ok">✓ Đang dùng</span></td>
+            <td style="text-align:right"><button class="btn btn-primary btn-sm">Lưu</button> <button class="btn btn-ghost btn-sm">Huỷ</button></td>
+          </tr>
+          <tr class="hidden-row">
+            <td><span class="dh" style="opacity:.4">⠿</span></td>
+            <td>Nộp bài sớm hơn hạn ít nhất 48 giờ</td>
+            <td><div class="cell"><span class="v">0.25</span></div></td>
+            <td><span class="keytag">thuong_ky</span></td>
+            <td><span class="chip c-mute">Đã ẩn</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Bỏ ẩn</button></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <div style="display:flex;align-items:center;gap:.7rem;padding:.6rem .85rem;flex-wrap:wrap;background:var(--surface-2);border-top:1px solid var(--line)">
+        <label style="font:500 .82rem var(--font);display:flex;align-items:center;gap:.4rem">
+          <input type="checkbox" checked> Hiện cả lý do đã ẩn (1)
+        </label>
+        <span style="margin-left:auto"><button class="btn btn-primary btn-sm">+ Thêm lý do</button></span>
+      </div>
+    </div>
+
+    <div class="why" style="margin-top:1rem">
+      <strong>Cột “Đích mặc định” hiện KEY của cột điểm, không hiện tên cột.</strong>
+      Thư viện thuộc giảng viên, còn cột điểm thuộc từng lớp — mỗi lớp một bộ id mới và một cách đặt tên khác nhau.
+      Trỏ bằng <code>column_id</code> thì lý do soạn sẵn chỉ dùng được cho đúng một lớp, tức là thư viện coi như vô dụng.
+      Lớp nào không có key <code>bai_tap</code> thì popover chỉ bỏ chọn sẵn đích, vẫn cấp điểm được bình thường.
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">B2</span> Trạng thái rỗng — chưa soạn lý do nào</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/bonus-reasons</span></div>
+  <div class="scr-body">
+    <div class="sect" style="margin-top:0">
+      <header>Thư viện lý do điểm cộng</header>
+      <div class="empty">
+        <div class="ttl">Chưa có lý do nào trong thư viện</div>
+        <p class="txt">Bạn vẫn cấp được điểm cộng ngay bây giờ bằng cách gõ lý do tự do trong màn hình chấm bài —
+          thư viện chỉ để khỏi phải gõ lại câu đó lần thứ mười. Soạn ba, bốn lý do hay dùng nhất là đủ.</p>
+        <ol class="steps">
+          <li><span class="i">1</span><span>Bấm <strong>“+ Thêm lý do”</strong>, gõ câu bạn hay nói khi cộng điểm — VD: <em>“Trả lời đúng câu hỏi khó trên lớp”</em>.</span></li>
+          <li><span class="i">2</span><span>Đặt <strong>điểm mặc định</strong> (vẫn sửa được từng lần cấp) và <strong>đích mặc định</strong>: điểm tổng hay một cột điểm.</span></li>
+          <li><span class="i">3</span><span>Kéo lý do hay dùng nhất lên đầu — thứ tự này là thứ tự nút bấm nhanh lúc bạn đang đứng lớp.</span></li>
+        </ol>
+        <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary">+ Thêm lý do</button>
+          <button class="btn btn-ghost">Dùng bộ gợi ý (4 lý do phổ biến)</button>
+        </div>
+        <p class="hint" style="max-width:48ch;margin:.6rem auto 0">
+          “Bộ gợi ý” chỉ điền sẵn bốn dòng để bạn sửa lại, không khoá gì cả — xoá hoặc ẩn dòng nào cũng được.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">B3</span> Trạng thái cảnh báo — key đích không tồn tại ở lớp nào đang dạy + lỗi nhập liệu</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/bonus-reasons</span></div>
+  <div class="scr-body">
+    <div class="note" style="margin-top:0">
+      <strong>Lý do “Làm bài tập mở rộng” đang trỏ tới key <code>tu_luan</code>, nhưng không lớp nào của bạn trong HK1 2026–2027 có cột mang key này.</strong>
+      Ba lớp đang dạy dùng key <code>thuong_ky</code>, <code>bai_tap</code>, <code>trac_nghiem</code>, <code>cuoi_mon</code>.
+      Hệ quả cụ thể: lúc bấm nút nhanh này trong màn hình chấm, popover sẽ mở với ô “Đích” <em>bỏ trống</em> và bạn phải chọn tay.
+      Sửa key ở đây, hoặc đổi đích mặc định sang “Điểm tổng”.
+    </div>
+
+    <div class="sect" style="margin-top:.8rem">
+      <div class="scrollx">
+      <table class="demo">
+        <thead><tr>
+          <th style="width:32px"></th><th>Lý do</th>
+          <th style="text-align:right;width:110px">Điểm mặc định</th>
+          <th style="width:210px">Đích mặc định</th>
+          <th style="width:110px">Trạng thái</th><th style="width:150px"></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="dh">⠿</span></td>
+            <td>Làm bài tập mở rộng ngoài yêu cầu</td>
+            <td><div class="cell"><span class="v">0.50</span></div></td>
+            <td><span class="keytag" style="border-color:var(--warning);color:var(--warning)">tu_luan</span>
+                <span class="chip c-warn" style="margin-left:.3rem">⚠ Không lớp nào có key này</span></td>
+            <td><span class="chip c-ok">✓ Đang dùng</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Sửa key</button></td>
+          </tr>
+          <tr>
+            <td><span class="dh">⠿</span></td>
+            <td>
+              <span class="inline-ed" style="border-color:var(--danger)">Hỗ trợ bạn trong buổi thực hành</span>
+            </td>
+            <td>
+              <div class="cell"><span class="v" style="color:var(--danger)">2.50</span></div>
+            </td>
+            <td><span class="keytag">thuong_ky</span></td>
+            <td><span class="chip c-err">Chưa lưu được</span></td>
+            <td style="text-align:right"><button class="btn btn-primary btn-sm" disabled>Lưu</button> <button class="btn btn-ghost btn-sm">Huỷ</button></td>
+          </tr>
+          <tr>
+            <td><span class="dh">⠿</span></td>
+            <td colspan="5" style="padding-top:.3rem;padding-bottom:.5rem;height:auto">
+              <div class="stop" style="margin:0">
+                <strong>Điểm mặc định 2.50 vượt trần điểm cộng của lớp DA24TIN01 (1.00 điểm / sinh viên / học kỳ).</strong>
+                Nút <em>Lưu</em> đang tắt vì lý do đó. Hai cách gỡ: hạ điểm mặc định xuống ≤ 1.00,
+                hoặc mở <em>Lớp học phần → DA24TIN01 → Cấu hình điểm cộng</em> và nâng trần lên.
+                Trần là thiết lập của <strong>lớp</strong>, còn lý do là thiết lập của <strong>bạn</strong> — nên phải sửa đúng chỗ mình muốn đổi.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">B4</span> Thư viện được dùng ở đâu — popover “+ Điểm cộng” trong màn hình chấm bài (6.7)</div>
+<div class="card" style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:flex-start;margin-top:.7rem">
+
+  <div class="pop">
+    <h5>+ Điểm cộng cho <span style="font-family:var(--mono)">2251012001</span> Nguyễn Văn Ánh</h5>
+    <div style="font:500 .74rem var(--font);color:var(--fg-muted);margin-bottom:.3rem">Bấm nhanh từ thư viện của bạn</div>
+    <div class="qrow">
+      <button class="qbtn">Thuyết trình tự tin +0.5</button>
+      <button class="qbtn on">Trả lời đúng câu khó +0.5</button>
+      <button class="qbtn">Phát biểu xây dựng bài +0.25</button>
+    </div>
+    <div class="field">
+      <label>Lý do <span style="color:var(--danger)">*</span></label>
+      <input class="inp" value="Trả lời đúng câu hỏi khó trên lớp">
+      <div class="hint">Sửa được. Câu này được <strong>chép nguyên văn</strong> vào phiếu điểm cộng, không phải khoá ngoại.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:.5rem">
+      <div class="field" style="margin-bottom:.3rem">
+        <label>Điểm</label>
+        <input class="inp mono" value="0.5">
+      </div>
+      <div class="field" style="margin-bottom:.3rem">
+        <label>Cộng vào</label>
+        <select class="inp">
+          <option>Trắc nghiệm (20%)</option>
+          <option>Bài tập (30%)</option>
+          <option>Cuối môn (50%)</option>
+          <option>Điểm tổng</option>
+        </select>
+      </div>
+    </div>
+    <div class="calc">
+      Cộng vào một cột thì điểm đi qua trọng số của cột đó:
+      <span class="eq">+0.5 × 20% = +0.10</span>
+      <span class="res">→ Điểm tổng: +0.1</span>
+    </div>
+    <div style="display:flex;gap:.4rem;justify-content:flex-end">
+      <button class="btn btn-ghost btn-sm">Huỷ</button>
+      <button class="btn btn-primary btn-sm">Cấp điểm cộng</button>
+    </div>
+  </div>
+
+  <div style="flex:1 1 380px;min-width:0">
+    <div class="why" style="margin-top:0">
+      <strong>Dòng “→ Điểm tổng: +0.1” là bắt buộc, không phải trang trí.</strong>
+      Giảng viên nghĩ theo đơn vị “nửa điểm”, còn hệ thống tính theo trọng số cột. Cộng +0.5 vào cột Trắc nghiệm 20%
+      chỉ làm điểm tổng nhích 0.1 — nếu giao diện không nói ra ngay lúc bấm, người dùng sẽ tin mình vừa cho nửa điểm
+      và chỉ phát hiện lúc chốt điểm cuối kỳ, khi sửa lại đã tốn hàng chục thao tác. Cùng con số +0.5 mà chọn
+      “Điểm tổng” thì dòng này đổi thành <em>→ Điểm tổng: +0.5</em>. Hai lựa chọn khác nhau phải nhìn thấy được khác nhau.
+    </div>
+    <div class="note">
+      <strong>Ô “Lý do” không được để trống, kể cả khi đã bấm nút từ thư viện.</strong>
+      Bấm nút chỉ <em>điền sẵn</em> chữ vào ô; xoá sạch chữ rồi bấm “Cấp điểm cộng” vẫn bị từ chối.
+      Điểm cộng không lý do là thứ không giải thích được khi sinh viên khiếu nại, mà khiếu nại điểm thì luôn xảy ra
+      sau khi bạn đã quên vì sao mình cộng.
+    </div>
+    <div class="note">
+      <strong>Không có điểm cộng âm.</strong> Muốn hạ điểm thì sửa điểm cột và để lại vết sửa tay (chấm cam),
+      chứ không cấp “điểm cộng −0.5”. Điểm cộng âm làm hỏng mọi phép cộng dồn và cả câu chuyện hiển thị cho sinh viên.
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Vì sao chỉ “ẩn”, không có nút xoá vĩnh viễn.</strong> Mỗi phiếu điểm cộng đã cấp có lưu
+<code>template_id</code> trỏ về dòng trong thư viện (để thống kê “lý do nào hay dùng”). Xoá thật dòng đó là
+làm hỏng liên kết của toàn bộ lịch sử — và dù bản thân câu chữ đã được chép sang phiếu nên không mất chữ,
+bạn vẫn mất khả năng trả lời “kỳ này tôi hay cộng điểm vì lý do gì”. Ẩn thì lý do biến khỏi dãy nút bấm nhanh,
+lịch sử vẫn nguyên. Đây là cùng một nguyên tắc với việc lưu <em>bản sao văn bản</em> của lý do vào phiếu:
+sáu tháng sau bạn đổi nhãn “Thuyết trình tự tin” thành “Thuyết trình xuất sắc”, các phiếu cũ vẫn giữ đúng chữ
+tại thời điểm cấp.
+</div>
+
+<div class="note">
+<strong>Cạm bẫy — “thư viện dùng chung” không có nghĩa là dùng chung giữa các giảng viên.</strong>
+Mỗi giảng viên một khoang dữ liệu riêng (ADR-012), nên thư viện của bạn không ai khác thấy, và bạn cũng không
+mượn được thư viện của đồng nghiệp. “Dùng chung” ở đây chỉ có nghĩa: chung cho mọi lớp và mọi học kỳ <em>của bạn</em>.
+Đừng thiết kế nút “chia sẻ thư viện” — mức cộng tác đó đã bị loại bỏ có chủ đích.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>C. Màn hình tài khoản</h2>
+<div class="src">
+  <span class="chip c-info">Bổ sung ngoài SRS mục 6 (SRS mục 2 + ADR-012)</span>
+  <span class="chip c-mute">Phase 0 · Task 0.8b</span>
+  <span class="chip c-mute">C6 thuộc Phase 2 · Task 2.3</span>
+  <span class="chip c-mute">Có bản 360px cho màn hình sinh viên dùng</span>
+</div>
+<p style="font-size:.9rem;color:var(--fg-muted);margin-top:.4rem">
+Sáu màn hình: đăng nhập · thiết lập lần đầu · mời giảng viên · danh sách lời mời · đăng ký bằng liên kết mời ·
+bắt buộc đổi mật khẩu lần đầu. Không có màn hình quản trị và không có vai trò Admin — mời người khác vào hệ thống
+không cấp thêm quyền cho ai, vì các giảng viên không thấy dữ liệu của nhau.</p>
+
+<h3>C1 · Đăng nhập</h3>
+<div class="side">
+  <div class="grow">
+    <div class="capw">Bản máy tính · trạng thái bình thường</div>
+    <div class="screen" style="margin-top:0">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="url">teachhub.local/dang-nhap</span></div>
+      <div class="scr-body" style="padding:1.6rem 1rem">
+        <div class="auth">
+          <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+          <h4>Đăng nhập</h4>
+          <p class="sub">Dùng email trường cấp. Sinh viên đăng nhập bằng chính email này, không phải MSSV.</p>
+          <div class="field">
+            <label for="e1">Email</label>
+            <input class="inp" id="e1" type="email" value="nam.nguyen@ttu.edu.vn">
+          </div>
+          <div class="field">
+            <label for="p1">Mật khẩu</label>
+            <input class="inp" id="p1" type="password" value="............">
+          </div>
+          <button class="btn btn-primary" style="width:100%">Đăng nhập</button>
+          <p class="hint" style="text-align:center;margin-top:.7rem">
+            Chưa có tài khoản? Hệ thống <strong>không mở đăng ký công khai</strong> —
+            tài khoản giảng viên chỉ tạo được bằng liên kết mời, tài khoản sinh viên do giảng viên của lớp tạo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="capw">Bản di động 360px · sinh viên đăng nhập trên điện thoại</div>
+    <div class="phone">
+      <div class="notch">360 × 780 · sinh viên</div>
+      <div class="scr-body">
+        <div class="logo" style="font-size:1.15rem;margin-bottom:.4rem">TeachHub</div>
+        <h4 style="margin:.2rem 0 .1rem;font-size:1.02rem">Đăng nhập</h4>
+        <p class="sub" style="font-size:.82rem;color:var(--fg-muted);margin:0 0 .9rem">Lớp DA24TIN01 · HK1 2026–2027</p>
+        <div class="field">
+          <label for="e2">Email</label>
+          <input class="inp" id="e2" type="email" value="anh.nv.2251012001@sv.ttu.edu.vn">
+        </div>
+        <div class="field">
+          <label for="p2">Mật khẩu</label>
+          <input class="inp" id="p2" type="password" value="............">
+        </div>
+        <button class="btn btn-primary">Đăng nhập</button>
+        <p class="tapnote">Mọi nút và ô nhập ở đây cao tối thiểu 44px</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">C1-b</span> Sai mật khẩu</div>
+<div class="side">
+  <div class="grow">
+    <div class="screen" style="margin-top:0">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="url">teachhub.local/dang-nhap</span></div>
+      <div class="scr-body" style="padding:1.6rem 1rem">
+        <div class="auth">
+          <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+          <h4>Đăng nhập</h4>
+          <div class="stop" style="margin-top:.5rem">
+            <strong>Email hoặc mật khẩu không đúng.</strong><br>
+            Còn <strong>3</strong> lần thử trước khi tài khoản bị tạm khoá 15 phút.
+          </div>
+          <div class="field">
+            <label for="e3">Email</label>
+            <input class="inp bad" id="e3" type="email" value="nam.nguyen@ttu.edu.vn">
+          </div>
+          <div class="field">
+            <label for="p3">Mật khẩu</label>
+            <input class="inp bad" id="p3" type="password" value="......">
+            <div class="fieldmsg"><span>✕</span><span>Kiểm tra lại phím Caps Lock và bố cục bàn phím.</span></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%">Đăng nhập</button>
+          <p class="hint" style="text-align:center;margin-top:.7rem">Quên mật khẩu? Liên hệ giảng viên phụ trách lớp để đặt lại.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="capw">Sau 5 lần sai · bị tạm khoá</div>
+    <div class="phone">
+      <div class="notch">360 × 780 · sinh viên</div>
+      <div class="scr-body">
+        <div class="logo" style="font-size:1.15rem;margin-bottom:.4rem">TeachHub</div>
+        <h4 style="margin:.2rem 0 .1rem;font-size:1.02rem">Tạm khoá đăng nhập</h4>
+        <div class="stop">
+          <strong>Đã sai mật khẩu 5 lần liên tiếp.</strong><br>
+          Thử lại sau <span style="font-family:var(--mono);font-variant-numeric:tabular-nums">14:12</span> phút,
+          hoặc nhờ giảng viên đặt lại mật khẩu ngay bây giờ.
+        </div>
+        <button class="btn btn-primary" disabled>Đăng nhập</button>
+        <p class="tapnote">Nút tắt kèm đồng hồ đếm ngược — người dùng biết chờ bao lâu</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+<strong>Vì sao câu báo lỗi ở đây cố tình mơ hồ, ngược với luật “lỗi phải nêu lý do cụ thể”.</strong>
+Màn hình đăng nhập là ngoại lệ có chủ đích duy nhất. Nếu tách thành “email không tồn tại” và “sai mật khẩu”,
+bất kỳ ai cũng dò được email nào có tài khoản trong hệ thống chỉ bằng cách thử — và với một trường đại học,
+danh sách email sinh viên là thứ đoán được. Cái <em>được phép</em> cụ thể là phần người dùng kiểm soát được:
+còn mấy lần thử, khoá bao lâu, làm gì để gỡ. Ngoại lệ này chỉ áp dụng cho đăng nhập và khôi phục mật khẩu;
+mọi màn hình khác vẫn phải nói thẳng lý do.
+</div>
+
+<h3>C2 · Thiết lập lần đầu (bootstrap)</h3>
+<div class="stt"><span class="no">C2-a</span> Hệ thống trống — màn hình này thay thế màn hình đăng nhập</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/thiet-lap-lan-dau</span></div>
+  <div class="scr-body" style="padding:1.6rem 1rem">
+    <div class="auth" style="max-width:440px">
+      <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+      <h4>Thiết lập lần đầu</h4>
+      <p class="sub">Hệ thống chưa có giảng viên nào. Màn hình này tạo tài khoản giảng viên đầu tiên,
+        và <strong>chỉ chạy đúng một lần</strong> — tạo xong nó biến mất vĩnh viễn.</p>
+
+      <div class="why" style="margin-top:0">
+        Từ giảng viên thứ hai trở đi, tài khoản chỉ sinh ra bằng <strong>liên kết mời</strong> (màn hình C3).
+        Giảng viên nào cũng mời được người khác — không cần và không có vai trò quản trị.
+      </div>
+
+      <div class="field">
+        <label for="e4">Họ và tên</label>
+        <input class="inp" id="e4" value="Nguyễn Hoàng Nam">
+      </div>
+      <div class="field">
+        <label for="e5">Email</label>
+        <input class="inp" id="e5" type="email" value="nam.nguyen@ttu.edu.vn">
+        <div class="hint">Đây sẽ là tên đăng nhập. Đổi được sau, nhưng phải qua chính tài khoản này.</div>
+      </div>
+      <div class="field">
+        <label for="e6">Mật khẩu</label>
+        <input class="inp" id="e6" type="password" value=".................">
+        <ul class="rules">
+          <li><span class="y">✓</span> Ít nhất 12 ký tự</li>
+          <li><span class="y">✓</span> Có chữ hoa, chữ thường và chữ số</li>
+          <li><span class="n">○</span> Có ký tự đặc biệt (khuyến nghị, không bắt buộc)</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" style="width:100%">Tạo tài khoản giảng viên đầu tiên</button>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">C2-b</span> Đã có giảng viên — đường dẫn bootstrap bị khoá vĩnh viễn</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/thiet-lap-lan-dau</span></div>
+  <div class="scr-body" style="padding:1.6rem 1rem">
+    <div class="auth" style="max-width:440px">
+      <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+      <h4>Thiết lập lần đầu đã hoàn tất</h4>
+      <div class="stop">
+        <strong>Hệ thống đã có giảng viên, nên đường dẫn này bị khoá vĩnh viễn (HTTP 409).</strong><br>
+        Nó không mở lại kể cả khi giảng viên đầu tiên bị vô hiệu hoá hay xoá — nếu mở lại,
+        bất kỳ ai biết đường dẫn cũng tự tạo được tài khoản giảng viên.
+      </div>
+      <p class="hint">Bạn cần tài khoản? Nhờ một giảng viên đang dùng hệ thống gửi cho bạn <strong>liên kết mời</strong>.</p>
+      <button class="btn btn-ghost" style="width:100%">Về trang đăng nhập</button>
+    </div>
+  </div>
+</div>
+
+<h3>C3 · Mời giảng viên</h3>
+<div class="stt"><span class="no">C3-a</span> Biểu mẫu — trước khi tạo liên kết</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/loi-moi</span></div>
+  <div class="appbar">
+    <span class="logo">TeachHub</span>
+    <span class="tabs"><span>Bảng điều khiển</span><span>Môn học</span><span>Lớp học phần</span><span>Sổ điểm</span><span class="on">Lời mời</span></span>
+    <span class="who">HK1 2026–2027 <span class="av">NN</span> TS. Nguyễn Hoàng Nam</span>
+  </div>
+  <div class="scr-body">
+    <h4 style="margin-top:.2rem;font-size:1.05rem">Mời giảng viên</h4>
+    <p style="font-size:.86rem;color:var(--fg-muted);margin:.15rem 0 .9rem;max-width:70ch">
+      Người được mời sẽ có khoang dữ liệu riêng: môn học, lớp, sổ điểm và thư viện lý do của họ hoàn toàn tách khỏi bạn.
+      Mời ai đó <strong>không</strong> cho họ xem dữ liệu của bạn, và cũng không cho bạn xem dữ liệu của họ.</p>
+
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;max-width:640px">
+      <div class="field" style="flex:1 1 300px;margin-bottom:0">
+        <label for="e7">Email người được mời</label>
+        <input class="inp" id="e7" type="email" placeholder="ten.ho@ttu.edu.vn">
+      </div>
+      <div class="field" style="width:150px;margin-bottom:0">
+        <label for="e8">Hạn liên kết</label>
+        <select class="inp" id="e8"><option>7 ngày (mặc định)</option><option>3 ngày</option><option>24 giờ</option></select>
+      </div>
+      <button class="btn btn-primary">Tạo liên kết mời</button>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">C3-b</span> Sau khi tạo — liên kết hiện ĐÚNG MỘT LẦN</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/loi-moi</span></div>
+  <div class="scr-body">
+    <div class="done">
+      <strong>Đã tạo liên kết mời cho <code>lam.tran@ttu.edu.vn</code>.</strong>
+      Hạn dùng đến <strong>20/08/2026 14:41</strong> (7 ngày), dùng được đúng một lần.
+    </div>
+
+    <div class="card" style="max-width:720px;border-color:var(--warning)">
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+        <span class="chip c-warn">⚠ Chỉ hiện lần này</span>
+        <strong style="font-size:.92rem">Sao chép ngay và gửi cho người được mời</strong>
+      </div>
+      <div class="token">https://teachhub.local/dang-ky?token=qL4pV2sR8tYb1Nf6HwC0aJmD5eXgZ3kU9rT7oPiQwEs</div>
+      <div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm">Sao chép liên kết</button>
+        <button class="btn btn-ghost btn-sm">Sao chép kèm câu mời soạn sẵn</button>
+        <button class="btn btn-ghost btn-sm">Tôi đã gửi — đóng</button>
+      </div>
+      <p class="hint" style="margin-top:.6rem">
+        <strong>Rời khỏi trang là mất liên kết này.</strong> Hệ thống chỉ lưu mã băm SHA-256 của nó, không lưu liên kết thật,
+        nên không ai — kể cả bạn — xem lại được. Lỡ mất thì thu hồi lời mời cũ và tạo cái mới; thao tác đó mất 5 giây.</p>
+    </div>
+
+    <div class="note" style="max-width:720px">
+      <strong>Gửi liên kết qua kênh riêng.</strong> Ai cầm liên kết này cũng tạo được tài khoản giảng viên —
+      nó không kiểm tra email người bấm có trùng email được mời hay không, vì hệ thống không gửi được email xác thực.
+      Đừng dán vào nhóm chat chung.
+    </div>
+  </div>
+</div>
+
+<h3>C4 · Danh sách lời mời đã gửi</h3>
+<div class="stt"><span class="no">C4-a</span> Có dữ liệu — đủ ba trạng thái vòng đời</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/loi-moi</span></div>
+  <div class="scr-body">
+    <div class="sect" style="margin-top:0">
+      <header>Lời mời đã gửi <span class="chip c-mute">chỉ hiện lời mời do bạn tạo</span>
+        <span class="more"><button class="btn btn-primary btn-sm">+ Mời giảng viên</button></span></header>
+      <div class="scrollx">
+      <table class="demo">
+        <thead><tr>
+          <th>Email được mời</th><th>Tạo lúc</th><th>Hạn</th><th>Trạng thái</th><th></th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="num" style="text-align:left">lam.tran@ttu.edu.vn</td>
+            <td class="num" style="text-align:left">13/08/2026 14:41</td>
+            <td class="num" style="text-align:left">20/08/2026 14:41</td>
+            <td><span class="chip c-info">Đang chờ · còn 6 ngày</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Thu hồi</button></td>
+          </tr>
+          <tr>
+            <td class="num" style="text-align:left">hoa.pham@ttu.edu.vn</td>
+            <td class="num" style="text-align:left">02/08/2026 09:05</td>
+            <td class="num" style="text-align:left">09/08/2026 09:05</td>
+            <td><span class="chip c-ok">✓ Đã dùng · 03/08/2026</span></td>
+            <td style="text-align:right"><span class="hint">Không thu hồi được — tài khoản đã tạo</span></td>
+          </tr>
+          <tr>
+            <td class="num" style="text-align:left">dung.le@ttu.edu.vn</td>
+            <td class="num" style="text-align:left">21/07/2026 16:20</td>
+            <td class="num" style="text-align:left">28/07/2026 16:20</td>
+            <td><span class="chip c-mute">Hết hạn · 16 ngày trước</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Mời lại</button></td>
+          </tr>
+          <tr>
+            <td class="num" style="text-align:left">khanh.vo@ttu.edu.vn</td>
+            <td class="num" style="text-align:left">28/07/2026 11:02</td>
+            <td class="num" style="text-align:left">04/08/2026 11:02</td>
+            <td><span class="chip c-mute">Đã thu hồi · 29/07/2026</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm">Mời lại</button></td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <div class="note" style="max-width:760px">
+      <strong>Cột trạng thái không bao giờ hiện lại liên kết, kể cả với lời mời đang chờ.</strong>
+      Bảng này chỉ biết <em>đã mời ai, lúc nào, còn hạn không</em> — vì trong cơ sở dữ liệu chỉ có mã băm SHA-256.
+      Nút duy nhất có thể có là “Thu hồi” và “Mời lại” (tạo liên kết mới, huỷ liên kết cũ).
+      Nếu một ngày nào đó ai đó thêm nút “Xem lại liên kết” thì tức là hệ thống đã bắt đầu lưu token thật — hỏng cả thiết kế.
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">C4-b</span> Trạng thái rỗng — chưa mời ai</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/instructor/loi-moi</span></div>
+  <div class="scr-body">
+    <div class="sect" style="margin-top:0">
+      <header>Lời mời đã gửi</header>
+      <div class="empty">
+        <div class="ttl">Bạn chưa mời ai</div>
+        <p class="txt">Hệ thống không có đăng ký công khai, nên đồng nghiệp muốn dùng TeachHub thì phải có
+          liên kết mời từ một người đang dùng. Mời ai đó không ảnh hưởng gì tới dữ liệu của bạn:
+          họ có khoang riêng, hai bên không thấy dữ liệu của nhau.</p>
+        <button class="btn btn-primary">+ Mời giảng viên</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h3>C5 · Đăng ký bằng liên kết mời</h3>
+<div class="stt"><span class="no">C5-a</span> Liên kết còn hạn</div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/dang-ky?token=qL4pV2sR…QwEs</span></div>
+  <div class="scr-body" style="padding:1.6rem 1rem">
+    <div class="auth" style="max-width:440px">
+      <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+      <h4>Tạo tài khoản giảng viên</h4>
+      <p class="sub">Bạn được <strong>TS. Nguyễn Hoàng Nam</strong> mời vào hệ thống.
+        Liên kết còn hạn đến <span style="font-family:var(--mono);font-variant-numeric:tabular-nums">20/08/2026 14:41</span>.</p>
+
+      <div class="field">
+        <label for="e9">Email</label>
+        <input class="inp" id="e9" type="email" value="lam.tran@ttu.edu.vn" readonly style="background:var(--surface-2);color:var(--fg-muted)">
+        <div class="hint">Khoá theo lời mời — muốn dùng email khác thì nhờ người mời tạo liên kết mới.</div>
+      </div>
+      <div class="field">
+        <label for="e10">Họ và tên</label>
+        <input class="inp" id="e10" placeholder="VD: Trần Thanh Lâm">
+      </div>
+      <div class="field">
+        <label for="e11">Mật khẩu</label>
+        <input class="inp" id="e11" type="password" value="..............">
+        <ul class="rules">
+          <li><span class="y">✓</span> Ít nhất 12 ký tự</li>
+          <li><span class="y">✓</span> Có chữ hoa, chữ thường và chữ số</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" style="width:100%">Tạo tài khoản</button>
+      <p class="hint" style="text-align:center;margin-top:.7rem">
+        Tạo xong, liên kết này hết hiệu lực ngay — nó chỉ dùng được một lần.</p>
+    </div>
+  </div>
+</div>
+
+<div class="stt"><span class="no">C5-b</span> Liên kết hết hạn, đã dùng, hoặc sai — <em>cùng một câu thông báo</em></div>
+<div class="screen">
+  <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+    <span class="url">teachhub.local/dang-ky?token=8mZq…x2Vd</span></div>
+  <div class="scr-body" style="padding:1.6rem 1rem">
+    <div class="auth" style="max-width:460px">
+      <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+      <h4>Liên kết mời không dùng được</h4>
+      <div class="stop">
+        <strong>Liên kết này không còn dùng được.</strong><br>
+        Có thể vì một trong ba lý do: liên kết đã quá hạn, đã có người dùng nó để tạo tài khoản,
+        hoặc người mời đã thu hồi.
+      </div>
+      <p class="hint">
+        Cách xử lý: nhắn cho người đã mời bạn để họ tạo liên kết mới. Liên kết mới có hạn 7 ngày kể từ lúc tạo.</p>
+      <button class="btn btn-ghost" style="width:100%">Về trang đăng nhập</button>
+    </div>
+  </div>
+</div>
+
+<div class="note">
+<strong>Ba lý do gộp vào một câu — và đây là chủ ý, giống màn hình đăng nhập.</strong>
+Nếu “liên kết hết hạn” và “liên kết không tồn tại” hiện hai câu khác nhau, kẻ tấn công thử token bịa
+sẽ phân biệt được “chuỗi này từng tồn tại” với “chuỗi này chưa bao giờ có” — tức là dò được không gian token bằng cách thử.
+Plan Phase 0 có hẳn một test khoá điều này lại: <code>Token_sai_va_token_het_han_tra_ve_THONG_BAO_GIONG_HET_NHAU</code>.
+Đổi câu chữ ở màn hình này phải sửa cả ba nhánh cùng lúc, nếu không test sẽ đỏ — cố ý như vậy.
+Bù lại, phần <em>người dùng làm được gì</em> vẫn rất cụ thể: nhắn cho người mời, liên kết mới hạn 7 ngày.
+</div>
+
+<h3>C6 · Bắt buộc đổi mật khẩu lần đầu (sinh viên)</h3>
+<div class="src">
+  <span class="chip c-info">SRS mục 8 · Phase 2 Task 2.3</span>
+  <span class="chip c-mute">Middleware <code>MustChangePassword</code> · HTTP 403 + mã <code>must_change_password</code></span>
+</div>
+<div class="side" style="margin-top:.7rem">
+  <div class="grow">
+    <div class="capw">Bản máy tính</div>
+    <div class="screen" style="margin-top:0">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="url">teachhub.local/doi-mat-khau</span></div>
+      <div class="scr-body" style="padding:1.6rem 1rem">
+        <div class="auth" style="max-width:440px">
+          <div class="logo" style="font-size:1.2rem;margin-bottom:.5rem">TeachHub</div>
+          <h4>Đổi mật khẩu trước khi vào lớp</h4>
+          <p class="sub">Chào <strong>Nguyễn Văn Ánh</strong> · MSSV <span style="font-family:var(--mono)">2251012001</span></p>
+
+          <div class="note" style="margin-top:0">
+            <strong>Vì sao bạn bị chặn ở đây:</strong> tài khoản này do giảng viên tạo hàng loạt cho cả lớp DA24TIN01,
+            nên mật khẩu hiện tại là mật khẩu mặc định mà <em>giảng viên cũng biết</em>.
+            Đổi xong là bạn vào lớp được ngay; trước khi đổi, mọi chức năng khác đều khoá.
+          </div>
+
+          <div class="field">
+            <label for="e12">Mật khẩu hiện tại (giảng viên đã cấp)</label>
+            <input class="inp" id="e12" type="password" value="..........">
+          </div>
+          <div class="field">
+            <label for="e13">Mật khẩu mới</label>
+            <input class="inp" id="e13" type="password" value=".............">
+            <ul class="rules">
+              <li><span class="y">✓</span> Ít nhất 12 ký tự</li>
+              <li><span class="y">✓</span> Có chữ hoa, chữ thường và chữ số</li>
+              <li><span class="n">○</span> Khác mật khẩu giảng viên đã cấp</li>
+            </ul>
+          </div>
+          <div class="field">
+            <label for="e14">Nhập lại mật khẩu mới</label>
+            <input class="inp bad" id="e14" type="password" value="...........">
+            <div class="fieldmsg"><span>✕</span><span>Hai ô mật khẩu chưa khớp nhau.</span></div>
+          </div>
+          <button class="btn btn-primary" style="width:100%" disabled>Đổi mật khẩu và vào lớp</button>
+          <p class="hint" style="margin-top:.6rem">
+            Nút tắt vì <strong>hai ô mật khẩu mới chưa khớp</strong>. Sửa cho khớp là nút bật lại.<br>
+            Đổi xong, mọi thiết bị đang đăng nhập bằng mật khẩu cũ sẽ bị đăng xuất — kể cả máy tính phòng thực hành.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="capw">Bản di động 360px · đây là nơi sinh viên thật sự dùng</div>
+    <div class="phone">
+      <div class="notch">360 × 780 · sinh viên</div>
+      <div class="scr-body">
+        <div class="logo" style="font-size:1.15rem;margin-bottom:.3rem">TeachHub</div>
+        <h4 style="margin:.2rem 0 .1rem;font-size:1.02rem">Đổi mật khẩu trước khi vào lớp</h4>
+        <p class="sub" style="font-size:.82rem;color:var(--fg-muted);margin:0 0 .7rem">
+          <span style="font-family:var(--mono)">2251012001</span> · Nguyễn Văn Ánh</p>
+
+        <div class="note" style="margin:.2rem 0 .8rem;font-size:.82rem">
+          Mật khẩu hiện tại do giảng viên cấp cho cả lớp — đổi xong bạn mới xem được bài giảng và nộp bài.
+        </div>
+
+        <div class="field">
+          <label for="e15">Mật khẩu hiện tại</label>
+          <input class="inp" id="e15" type="password" value="..........">
+        </div>
+        <div class="field">
+          <label for="e16">Mật khẩu mới</label>
+          <input class="inp" id="e16" type="password" value=".............">
+          <ul class="rules">
+            <li><span class="y">✓</span> Ít nhất 12 ký tự</li>
+            <li><span class="y">✓</span> Có chữ hoa, chữ thường và chữ số</li>
+          </ul>
+        </div>
+        <div class="field">
+          <label for="e17">Nhập lại mật khẩu mới</label>
+          <input class="inp" id="e17" type="password" value=".............">
+        </div>
+        <button class="btn btn-primary">Đổi mật khẩu và vào lớp</button>
+        <p class="tapnote">Ô nhập và nút cao 44px · không có nút “Bỏ qua”</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="why">
+<strong>Không có nút “Để sau”.</strong> Middleware chặn ở tầng máy chủ: mọi API khác trả 403 kèm mã
+<code>must_change_password</code> cho tới khi đổi xong. Nếu giao diện có nút bỏ qua, sinh viên bấm vào rồi gặp
+màn hình trắng vì mọi lời gọi API đều bị từ chối — tệ hơn nhiều so với một màn hình chặn có giải thích rõ.
+Đây cũng là lý do màn hình này nói thẳng <em>ai</em> biết mật khẩu hiện tại: người dùng cần hiểu mình đang tự bảo vệ
+cái gì, chứ không phải làm một thủ tục vô nghĩa.
+</div>
+
+<div class="note">
+<strong>Đổi mật khẩu phải thu hồi toàn bộ refresh token của người đó.</strong>
+Đổi mật khẩu mà phiên cũ vẫn sống thì việc đổi gần như vô nghĩa — và trong bối cảnh phòng thực hành dùng máy chung,
+đó chính là tình huống thật. Giao diện phải báo trước hệ quả (“mọi thiết bị sẽ bị đăng xuất”), nếu không sinh viên
+sẽ tưởng hệ thống lỗi khi điện thoại của mình bất ngờ văng ra.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<h2>D. Hai quyết định phải giữ nguyên</h2>
+
+<div class="why">
+<strong>D1 · Vì sao không mở đăng ký công khai.</strong>
+Một LMS cho ai cũng tự đăng ký làm giảng viên nghĩa là <em>bất kỳ ai trên internet cũng tạo được tài khoản trên máy chủ của bạn
+rồi tải file lên</em> — vừa là lỗ hổng, vừa là hoá đơn lưu trữ. TeachHub lưu bài nộp dạng ZIP, ảnh và video;
+một tài khoản rác đủ để đẩy dung lượng và băng thông lên mức không kiểm soát được, mà không có cách nào phân biệt
+nó với một giảng viên thật. Vì thế tài khoản chỉ sinh ra bằng lời mời, trừ đúng một ngoại lệ là người đầu tiên
+(<code>POST /api/auth/bootstrap</code>, chạy một lần rồi khoá vĩnh viễn).<br><br>
+Hệ quả kéo theo: <strong>không cần vai trò Admin</strong>. Mời người khác vào hệ thống không cấp thêm quyền cho ai —
+các giảng viên không thấy dữ liệu của nhau (ADR-012) — nên dựng thêm một vai trò và mấy màn hình quản trị chỉ để
+bấm nút mời là không đáng ở quy mô vài đồng nghiệp. Đó là lý do màn hình C3 nằm ngay trong khu vực giảng viên
+chứ không nằm sau một cổng quản trị riêng.
+</div>
+
+<div class="note">
+<strong>D2 · Vì sao liên kết mời chỉ hiện đúng một lần.</strong>
+Hệ thống lưu <strong>SHA-256 của token</strong>, không lưu token thật. Đây là cùng nguyên tắc với refresh token:
+một bản sao lưu cơ sở dữ liệu bị rò rỉ, hoặc một truy vấn <code>SELECT</code> lỡ tay, không được phép cho ai chiếm tài khoản
+hay tự tạo tài khoản mới. Khi bạn bấm “Tạo liên kết mời”, chuỗi 32 byte ngẫu nhiên được sinh ra, đưa lên màn hình <em>một lần</em>,
+rồi chỉ mã băm của nó được ghi xuống — máy chủ sau đó cũng không tính ngược lại được.<br><br>
+Vì thế giao diện phải làm ba việc: (1) nói trước rằng liên kết chỉ hiện lần này, ngay cạnh nút sao chép;
+(2) không bao giờ có nút “xem lại liên kết” ở bảng C4; (3) làm cho việc <em>tạo lại</em> thật dễ — thu hồi + mời lại là hai cú bấm,
+vì mất liên kết là chuyện chắc chắn sẽ xảy ra và không được để nó thành sự cố.
+</div>
+
+<h2>E. Bảng tra — màn hình và trạng thái đã vẽ</h2>
+<div class="card" style="padding:0;overflow:hidden">
+<div class="scrollx">
+<table class="demo">
+  <thead><tr>
+    <th>Mã</th><th>Màn hình</th><th>Nguồn</th><th>Phase</th><th>Trạng thái đã vẽ</th><th>Bản 360px</th>
+  </tr></thead>
+  <tbody>
+    <tr><td class="num" style="text-align:left">A1–A4</td><td>Dashboard giảng viên</td><td>SRS 6.1</td><td>4a · Task 4a.5</td>
+        <td>có dữ liệu · rỗng · đang tải · lỗi một phần</td><td>Không — chỉ giảng viên, dùng trên máy tính</td></tr>
+    <tr><td class="num" style="text-align:left">B1–B4</td><td>Thư viện lý do điểm cộng</td><td>SRS 6.7b</td><td>4b · Task 4b.7, 4b.10</td>
+        <td>có dữ liệu (kèm dòng đã ẩn + dòng đang sửa) · rỗng · cảnh báo key + lỗi vượt trần · popover dùng thư viện</td><td>Không</td></tr>
+    <tr><td class="num" style="text-align:left">C1</td><td>Đăng nhập</td><td>SRS mục 2</td><td>0 · Task 0.8b</td>
+        <td>bình thường · sai mật khẩu · tạm khoá sau 5 lần</td><td><span class="chip c-ok">✓ Có</span></td></tr>
+    <tr><td class="num" style="text-align:left">C2</td><td>Thiết lập lần đầu</td><td>ADR-012</td><td>0 · Task 0.8b</td>
+        <td>hệ thống trống · đã có giảng viên (409, khoá vĩnh viễn)</td><td>Không — chỉ giảng viên</td></tr>
+    <tr><td class="num" style="text-align:left">C3</td><td>Mời giảng viên</td><td>ADR-012</td><td>0 · Task 0.8b</td>
+        <td>biểu mẫu · liên kết hiện một lần kèm cảnh báo</td><td>Không</td></tr>
+    <tr><td class="num" style="text-align:left">C4</td><td>Danh sách lời mời</td><td>ADR-012</td><td>0 · Task 0.8b</td>
+        <td>đang chờ / đã dùng / hết hạn / đã thu hồi · rỗng</td><td>Không</td></tr>
+    <tr><td class="num" style="text-align:left">C5</td><td>Đăng ký bằng liên kết mời</td><td>ADR-012</td><td>0 · Task 0.8b</td>
+        <td>liên kết còn hạn · liên kết hỏng (gộp ba lý do)</td><td>Không</td></tr>
+    <tr><td class="num" style="text-align:left">C6</td><td>Bắt buộc đổi mật khẩu lần đầu</td><td>SRS mục 8</td><td>2 · Task 2.3</td>
+        <td>bình thường · lỗi hai ô không khớp (nút tắt kèm lý do)</td><td><span class="chip c-ok">✓ Có</span></td></tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+<p class="lede" style="margin-top:1.6rem">
+Không màn hình nào trong file này vẽ trợ giảng (vai trò tắt hoàn toàn ở MVP — ADR-013),
+không có điểm chữ, và mọi con số đều dùng <code>IBM Plex Mono</code> với <code>tabular-nums</code>.
+Toàn bộ màu lấy từ khối <code>:root</code> chép nguyên từ <code>00-design-system.html</code>.
+</p>
+
+</main>
+</body>
+</html>
