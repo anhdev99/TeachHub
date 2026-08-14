@@ -106,6 +106,40 @@ public class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return (subjectId, versions.EnumerateArray().First().GetProperty("id").GetGuid());
     }
 
+    /// <summary>Môn + phiên bản ĐÃ XUẤT BẢN; trả về (subjectId, versionId).</summary>
+    public static async Task<(Guid SubjectId, Guid VersionId)> SeedPublishedSubjectAsync(HttpClient gv)
+    {
+        var (subjectId, versionId) = await SeedSubjectWithDraftAsync(gv);
+        (await gv.PostAsync($"/api/subject-versions/{versionId}/publish", null)).EnsureSuccessStatusCode();
+        return (subjectId, versionId);
+    }
+
+    /// <summary>Nhân bản một phiên bản rồi xuất bản luôn bản mới; trả về id bản mới.</summary>
+    public static async Task<Guid> CloneAndPublishAsync(HttpClient gv, Guid subjectId, Guid nguonId, string nhan)
+    {
+        var res = await gv.PostAsJsonAsync($"/api/subjects/{subjectId}/versions",
+            new { cloned_from_version_id = nguonId, version_label = nhan });
+        res.EnsureSuccessStatusCode();
+
+        var moi = (await res.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        (await gv.PostAsync($"/api/subject-versions/{moi}/publish", null)).EnsureSuccessStatusCode();
+        return moi;
+    }
+
+    public static async Task<Guid> CreateOfferingAsync(
+        HttpClient gv, Guid subjectId, Guid? versionId = null, string? classCode = null)
+    {
+        var res = await gv.PostAsJsonAsync("/api/offerings", new
+        {
+            subject_id = subjectId,
+            subject_version_id = versionId,
+            semester = "HK1 2026-2027",
+            class_code = classCode ?? $"DA{Guid.CreateVersion7().ToString("N")[^5..].ToUpperInvariant()}",
+        });
+        res.EnsureSuccessStatusCode();
+        return (await res.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+    }
+
     public new async Task DisposeAsync()
     {
         await _db.DisposeAsync();
