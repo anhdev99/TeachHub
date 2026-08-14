@@ -42,7 +42,7 @@ public class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public IServiceScope CreateServiceScope() => Services.CreateScope();
 
-    public async Task InitializeAsync()
+    public virtual async Task InitializeAsync()
     {
         await _db.StartAsync();
         using var scope = Services.CreateScope();
