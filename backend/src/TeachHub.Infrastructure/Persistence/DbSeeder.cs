@@ -7,6 +7,13 @@ namespace TeachHub.Infrastructure.Persistence;
 
 public static class DbSeeder
 {
+    /// <summary>Chỉ áp migration, không tạo tài khoản nào — dùng khi tắt seed.</summary>
+    public static async Task MigrateOnlyAsync(this IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    }
+
     public static async Task SeedAsync(this IServiceProvider services)
     {
         using var scope = services.CreateScope();

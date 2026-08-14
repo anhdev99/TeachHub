@@ -16,23 +16,31 @@ namespace TeachHub.Api.Tests;
 /// hệ thống này phụ thuộc nặng vào jsonb, CHECK constraint và partial index — những thứ
 /// InMemory không mô phỏng, nên test qua nó sẽ xanh giả.
 /// </summary>
-public sealed class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _db = new PostgreSqlBuilder("postgres:17-alpine").Build();
+
+    /// <summary>Lớp con ghi đè để đổi cấu hình host (ví dụ tắt seed để test bootstrap).</summary>
+    protected virtual IEnumerable<KeyValuePair<string, string?>> ExtraSettings => [];
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
-        builder.ConfigureAppConfiguration((_, cfg) => cfg.AddInMemoryCollection(
-            new Dictionary<string, string?>
+        builder.ConfigureAppConfiguration((_, cfg) =>
+        {
+            cfg.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Default"] = _db.GetConnectionString(),
                 ["Hangfire:Enabled"] = "false",
                 ["Jwt:Key"] = "test-key-chi-dung-trong-test-va-du-dai-32-bytes!!",
                 ["Jwt:Issuer"] = "teachhub-test",
                 ["Jwt:Audience"] = "teachhub-test",
-            }));
+            });
+            cfg.AddInMemoryCollection(ExtraSettings);
+        });
     }
+
+    public IServiceScope CreateServiceScope() => Services.CreateScope();
 
     public async Task InitializeAsync()
     {

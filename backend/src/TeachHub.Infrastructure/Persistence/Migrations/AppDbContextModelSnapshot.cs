@@ -286,6 +286,58 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("asp_net_users", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Identity.InstructorInvite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("accepted_at");
+
+                    b.Property<Guid?>("AcceptedUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("accepted_user_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("InvitedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("invited_by");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("Id")
+                        .HasName("pk_instructor_invites");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_instructor_invites_token_hash");
+
+                    b.HasIndex("InvitedBy", "AcceptedAt")
+                        .HasDatabaseName("ix_instructor_invites_invited_by_accepted_at");
+
+                    b.ToTable("instructor_invites", (string)null);
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Identity.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -387,6 +439,16 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Identity.InstructorInvite", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("InvitedBy")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_instructor_invites_asp_net_users_invited_by");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Identity.RefreshToken", b =>

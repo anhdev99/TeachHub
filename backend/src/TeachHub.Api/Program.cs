@@ -47,12 +47,24 @@ builder.Services.AddOpenApi();                 // sinh OpenAPI 3.1, .NET 10 đ�
 // Đăng ký NGAY TỪ PHASE 0, dù mãi Phase 3 mới nộp bài: Phase 1 đã gắn
 // [EnableRateLimiting("upload")] lên endpoint upload bài giảng. Attribute không có
 // bộ đăng ký tương ứng là metadata trơ — không chặn gì, và cũng không báo lỗi gì.
-builder.Services.AddRateLimiter(o => o.AddFixedWindowLimiter("upload", w =>
+builder.Services.AddRateLimiter(o =>
 {
-    w.PermitLimit = 30;
-    w.Window = TimeSpan.FromMinutes(1);
-    w.QueueLimit = 0;
-}));
+    o.AddFixedWindowLimiter("upload", w =>
+    {
+        w.PermitLimit = 30;
+        w.Window = TimeSpan.FromMinutes(1);
+        w.QueueLimit = 0;
+    });
+
+    // register và bootstrap là hai endpoint ẩn danh DUY NHẤT ghi vào bảng người dùng,
+    // còn invites/{token} là chỗ dò token. Cả ba phải có trần.
+    o.AddFixedWindowLimiter("auth", w =>
+    {
+        w.PermitLimit = 20;
+        w.Window = TimeSpan.FromMinutes(1);
+        w.QueueLimit = 0;
+    });
+});
 
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
@@ -82,8 +94,11 @@ app.MapHealthChecks("/health").AllowAnonymous();
 // CHỈ seed ở Development/Testing. Ở Production dùng POST /api/auth/bootstrap để tạo
 // giảng viên đầu tiên — seed tài khoản có mật khẩu công khai lên máy chủ thật là
 // cách nhanh nhất để mất toàn bộ điểm số của mọi lớp.
-if (!app.Environment.IsProduction())
+// Seed:Enabled cho phép test dựng host trên hệ thống thật sự trống để kiểm bootstrap.
+if (!app.Environment.IsProduction() && app.Configuration.GetValue("Seed:Enabled", true))
     await app.Services.SeedAsync();
+else
+    await app.Services.MigrateOnlyAsync();
 
 app.Run();
 

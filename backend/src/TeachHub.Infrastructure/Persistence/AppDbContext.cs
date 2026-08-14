@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     : IdentityDbContext<AppUser, AppRole, Guid>(options), IAppDbContext
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<InstructorInvite> InstructorInvites => Set<InstructorInvite>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 

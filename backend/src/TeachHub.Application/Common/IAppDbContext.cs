@@ -11,6 +11,7 @@ public interface IAppDbContext
 {
     DbSet<AppUser> Users { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<InstructorInvite> InstructorInvites { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
