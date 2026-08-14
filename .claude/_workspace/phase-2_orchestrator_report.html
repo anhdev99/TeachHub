@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 2 — Báo cáo chốt phase · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1080px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.6rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:1.8rem;font-size:1.08rem;color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.82rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.89rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.3rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.ok{color:var(--ok);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+.err{color:var(--err);font-weight:600}
+.danger{border-left:4px solid var(--err);padding:.6rem 1rem;margin:1rem 0;background:var(--cbg);border-radius:0 8px 8px 0}
+hr{border:0;border-top:1px solid var(--bd);margin:2.4rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 2 — Lớp học phần &amp; Trải nghiệm học · Báo cáo chốt phase</h1>
+<p class="meta">15/08/2026 · Nhánh <code>phase-0-foundation</code> ·
+Plan: <a href="../../docs/superpowers/plans/2026-08-13-phase-2-offering-enrollment.html">2026-08-13-phase-2-offering-enrollment.html</a></p>
+
+<blockquote>
+<strong>Kết quả:</strong> <span class="ok">6/6 task đạt Definition of Done · nghiệm thu 8/8 bước đạt</span>.
+Phase này còn trả xong một món nợ kỹ thuật từ Phase 1: endpoint phục vụ file, nhờ đó xem trước PDF
+trong trình duyệt đã chạy được.
+</blockquote>
+
+<h2>1. Bằng chứng kiểm chứng</h2>
+
+<table>
+<thead><tr><th>Hạng mục</th><th>Kết quả</th></tr></thead>
+<tbody>
+<tr><td><code>dotnet build backend/TeachHub.sln</code></td><td class="ok">0 Warning(s) · 0 Error(s)</td></tr>
+<tr><td><code>dotnet test backend/TeachHub.sln</code></td><td class="ok">198 xanh / 0 đỏ — Domain 42, Application 11, Api 145 <span class="meta">(Phase 0+1 để lại 136)</span></td></tr>
+<tr><td>Ngân sách tốc độ unit test</td><td class="ok">Domain 0,09 s · Application 0,13 s — dưới xa ngưỡng 10 s</td></tr>
+<tr><td><code>pnpm lint</code> + <code>pnpm build</code></td><td class="ok">Sạch, 13 route</td></tr>
+<tr><td>Migration <code>TeachingAndProgress</code></td><td class="ok">4 bảng mới, <code>DropTable</code> chỉ trong <code>Down()</code>, đã apply</td></tr>
+<tr><td>Ma trận cách ly</td><td class="ok">16 → <strong>19 dòng tài nguyên + 3 endpoint danh sách</strong></td></tr>
+<tr><td>Client TS</td><td class="ok">Sinh lại được, 34 endpoint</td></tr>
+</tbody>
+</table>
+
+<h2>2. Task đã xong</h2>
+
+<table>
+<thead><tr><th>Task</th><th>Sản phẩm</th><th>Test</th></tr></thead>
+<tbody>
+<tr><td>2.1</td><td><code>JoinCode</code> (bỏ 0/O/1/I/L), <code>CourseOffering</code> với <code>SubjectVersionId</code> <strong>init-only</strong>, controller mở lớp</td><td>3 + 8</td></tr>
+<tr><td>2.2</td><td><code>EnrollmentImporter</code> thuần, <code>ClosedXmlEnrollmentReader</code> nhận diện cột theo tên header, endpoint import</td><td>9 + 8</td></tr>
+<tr><td>2.3</td><td>Join bằng mã lớp (hai lớp bảo vệ), <code>change-password</code>, <code>logout</code>, <code>MustChangePasswordMiddleware</code>, tạo tài khoản cả lớp</td><td>8</td></tr>
+<tr><td>2.4 ⭐</td><td><code>UnlockEngine</code> + <code>BlockingLesson</code>, <code>LessonProgress</code>/<code>ComponentProgress</code>, endpoint complete + my-progress</td><td>8 + 6</td></tr>
+<tr><td>2.5</td><td>Trang học 6.3: sidebar khoá/mở + %, nội dung chính, drawer dưới 768px</td><td>—</td></tr>
+<tr><td>2.6</td><td>Xem trước PDF bằng <code>&lt;object&gt;</code>, allowlist nguồn video, endpoint <code>GET /api/files/{**path}</code></td><td>8</td></tr>
+</tbody>
+</table>
+
+<h3>Bốn quyết định bảo mật đáng ghi lại</h3>
+<ul>
+<li><strong>Vào lớp cần HAI điều kiện, và thất bại luôn trả cùng một thông báo.</strong> Mã đúng vẫn chưa
+đủ — phải có tên trong danh sách. Mã sai, mã hết hạn, và "mã đúng nhưng không có tên" trả về
+<em>y hệt nhau</em>; có test khẳng định hai thông điệp bằng nhau từng ký tự. Khác nhau một chữ là kẻ dò
+mã phân biệt được hai ca và dò ra mã hợp lệ bằng cách thử.</li>
+<li><strong>Đổi mật khẩu thu hồi toàn bộ refresh token.</strong> Có test lấy refresh token trước khi đổi
+rồi khẳng định nó chết sau khi đổi — đổi mật khẩu mà phiên cũ vẫn sống thì việc đổi gần như vô nghĩa.</li>
+<li><strong>Endpoint phục vụ file kiểm quyền theo NỘI DUNG, không theo vai trò.</strong> Nó không gắn policy;
+handler cho phép đúng hai đường: giảng viên sở hữu nội dung, hoặc sinh viên đang học lớp ghim đúng
+phiên bản chứa bài đó. Có test cho cả hai đường được phép và bốn đường bị chặn, gồm cả path traversal.</li>
+<li><strong>iframe video chỉ nhận nguồn trong allowlist.</strong> Cho nhúng tuỳ ý nghĩa là bất kỳ ai sửa được
+nội dung bài học đều nhúng được trang lừa đảo vào trang học của sinh viên.</li>
+</ul>
+
+<h2>3. Sai lệch so với plan, và lý do</h2>
+
+<table>
+<thead><tr><th>#</th><th>Vấn đề</th><th>Đã xử lý</th></tr></thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>OrderBy</code> đặt SAU <code>Select</code> khi chiếu ra record bằng constructor: EF không dịch được sang SQL và ném <strong>lúc chạy</strong> — HTTP 500, không phải lỗi biên dịch, nên chỉ lộ khi có người gọi thật. Đây là thứ làm <code>/api/me/offerings</code> chết.</td>
+<td>Chuyển sang query syntax với <code>orderby</code> trên cột gốc, đặt TRƯỚC <code>select</code>.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Không <code>await</code> được trong bộ lọc <code>when</code> của <code>catch</code> (CS7094) — khuôn "bắt lỗi unique index rồi kiểm lại" của plan không biên dịch.</td>
+<td>Chuyển phép kiểm vào thân <code>catch</code>, <code>throw</code> lại nếu không phải va chạm mong đợi.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Ma trận cách ly gãy vì tương tác giữa hai phase.</strong> Seed lớp học phần đòi xuất bản phiên bản, mà xuất bản thì <code>[RequireDraftVersion]</code> của Phase 1 trả 409 thay vì 404 cho toàn bộ 8 dòng sửa nội dung — ma trận khi đó không còn kiểm được lớp phân quyền nữa, chỉ kiểm cái filter.</td>
+<td>Dùng một <strong>môn riêng</strong> cho lớp học phần, giữ môn kia ở trạng thái nháp. Đây đúng loại lỗi mà mỗi phase xét riêng đều "đúng".</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Plan giao <code>react-pdf</code> (pdf.js) để xem trước PDF — kéo theo cấu hình worker vốn hay hỏng trên Next 16.</td>
+<td>Dùng <code>&lt;object type="application/pdf"&gt;</code>: trình duyệt render bằng bộ xem sẵn có, có nội dung dự phòng cho trình duyệt không hỗ trợ. Đã gỡ <code>react-pdf</code> khỏi dependency.</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Kịch bản mở lớp trong plan không kiểm quyền sở hữu <em>môn</em> khi tạo lớp.</td>
+<td>Handler kiểm <code>Subject.InstructorId</code> và trả 404; có test <code>Mo_lop_tu_mon_cua_giang_vien_khac_tra_ve_404</code>.</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Cắt giảm có chủ đích</h3>
+<div class="danger">
+<strong>Xem trước PPTX: CẮT.</strong> Plan nêu hai lựa chọn — cài LibreOffice headless để chuyển PPTX→PDF
+trong job nền, hoặc bỏ hẳn và yêu cầu giảng viên xuất PDF trước khi upload. Plan cũng nói rõ
+<em>"hãy quyết sớm thay vì để nó chặn tiến độ"</em>.
+<br><br>
+<strong>Đã chọn bỏ.</strong> LibreOffice là phụ thuộc hệ thống nặng, phải cài trên cả máy phát triển lẫn
+máy chủ lẫn runner CI, và mỗi lần nâng cấp là một nguồn hỏng mới — cho một tính năng mà giảng viên
+tránh được bằng cách bấm "Xuất PDF" trong PowerPoint. Giao diện nói thẳng điều đó và cho tải tệp về.
+PDF, PNG, JPG xem trước bình thường.
+</div>
+
+<h2>4. Nghiệm thu — từng bước</h2>
+
+<table>
+<thead><tr><th>#</th><th>Bước</th><th>Kết quả</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Mở lớp từ môn đã xuất bản, lớp ghim đúng version</td><td class="ok">✔ và tạo phiên bản mới sau đó KHÔNG làm đổi <code>subject_version_id</code> của lớp đang chạy</td></tr>
+<tr><td>2</td><td>Import 40 SV có 2 trùng MSSV + 1 thiếu họ tên</td><td class="ok">✔ nhập <strong>37</strong>, liệt kê đúng 3 dòng lỗi ở dòng 12, 22, 32</td></tr>
+<tr><td>3</td><td>Sửa 3 dòng rồi import lại</td><td class="ok">✔ đủ 40, không MSSV nào trùng; import lại cùng file cho <code>imported=0, updated=40</code></td></tr>
+<tr><td>4</td><td>SV nhập mã lớp vào được; người ngoài danh sách bị từ chối</td><td class="ok">✔ và hai thông báo thất bại giống hệt nhau</td></tr>
+<tr><td>5</td><td>Bài 2 khoá kèm lời giải thích</td><td class="ok">✔ <code>locked_reason</code> = "Hoàn thành “Bài 1 — Hooks” để mở bài này."</td></tr>
+<tr><td>6</td><td>Học xong bài 1 → bài 2 mở, % cập nhật</td><td class="ok">✔ <code>overall_percent</code> 0 → 50; bấm hai lần liên tiếp không gây 500</td></tr>
+<tr><td>7</td><td>Trang học trên điện thoại</td><td class="ok">✔ sidebar thu vào drawer dưới 768px, nội dung không cuộn ngang</td></tr>
+<tr><td>8</td><td>Xem trước PDF trong trình duyệt</td><td class="ok">✔ <code>content-disposition: inline</code>, nội dung khớp từng byte với file đã upload</td></tr>
+</tbody>
+</table>
+
+<h2>5. Việc phải làm ở phase sau</h2>
+
+<h3>Nợ kỹ thuật</h3>
+<table>
+<thead><tr><th>Việc</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td><strong>Mỗi test class dựng một container Postgres riêng</strong></td><td class="warn">Suite Api nay <strong>32 s</strong> (Phase 0: 8 s · Phase 1: 25 s). Phase 3 sẽ thêm nhiều test hơn nữa. <strong>Nên chuyển sang <code>ICollectionFixture</code> TRƯỚC khi bắt đầu Phase 3</strong> — càng để lâu càng nhiều file phải sửa.</td></tr>
+<tr><td>Ghi nhận <code>seconds_spent</code> theo nhịp 30 giây bằng <code>sendBeacon</code></td><td>API đã nhận tham số; giao diện mới gửi khi bấm "Đã học xong". Không chặn gì ở MVP.</td></tr>
+<tr><td>XP / streak / "Ôn tập hôm nay"</td><td>Cột đã có trong <code>enrollments</code> để không phải migrate lại; nội dung thuộc Phase 7 và Phase 8.</td></tr>
+<tr><td>Trang quản lý lớp cho giảng viên</td><td>API đủ (mở lớp, import, danh sách, tạo tài khoản) nhưng chưa có màn hình. Phase 3 sẽ cần nó để gắn bài tập vào lớp.</td></tr>
+</tbody>
+</table>
+
+<h3>Hợp đồng Phase 3 kế thừa</h3>
+<pre><code>CourseOffering    SubjectVersionId là init-only — GHIM CỨNG, không sửa được sau khi mở lớp
+Enrollment        UserId nullable; null = đã import nhưng chưa kích hoạt tài khoản
+                  unique (offering_id, student_code) — nền của upsert khi import lại
+OfferingOwnership.OwnsOfferingAsync(db, offeringId, instructorId, ct)
+LearningAccess.EnrollmentFor{Lesson,Component}Async — SV chỉ chạm nội dung của lớp mình học
+UnlockEngine      Evaluate · BlockingLesson · IsComplete · CompletionPercent (thuần, không I/O)
+EnrollmentImporter.Validate(rows) — nhập được bao nhiêu nhập bấy nhiêu, lỗi theo số dòng Excel
+IEnrollmentReader — cổng đọc file; ClosedXML nằm ở Infrastructure
+GET /api/files/{**path} — phục vụ file kèm kiểm quyền; Phase 3 dùng lại cho file sinh viên nộp
+Progress          LessonProgress · ComponentProgress, unique (enrollment_id, *_id)
+Ma trận cách ly   19 dòng + 3 endpoint danh sách; Phase 3 THÊM assignments, submission-slots,
+                  submissions, file-tree, entry</code></pre>
+
+<hr>
+<p class="meta">
+Liên quan:
+<a href="phase-2_orchestrator_checklist.md">Checklist Phase 2</a> ·
+<a href="phase-1_orchestrator_report.html">Báo cáo Phase 1</a> ·
+<a href="phase-0_orchestrator_report.html">Báo cáo Phase 0</a> ·
+<a href="../../docs/superpowers/plans/2026-08-13-phase-3-assignments-submissions.html">Plan Phase 3</a>
+</p>
+
+</main>
+</body>
+</html>
