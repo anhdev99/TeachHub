@@ -5,7 +5,10 @@ using Microsoft.AspNetCore.RateLimiting;
 using TeachHub.Application.Features.Enrollments.Commands.ImportEnrollments;
 using TeachHub.Application.Features.Enrollments.Queries.GetEnrollments;
 using TeachHub.Application.Features.Offerings;
+using TeachHub.Application.Features.Enrollments.Commands.CreateStudentAccounts;
 using TeachHub.Application.Features.Offerings.Commands.CreateOffering;
+using TeachHub.Application.Features.Offerings.Commands.JoinOffering;
+using TeachHub.Application.Features.Offerings.Queries.GetMyOfferings;
 using TeachHub.Application.Features.Offerings.Queries.GetOffering;
 using TeachHub.Application.Features.Offerings.Queries.GetOfferings;
 using TeachHub.Infrastructure;
@@ -47,6 +50,30 @@ public sealed class OfferingsController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEnrollments(Guid id, CancellationToken ct)
         => ToActionResult(await sender.Send(new GetEnrollmentsQuery(id, CurrentUserId), ct));
+
+    [HttpPost("join")]
+    [Authorize(Policy = Policies.Student)]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Join(JoinOfferingCommand command, CancellationToken ct)
+        => ToActionResult(await sender.Send(command with { UserId = CurrentUserId }, ct));
+
+    // Route bắt đầu bằng '/' là route TUYỆT ĐỐI: nó bỏ qua [Route("api/offerings")] của class,
+    // nên đường dẫn ra đúng /api/me/offerings như hợp đồng SRS mục 7.
+    [HttpGet("/api/me/offerings")]
+    [Authorize(Policy = Policies.Student)]
+    [ProducesResponseType<IReadOnlyList<MyOfferingDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> MyOfferings(CancellationToken ct)
+        => Ok(await sender.Send(new GetMyOfferingsQuery(CurrentUserId), ct));
+
+    [HttpPost("{id:guid}/enrollments/create-accounts")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<CreateStudentAccountsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CreateStudentAccounts(Guid id, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            new CreateStudentAccountsCommand { OfferingId = id, InstructorId = CurrentUserId }, ct));
 
     [HttpPost("{id:guid}/enrollments/import")]
     [Authorize(Policy = Policies.Instructor)]

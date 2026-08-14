@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using TeachHub.Application.Common;
+using TeachHub.Application.Features.Auth.Commands.ChangePassword;
 using TeachHub.Application.Features.Auth.Commands.Login;
+using TeachHub.Application.Features.Auth.Commands.Logout;
 using TeachHub.Application.Features.Auth.Commands.RefreshToken;
 using TeachHub.Application.Features.Auth.Queries.GetMe;
 using TeachHub.Application.Features.Instructors.Commands.AcceptInvite;
@@ -30,6 +32,17 @@ public sealed class AuthController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh(RefreshTokenCommand command, CancellationToken ct)
         => ToActionResult(await sender.Send(command, ct));
+
+    [HttpPost("change-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ChangePassword(ChangePasswordCommand command, CancellationToken ct)
+        => ToActionResult(await sender.Send(command with { UserId = CurrentUserId }, ct));
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Logout(CancellationToken ct)
+        => ToActionResult(await sender.Send(new LogoutCommand { UserId = CurrentUserId }, ct));
 
     /// <summary>Kiểm token lời mời còn dùng được không — trang đăng ký gọi trước khi hiện form.</summary>
     [HttpGet("invites/{token}")]

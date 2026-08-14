@@ -6,6 +6,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Serilog;
 using TeachHub.Api.Common;
+using TeachHub.Api.Middleware;
 using TeachHub.Application;
 using TeachHub.Application.Common;
 using TeachHub.Infrastructure;
@@ -118,6 +119,10 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// SAU xác thực (cần biết người gọi là ai). Chặn mọi request của người còn cờ
+// MustChangePassword, trừ hai đường thoát change-password và logout.
+app.UseMiddleware<MustChangePasswordMiddleware>();
 
 app.MapControllers();
 
