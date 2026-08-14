@@ -8,6 +8,7 @@ using TeachHub.Application.Features.Offerings;
 using TeachHub.Application.Features.Enrollments.Commands.CreateStudentAccounts;
 using TeachHub.Application.Features.Offerings.Commands.CreateOffering;
 using TeachHub.Application.Features.Offerings.Commands.JoinOffering;
+using TeachHub.Application.Features.Learning.Queries.GetMyProgress;
 using TeachHub.Application.Features.Offerings.Queries.GetMyOfferings;
 using TeachHub.Application.Features.Offerings.Queries.GetOffering;
 using TeachHub.Application.Features.Offerings.Queries.GetOfferings;
@@ -66,6 +67,13 @@ public sealed class OfferingsController(ISender sender) : ApiControllerBase
     [ProducesResponseType<IReadOnlyList<MyOfferingDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> MyOfferings(CancellationToken ct)
         => Ok(await sender.Send(new GetMyOfferingsQuery(CurrentUserId), ct));
+
+    [HttpGet("{id:guid}/my-progress")]
+    [Authorize(Policy = Policies.Student)]
+    [ProducesResponseType<MyProgressDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> MyProgress(Guid id, CancellationToken ct)
+        => ToActionResult(await sender.Send(new GetMyProgressQuery(id, CurrentUserId), ct));
 
     [HttpPost("{id:guid}/enrollments/create-accounts")]
     [Authorize(Policy = Policies.Instructor)]

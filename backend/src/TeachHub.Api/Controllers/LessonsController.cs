@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using TeachHub.Application.Features.Content.Commands.ReorderLesson;
 using TeachHub.Application.Features.Content.Commands.UploadLessonFile;
 using TeachHub.Application.Features.Content.Queries.GetLesson;
+using TeachHub.Application.Features.Learning.Commands.CompleteLesson;
 using TeachHub.Infrastructure;
 
 namespace TeachHub.Api.Controllers;
@@ -43,6 +44,15 @@ public sealed class LessonsController(ISender sender) : ApiControllerBase
     public async Task<IActionResult> AddComponent(Guid id, AddComponentCommand command, CancellationToken ct)
         => ToActionResult(await sender.Send(
             command with { LessonId = id, InstructorId = CurrentUserId }, ct));
+
+    // KHÔNG gắn [RequireDraftVersion]: sinh viên học trên version đã published, filter đó
+    // sẽ chặn sạch mọi request. Filter chỉ dành cho action sửa nội dung của giảng viên.
+    [HttpPost("{id:guid}/complete")]
+    [Authorize(Policy = Policies.Student)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Complete(Guid id, [FromQuery] int secondsSpent, CancellationToken ct)
+        => ToActionResult(await sender.Send(new CompleteLessonCommand(id, CurrentUserId, secondsSpent), ct));
 
     [HttpPost("{id:guid}/file")]
     [Authorize(Policy = Policies.Instructor)]
