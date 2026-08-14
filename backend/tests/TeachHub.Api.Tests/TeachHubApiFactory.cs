@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +39,23 @@ public sealed class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncL
         await _db.StartAsync();
         using var scope = Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    }
+
+    /// <summary>
+    /// Đọc khoá <c>access_token</c> bằng JsonElement chứ không map vào DTO: nếu ai đó bỏ
+    /// AddJsonOptions thì API trả accessToken và test này đỏ ngay. Map vào DTO thì
+    /// System.Text.Json khớp không phân biệt hoa thường và lỗi lọt qua.
+    /// </summary>
+    public async Task<HttpClient> LoginAsInstructorAsync()
+    {
+        var client = CreateClient();
+        var res = await client.PostAsJsonAsync("/api/auth/login",
+            new { email = "instructor@teachhub.local", password = "Teach@123" });
+        res.EnsureSuccessStatusCode();
+        var json = await res.Content.ReadFromJsonAsync<JsonElement>();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", json.GetProperty("access_token").GetString());
+        return client;
     }
 
     public new async Task DisposeAsync()

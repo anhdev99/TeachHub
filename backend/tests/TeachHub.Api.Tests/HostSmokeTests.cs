@@ -25,8 +25,23 @@ public class HostSmokeTests(TeachHubApiFactory factory) : IClassFixture<TeachHub
         // Runtime dùng AddJsonOptions, còn OpenAPI dùng ConfigureHttpJsonOptions — hai IOptions
         // khác nhau. Thiếu cái thứ hai thì API trả access_token nhưng tài liệu khai accessToken,
         // và client TypeScript sinh từ tài liệu đó sẽ gõ sai khóa mà vẫn biên dịch được.
-        // Assert thật nằm ở Task 0.7, khi đã có DTO TokenPair xuất hiện trong tài liệu.
         var doc = await factory.CreateClient().GetStringAsync("/openapi/v1.json");
-        doc.ShouldNotBeNullOrWhiteSpace();
+
+        doc.ShouldContain("access_token");
+        doc.ShouldNotContain("accessToken");
+    }
+
+    [Fact]
+    public async Task Loi_tra_ve_dung_dinh_dang_problem_details()
+    {
+        // Phải gọi bằng client ĐÃ đăng nhập: fallback policy bắt buộc xác thực cho cả request
+        // không khớp endpoint nào, nên client ẩn danh sẽ nhận 401 chứ không phải 404.
+        // Test này muốn kiểm định dạng problem+json của 404, nên phải vượt tầng xác thực trước.
+        var client = await factory.LoginAsInstructorAsync();
+
+        var res = await client.GetAsync("/api/khong-ton-tai");
+
+        res.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        res.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
     }
 }

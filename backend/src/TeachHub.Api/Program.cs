@@ -7,6 +7,7 @@ using TeachHub.Api.Common;
 using TeachHub.Application;
 using TeachHub.Application.Common;
 using TeachHub.Infrastructure;
+using TeachHub.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,7 @@ builder.Services.AddRateLimiter(o => o.AddFixedWindowLimiter("upload", w =>
 }));
 
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddAuth(builder.Configuration);
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
@@ -63,13 +65,25 @@ app.UseStatusCodePages();
 app.UseSerilogRequestLogging();
 app.UseRateLimiter();
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
-app.MapOpenApi();                  // ở mọi môi trường: CI cần nó để sinh client TS
+// Fallback policy áp cho MỌI endpoint không khai báo gì về authorization, kể cả
+// MapHealthChecks và MapOpenApi. Quên .AllowAnonymous() cho /health thì load balancer
+// đọc 401 là "service chết" và rút container ra khỏi vòng phục vụ.
+app.MapOpenApi().AllowAnonymous();          // ở mọi môi trường: CI cần nó để sinh client TS
 if (app.Environment.IsDevelopment())
-    app.MapScalarApiReference();   // UI duyệt API tại /scalar/v1
+    app.MapScalarApiReference().AllowAnonymous();   // UI duyệt API tại /scalar/v1
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/health").AllowAnonymous();
+
+// CHỈ seed ở Development/Testing. Ở Production dùng POST /api/auth/bootstrap để tạo
+// giảng viên đầu tiên — seed tài khoản có mật khẩu công khai lên máy chủ thật là
+// cách nhanh nhất để mất toàn bộ điểm số của mọi lớp.
+if (!app.Environment.IsProduction())
+    await app.Services.SeedAsync();
 
 app.Run();
 

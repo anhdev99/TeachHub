@@ -7,15 +7,15 @@ Ký hiệu: `- [ ]` chưa làm · `- [x]` xong theo DoD · `- [!]` BỎ DỞ (gh
 
 ## Chunk 1 — Bộ khung solution & hạ tầng local
 
-- [ ] **Task 0.1** — Khởi tạo repo, solution, quy ước build (`dotnet new` gitignore/editorconfig/globaljson/buildprops/packagesprops/sln + 4 src + 3 test project)
-- [ ] **Task 0.2** — Base entity Domain + Id UUIDv7 (`Entity.cs`, `ISoftDeletable`, `IAuditable`)
-- [ ] **Task 0.3** — Hạ tầng local: Postgres 17 + MinIO (`infra/docker-compose.yml`)
+- [x] **Task 0.1** — Khởi tạo repo, solution, quy ước build (`dotnet new` gitignore/editorconfig/globaljson/buildprops/packagesprops/sln + 4 src + 3 test project)
+- [x] **Task 0.2** — Base entity Domain + Id UUIDv7 (`Entity.cs`, `ISoftDeletable`, `IAuditable`)
+- [x] **Task 0.3** — Hạ tầng local: Postgres 17 + MinIO (`infra/docker-compose.yml`)
 
 ## Chunk 2 — Dữ liệu, xác thực, và host API
 
-- [ ] **Task 0.4** — Entity Identity & DbContext (+ migration `Initial`, xác minh tên bảng snake_case)
-- [ ] **Task 0.5** — Host API: Serilog, ProblemDetails, OpenAPI 3.1, health check (+ `TeachHubApiFactory`)
-- [ ] **Task 0.6** — MediatR + pipeline behaviors (Logging → Validation → Transaction), `Result`, `ICommand`/`IQuery`
+- [x] **Task 0.4** — Entity Identity & DbContext (+ migration `Initial`, xác minh tên bảng snake_case)
+- [x] **Task 0.5** — Host API: Serilog, ProblemDetails, OpenAPI 3.1, health check (+ `TeachHubApiFactory`)
+- [x] **Task 0.6** — MediatR + pipeline behaviors (Logging → Validation → Transaction), `Result`, `ICommand`/`IQuery`
 - [ ] **Task 0.7** — Đăng nhập & phát hành JWT (`TokenService`, `ApiControllerBase`, `AuthController`, seed)
 - [ ] **Task 0.8** — Refresh token xoay vòng & phát hiện tái sử dụng
 - [ ] **Task 0.8b** — Mời & tạo tài khoản giảng viên (`InstructorInvite`, bootstrap, register)
