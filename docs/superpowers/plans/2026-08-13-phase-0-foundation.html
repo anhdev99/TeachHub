@@ -111,6 +111,11 @@ uploads/
 .env.local</code></pre>
 
 <label class="ck"><input type="checkbox"> Bước 2 — <code>backend/Directory.Build.props</code></label>
+<p><strong>Sinh bằng template trước, rồi mới sửa</strong> — đừng gõ tay từ đầu:</p>
+<pre><code>cd backend
+dotnet new buildprops      # sinh Directory.Build.props
+dotnet new packagesprops   # sinh Directory.Packages.props (Central Package Management)</code></pre>
+<p>Sau đó sửa <code>Directory.Build.props</code> thành:</p>
 <pre><code>&lt;Project&gt;
   &lt;PropertyGroup&gt;
     &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
@@ -125,7 +130,7 @@ uploads/
   &lt;/PropertyGroup&gt;
 &lt;/Project&gt;</code></pre>
 
-<label class="ck"><input type="checkbox"> Bước 3 — <code>backend/Directory.Packages.props</code> (Central Package Management)</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Sửa <code>backend/Directory.Packages.props</code> (đã sinh ở Bước 2)</label>
 <pre><code>&lt;Project&gt;
   &lt;PropertyGroup&gt;
     &lt;ManagePackageVersionsCentrally&gt;true&lt;/ManagePackageVersionsCentrally&gt;

@@ -546,6 +546,26 @@ không phải bảng quan hệ mà là sửa lại mọi handler đã có test. 
 </div>
 </div>
 
+<div class="danger">
+<strong>Khung dự án phải do công cụ chính thức sinh ra, không được gõ tay.</strong>
+Có template/CLI sinh được thì bắt buộc chạy nó rồi mới sửa: <code>dotnet new</code> cho solution,
+project, <code>Directory.Build.props</code>, <code>Directory.Packages.props</code>, <code>global.json</code>;
+<code>dotnet add package</code> cho dependency; <code>dotnet ef migrations add</code> cho migration;
+<code>pnpm create next-app</code> và <code>pnpm dlx shadcn@latest add</code> cho frontend;
+<code>openapi-typescript</code> cho client gọi API.
+<br><br>
+File gõ tay trông đúng nhưng sai ở chỗ không nhìn thấy: thiếu thuộc tính MSBuild mà SDK bản đó cần,
+sai GUID trong <code>.sln</code>, lệch version so với bản thật trên NuGet. Những sai lệch đó không lộ
+lúc đọc, chỉ lộ lúc build hoặc lúc nâng SDK sáu tháng sau.
+<br><br>
+<strong>Migration EF Core không có ngoại lệ:</strong> viết tay là <code>ModelSnapshot</code> lệch model thật,
+và migration kế tiếp sinh lệnh sai trên database đã có điểm thật của sinh viên. Luôn sửa entity trước,
+rồi sinh migration, rồi <em>đọc file sinh ra</em> xem có <code>DROP</code> ngoài ý muốn không.
+<br><br>
+Ranh giới: <em>có công cụ sinh thì chạy công cụ; không có thì tự viết.</em> Chi tiết ở
+<code>CLAUDE.md</code> tại thư mục gốc.
+</div>
+
 <h3>Ngân sách chất lượng (đo được, kiểm tra trong CI)</h3>
 <table>
 <thead><tr><th>Chỉ số</th><th>Ngưỡng</th><th>Nguồn</th></tr></thead>
