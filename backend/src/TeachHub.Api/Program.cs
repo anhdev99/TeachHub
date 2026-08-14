@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Hangfire;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using Serilog;
 using TeachHub.Api.Common;
@@ -60,7 +61,25 @@ builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddApplication();
-builder.Services.AddOpenApi();                 // sinh OpenAPI 3.1, .NET 10 đọc được cả Controllers
+builder.Services.AddOpenApi(o =>
+{
+    // .NET 10 khai mọi số là type: ["integer","string"] kèm pattern, vì System.Text.Json
+    // CÓ THỂ đọc số từ chuỗi. Hệ quả: openapi-typescript sinh ra `order_index: number | string`
+    // cho mọi trường số, và frontend phải Number(...) ở khắp nơi hoặc chịu lỗi biên dịch —
+    // với sổ điểm ở Phase 4b thì đó là hàng chục chỗ. API này luôn TRẢ VỀ số thật, nên bỏ
+    // biến thể "string" khỏi tài liệu. Giữ nguyên cờ Null để trường nullable vẫn đúng.
+    o.AddSchemaTransformer((schema, _, _) =>
+    {
+        if (schema.Type is { } t
+            && (t & JsonSchemaType.String) != 0
+            && (t & (JsonSchemaType.Integer | JsonSchemaType.Number)) != 0)
+        {
+            schema.Type = t & ~JsonSchemaType.String;
+            schema.Pattern = null;
+        }
+        return Task.CompletedTask;
+    });
+});
 
 // Đăng ký NGAY TỪ PHASE 0, dù mãi Phase 3 mới nộp bài: Phase 1 đã gắn
 // [EnableRateLimiting("upload")] lên endpoint upload bài giảng. Attribute không có
