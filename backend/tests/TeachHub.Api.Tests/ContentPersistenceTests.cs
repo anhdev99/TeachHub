@@ -7,7 +7,8 @@ using TeachHub.Infrastructure.Persistence;
 
 namespace TeachHub.Api.Tests;
 
-public class ContentPersistenceTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class ContentPersistenceTests(TeachHubApiFactory factory)
 {
     private static readonly DateTimeOffset Now = new(2026, 8, 13, 0, 0, 0, TimeSpan.Zero);
 
@@ -110,17 +111,21 @@ public class ContentPersistenceTests(TeachHubApiFactory factory) : IClassFixture
     {
         // Đọc log DB thấy status = 3 thì không ai hiểu là gì, và mọi CHECK constraint
         // viết bằng chuỗi sẽ chết ngay lúc apply migration.
-        await SeedAsync();
+        var (_, versionId, _) = await SeedAsync();
 
         using var scope = factory.CreateServiceScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        // Ràng buộc vào ĐÚNG hàng vừa gieo. Dùng LIMIT 1 là phụ thuộc vào việc database chỉ có
+        // dữ liệu của mình — đúng cho tới khi cả assembly dùng chung một container.
         var status = await db.Database
-            .SqlQuery<string>($"SELECT status AS \"Value\" FROM subject_versions LIMIT 1").SingleAsync();
+            .SqlQuery<string>($"SELECT status AS \"Value\" FROM subject_versions WHERE id = {versionId}")
+            .SingleAsync();
         status.ShouldBe("Draft");
 
         var unlock = await db.Database
-            .SqlQuery<string>($"SELECT unlock_rule AS \"Value\" FROM chapters LIMIT 1").SingleAsync();
+            .SqlQuery<string>($"SELECT unlock_rule AS \"Value\" FROM chapters WHERE subject_version_id = {versionId}")
+            .SingleAsync();
         unlock.ShouldBe("AfterPreviousCompleted");
     }
 

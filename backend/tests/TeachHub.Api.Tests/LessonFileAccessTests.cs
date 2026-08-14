@@ -11,7 +11,8 @@ using TeachHub.Infrastructure.Persistence;
 
 namespace TeachHub.Api.Tests;
 
-public class LessonFileAccessTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class LessonFileAccessTests(TeachHubApiFactory factory)
 {
     private static readonly byte[] Pdf = [.. "%PDF-1.7\nnội dung slide"u8.ToArray()];
 

@@ -16,7 +16,8 @@ public sealed class NoSeedApiFactory : TeachHubApiFactory
         [new("Seed:Enabled", "false")];
 }
 
-public class BootstrapTests(NoSeedApiFactory factory) : IClassFixture<NoSeedApiFactory>
+[Collection(NoSeedCollection.Ten)]
+public class BootstrapTests(NoSeedApiFactory factory)
 {
     [Fact]
     public async Task Bootstrap_tao_duoc_giang_vien_dau_tien_khi_he_thong_trong()
@@ -47,7 +48,8 @@ public class BootstrapTests(NoSeedApiFactory factory) : IClassFixture<NoSeedApiF
     }
 }
 
-public class InstructorAccountTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class InstructorAccountTests(TeachHubApiFactory factory)
 {
     private static object MoiBody(string email) => new { email };
 

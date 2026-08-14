@@ -6,7 +6,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class EnrollmentImportTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class EnrollmentImportTests(TeachHubApiFactory factory)
 {
     /// <summary>Dựng file .xlsx thật — không giả lập, vì bug hay nằm đúng ở chỗ ClosedXML đọc file.</summary>
     private static byte[] TaoFile(IEnumerable<(string Ma, string Ten, string Email)> rows,

@@ -91,8 +91,17 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                         ? UnlockEngine.BlockingLesson(node, l.Id, progress)
                         : null;
 
+                    // Chốt chặn allowlist ở ĐƯỜNG ĐỌC, không chỉ ở giao diện: giao diện nhúng
+                    // thẳng file_url của bài video_embed vào iframe. Lọc ở đây thì dù URL lọt
+                    // vào DB bằng đường nào (endpoint sửa bài học thêm sau, import, sửa tay),
+                    // sinh viên vẫn không bao giờ nhận được một URL ngoài danh sách cho phép.
+                    var fileUrl = l.ContentType == LessonContentType.VideoEmbed
+                                  && !VideoEmbedPolicy.IsAllowed(l.FileUrl)
+                        ? null
+                        : l.FileUrl;
+
                     return new MyLessonDto(
-                        l.Id, l.Title, l.OrderIndex, l.ContentType, l.FileUrl,
+                        l.Id, l.Title, l.OrderIndex, l.ContentType, fileUrl,
                         progress.CompletedLessons.Contains(l.Id), truyCap,
                         chan is null ? null : $"Hoàn thành “{chan.Title}” để mở bài này.",
                         components.Count(cp => cp.LessonId == l.Id));

@@ -5,7 +5,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class OfferingsControllerTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class OfferingsControllerTests(TeachHubApiFactory factory)
 {
     [Fact]
     public async Task Mo_lop_mac_dinh_dung_phien_ban_dang_published()

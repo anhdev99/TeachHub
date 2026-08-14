@@ -12,7 +12,8 @@ using TeachHub.Infrastructure.Persistence;
 
 namespace TeachHub.Api.Tests;
 
-public class StudentActivationTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class StudentActivationTests(TeachHubApiFactory factory)
 {
     private async Task<(Guid OfferingId, string JoinCode, string StudentCode, string Email)>
         SeedLopCoDanhSachAsync()

@@ -5,7 +5,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class LessonUploadTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class LessonUploadTests(TeachHubApiFactory factory)
 {
     private static async Task<Guid> SeedLessonAsync(HttpClient gv)
     {

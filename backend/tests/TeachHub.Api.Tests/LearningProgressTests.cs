@@ -13,7 +13,8 @@ using TeachHub.Infrastructure.Persistence;
 
 namespace TeachHub.Api.Tests;
 
-public class LearningProgressTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class LearningProgressTests(TeachHubApiFactory factory)
 {
     /// <summary>
     /// Dựng: môn có 1 chương ở chế độ tuần tự, 2 bài, bài 1 bắt buộc; xuất bản; mở lớp;

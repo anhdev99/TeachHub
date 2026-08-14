@@ -3,7 +3,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class HostSmokeTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class HostSmokeTests(TeachHubApiFactory factory)
 {
     [Fact]
     public async Task Health_tra_ve_200_khi_db_song()

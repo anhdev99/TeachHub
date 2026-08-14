@@ -3,7 +3,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class JobDashboardTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class JobDashboardTests(TeachHubApiFactory factory)
 {
     [Fact]
     public async Task Dashboard_hangfire_tu_choi_nguoi_chua_dang_nhap()

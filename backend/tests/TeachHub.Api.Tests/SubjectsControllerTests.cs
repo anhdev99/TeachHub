@@ -5,7 +5,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class SubjectsControllerTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class SubjectsControllerTests(TeachHubApiFactory factory)
 {
     [Fact]
     public async Task Tao_mon_hoc_tu_dong_sinh_luon_mot_version_draft_dau_tien()

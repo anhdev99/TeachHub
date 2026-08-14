@@ -8,7 +8,8 @@ using TeachHub.Infrastructure.Persistence;
 
 namespace TeachHub.Api.Tests;
 
-public class SubjectVersionClonerTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class SubjectVersionClonerTests(TeachHubApiFactory factory)
 {
     private static readonly DateTimeOffset Now = new(2026, 8, 13, 0, 0, 0, TimeSpan.Zero);
 

@@ -5,7 +5,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests.Security;
 
-public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassFixture<IsolationFixture>
+[Collection(IsolationCollection.Ten)]
+public sealed class CrossInstructorIsolationTests(IsolationFixture fx)
 {
     /// <summary>
     /// Mỗi dòng là một tài nguyên THUỘC VỀ giảng viên A; client bắn vào là của giảng viên B.

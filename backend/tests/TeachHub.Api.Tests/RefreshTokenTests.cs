@@ -5,7 +5,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class RefreshTokenTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class RefreshTokenTests(TeachHubApiFactory factory)
 {
     private async Task<(string access, string refresh)> LoginAsync()
     {

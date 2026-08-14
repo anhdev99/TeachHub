@@ -19,7 +19,8 @@ public sealed class ProbeValidator : AbstractValidator<ProbeCommand>
     public ProbeValidator() => RuleFor(x => x.Code).NotEmpty();
 }
 
-public class BehaviorPipelineTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class BehaviorPipelineTests(TeachHubApiFactory factory)
 {
     [Fact]
     public void Thu_tu_chay_la_logging_roi_validation_roi_transaction()

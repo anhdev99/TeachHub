@@ -5,7 +5,8 @@ using Shouldly;
 
 namespace TeachHub.Api.Tests;
 
-public class AuthTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class AuthTests(TeachHubApiFactory factory)
 {
     private HttpClient Client => factory.CreateClient();
 

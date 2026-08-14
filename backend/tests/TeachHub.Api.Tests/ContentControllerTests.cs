@@ -9,7 +9,8 @@ using TeachHub.Infrastructure.Persistence;
 
 namespace TeachHub.Api.Tests;
 
-public class ContentControllerTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFactory>
+[Collection(TeachHubCollection.Ten)]
+public class ContentControllerTests(TeachHubApiFactory factory)
 {
     private static async Task<Guid> ThemChuongAsync(HttpClient gv, Guid versionId, string title = "Chương 1")
     {

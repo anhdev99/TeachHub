@@ -65,7 +65,7 @@ public sealed class CreateStudentAccountsCommandHandler(
                 continue;
             }
 
-            var matKhau = SinhMatKhauBanDau(e.StudentCode);
+            var matKhau = InitialPassword.Generate();
             var user = new AppUser
             {
                 UserName = loginEmail,
@@ -99,9 +99,4 @@ public sealed class CreateStudentAccountsCommandHandler(
             new CreateStudentAccountsResponse(taoMoi, boQua, ketQua));
     }
 
-    /// <summary>
-    /// Mật khẩu ban đầu suy ra từ MSSV: giảng viên đọc được cho sinh viên mà không cần bảng tra,
-    /// và nó vô hại vì MustChangePassword buộc đổi ngay lần đăng nhập đầu.
-    /// </summary>
-    private static string SinhMatKhauBanDau(string studentCode) => $"Th@{studentCode}";
 }
