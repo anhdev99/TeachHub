@@ -723,6 +723,232 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("refresh_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Learning.ComponentProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<Guid>("LessonComponentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lesson_component_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_component_progresses");
+
+                    b.HasIndex("LessonComponentId")
+                        .HasDatabaseName("ix_component_progresses_lesson_component_id");
+
+                    b.HasIndex("EnrollmentId", "LessonComponentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_component_progresses_enrollment_id_lesson_component_id");
+
+                    b.ToTable("component_progresses", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Learning.LessonProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<Guid>("LessonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("lesson_id");
+
+                    b.Property<int>("SecondsSpent")
+                        .HasColumnType("integer")
+                        .HasColumnName("seconds_spent");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id")
+                        .HasName("pk_lesson_progresses");
+
+                    b.HasIndex("LessonId")
+                        .HasDatabaseName("ix_lesson_progresses_lesson_id");
+
+                    b.HasIndex("EnrollmentId", "LessonId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_lesson_progresses_enrollment_id_lesson_id");
+
+                    b.ToTable("lesson_progresses", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Teaching.CourseOffering", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClassCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("class_code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("JoinCodeExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("join_code_expires_at");
+
+                    b.Property<string>("JoinCodeValue")
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("join_code_value");
+
+                    b.Property<string>("Semester")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("semester");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<Guid>("SubjectVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_version_id");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone_id");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_course_offerings");
+
+                    b.HasIndex("JoinCodeValue")
+                        .IsUnique()
+                        .HasDatabaseName("ix_course_offerings_join_code_value")
+                        .HasFilter("join_code_value IS NOT NULL");
+
+                    b.HasIndex("SubjectVersionId")
+                        .HasDatabaseName("ix_course_offerings_subject_version_id");
+
+                    b.HasIndex("SubjectId", "Semester", "ClassCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_course_offerings_subject_id_semester_class_code");
+
+                    b.ToTable("course_offerings", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Teaching.Enrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClassName")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("class_name");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("full_name");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("StreakDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("streak_days");
+
+                    b.Property<string>("StudentCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("student_code");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<int>("XpPoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("xp_points");
+
+                    b.HasKey("Id")
+                        .HasName("pk_enrollments");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_enrollments_user_id");
+
+                    b.HasIndex("OfferingId", "StudentCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_enrollments_offering_id_student_code");
+
+                    b.ToTable("enrollments", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("TeachHub.Domain.Identity.AppRole", null)
@@ -987,6 +1213,73 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_refresh_tokens_asp_net_users_user_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Learning.ComponentProgress", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_component_progresses_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Content.LessonComponent", null)
+                        .WithMany()
+                        .HasForeignKey("LessonComponentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_component_progresses_lesson_components_lesson_component_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Learning.LessonProgress", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_lesson_progresses_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Content.Lesson", null)
+                        .WithMany()
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_lesson_progresses_lessons_lesson_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Teaching.CourseOffering", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Content.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_offerings_subjects_subject_id");
+
+                    b.HasOne("TeachHub.Domain.Content.SubjectVersion", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_course_offerings_subject_versions_subject_version_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Teaching.Enrollment", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_enrollments_course_offerings_offering_id");
+
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_enrollments_asp_net_users_user_id");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Content.Chapter", b =>

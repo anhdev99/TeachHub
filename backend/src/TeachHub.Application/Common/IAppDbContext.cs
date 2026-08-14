@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
+using TeachHub.Domain.Learning;
+using TeachHub.Domain.Teaching;
 
 namespace TeachHub.Application.Common;
 
@@ -22,6 +24,12 @@ public interface IAppDbContext
     DbSet<LessonComponent> LessonComponents { get; }
     DbSet<Assignment> Assignments { get; }
     DbSet<Quiz> Quizzes { get; }
+
+    // Phase 2 — lớp học phần và tiến độ học
+    DbSet<CourseOffering> CourseOfferings { get; }
+    DbSet<Enrollment> Enrollments { get; }
+    DbSet<LessonProgress> LessonProgresses { get; }
+    DbSet<ComponentProgress> ComponentProgresses { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

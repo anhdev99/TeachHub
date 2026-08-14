@@ -5,6 +5,8 @@ using TeachHub.Application.Common;
 using TeachHub.Domain.Common;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
+using TeachHub.Domain.Learning;
+using TeachHub.Domain.Teaching;
 
 namespace TeachHub.Infrastructure.Persistence;
 
@@ -21,6 +23,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<LessonComponent> LessonComponents => Set<LessonComponent>();
     public DbSet<Assignment> Assignments => Set<Assignment>();
     public DbSet<Quiz> Quizzes => Set<Quiz>();
+
+    public DbSet<CourseOffering> CourseOfferings => Set<CourseOffering>();
+    public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<LessonProgress> LessonProgresses => Set<LessonProgress>();
+    public DbSet<ComponentProgress> ComponentProgresses => Set<ComponentProgress>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 
