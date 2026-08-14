@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 0 — Báo cáo chốt phase · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1080px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.6rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:1.8rem;font-size:1.08rem;color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.82rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.89rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.3rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.ok{color:var(--ok);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+.err{color:var(--err);font-weight:600}
+.danger{border-left:4px solid var(--err);padding:.6rem 1rem;margin:1rem 0;background:var(--cbg);border-radius:0 8px 8px 0}
+hr{border:0;border-top:1px solid var(--bd);margin:2.4rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 0 — Nền móng · Báo cáo chốt phase</h1>
+<p class="meta">14/08/2026 · Nhánh <code>phase-0-foundation</code> · 15 commit ·
+Plan: <a href="../../docs/superpowers/plans/2026-08-13-phase-0-foundation.html">2026-08-13-phase-0-foundation.html</a></p>
+
+<blockquote>
+<strong>Kết quả tổng quát:</strong> <span class="ok">13/14 task đạt Definition of Done</span>.
+Task 0.12 (CI) đã viết xong workflow và đã xác minh chính các lệnh của nó chạy sạch ở máy local,
+nhưng <strong>chưa được chứng minh xanh trên GitHub</strong> vì nhánh chưa push — đây là hành động
+hướng ra ngoài nên đang chờ người dùng quyết. Nghiệm thu tay: <span class="ok">10/11 bước đạt</span>,
+bước còn lại chính là bước CI nói trên.
+</blockquote>
+
+<h2>1. Bằng chứng kiểm chứng</h2>
+
+<table>
+<thead><tr><th>Hạng mục</th><th>Kết quả</th></tr></thead>
+<tbody>
+<tr><td><code>dotnet build backend/TeachHub.sln</code></td><td class="ok">Build succeeded · 0 Warning(s) · 0 Error(s)</td></tr>
+<tr><td><code>dotnet test backend/TeachHub.sln</code></td><td class="ok">53 xanh / 0 đỏ — Domain 4, Application 2, Api 47</td></tr>
+<tr><td>Ngân sách tốc độ unit test</td><td class="ok">Domain 0,14 s · Application 0,10 s — dưới ngưỡng 10 s</td></tr>
+<tr><td><code>pnpm lint</code> + <code>pnpm build</code> (frontend)</td><td class="ok">Sạch, 7 route được sinh</td></tr>
+<tr><td>MediatR</td><td class="ok"><code>12.5.0</code> — ràng buộc giấy phép Apache-2.0 giữ nguyên</td></tr>
+<tr><td>Migration</td><td class="ok"><code>Initial</code>, <code>AddInstructorInvites</code> — sinh bằng <code>dotnet ef</code>, đã đọc file, không có <code>DROP</code> nào ngoài <code>Down()</code></td></tr>
+<tr><td>Migration trên DB có sẵn dữ liệu</td><td class="ok">Đã chèn hàng thật rồi chạy lại <code>database update</code> → <em>no migrations applied</em>, dữ liệu nguyên vẹn, tiếng Việt có dấu round-trip đúng</td></tr>
+<tr><td>Tên bảng trong Postgres</td><td class="ok">9 bảng đều <code>snake_case</code>, xác minh bằng <code>psql \dt</code> chứ không tin file migration</td></tr>
+</tbody>
+</table>
+
+<h3>Ba test được kiểm bằng đột biến, không chỉ bằng "nó xanh"</h3>
+<p>Ba nơi quan trọng nhất đều xanh ngay lần chạy đầu vì code đã có sẵn từ task trước — mà một test
+chưa từng đỏ thì chưa chứng minh được gì. Đã cố ý phá code để xác nhận chúng thật sự canh gác:</p>
+
+<table>
+<thead><tr><th>Phá cái gì</th><th>Test phản ứng</th></tr></thead>
+<tbody>
+<tr><td>Gỡ khối <code>ExecuteUpdateAsync</code> thu hồi token trong <code>RotateAsync</code></td><td class="err">→ <code>Dung_lai_token_cu_thu_hoi_luon_ca_token_moi_nhat</code> đỏ</td></tr>
+<tr><td>Gỡ <code>i.InvitedBy == request.InstructorId</code> khỏi <code>RevokeInviteHandler</code></td><td class="err">→ <code>Giang_vien_khac_luon_nhan_404</code> đỏ</td></tr>
+<tr><td>Gỡ <code>.Where(i =&gt; i.InvitedBy == …)</code> khỏi <code>GetInvitesHandler</code></td><td class="err">→ <code>Danh_sach_khong_lot_du_lieu_giang_vien_khac</code> đỏ</td></tr>
+</tbody>
+</table>
+<p class="meta">Trong cả ba lần, hai test đối chứng (chính chủ vẫn truy cập được, trợ giảng vẫn bị chặn)
+giữ nguyên xanh — nghĩa là ma trận phân biệt được "lọc đúng" với "chặn tất cả".</p>
+
+<h2>2. Task đã xong</h2>
+
+<table>
+<thead><tr><th>Task</th><th>Sản phẩm</th><th>Commit</th></tr></thead>
+<tbody>
+<tr><td>0.1</td><td>Solution 4 src + 3 test, CPM, <code>TreatWarningsAsErrors</code>, <code>ArchitectureTests</code></td><td><code>461dcd8</code></td></tr>
+<tr><td>0.2</td><td><code>Entity</code> (UUIDv7), <code>ISoftDeletable</code>, <code>IAuditable</code></td><td><code>e8f3296</code></td></tr>
+<tr><td>0.3</td><td><code>infra/docker-compose.yml</code> — Postgres 17 + MinIO, cả hai <code>healthy</code></td><td><code>dfda6e8</code></td></tr>
+<tr><td>0.4</td><td><code>AppUser</code>/<code>AppRole</code>/<code>RefreshToken</code>, <code>AppDbContext</code> snake_case, migration <code>Initial</code></td><td><code>1511fc9</code></td></tr>
+<tr><td>0.5</td><td>Serilog, ProblemDetails RFC 9457, OpenAPI 3.1, health check, <code>TeachHubApiFactory</code> + Testcontainers</td><td><code>40c96d0</code></td></tr>
+<tr><td>0.6</td><td><code>ICommand</code>/<code>IQuery</code>/<code>IBaseCommand</code>, <code>Result</code> 7 trạng thái, Logging → Validation → Transaction</td><td><code>6dc448f</code></td></tr>
+<tr><td>0.7</td><td><code>TokenService</code>, <code>ApiControllerBase</code>, <code>AuthController</code>, policy, seed</td><td><code>64be6db</code></td></tr>
+<tr><td>0.8</td><td>Refresh token xoay vòng + phát hiện tái sử dụng, <code>FakeTimeProvider</code></td><td><code>b8bbb5f</code></td></tr>
+<tr><td>0.8b</td><td><code>InstructorInvite</code>, invite/register/bootstrap/revoke, rate limit <code>"auth"</code></td><td><code>168c6a6</code></td></tr>
+<tr><td>0.8c ⭐</td><td><code>IsolationFixture</code> + <code>CrossInstructorIsolationTests</code></td><td><code>044ef2a</code></td></tr>
+<tr><td>0.9</td><td>Hangfire + Postgres storage, hàng đợi <code>zip</code>, dashboard <code>/jobs</code> có bảo vệ</td><td><code>c868aeb</code></td></tr>
+<tr><td>0.10</td><td><code>IFileStorage</code> + <code>LocalFileStorage</code> + <code>S3FileStorage</code>, một bộ test hợp đồng cho cả hai</td><td><code>83c7907</code></td></tr>
+<tr><td>0.11</td><td>Next.js + shadcn/ui, <code>pnpm gen:api</code>, BFF cookie httpOnly, trang đăng nhập + dashboard</td><td><code>dbecd69</code></td></tr>
+<tr><td>0.12</td><td><code>.github/workflows/ci.yml</code> — <span class="warn">viết xong, chưa chứng minh xanh trên GitHub</span></td><td><code>b904ef5</code></td></tr>
+</tbody>
+</table>
+
+<h2>3. Phần còn thiếu</h2>
+
+<div class="danger">
+<strong>Task 0.12 — CI chưa được chứng minh xanh trên GitHub.</strong><br>
+<strong>Triệu chứng:</strong> không có. Workflow đã viết, và <em>chính các lệnh của nó</em> đã chạy sạch ở
+máy local: <code>dotnet restore</code> → <code>dotnet build --no-restore -warnaserror</code> →
+<code>0 Warning(s) 0 Error(s)</code>, và <code>pnpm install --frozen-lockfile</code> → <em>Already up to date</em>.<br>
+<strong>Vì sao dừng:</strong> bước tiếp theo là <code>git push</code> lên
+<code>github.com/anhdev99/TeachHub</code> — hành động hướng ra ngoài, cần người dùng đồng ý, không tự làm.<br>
+<strong>Lệnh tái hiện:</strong> <code>git push -u origin phase-0-foundation</code> rồi xem tab Actions.<br>
+<strong>Rủi ro còn lại sau khi push:</strong> job backend cần Docker daemon cho Testcontainers —
+<code>ubuntu-latest</code> có sẵn nên khả năng cao xanh; điều chưa kiểm được ở local là thời gian kéo
+image <code>postgres:17-alpine</code> và <code>minio/minio</code> trong runner.
+</div>
+
+<h2>4. Sai lệch so với plan, và lý do</h2>
+
+<h3>4.1 Lỗi trong plan đã phát hiện khi thi công</h3>
+
+<table>
+<thead><tr><th>#</th><th>Plan nói</th><th>Thực tế</th><th>Đã xử lý</th></tr></thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>dotnet new sln</code> tạo <code>TeachHub.sln</code></td>
+<td>.NET 10 mặc định sinh <code>TeachHub.slnx</code> (định dạng XML mới)</td>
+<td>Dùng <code>dotnet new sln -f sln</code> — vẫn là công cụ sinh, và giữ đúng đường dẫn mà plan, CI, lệnh nghiệm thu DoD đều tham chiếu</td>
+</tr>
+<tr>
+<td>2</td>
+<td>"Thấy tên bảng PascalCase nghĩa là <code>UseSnakeCaseNamingConvention()</code> chưa được gọi"</td>
+<td><strong>Chẩn đoán này sai.</strong> Convention đã chạy — cột, khoá chính, khoá ngoại, index đều snake_case. Nguyên nhân thật: <code>IdentityDbContext</code> gọi <code>ToTable("AspNetUsers")</code> <em>tường minh</em>, mà cấu hình tường minh luôn thắng convention</td>
+<td>Đổi tên 7 bảng Identity trong <code>OnModelCreating</code>, xoá migration cũ, sinh lại. Đã xác minh bằng <code>psql \dt</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Chỉ nhắc lỗ hổng <code>Newtonsoft.Json</code> qua Hangfire</td>
+<td><code>Testcontainers</code> kéo theo <code>SSH.NET 2025.1.0</code> dính lỗ hổng <em>high</em> (GHSA-q939-rpr3-3284) → <code>NU1903</code> → lỗi build. Và <code>PackageVersion</code> một mình <strong>không</strong> nâng được dependency bắc cầu</td>
+<td>Bật <code>CentralPackageTransitivePinningEnabled</code> — cơ chế đúng của CPM cho việc này, xử lý luôn ca Newtonsoft.Json. <strong>Không</strong> tắt <code>NuGetAudit</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>[Produces("application/json")]</code> trên <code>ApiControllerBase</code></td>
+<td>Nó ép content-type cho <strong>mọi</strong> phản hồi kể cả lỗi: 401/404/409 trả đúng thân ProblemDetails nhưng gắn nhãn <code>application/json</code> thay vì <code>application/problem+json</code>. Bước 6 của kịch bản nghiệm thu đỏ vì đúng chuyện này</td>
+<td>Gỡ <code>[Produces]</code>. JSON vẫn là định dạng duy nhất vì chỉ có formatter JSON đăng ký</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>AddAuth</code> đọc <code>config["Jwt:Key"]</code> ngay tại chỗ</td>
+<td><strong>Lỗi âm thầm nhất của cả phase.</strong> Đọc thẳng config là đọc <em>lúc đăng ký service</em>, còn <code>TokenService</code> đọc <code>IOptions</code> <em>lúc chạy</em>. Nguồn cấu hình nạp sau (WebApplicationFactory, biến môi trường, Key Vault) chỉ tới được một vế → test ký token bằng issuer <code>teachhub-test</code> còn JwtBearer kiểm bằng <code>teachhub</code> của <code>appsettings.json</code> → <strong>mọi request có token đều 401, không log gì</strong></td>
+<td>Chuyển sang <code>AddOptions&lt;JwtBearerOptions&gt;().Configure&lt;IOptions&lt;JwtOptions&gt;&gt;(…)</code> để cả hai vế cùng đọc một nguồn, cùng thời điểm. Áp cùng khuôn cho <code>StorageOptions.Provider</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Code mẫu trong plan</td>
+<td>Không biên dịch được dưới chính cấu hình build của dự án: <code>EntityTests</code> dính <code>IDE0062</code> (local function nên <code>static</code>), <code>new PostgreSqlBuilder()</code> đã obsolete ở Testcontainers 4.13 (<code>CS0618</code>). Cả hai thành <em>lỗi</em> vì <code>TreatWarningsAsErrors</code></td>
+<td>Sửa tối thiểu: thêm <code>static</code>; dùng <code>new PostgreSqlBuilder("postgres:17-alpine")</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>dotnet add … Design</code> chỉ cho Infrastructure</td>
+<td><code>dotnet ef</code> đòi <code>Design</code> ở <em>startup project</em>, mà <code>PrivateAssets=all</code> chặn nó lan từ Infrastructure sang Api</td>
+<td>Thêm <code>Microsoft.EntityFrameworkCore.Design</code> vào <code>TeachHub.Api</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>Validator chỉ khai <code>.EmailAddress()</code></td>
+<td>Phát hiện lúc nghiệm thu tay bước 6: API trả <code>"'Email' is not a valid email address."</code> — tiếng Anh, vi phạm quy ước "thông báo lỗi cho người dùng viết tiếng Việt". FluentValidation không có gói ngôn ngữ tiếng Việt</td>
+<td>Khai <code>.WithMessage()</code> tiếng Việt cho toàn bộ validator, kèm một test canh gác nội dung thông báo để không tái diễn</td>
+</tr>
+</tbody>
+</table>
+
+<h3>4.2 Quyết định kỹ thuật mới, cần đưa vào tài liệu kiến trúc</h3>
+
+<div class="danger">
+<strong>Next.js 16.3.1 chứ không phải 15.</strong> <code>pnpm create next-app@latest</code> hiện sinh ra
+Next <strong>16</strong>. React 19.2.8 và Tailwind v4 thì khớp plan. Tôi giữ bản công cụ sinh thay vì
+hạ xuống 15, vì hạ version nghĩa là ghim một major đã cũ ngay ở ngày đầu dự án. Nhưng đây là
+<strong>thay đổi stack so với mọi tài liệu hiện có</strong> (ADR, roadmap, cả 7 file plan đều ghi
+"Next.js 15") nên cần bạn xác nhận.
+<br><br>
+Đáng chú ý: chính <code>create-next-app</code> sinh kèm <code>frontend/AGENTS.md</code> mở đầu bằng
+<em>"This is NOT the Next.js you know — This version has breaking changes… Read the relevant guide in
+<code>node_modules/next/dist/docs/</code> before writing any code."</em> Nghĩa là các phase sau
+<strong>phải đọc tài liệu trong <code>node_modules</code></strong> thay vì viết theo trí nhớ về Next 15.
+<br><br>
+<strong>Muốn quay về 15:</strong> <code>rm -rf frontend &amp;&amp; pnpm create next-app@15 frontend …</code> —
+vẫn là lệnh sinh của công cụ, và Task 0.11 làm lại mất khoảng một giờ.
+</div>
+
+<table>
+<thead><tr><th>Quyết định</th><th>Lý do</th></tr></thead>
+<tbody>
+<tr><td><code>CentralPackageTransitivePinningEnabled = true</code></td><td>Cách duy nhất vá được lỗ hổng nằm sâu trong đồ thị phụ thuộc mà không phải khai một <code>PackageReference</code> giả ở project chẳng dùng tới nó</td></tr>
+<tr><td>Cấu hình bảo mật đọc qua <code>IOptions</code>, không đọc thẳng <code>IConfiguration</code> lúc đăng ký</td><td>Xem sai lệch #5 — quy tắc này giờ áp cho <code>JwtOptions</code> và <code>StorageOptions</code>, và mọi option sau này</td></tr>
+<tr><td>Cờ <code>Seed:Enabled</code> (mặc định <code>true</code>)</td><td>Không có nó thì không test được <code>POST /api/auth/bootstrap</code> trên hệ thống thật sự trống, vì seed luôn tạo sẵn một giảng viên</td></tr>
+<tr><td><code>shadcn</code> base <code>radix</code>, preset <code>nova</code></td><td>Công cụ nay hỏi chọn giữa Base UI / React Aria / Radix. Chọn Radix cho khớp mô tả "shadcn/ui trên Radix" trong tài liệu và với các component mà plan Phase 1–4b đặt tên</td></tr>
+<tr><td>Giữ <code>.gitignore</code> viết tay sẵn có, không chạy <code>dotnet new gitignore</code></td><td>File đã commit từ trước và đã chứa quyết định commit <code>schema.d.ts</code> — đúng bằng kết luận của Task 0.12. Đè lên là xoá một quyết định có chủ ý</td></tr>
+<tr><td><code>InstructorInvite.NewToken()</code>/<code>HashToken()</code> đặt trong Domain</td><td>Hàm thuần, không chạm hạ tầng; để cạnh entity thì test và seed đều dùng chung một cách băm, không có hai nơi băm khác nhau</td></tr>
+<tr><td>Mời lại cùng một email sẽ thu hồi lời mời cũ chưa dùng</td><td>Hai token sống song song cho một email là hai đường vào cho cùng một tài khoản</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 Điều chỉnh cơ chế điều phối — ghi rõ để không mô tả sai</h3>
+<p>Harness quy định điều phối bằng <code>Agent</code> với 5 subagent chuyên trách. Trong session này
+<strong>các agent trong <code>.claude/agents/</code> không nạp được</strong>
+(<code>Agent type 'domain-engineer' not found</code>) — chúng cần restart Claude Code. Người dùng chọn
+tiếp tục thay vì restart, nên toàn bộ Phase 0 được thi công <strong>tuần tự bởi một tác nhân duy nhất</strong>,
+có nạp skill <code>teachhub-data</code> và <code>teachhub-backend</code> đúng lúc. Bộ luật L1–L10 vẫn được áp
+đầy đủ; thứ mất là khả năng chạy song song.</p>
+
+<h2>5. Nghiệm thu tay — từng bước</h2>
+
+<table>
+<thead><tr><th>#</th><th>Bước</th><th>Kết quả thật</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>docker compose up -d</code></td><td class="ok">✔ <code>teachhub-db</code> và <code>teachhub-storage</code> đều <code>healthy</code></td></tr>
+<tr><td>2</td><td><code>dotnet run --project backend/src/TeachHub.Api</code></td><td class="ok">✔ API sống, migration tự chạy, seed tạo <code>instructor@teachhub.local</code></td></tr>
+<tr><td>3</td><td><code>http://localhost:5080/scalar/v1</code></td><td class="ok">✔ 200, trang Scalar duyệt được toàn bộ endpoint</td></tr>
+<tr><td>4</td><td><code>GET /health</code></td><td class="ok">✔ <strong>200</strong> — không phải 401, tức <code>.AllowAnonymous()</code> gắn đúng chỗ dù fallback policy đang bật</td></tr>
+<tr><td>5</td><td><code>POST /api/auth/login</code> đúng</td><td class="ok">✔ khóa trả về đúng <code>['access_token','refresh_token','expires_in']</code> — snake_case</td></tr>
+<tr><td>6</td><td><code>POST /api/auth/login</code> email sai định dạng</td><td class="ok">✔ <code>400</code> · <code>Content-Type: application/problem+json</code> · có khóa <code>errors</code> · thông báo tiếng Việt <em>"Email không đúng định dạng."</em> (sau khi sửa sai lệch #8) · gom cả lỗi <code>Password</code> trong cùng một phản hồi</td></tr>
+<tr><td>7</td><td>Log có dòng <code>LoggingBehavior</code></td><td class="ok">✔ <code>[16:29:23 WRN] LoginCommand chạy 1023 ms (user null) — vượt ngưỡng 500 ms</code></td></tr>
+<tr><td>8</td><td>Đăng nhập ở <code>localhost:3000/login</code></td><td class="ok">✔ vào dashboard (200, hiện đúng "Giảng viên" / email / vai trò Instructor); cả <code>th_at</code> lẫn <code>th_rt</code> đều có cờ <strong>HttpOnly</strong>; dashboard khi chưa đăng nhập trả <strong>307 → /login</strong>; proxy <code>/api/auth/me</code> trả 401 khi không có cookie</td></tr>
+<tr><td>9</td><td><code>dotnet test backend/TeachHub.sln</code></td><td class="ok">✔ 53 xanh, 0 cảnh báo</td></tr>
+<tr><td>10</td><td><code>grep -r "MediatR" backend/Directory.Packages.props</code></td><td class="ok">✔ <code>12.5.0</code></td></tr>
+<tr><td>11</td><td>CI xanh cả 2 job trên GitHub</td><td class="err">✘ <strong>chưa chạy</strong> — nhánh chưa push, xem mục 3</td></tr>
+</tbody>
+</table>
+
+<p class="meta">Ngoài kịch bản của plan, đã kiểm thêm: <code>/jobs</code> trả <strong>401</strong> cho người
+chưa đăng nhập và Hangfire tạo đủ 12 bảng schema riêng; migration áp lại trên DB đã có dữ liệu là
+no-op và giữ nguyên tên tiếng Việt có dấu.</p>
+
+<h2>6. Việc phải làm ở phase sau</h2>
+
+<h3>Trước khi bắt đầu Phase 1</h3>
+<ol>
+<li><strong>Quyết định Next.js 16 hay 15</strong> (mục 4.2). Nếu giữ 16 thì sửa <code>docs/architecture</code>
+và cả 7 file plan cho khớp, đồng thời ghi vào harness rằng phải đọc
+<code>node_modules/next/dist/docs/</code> trước khi viết code frontend.</li>
+<li><strong>Push nhánh và xác nhận CI xanh</strong> — đóng nốt DoD mục 6 của Phase 0.</li>
+<li><strong>Restart Claude Code</strong> nếu muốn Phase 1 chạy bằng 5 agent chuyên trách thay vì tuần tự.</li>
+<li><strong>Vá 5 chỗ sai trong plan Phase 0</strong> (mục 4.1 #1, #2, #4, #5, #6) vào file plan, để lần chạy
+lại không đi lại đúng con đường đó.</li>
+</ol>
+
+<h3>Nợ kỹ thuật đã biết</h3>
+<table>
+<thead><tr><th>Việc</th><th>Vì sao chưa làm</th></tr></thead>
+<tbody>
+<tr><td>Mỗi test class dựng một container Postgres riêng</td><td>Suite Api đã lên ~40 s. Plan có sẵn cách xử lý: chuyển sang <code>ICollectionFixture</code> dùng chung một container cho cả assembly. Chưa chạm ngưỡng khó chịu nên chưa làm, nhưng Phase 1 thêm test là phải làm ngay</td></tr>
+<tr><td><code>AspNetCore.HealthChecks.NpgSql</code> chưa dùng</td><td><code>AddHealthChecks()</code> hiện chỉ trả "sống". Health check chạm DB thật sẽ cần khi triển khai — 5 dòng gọi <code>CanConnectAsync()</code>, không cần package</td></tr>
+<tr><td>Chưa có endpoint <code>/api/files/{path}</code></td><td><code>LocalFileStorage.GetPresignedUrlAsync</code> trả về đường dẫn tới endpoint này nhưng endpoint chưa tồn tại. Đúng chỗ để làm là Phase 3, nơi bắt đầu có file thật để tải</td></tr>
+<tr><td>Ma trận cách ly mới có 1 dòng</td><td>Phase 0 chỉ có đúng một loại tài nguyên thuộc giảng viên (<code>InstructorInvite</code>). Các dòng chờ sẵn dạng chú thích trong <code>CrossInstructorIsolationTests</code>, và <code>IsolationFixture.Resolve</code> sẽ <strong>ném lỗi</strong> nếu template còn placeholder chưa được seed — nên quên seed là đỏ ngay, không âm thầm bỏ qua</td></tr>
+</tbody>
+</table>
+
+<h3>Hợp đồng Phase 1 kế thừa</h3>
+<pre><code>Result / Result&lt;T&gt;   7 trạng thái: Ok · Invalid · NotFound · Conflict · Forbidden · Unauthorized · PayloadTooLarge
+ICommand&lt;T&gt;          ghi  → bọc transaction (qua IBaseCommand)
+IQuery&lt;T&gt;            đọc  → không transaction
+Behavior             Logging → Validation → Transaction → Handler   (thứ tự bị test khoá)
+Controller           ApiControllerBase: CurrentUserId + ToActionResult(Result) — thành công LUÔN 200
+Policy               Policies.Instructor · Policies.Student   (KHÔNG có InstructorOrTa — ADR-013)
+Phân quyền           lọc instructor_id TRONG câu truy vấn · không thuộc mình → 404, không bao giờ 403
+JSON                 snake_case ở CẢ AddJsonOptions LẪN ConfigureHttpJsonOptions
+Rate limit           "upload" (30/phút) · "auth" (20/phút) — đã đăng ký sẵn
+IAppDbContext        Users · RefreshTokens · InstructorInvites   ← Phase 1 thêm DbSet vào đây
+IFileStorage         SaveAsync · OpenReadAsync · DeleteAsync · GetPresignedUrlAsync
+Job queue            "default" · "zip" (JobsDependencyInjection.ZipQueue)</code></pre>
+
+<hr>
+<p class="meta">
+Liên quan:
+<a href="phase-0_orchestrator_checklist.md">Checklist Phase 0</a> ·
+<a href="../../docs/superpowers/plans/2026-08-13-phase-1-content-versioning.html">Plan Phase 1</a> ·
+<a href="../../docs/architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a>
+</p>
+
+</main>
+</body>
+</html>
