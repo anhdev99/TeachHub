@@ -19,7 +19,10 @@ public sealed class InviteInstructorValidator : AbstractValidator<InviteInstruct
 {
     public InviteInstructorValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Chưa nhập email người được mời.")
+            .EmailAddress().WithMessage("Email không đúng định dạng.")
+            .MaximumLength(256).WithMessage("Email dài quá 256 ký tự.");
     }
 }
 

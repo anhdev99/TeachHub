@@ -47,7 +47,15 @@ public class AuthTests(TeachHubApiFactory factory) : IClassFixture<TeachHubApiFa
 
         res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         res.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
-        (await res.Content.ReadAsStringAsync()).ShouldContain("\"errors\"");
+
+        var body = await res.Content.ReadFromJsonAsync<JsonElement>();
+        var loiEmail = body.GetProperty("errors").GetProperty("Email")
+            .EnumerateArray().Select(x => x.GetString()).ToArray();
+
+        // Thông báo lỗi trả cho người dùng phải là tiếng Việt (quy ước dự án). Mặc định của
+        // FluentValidation là tiếng Anh, nên thiếu .WithMessage() là sinh viên nhận được
+        // "'Email' is not a valid email address." ngay trên màn hình nộp bài.
+        loiEmail.ShouldContain("Email không đúng định dạng.");
     }
 
     [Fact]

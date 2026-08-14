@@ -12,8 +12,14 @@ public sealed class LoginValidator : AbstractValidator<LoginCommand>
 {
     public LoginValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress();
-        RuleFor(x => x.Password).NotEmpty();
+        // Thông báo lỗi trả cho người dùng viết tiếng Việt (quy ước dự án). Thông báo mặc
+        // định của FluentValidation là tiếng Anh và thư viện không có gói ngôn ngữ tiếng Việt,
+        // nên phải khai tường minh ở từng luật.
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Chưa nhập email.")
+            .EmailAddress().WithMessage("Email không đúng định dạng.");
+        RuleFor(x => x.Password)
+            .NotEmpty().WithMessage("Chưa nhập mật khẩu.");
     }
 }
 

@@ -8,7 +8,8 @@ public sealed record RefreshTokenCommand(string RefreshToken) : ICommand<Result<
 
 public sealed class RefreshTokenValidator : AbstractValidator<RefreshTokenCommand>
 {
-    public RefreshTokenValidator() => RuleFor(x => x.RefreshToken).NotEmpty();
+    public RefreshTokenValidator() =>
+        RuleFor(x => x.RefreshToken).NotEmpty().WithMessage("Thiếu refresh token.");
 }
 
 public sealed class RefreshTokenHandler(ITokenService tokens)

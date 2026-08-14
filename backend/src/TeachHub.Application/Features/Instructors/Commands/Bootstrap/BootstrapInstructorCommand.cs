@@ -17,9 +17,16 @@ public sealed class BootstrapInstructorValidator : AbstractValidator<BootstrapIn
 {
     public BootstrapInstructorValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
-        RuleFor(x => x.FullName).NotEmpty().MaximumLength(256);
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("Chưa nhập email.")
+            .EmailAddress().WithMessage("Email không đúng định dạng.")
+            .MaximumLength(256).WithMessage("Email dài quá 256 ký tự.");
+        RuleFor(x => x.FullName)
+            .NotEmpty().WithMessage("Chưa nhập họ tên.")
+            .MaximumLength(256).WithMessage("Họ tên dài quá 256 ký tự.");
+        RuleFor(x => x.Password)
+            .NotEmpty().WithMessage("Chưa nhập mật khẩu.")
+            .MinimumLength(8).WithMessage("Mật khẩu phải có ít nhất 8 ký tự.");
     }
 }
 

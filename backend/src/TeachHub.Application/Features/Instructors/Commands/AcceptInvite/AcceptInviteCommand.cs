@@ -13,9 +13,14 @@ public sealed class AcceptInviteValidator : AbstractValidator<AcceptInviteComman
 {
     public AcceptInviteValidator()
     {
-        RuleFor(x => x.Token).NotEmpty();
-        RuleFor(x => x.FullName).NotEmpty().MaximumLength(256);
-        RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
+        RuleFor(x => x.Token)
+            .NotEmpty().WithMessage("Thiếu mã lời mời.");
+        RuleFor(x => x.FullName)
+            .NotEmpty().WithMessage("Chưa nhập họ tên.")
+            .MaximumLength(256).WithMessage("Họ tên dài quá 256 ký tự.");
+        RuleFor(x => x.Password)
+            .NotEmpty().WithMessage("Chưa nhập mật khẩu.")
+            .MinimumLength(8).WithMessage("Mật khẩu phải có ít nhất 8 ký tự.");
     }
 }
 
