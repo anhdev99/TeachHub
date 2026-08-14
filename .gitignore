@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+._*
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+[Rr]elease/
+[Dd]ebug/
+artifacts/
+TestResults/
+*.trx
+coverage*.xml
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.pnpm-store/
+
+# Dữ liệu chạy cục bộ — không bao giờ commit
+infra/data/
+uploads/
+*.db
+
+# Bí mật
+.env
+.env.local
+.env.*.local
+appsettings.Development.local.json
+appsettings.Production.json
+
+# IDE
+.vs/
+.idea/
+*.swp
+
+# Ghi chú: frontend/src/lib/api/schema.d.ts ĐƯỢC commit có chủ ý.
+# Nó sinh từ /openapi/v1.json, nhưng commit vào repo thì mỗi thay đổi hợp đồng API
+# hiện thành diff review được, và CI build frontend không cần dựng API trước.

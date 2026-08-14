@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 2 — Lớp học phần &amp; Trải nghiệm học · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.8rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.task{border:1px solid var(--bd);border-radius:10px;padding:.2rem 1.1rem 1.1rem;margin:1.6rem 0}
+.task.crown{border-color:var(--acc2);border-width:2px}
+.task>h3{margin-top:1rem}
+.files{background:var(--cbg);border-radius:8px;padding:.6rem .9rem;font-size:.86rem;margin:.8rem 0}
+.files b{color:var(--acc2)}
+label.ck{display:block;margin:1rem 0 .4rem;font-weight:600;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.15)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 2 — Lớp học phần &amp; Trải nghiệm học</h1>
+
+<blockquote>
+<strong>Dành cho agentic worker — BẮT BUỘC:</strong> thực thi bằng <code>superpowers:subagent-driven-development</code>
+hoặc <code>superpowers:executing-plans</code>. Sinh kèm bản <code>.md</code> để tick checkbox.
+</blockquote>
+
+<p><strong>Mục tiêu:</strong> mở lớp cho một học kỳ (ghim cứng phiên bản nội dung), import danh sách sinh viên từ Excel, và cho sinh viên đăng nhập học theo cơ chế mở khóa tuần tự.</p>
+
+<p><strong>Kiến trúc:</strong> <code>CourseOffering</code> ghim <code>subject_version_id</code> tại thời điểm mở lớp và <em>không bao giờ tự đổi</em> (SRS mục 5.2). Tiến độ học lưu ở hai bảng mới <code>LessonProgress</code>/<code>ComponentProgress</code> — SRS thiếu hẳn phần này (Gap #4) nhưng nó là điều kiện cần cho mở khóa, thanh %, XP và streak. Engine mở khóa là hàm thuần trong Domain, test được không cần database.</p>
+
+<p class="meta"><strong>Ước lượng:</strong> 4–6 ngày · <strong>Phụ thuộc:</strong> Phase 1 · <strong>UC:</strong> 04, 05, 06b, 19 (tiến độ) · <strong>Màn hình:</strong> 6.3</p>
+
+<h2>Mô hình dữ liệu của phase này</h2>
+<table>
+<thead><tr><th>Bảng</th><th>Trường chính</th><th>Ghi chú so với SRS</th></tr></thead>
+<tbody>
+<tr><td><code>course_offerings</code></td><td><code>subject_id</code>, <code>subject_version_id</code>, <code>semester</code>, <code>class_code</code>, <code>join_code</code>, <code>join_code_expires_at</code>, <code>status</code>, <code>time_zone</code></td><td>Thêm <code>join_code_expires_at</code> (Gap #17) và <code>time_zone</code> mặc định <code>Asia/Ho_Chi_Minh</code> (Gap #16)</td></tr>
+<tr><td><code>enrollments</code></td><td><code>offering_id</code>, <code>student_code</code>, <code>full_name</code>, <code>email</code>, <code>status</code>, <code>user_id</code> (nullable), <code>xp_points</code>, <code>streak_days</code>, <code>badges</code></td><td>Thêm <code>user_id</code> nullable (Gap #2): SV import từ Excel chưa có tài khoản; gắn khi kích hoạt</td></tr>
+<tr><td><code>lesson_progress</code></td><td><code>enrollment_id</code>, <code>lesson_id</code>, <code>status</code>, <code>completed_at</code>, <code>seconds_spent</code></td><td><strong>Bảng mới hoàn toàn</strong> (Gap #4)</td></tr>
+<tr><td><code>component_progress</code></td><td><code>enrollment_id</code>, <code>lesson_component_id</code>, <code>status</code>, <code>completed_at</code></td><td><strong>Bảng mới hoàn toàn</strong> (Gap #4)</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Chunk 1 — Lớp học phần &amp; danh sách sinh viên</h2>
+
+<div class="task">
+<h3>Task 2.1 — <code>CourseOffering</code> + ghim phiên bản nội dung</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Teaching/CourseOffering.cs</code>, <code>JoinCode.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/OfferingsController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Offerings/Commands/CreateOffering/</code>, <code>Queries/GetOffering/</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/JoinCodeTests.cs</code>, <code>tests/TeachHub.Api.Tests/OfferingsControllerTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho <code>JoinCode</code></label>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Teaching;
+
+namespace TeachHub.Domain.Tests;
+
+public class JoinCodeTests
+{
+    [Fact]
+    public void Ma_gom_6_ky_tu_viet_hoa()
+    {
+        JoinCode.Generate().Length.ShouldBe(6);
+        JoinCode.Generate().ShouldAllBe(c =&gt; char.IsUpper(c) || char.IsDigit(c));
+    }
+
+    [Fact]
+    public void Ma_khong_chua_ky_tu_de_nham_khi_doc_to_tren_lop()
+    {
+        // Giảng viên sẽ đọc mã này to cho cả lớp gõ theo. 0/O và 1/I/l
+        // gây gõ sai nhiều tới mức đủ làm hỏng cả buổi học đầu tiên.
+        var mau = string.Concat(Enumerable.Range(0, 500).Select(_ =&gt; JoinCode.Generate()));
+        mau.ShouldNotContain("0"); mau.ShouldNotContain("O");
+        mau.ShouldNotContain("1"); mau.ShouldNotContain("I");
+    }
+
+    [Fact]
+    public void Ma_sinh_ra_du_phan_tan()
+    {
+        var tap = Enumerable.Range(0, 1000).Select(_ =&gt; JoinCode.Generate()).ToHashSet();
+        tap.Count.ShouldBeGreaterThan(995);   // cho phép rất ít va chạm ngẫu nhiên
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết <code>JoinCode</code> và <code>CourseOffering</code></label>
+<pre><code>using System.Security.Cryptography;
+
+namespace TeachHub.Domain.Teaching;
+
+public static class JoinCode
+{
+    // Bỏ 0 O 1 I L để không đọc nhầm khi giảng viên đọc to trên lớp.
+    private const string Alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+    public static string Generate(int length = 6) =&gt;
+        string.Concat(Enumerable.Range(0, length)
+            .Select(_ =&gt; Alphabet[RandomNumberGenerator.GetInt32(Alphabet.Length)]));
+}</code></pre>
+<pre><code>using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Teaching;
+
+public enum OfferingStatus { Draft, Active, Closed }
+
+public class CourseOffering : Entity, IAuditable
+{
+    public required Guid SubjectId { get; set; }
+
+    /// &lt;summary&gt;
+    /// GHIM CỨNG tại thời điểm mở lớp. Giảng viên tạo phiên bản nội dung mới cho năm sau
+    /// KHÔNG được làm đổi giá trị này — đó là toàn bộ lý do tồn tại của cơ chế versioning
+    /// (SRS mục 5.2). Muốn đổi phải thao tác thủ công, có xác nhận.
+    /// &lt;/summary&gt;
+    public required Guid SubjectVersionId { get; init; }
+
+    public required string Semester { get; set; }      // VD: HK1 2026-2027
+    public required string ClassCode { get; set; }     // VD: DA24TIN01
+    public string? JoinCodeValue { get; set; }
+    public DateTimeOffset? JoinCodeExpiresAt { get; set; }
+    public OfferingStatus Status { get; set; } = OfferingStatus.Draft;
+
+    /// &lt;summary&gt;Hạn nộp hiển thị và nhập theo múi giờ này; lưu xuống DB luôn là UTC.&lt;/summary&gt;
+    public string TimeZoneId { get; set; } = "Asia/Ho_Chi_Minh";
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+
+    public bool AcceptsJoinCode(string code, DateTimeOffset now) =&gt;
+        Status == OfferingStatus.Active
+        &amp;&amp; JoinCodeValue is not null
+        &amp;&amp; string.Equals(JoinCodeValue, code, StringComparison.OrdinalIgnoreCase)
+        &amp;&amp; (JoinCodeExpiresAt is null || now &lt; JoinCodeExpiresAt);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Test tích hợp: mở lớp mặc định lấy <code>current_version_id</code>, nhưng chọn được version khác</label>
+<pre><code>[Fact]
+public async Task Mo_lop_mac_dinh_dung_phien_ban_dang_published()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (subjectId, v1) = await factory.SeedPublishedSubjectAsync(gv);
+
+    var res = await gv.PostAsJsonAsync("/api/offerings",
+        new { subject_id = subjectId, semester = "HK1 2026-2027", class_code = "DA24TIN01" });
+
+    var offering = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    offering.GetProperty("subject_version_id").GetGuid().ShouldBe(v1);
+}
+
+[Fact]
+public async Task Mo_lop_chon_duoc_mot_phien_ban_cu_cu_the()
+{
+    // UC-06b: dạy lại đúng nội dung năm ngoái cho một lớp bù.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (subjectId, v1) = await factory.SeedPublishedSubjectAsync(gv);
+    var v2 = await factory.CloneAndPublishAsync(subjectId, v1, "2027-2028");
+
+    var res = await gv.PostAsJsonAsync("/api/offerings", new
+    {
+        subject_id = subjectId, subject_version_id = v1,
+        semester = "HK1 2027-2028", class_code = "LOP-BU"
+    });
+
+    (await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;())
+        .GetProperty("subject_version_id").GetGuid().ShouldBe(v1);
+}
+
+[Fact]
+public async Task Tao_phien_ban_moi_KHONG_lam_doi_noi_dung_cua_lop_dang_chay()
+{
+    // Bất biến quan trọng nhất của cả hệ thống.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (subjectId, v1) = await factory.SeedPublishedSubjectAsync(gv);
+    var offeringId = await factory.CreateOfferingAsync(gv, subjectId);
+
+    await factory.CloneAndPublishAsync(subjectId, v1, "2027-2028");
+
+    var offering = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{offeringId}");
+    offering.GetProperty("subject_version_id").GetGuid().ShouldBe(v1);   // vẫn là v1
+}
+
+[Fact]
+public async Task Khong_mo_duoc_lop_tu_phien_ban_dang_draft()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (subjectId, draftId) = await factory.SeedSubjectWithDraftAsync(gv);
+
+    var res = await gv.PostAsJsonAsync("/api/offerings", new
+    {
+        subject_id = subjectId, subject_version_id = draftId,
+        semester = "HK1", class_code = "X"
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Viết controller + command, chạy test, xác nhận xanh</label>
+<pre><code>using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace TeachHub.Api.Controllers;
+
+[ApiController]
+[Route("api/offerings")]
+[Authorize]                       // policy đặt ở TỪNG action — xem hint bên dưới
+[Produces("application/json")]
+public sealed class OfferingsController(ISender sender) : ApiControllerBase
+{
+    [HttpPost]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType&lt;OfferingDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; Create(CreateOfferingCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { InstructorId = CurrentUserId }, ct));
+
+    [HttpGet("{id:guid}")]
+    [Authorize(Policy = Policies.Instructor)]
+    public async Task&lt;IActionResult&gt; GetById(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new GetOfferingQuery(id, CurrentUserId), ct));
+}</code></pre>
+<div class="hint">
+<strong><code>[Authorize]</code> ở class và ở action CỘNG DỒN chứ không ghi đè.</strong> Đây là chỗ khác biệt lớn nhất so với
+cách gắn policy cho nhóm route: nếu đặt <code>[Authorize(Policy = Policies.Instructor)]</code> ở class rồi gắn
+<code>[Authorize(Policy = Policies.Student)]</code> cho action <code>Join</code> ở Task 2.3, thì <em>không ai</em> qua được cả hai điều kiện —
+mọi request đều 403, kể cả của người đúng vai. <code>OfferingsController</code> phục vụ cả giảng viên lẫn sinh viên nên
+class chỉ để <code>[Authorize]</code> trần, policy đặt ở từng action.
+</div>
+<p><code>subject_version_id</code> khi để trống lấy theo <code>Subject.CurrentVersionId</code>. Validator chỉ giữ các luật
+<em>đọc được từ chính payload</em>; luật "phải là bản đã published" cần đọc database nên nằm ở handler:</p>
+<pre><code>public sealed class CreateOfferingCommandValidator : AbstractValidator&lt;CreateOfferingCommand&gt;
+{
+    // KHÔNG nhận IAppDbContext. Validator là hàm thuần — xem hint ngay dưới.
+    public CreateOfferingCommandValidator()
+    {
+        RuleFor(x =&gt; x.SubjectId).NotEmpty();
+        RuleFor(x =&gt; x.Semester).NotEmpty().MaximumLength(50);
+        RuleFor(x =&gt; x.ClassCode).NotEmpty().MaximumLength(50);
+    }
+}</code></pre>
+<pre><code>public sealed class CreateOfferingCommandHandler(IAppDbContext db)
+    : ICommandHandler&lt;CreateOfferingCommand, Result&lt;OfferingDto&gt;&gt;
+{
+    public async Task&lt;Result&lt;OfferingDto&gt;&gt; Handle(CreateOfferingCommand request, CancellationToken ct)
+    {
+        var versionId = request.SubjectVersionId
+            ?? await db.Subjects.Where(s =&gt; s.Id == request.SubjectId)
+                                .Select(s =&gt; s.CurrentVersionId)
+                                .FirstOrDefaultAsync(ct);
+
+        var status = await db.SubjectVersions
+            .Where(v =&gt; v.Id == versionId)
+            .Select(v =&gt; (SubjectVersionStatus?)v.Status)
+            .FirstOrDefaultAsync(ct);
+
+        if (status is null)
+            return Result&lt;OfferingDto&gt;.NotFound("Không tìm thấy phiên bản môn học.");
+
+        if (status == SubjectVersionStatus.Draft)
+            return Result&lt;OfferingDto&gt;.Invalid("Không mở được lớp từ phiên bản đang ở trạng thái nháp.");
+
+        // ... tạo CourseOffering, sinh join_code, SaveChangesAsync ...
+    }
+}</code></pre>
+<div class="hint">
+<strong>Ranh giới cố định của cả dự án: validator KHÔNG chạm I/O.</strong> Đây là điều kiện để nói
+<code>ValidationBehavior</code> không cần <code>DbContext</code> — một khi behavior chạm I/O thì thứ tự
+Logging → Validation → Transaction mất hết ý nghĩa (validation sẽ mở kết nối, thậm chí đọc dữ liệu bên ngoài
+transaction rồi handler đọc lại bên trong, cho hai kết quả khác nhau). Luật nào cần đọc database thì handler làm
+và trả <code>Result.Invalid(...)</code>. Phase 4a (trần điểm từng tiêu chí của rubric) và Phase 4b (cột điểm phải
+thuộc đúng lớp) áp dụng đúng quy tắc này — ba file phải nói cùng một thứ, nếu không mỗi người thi công chọn một kiểu.
+</div>
+<p class="meta"><code>Result.Invalid</code> là nhánh <code>ResultStatus.Invalid</code> → <strong>400</strong> của
+<code>ToActionResult</code> (Phase 0, Bước 7) — cùng nhánh mà Phase 4a/4b dùng. Nhờ nó, test
+<code>Khong_mo_duoc_lop_tu_phien_ban_dang_draft</code> vẫn nhận đúng 400 dù luật đã chuyển xuống handler.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(teaching): add course offerings pinned to a subject version"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 2.2 — Import danh sách sinh viên từ Excel</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Enrollments/EnrollmentImporter.cs</code>, <code>ImportResult.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Enrollments/Commands/ImportEnrollments/</code> (Command + Handler + Validator)<br>
+<b>Tạo:</b> <code>src/TeachHub.Infrastructure/Excel/ClosedXmlEnrollmentReader.cs</code><br>
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/OfferingsController.cs</code> (action <code>ImportEnrollments</code>)<br>
+<b>Test:</b> <code>tests/TeachHub.Application.Tests/EnrollmentImporterTests.cs</code>
+</div>
+
+<blockquote>
+SRS mục 5.3 chỉ nói "kiểm tra trùng MSSV khi import, báo lỗi dòng cụ thể". Thực tế file danh sách của phòng đào tạo
+luôn bẩn hơn thế: header lệch, MSSV bị Excel đọc thành số, email viết hoa, tên có khoảng trắng thừa, dòng trống ở giữa.
+Import thất bại toàn phần vì một dòng lỗi sẽ khiến bạn phải sửa file bằng tay — nên bộ nhập này <strong>nhập được bao nhiêu
+nhập bấy nhiêu</strong> và báo cáo chính xác dòng nào hỏng.
+</blockquote>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ, phủ hết các kiểu bẩn thực tế</label>
+<pre><code>using Shouldly;
+using TeachHub.Application.Features.Enrollments;
+
+namespace TeachHub.Application.Tests;
+
+public class EnrollmentImporterTests
+{
+    private static ImportRow Row(string ma, string ten, string email) =&gt; new(ma, ten, email, null);
+
+    [Fact]
+    public void Nhap_thanh_cong_cac_dong_hop_le()
+    {
+        var kq = EnrollmentImporter.Validate([
+            Row("2251012001", "Nguyễn Văn A", "a@sv.edu.vn"),
+            Row("2251012002", "Trần Thị B",   "b@sv.edu.vn"),
+        ]);
+
+        kq.Valid.Count.ShouldBe(2);
+        kq.Errors.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Mssv_trung_trong_cung_file_bao_loi_dung_so_dong()
+    {
+        var kq = EnrollmentImporter.Validate([
+            Row("2251012001", "Nguyễn Văn A", "a@sv.edu.vn"),
+            Row("2251012002", "Trần Thị B",   "b@sv.edu.vn"),
+            Row("2251012001", "Nguyễn Văn A", "a2@sv.edu.vn"),   // dòng 4 trong Excel
+        ]);
+
+        kq.Valid.Count.ShouldBe(2);                    // 2 dòng tốt VẪN được nhập
+        kq.Errors.Count.ShouldBe(1);
+        kq.Errors[0].RowNumber.ShouldBe(4);            // 1-based + 1 dòng header
+        kq.Errors[0].Message.ShouldContain("2251012001");
+    }
+
+    [Fact]
+    public void Mssv_bi_excel_doc_thanh_so_van_duoc_chuan_hoa()
+    {
+        // Excel biến "2251012001" thành 2251012001 rồi xuất ra "2.251012E+09"
+        // hoặc "2251012001.0" tùy phiên bản. Đây là lỗi phổ biến nhất khi import.
+        var kq = EnrollmentImporter.Validate([Row("2251012001.0", "Nguyễn Văn A", "a@sv.edu.vn")]);
+
+        kq.Valid.Single().StudentCode.ShouldBe("2251012001");
+    }
+
+    [Fact]
+    public void Cat_khoang_trang_thua_va_ha_thap_email()
+    {
+        var kq = EnrollmentImporter.Validate([Row("  2251012001  ", " Nguyễn  Văn A ", "  A@SV.EDU.VN ")]);
+
+        var sv = kq.Valid.Single();
+        sv.StudentCode.ShouldBe("2251012001");
+        sv.FullName.ShouldBe("Nguyễn Văn A");    // khoảng trắng giữa cũng gộp lại
+        sv.Email.ShouldBe("a@sv.edu.vn");
+    }
+
+    [Fact]
+    public void Bo_qua_dong_trong_hoan_toan_khong_bao_loi()
+    {
+        // File thật hay có vài dòng trống ở cuối do người dùng bôi đen thừa.
+        var kq = EnrollmentImporter.Validate([
+            Row("2251012001", "Nguyễn Văn A", "a@sv.edu.vn"),
+            Row("", "", ""),
+        ]);
+
+        kq.Valid.Count.ShouldBe(1);
+        kq.Errors.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Thieu_mssv_hoac_ho_ten_bao_loi_dong_do()
+    {
+        var kq = EnrollmentImporter.Validate([
+            Row("", "Nguyễn Văn A", "a@sv.edu.vn"),
+            Row("2251012002", "", "b@sv.edu.vn"),
+        ]);
+
+        kq.Errors.Count.ShouldBe(2);
+        kq.Errors.Select(e =&gt; e.RowNumber).ShouldBe([2, 3]);
+    }
+
+    [Fact]
+    public void Email_sai_dinh_dang_bao_loi_nhung_khong_chan_ca_file()
+    {
+        var kq = EnrollmentImporter.Validate([
+            Row("2251012001", "Nguyễn Văn A", "khong-phai-email"),
+            Row("2251012002", "Trần Thị B",   "b@sv.edu.vn"),
+        ]);
+
+        kq.Valid.Count.ShouldBe(1);
+        kq.Errors.Single().RowNumber.ShouldBe(2);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết <code>EnrollmentImporter</code> (thuần, không I/O)</label>
+<pre><code>using System.Globalization;
+using System.Text.RegularExpressions;
+
+namespace TeachHub.Application.Features.Enrollments;
+
+public sealed record ImportRow(string StudentCode, string FullName, string Email, string? ClassName);
+public sealed record ImportError(int RowNumber, string Message);
+public sealed record ValidatedStudent(string StudentCode, string FullName, string Email, string? ClassName);
+public sealed record ImportResult(List&lt;ValidatedStudent&gt; Valid, List&lt;ImportError&gt; Errors);
+
+public static partial class EnrollmentImporter
+{
+    /// &lt;summary&gt;
+    /// Nhập được bao nhiêu nhập bấy nhiêu. Một dòng hỏng không được làm hỏng cả file —
+    /// giảng viên chỉ cần sửa đúng những dòng được liệt kê rồi nhập bổ sung.
+    /// &lt;/summary&gt;
+    public static ImportResult Validate(IReadOnlyList&lt;ImportRow&gt; rows)
+    {
+        var valid = new List&lt;ValidatedStudent&gt;();
+        var errors = new List&lt;ImportError&gt;();
+        var daThay = new HashSet&lt;string&gt;(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i &lt; rows.Count; i++)
+        {
+            var soDong = i + 2;   // +1 vì 1-based, +1 vì dòng header
+            var r = rows[i];
+
+            var ma    = NormalizeStudentCode(r.StudentCode);
+            var ten   = NormalizeName(r.FullName);
+            var email = r.Email?.Trim().ToLowerInvariant() ?? "";
+
+            if (ma.Length == 0 &amp;&amp; ten.Length == 0 &amp;&amp; email.Length == 0)
+                continue;                                    // dòng trống: bỏ qua lặng lẽ
+
+            if (ma.Length == 0)  { errors.Add(new(soDong, "Thiếu MSSV.")); continue; }
+            if (ten.Length == 0) { errors.Add(new(soDong, $"Thiếu họ tên (MSSV {ma}).")); continue; }
+
+            if (email.Length &gt; 0 &amp;&amp; !EmailPattern().IsMatch(email))
+            { errors.Add(new(soDong, $"Email không hợp lệ: '{r.Email}'.")); continue; }
+
+            if (!daThay.Add(ma))
+            { errors.Add(new(soDong, $"MSSV {ma} bị trùng với một dòng phía trên.")); continue; }
+
+            valid.Add(new ValidatedStudent(ma, ten, email, r.ClassName?.Trim()));
+        }
+
+        return new ImportResult(valid, errors);
+    }
+
+    /// &lt;summary&gt;
+    /// Excel hay biến MSSV thành số rồi xuất ra "2251012001.0" hoặc dạng khoa học.
+    /// Khôi phục về chuỗi chữ số gốc.
+    /// &lt;/summary&gt;
+    private static string NormalizeStudentCode(string? raw)
+    {
+        var s = raw?.Trim() ?? "";
+        if (s.Length == 0) return "";
+
+        if (decimal.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
+            &amp;&amp; d == Math.Floor(d))
+            return ((long)d).ToString(CultureInfo.InvariantCulture);
+
+        return s;
+    }
+
+    private static string NormalizeName(string? raw) =&gt;
+        WhitespaceRuns().Replace(raw?.Trim() ?? "", " ");
+
+    [GeneratedRegex(@"\s+")]              private static partial Regex WhitespaceRuns();
+    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")] private static partial Regex EmailPattern();
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Đọc file Excel bằng ClosedXML (Infrastructure)</label>
+<p>Nhận diện cột theo <em>tên header</em> chứ không theo vị trí — mẫu file của phòng đào tạo hay đổi thứ tự cột.</p>
+<pre><code>private static readonly Dictionary&lt;string, string[]&gt; HeaderAliases = new()
+{
+    ["StudentCode"] = ["mssv", "mã sv", "ma sv", "mã sinh viên", "student code", "msv"],
+    ["FullName"]    = ["họ tên", "ho ten", "họ và tên", "full name", "tên sv"],
+    ["Email"]       = ["email", "e-mail", "thư điện tử"],
+    ["ClassName"]   = ["lớp", "lop", "class"],
+};</code></pre>
+<div class="hint">Nếu không tìm được cột MSSV hoặc Họ tên, trả 400 kèm danh sách header đọc được — để giảng viên biết ngay file sai chỗ nào thay vì nhận một lỗi mơ hồ.</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Action <code>POST /api/offerings/{id}/enrollments/import</code></label>
+<p>Đường dẫn và payload trả về giữ nguyên: <code>{ imported: 38, errors: [ { row_number: 12, message: "..." } ] }</code> —
+đúng như kịch bản nghiệm thu.</p>
+<pre><code>/// &lt;summary&gt;
+/// Bọc IFormFile trong một lớp [FromForm] — KHÔNG khai IFormFile làm tham số rời.
+/// Lý do ở hint ngay dưới; đây không phải chuyện thẩm mỹ.
+/// &lt;/summary&gt;
+public sealed class ImportRosterForm
+{
+    [FromForm(Name = "file")]            // ghim tên trên dây; mặc định sẽ là "File"
+    public IFormFile File { get; set; } = default!;
+}
+
+// trong OfferingsController
+[HttpPost("{id:guid}/enrollments/import")]
+[Authorize(Policy = Policies.Instructor)]
+[Consumes("multipart/form-data")]
+[RequestSizeLimit(10 * 1024 * 1024)]      // danh sách lớp không bao giờ quá 10 MB
+[IgnoreAntiforgeryToken]
+[ProducesResponseType&lt;ImportEnrollmentsResponse&gt;(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+public async Task&lt;IActionResult&gt; ImportEnrollments(
+    Guid id, [FromForm] ImportRosterForm form, CancellationToken ct)
+{
+    await using var stream = form.File.OpenReadStream();
+
+    return ToActionResult(await sender.Send(
+        new ImportEnrollmentsCommand(id, CurrentUserId, form.File.FileName, stream), ct));
+}</code></pre>
+<div class="hint">
+<strong><code>[Consumes("multipart/form-data")]</code> KHÔNG tự sửa được tài liệu OpenAPI — cái sửa được là bọc file
+vào một lớp <code>[FromForm]</code>.</strong> Đo trên host .NET 10 thật, đọc <code>/openapi/v1.json</code>:
+<ul>
+<li>Với tham số rời <code>[FromForm] IFormFile file</code> (dù đã có <code>[Consumes]</code>): content-type sinh ra là
+<code>application/x-www-form-urlencoded</code>, và schema liệt kê các thuộc tính <em>nội bộ</em> của <code>IFormFile</code> —
+<code>ContentType</code>, <code>ContentDisposition</code>, <code>Headers</code>, <code>Length</code>, <code>Name</code>,
+<code>FileName</code> — không có field nhị phân nào.</li>
+<li>Với <code>[FromForm] ImportRosterForm form</code>: đúng <code>multipart/form-data</code>, schema
+<code>{ "file": { "type": "string", "format": "binary" } }</code>.</li>
+</ul>
+Hậu quả nếu để nguyên kiểu cũ: client TypeScript sinh bởi Task 0.10 sẽ đòi bạn truyền sáu chuỗi vô nghĩa thay vì một file,
+và không endpoint upload nào gọi được từ client sinh tự động — mà biên dịch vẫn xanh, test tích hợp dùng
+<code>MultipartFormDataContent</code> viết tay cũng vẫn xanh. Chỉ người dùng client sinh ra mới phát hiện.
+Quy tắc này áp cho <strong>mọi</strong> endpoint upload của dự án, kể cả nộp bài theo slot ở Phase 3 (ở đó lớp form có thêm
+<code>[FromForm(Name = "slot_key")] public string SlotKey { get; set; }</code>).
+<br><br>
+<code>[FromForm]</code> vẫn bắt buộc: thiếu nó, model binder đi tìm tham số trong query string và luôn nhận
+<code>null</code> — request trả 400 với thông điệp vô nghĩa dù client gửi file đúng.
+<br><br>
+Command nhận <code>Stream</code>, không nhận <code>IFormFile</code>: <code>ImportEnrollmentsCommand</code> nằm ở Application và
+không được biết gì về ASP.NET Core. Nhờ vậy test handler chỉ cần một <code>MemoryStream</code> dựng từ file <code>.xlsx</code> fixture.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 5b — Test khóa hợp đồng OpenAPI của endpoint upload</label>
+<p>Không có test này thì lỗi trên chỉ lộ ra ở người dùng cuối của client sinh tự động, sau vài tuần:</p>
+<pre><code>[Fact]
+public async Task Endpoint_upload_sinh_dung_multipart_va_field_nhi_phan()
+{
+    var doc = await factory.CreateClient().GetFromJsonAsync&lt;JsonDocument&gt;("/openapi/v1.json");
+
+    var body = doc!.RootElement
+        .GetProperty("paths")
+        .GetProperty("/api/offerings/{id}/enrollments/import")
+        .GetProperty("post")
+        .GetProperty("requestBody")
+        .GetProperty("content");
+
+    body.TryGetProperty("multipart/form-data", out var mp).ShouldBeTrue();
+
+    // $ref tới components.schemas.IFormFile, mà schema đó phải là { type: string, format: binary }.
+    var schema = mp.GetProperty("schema").GetProperty("properties").GetProperty("file");
+    var refName = schema.GetProperty("$ref").GetString()!.Split('/')[^1];
+
+    var target = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty(refName);
+    target.GetProperty("format").GetString().ShouldBe("binary");
+}</code></pre>
+<p class="meta">Assert bằng cách <em>đọc JSON</em> chứ đừng <code>Contains("\"format\":\"binary\"")</code>: tài liệu do
+<code>MapOpenApi()</code> phục vụ được in đẹp có khoảng trắng, chuỗi ghép tay sẽ không bao giờ khớp và bạn mất
+nửa buổi đi tìm lý do.</p>
+<p class="meta">Handler: đọc file bằng <code>IEnrollmentReader</code> (Infrastructure) → <code>EnrollmentImporter.Validate</code> (thuần)
+→ upsert các dòng hợp lệ. Là <code>ICommand</code> nên TransactionBehavior bọc sẵn — <em>các dòng hợp lệ vào cùng một lần</em>:
+hoặc cả 37 dòng tốt cùng vào, hoặc không dòng nào vào nếu database lỗi giữa chừng. Dòng hỏng vẫn chỉ bị báo lỗi,
+không làm rollback các dòng tốt: chúng bị loại ở bước <code>Validate</code>, trước khi có bất kỳ lệnh ghi nào.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Test tích hợp: import lần hai không tạo bản trùng</label>
+<pre><code>[Fact]
+public async Task Import_lai_cung_file_khong_tao_ban_ghi_trung()
+{
+    // Giảng viên chắc chắn sẽ import lại sau khi sửa vài dòng lỗi.
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.CreateOfferingAsync(gv);
+
+    await gv.PostExcelAsync($"/api/offerings/{offeringId}/enrollments/import", factory.SampleRoster(40));
+    await gv.PostExcelAsync($"/api/offerings/{offeringId}/enrollments/import", factory.SampleRoster(40));
+
+    var ds = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{offeringId}/enrollments");
+    ds.GetArrayLength().ShouldBe(40);
+}</code></pre>
+<p class="meta">Hiện thực bằng unique index <code>(offering_id, student_code)</code> + upsert cập nhật tên/email nếu đã tồn tại.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(enrollment): import students from excel with per-row error reporting"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 2.3 — Kích hoạt tài khoản sinh viên</h3>
+<div class="files">
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/OfferingsController.cs</code> (action <code>Join</code>, <code>MyOfferings</code>)<br>
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/AuthController.cs</code> (action <code>ChangePassword</code>, <code>Logout</code>)<br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/EnrollmentsController.cs</code> (tạo tài khoản cho cả lớp)<br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Middleware/MustChangePasswordMiddleware.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Offerings/Commands/JoinOffering/</code>,
+<code>src/TeachHub.Application/Features/Enrollments/Commands/CreateStudentAccounts/</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Auth/Commands/ChangePassword/</code>,
+<code>src/TeachHub.Application/Features/Auth/Commands/Logout/</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/StudentActivationTests.cs</code>
+</div>
+
+<p>Hai đường vào, theo SRS mục 8 ("SV đăng nhập bằng email trường hoặc MSSV + mật khẩu mặc định, đổi lần đầu"):</p>
+<ol>
+<li><strong>Mã lớp:</strong> SV tự đăng ký tài khoản rồi nhập <code>join_code</code> → hệ thống ghép vào <code>Enrollment</code> có <code>student_code</code>/email khớp.</li>
+<li><strong>Mật khẩu mặc định:</strong> giảng viên bấm "Tạo tài khoản cho cả lớp" → sinh tài khoản với mật khẩu ban đầu, <code>MustChangePassword = true</code>.</li>
+</ol>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task Sv_nhap_ma_lop_dung_thi_duoc_gan_vao_enrollment_co_san()
+{
+    var (offeringId, joinCode) = await factory.SeedActiveOfferingWithRosterAsync();
+    var sv = await factory.RegisterStudentAsync("2251012001", "a@sv.edu.vn");
+
+    var res = await sv.PostAsJsonAsync("/api/offerings/join", new { join_code = joinCode });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+    var lop = await sv.GetFromJsonAsync&lt;JsonElement&gt;("/api/me/offerings");
+    lop.EnumerateArray().ShouldContain(o =&gt; o.GetProperty("id").GetGuid() == offeringId);
+}
+
+[Fact]
+public async Task Sv_khong_co_trong_danh_sach_lop_thi_bi_tu_choi()
+{
+    // Mã lớp bị lan truyền ra ngoài là chuyện chắc chắn xảy ra. Mã đúng vẫn chưa đủ —
+    // phải có tên trong danh sách do phòng đào tạo gửi.
+    var (_, joinCode) = await factory.SeedActiveOfferingWithRosterAsync();
+    var nguoiLa = await factory.RegisterStudentAsync("9999999999", "la@sv.edu.vn");
+
+    var res = await nguoiLa.PostAsJsonAsync("/api/offerings/join", new { join_code = joinCode });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+}
+
+[Fact]
+public async Task Ma_lop_het_han_bi_tu_choi()
+{
+    var (_, joinCode) = await factory.SeedOfferingWithExpiredJoinCodeAsync();
+    var sv = await factory.RegisterStudentAsync("2251012001", "a@sv.edu.vn");
+
+    (await sv.PostAsJsonAsync("/api/offerings/join", new { join_code = joinCode }))
+        .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+}
+
+[Fact]
+public async Task Sv_bat_buoc_doi_mat_khau_lan_dau_truoc_khi_dung_cac_api_khac()
+{
+    var sv = await factory.LoginAsSeededStudentAsync();   // MustChangePassword = true
+
+    var res = await sv.GetAsync("/api/me/offerings");
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    (await res.Content.ReadAsStringAsync()).ShouldContain("must_change_password");
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Viết action <code>Join</code> + command</label>
+<pre><code>// trong OfferingsController
+[HttpPost("join")]
+[Authorize(Policy = Policies.Student)]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
+public async Task&lt;IActionResult&gt; Join(JoinOfferingCommand command, CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(command with { UserId = CurrentUserId }, ct));
+
+// Route bắt đầu bằng '/' là route TUYỆT ĐỐI: nó bỏ qua [Route("api/offerings")] của class,
+// nên đường dẫn ra đúng /api/me/offerings như hợp đồng SRS mục 7 — không phải
+// /api/offerings/api/me/offerings. Đây là cách giữ nguyên hợp đồng API mà không phải
+// đẻ thêm một controller chỉ vì tiền tố route khác.
+[HttpGet("/api/me/offerings")]
+[Authorize(Policy = Policies.Student)]
+public async Task&lt;IActionResult&gt; MyOfferings(CancellationToken ct)
+    =&gt; Ok(await sender.Send(new GetMyOfferingsQuery(CurrentUserId), ct));</code></pre>
+<p><code>JoinOfferingCommandHandler</code> giữ nguyên hai lớp kiểm tra và trả <code>Result.Forbidden(...)</code> cho cả hai —
+mã sai/hết hạn và người không có tên trong danh sách <strong>phải trả cùng một mã lỗi</strong>, nếu không kẻ dò mã sẽ
+phân biệt được "mã sai" với "mã đúng nhưng không có tên", tức là dò ra mã hợp lệ chỉ bằng cách thử.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Bổ sung <code>change-password</code> và <code>logout</code> vào <code>AuthController</code></label>
+<div class="files"><b>Sửa:</b> <code>src/TeachHub.Api/Controllers/AuthController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Auth/Commands/ChangePassword/</code>, <code>Commands/Logout/</code></div>
+<p><code>AuthController</code> ở Phase 0 mới có <code>login</code> / <code>refresh</code> / <code>me</code>. Middleware ở
+Bước 4 sẽ cho đi qua đúng hai đường thoát, nên hai đường đó <strong>phải tồn tại trước</strong> — nếu không, sinh viên
+đăng nhập lần đầu bị chặn ở mọi endpoint kể cả đường để tự gỡ chặn, và không có cách nào vào được hệ thống.</p>
+<pre><code>// trong AuthController
+[HttpPost("change-password")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+public async Task&lt;IActionResult&gt; ChangePassword(ChangePasswordCommand command, CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(command with { UserId = CurrentUserId }, ct));
+
+[HttpPost("logout")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+public async Task&lt;IActionResult&gt; Logout(CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(new LogoutCommand { UserId = CurrentUserId }, ct));</code></pre>
+<p><code>ChangePasswordCommand</code> nhận <code>CurrentPassword</code> + <code>NewPassword</code>, đổi mật khẩu qua
+<code>UserManager</code>, đặt <code>MustChangePassword = false</code>, và <strong>thu hồi toàn bộ refresh token</strong>
+của người đó — đổi mật khẩu mà phiên cũ vẫn sống thì việc đổi gần như vô nghĩa.
+<code>LogoutCommand</code> chỉ thu hồi refresh token đang hoạt động.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Middleware chặn khi <code>MustChangePassword</code></label>
+<div class="hint">
+Đây là middleware, KHÔNG phải pipeline behavior của MediatR: nó phải chặn được cả các request chưa từng đi tới
+handler nào (ví dụ action chỉ đọc, action lỗi route). Đặt sau <code>UseAuthentication</code>, cho đi qua đúng hai đường
+vừa tạo ở Bước 3: <code>POST /api/auth/change-password</code> và <code>POST /api/auth/logout</code>. Mọi đường còn lại
+trả 403 kèm mã <code>must_change_password</code> trong <code>ProblemDetails.Extensions</code> để frontend biết mà chuyển hướng.
+</div>
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+</div>
+
+<hr>
+
+<h2>Chunk 2 — Tiến độ học &amp; engine mở khóa</h2>
+
+<div class="task crown">
+<h3>Task 2.4 — Engine mở khóa (bảng SRS còn thiếu) ⭐</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Learning/LessonProgress.cs</code>, <code>ComponentProgress.cs</code>, <code>UnlockEngine.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/UnlockEngineTests.cs</code>
+</div>
+
+<blockquote>
+SRS có <code>Chapter.unlock_rule</code> và <code>Lesson.is_required_to_unlock_next</code>, có màn hình 6.3 với "icon khóa/mở"
+và "% hoàn thành", có XP và streak ở mục 5.9 — nhưng <strong>không có bảng nào lưu việc sinh viên đã học tới đâu</strong>.
+Không có nó thì không mục nào ở trên làm được. Đây là lỗ hổng nghiêm trọng nhất của SRS và task này lấp nó.
+</blockquote>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho engine mở khóa</label>
+<p>Engine là hàm thuần: nhận cấu trúc chương + tiến độ, trả về bài nào mở, bài nào khóa. Không chạm database nên test chạy trong mili-giây và phủ được mọi ca biên.</p>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Content;
+using TeachHub.Domain.Learning;
+
+namespace TeachHub.Domain.Tests;
+
+public class UnlockEngineTests
+{
+    private static LessonNode Bai(string ten, bool batBuoc, params ComponentNode[] components) =&gt;
+        new(Guid.CreateVersion7(), ten, batBuoc, [.. components]);
+
+    private static ComponentNode Phan(bool batBuoc) =&gt; new(Guid.CreateVersion7(), batBuoc);
+
+    [Fact]
+    public void Chuong_free_mo_khoa_toan_bo_bai_ngay_tu_dau()
+    {
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free,
+            [Bai("Bài 1", batBuoc: true), Bai("Bài 2", batBuoc: true)]);
+
+        var kq = UnlockEngine.Evaluate(chuong, Progress.Empty);
+
+        kq.Values.ShouldAllBe(v =&gt; v == LessonAccess.Unlocked);
+    }
+
+    [Fact]
+    public void Chuong_tuan_tu_chi_mo_bai_dau_tien_khi_chua_hoc_gi()
+    {
+        var b1 = Bai("Bài 1", batBuoc: true);
+        var b2 = Bai("Bài 2", batBuoc: true);
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+
+        var kq = UnlockEngine.Evaluate(chuong, Progress.Empty);
+
+        kq[b1.Id].ShouldBe(LessonAccess.Unlocked);
+        kq[b2.Id].ShouldBe(LessonAccess.Locked);
+    }
+
+    [Fact]
+    public void Hoan_thanh_bai_bat_buoc_thi_mo_bai_ke_tiep()
+    {
+        var b1 = Bai("Bài 1", batBuoc: true);
+        var b2 = Bai("Bài 2", batBuoc: true);
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+
+        var kq = UnlockEngine.Evaluate(chuong, Progress.With(completedLessons: [b1.Id]));
+
+        kq[b2.Id].ShouldBe(LessonAccess.Unlocked);
+    }
+
+    [Fact]
+    public void Bai_KHONG_bat_buoc_khong_chan_bai_ke_tiep()
+    {
+        // is_required_to_unlock_next = false ⇒ bài tham khảo, bỏ qua được.
+        var b1 = Bai("Bài đọc thêm", batBuoc: false);
+        var b2 = Bai("Bài 2", batBuoc: true);
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+
+        var kq = UnlockEngine.Evaluate(chuong, Progress.Empty);
+
+        kq[b2.Id].ShouldBe(LessonAccess.Unlocked);
+    }
+
+    [Fact]
+    public void Bai_chi_duoc_tinh_hoan_thanh_khi_moi_component_bat_buoc_da_xong()
+    {
+        var phanBatBuoc = Phan(batBuoc: true);
+        var phanTuyChon = Phan(batBuoc: false);
+        var b1 = Bai("Bài 1", batBuoc: true, phanBatBuoc, phanTuyChon);
+        var b2 = Bai("Bài 2", batBuoc: true);
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+
+        // Xem xong nội dung nhưng chưa nộp bài tập bắt buộc
+        var chuaXong = Progress.With(completedLessons: [b1.Id], completedComponents: []);
+        UnlockEngine.Evaluate(chuong, chuaXong)[b2.Id].ShouldBe(LessonAccess.Locked);
+
+        var daXong = Progress.With(completedLessons: [b1.Id], completedComponents: [phanBatBuoc.Id]);
+        UnlockEngine.Evaluate(chuong, daXong)[b2.Id].ShouldBe(LessonAccess.Unlocked);
+    }
+
+    [Fact]
+    public void Phan_tram_hoan_thanh_tinh_theo_so_bai_da_xong()
+    {
+        var b1 = Bai("1", true); var b2 = Bai("2", true); var b3 = Bai("3", true); var b4 = Bai("4", true);
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free, [b1, b2, b3, b4]);
+
+        UnlockEngine.CompletionPercent(chuong, Progress.With(completedLessons: [b1.Id, b2.Id]))
+            .ShouldBe(50m);
+    }
+
+    [Fact]
+    public void Chuong_rong_khong_gay_chia_cho_khong()
+    {
+        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free, []);
+        UnlockEngine.CompletionPercent(chuong, Progress.Empty).ShouldBe(0m);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết engine</label>
+<pre><code>namespace TeachHub.Domain.Learning;
+
+public enum LessonAccess { Locked, Unlocked }
+
+public sealed record ComponentNode(Guid Id, bool IsRequired);
+public sealed record LessonNode(Guid Id, string Title, bool IsRequiredToUnlockNext, List&lt;ComponentNode&gt; Components);
+public sealed record ChapterNode(Guid Id, UnlockRule Rule, List&lt;LessonNode&gt; Lessons);
+
+public sealed record Progress(HashSet&lt;Guid&gt; CompletedLessons, HashSet&lt;Guid&gt; CompletedComponents)
+{
+    public static Progress Empty =&gt; new([], []);
+    public static Progress With(IEnumerable&lt;Guid&gt;? completedLessons = null,
+                                IEnumerable&lt;Guid&gt;? completedComponents = null) =&gt;
+        new([.. completedLessons ?? []], [.. completedComponents ?? []]);
+}
+
+/// &lt;summary&gt;
+/// Hàm thuần, không I/O. Tách khỏi database để test được mọi tổ hợp mở khóa trong mili-giây —
+/// đây là loại logic mà sai một ca biên là sinh viên bị kẹt không học tiếp được, và bạn
+/// sẽ nhận tin nhắn lúc 11 giờ đêm.
+/// &lt;/summary&gt;
+public static class UnlockEngine
+{
+    public static Dictionary&lt;Guid, LessonAccess&gt; Evaluate(ChapterNode chapter, Progress progress)
+    {
+        var result = new Dictionary&lt;Guid, LessonAccess&gt;();
+
+        if (chapter.Rule == UnlockRule.Free)
+        {
+            foreach (var l in chapter.Lessons) result[l.Id] = LessonAccess.Unlocked;
+            return result;
+        }
+
+        var moKhoa = true;
+        foreach (var lesson in chapter.Lessons)
+        {
+            result[lesson.Id] = moKhoa ? LessonAccess.Unlocked : LessonAccess.Locked;
+
+            // Chỉ bài được đánh dấu bắt buộc mới có quyền chặn bài kế tiếp.
+            if (moKhoa &amp;&amp; lesson.IsRequiredToUnlockNext &amp;&amp; !IsComplete(lesson, progress))
+                moKhoa = false;
+        }
+
+        return result;
+    }
+
+    public static bool IsComplete(LessonNode lesson, Progress progress) =&gt;
+        progress.CompletedLessons.Contains(lesson.Id)
+        &amp;&amp; lesson.Components
+            .Where(c =&gt; c.IsRequired)
+            .All(c =&gt; progress.CompletedComponents.Contains(c.Id));
+
+    public static decimal CompletionPercent(ChapterNode chapter, Progress progress)
+    {
+        if (chapter.Lessons.Count == 0) return 0m;
+
+        var xong = chapter.Lessons.Count(l =&gt; IsComplete(l, progress));
+        return Math.Round(xong * 100m / chapter.Lessons.Count, 1);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy, xác nhận xanh (7 test, &lt; 50 ms)</label>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Entity tiến độ + migration</label>
+<pre><code>public class LessonProgress : Entity
+{
+    public required Guid EnrollmentId { get; set; }
+    public required Guid LessonId { get; set; }
+    public ProgressStatus Status { get; set; } = ProgressStatus.NotStarted;
+    public DateTimeOffset? CompletedAt { get; set; }
+    public int SecondsSpent { get; set; }
+}
+
+public class ComponentProgress : Entity
+{
+    public required Guid EnrollmentId { get; set; }
+    public required Guid LessonComponentId { get; set; }
+    public ProgressStatus Status { get; set; } = ProgressStatus.NotStarted;
+    public DateTimeOffset? CompletedAt { get; set; }
+}
+
+public enum ProgressStatus { NotStarted, InProgress, Completed }</code></pre>
+<p>Unique index bắt buộc: <code>(enrollment_id, lesson_id)</code> và <code>(enrollment_id, lesson_component_id)</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Action đánh dấu hoàn thành</label>
+<p>Đường dẫn giữ nguyên; mỗi cái là một action mỏng gọi thẳng MediatR:</p>
+<table>
+<thead><tr><th>Route</th><th>Controller · action</th><th>Request MediatR</th><th>Việc thật sự làm</th></tr></thead>
+<tbody>
+<tr><td><code>POST /api/lessons/{id}/complete</code></td><td><code>LessonsController.Complete</code></td><td><code>CompleteLessonCommand</code></td><td>upsert <code>LessonProgress</code></td></tr>
+<tr><td><code>POST /api/lesson-components/{id}/complete</code></td><td><code>LessonComponentsController.Complete</code></td><td><code>CompleteComponentCommand</code></td><td>upsert <code>ComponentProgress</code></td></tr>
+<tr><td><code>GET /api/offerings/{id}/my-progress</code></td><td><code>OfferingsController.MyProgress</code></td><td><code>GetMyProgressQuery</code></td><td>cây chương/bài kèm trạng thái khóa + %</td></tr>
+</tbody>
+</table>
+<pre><code>// trong LessonsController — controller này đã có action của giảng viên từ Phase 1,
+// nên policy phải đặt ở TỪNG action, không đặt ở class.
+[HttpPost("{id:guid}/complete")]
+[Authorize(Policy = Policies.Student)]
+[ProducesResponseType(StatusCodes.Status200OK)]
+public async Task&lt;IActionResult&gt; Complete(Guid id, CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(new CompleteLessonCommand(id, CurrentUserId), ct));</code></pre>
+<div class="hint">
+Dùng <code>ON CONFLICT DO UPDATE</code> (upsert) chứ không phải "kiểm tra rồi chèn" — sinh viên bấm nhanh hai lần sẽ tạo
+race condition và vi phạm unique index, làm request thứ hai lỗi 500.
+<br><br>
+Chú ý phối hợp với TransactionBehavior: hai request song song của cùng một sinh viên là hai transaction riêng.
+Upsert xử lý được va chạm đó ở mức database; <code>if (chưa có) then insert</code> trong handler thì không, vì transaction
+thứ hai không nhìn thấy dòng transaction thứ nhất chưa commit.
+</div>
+<p class="meta">Các action ở đây <strong>không</strong> gắn <code>[RequireDraftVersion]</code> của Phase 1: sinh viên học trên
+version đã <code>published</code>, filter đó sẽ chặn sạch mọi request. Filter chỉ dành cho action sửa nội dung của giảng viên.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(learning): add progress tracking and lesson unlock engine"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 3 — Trang học của sinh viên (màn hình 6.3)</h2>
+
+<div class="task">
+<h3>Task 2.5 — Bố cục trang học kiểu Udemy</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/app/(student)/learn/[offeringId]/page.tsx</code> + components</div>
+
+<p>Theo SRS mục 6.3:</p>
+<ul>
+<li><strong>Sidebar:</strong> danh sách chương, icon khóa/mở, % hoàn thành.</li>
+<li><strong>Nội dung chính:</strong> bài hiện tại toàn màn hình, nút "Tiếp theo".</li>
+<li><strong>Thanh trên cùng:</strong> XP, streak, nút "Ôn tập hôm nay" (Phase 8 mới có nội dung — Phase này chỉ giữ chỗ).</li>
+</ul>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Dựng layout</label>
+<label class="ck"><input type="checkbox"> Bước 2 — Bài bị khóa hiển thị rõ lý do</label>
+<div class="hint">Đừng chỉ hiện cái ổ khóa. Ghi thẳng <em>"Hoàn thành 'Bài 2 — Hooks' để mở bài này"</em> kèm link tới bài đó. Ổ khóa không lời giải thích là nguồn tin nhắn hỏi bài số một của mọi LMS.</div>
+<label class="ck"><input type="checkbox"> Bước 3 — Ghi nhận tiến độ tự động</label>
+<p>Đánh dấu <code>InProgress</code> khi mở bài; <code>Completed</code> khi cuộn hết nội dung / xem hết video / bấm "Đã học xong". Gửi <code>seconds_spent</code> theo nhịp 30 giây bằng <code>navigator.sendBeacon</code> để không mất dữ liệu khi SV đóng tab.</p>
+<label class="ck"><input type="checkbox"> Bước 4 — Responsive cho điện thoại</label>
+<p class="meta">SRS mục 9 nêu rõ "SV hay xem trên điện thoại". Sidebar thu vào drawer dưới 768px; nội dung PPT/PDF luôn vừa khung, không cuộn ngang.</p>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 2.6 — Xem trước PPT/PDF/video ngay trong trình duyệt</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/components/content-viewer/</code></div>
+
+<p>SRS mục 5.1: "Preview PPT/PDF ngay trong trình duyệt (không bắt SV tải về)".</p>
+<table>
+<thead><tr><th>Loại</th><th>Cách làm</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td>PDF</td><td><code>react-pdf</code> (pdf.js)</td><td>Chạy hoàn toàn phía client, không cần dịch vụ ngoài</td></tr>
+<tr><td>PPTX</td><td>Job nền chuyển sang PDF bằng LibreOffice headless, rồi hiển thị như PDF</td><td>Không có thư viện JS nào render PPTX đủ tốt. Chuyển đổi phía server là đường duy nhất giữ được dữ liệu trong nhà.</td></tr>
+<tr><td>Video nhúng</td><td><code>&lt;iframe&gt;</code> YouTube/Vimeo có sandbox</td><td>Chỉ nhận URL từ danh sách nguồn cho phép — không cho nhúng iframe tùy ý</td></tr>
+<tr><td>Video tải lên</td><td><code>&lt;video&gt;</code> gốc + presigned URL</td><td>Phase 3 mới xử lý đầy đủ</td></tr>
+</tbody>
+</table>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Job chuyển PPTX → PDF</label>
+<pre><code>soffice --headless --convert-to pdf --outdir &lt;out&gt; &lt;input.pptx&gt;</code></pre>
+<div class="hint">
+LibreOffice là phụ thuộc hệ thống nặng. <strong>Nếu không muốn cài:</strong> chấp nhận cho PPTX chỉ tải về, và
+khuyến nghị giảng viên xuất PDF trước khi upload. Đây là chỗ cắt giảm hợp lý nhất của Phase 2 — hãy quyết
+sớm thay vì để nó chặn tiến độ.
+</div>
+<label class="ck"><input type="checkbox"> Bước 2 — Danh sách nguồn video được phép nhúng</label>
+<pre><code>private static readonly string[] AllowedVideoHosts =
+    ["youtube.com", "www.youtube.com", "youtu.be", "player.vimeo.com", "vimeo.com"];</code></pre>
+<p class="meta">Cho nhúng iframe tùy ý nghĩa là bất kỳ ai sửa được nội dung bài học đều có thể nhúng trang lừa đảo vào trang học của sinh viên.</p>
+<label class="ck"><input type="checkbox"> Bước 3 — Commit</label>
+</div>
+
+<hr>
+
+<h2>Nghiệm thu Phase 2</h2>
+<ol>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Mở lớp <em>DA24TIN01 — HK1 2026-2027</em> từ môn đã xuất bản ở Phase 1; xác nhận lớp ghim đúng version.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Import file Excel <strong>40 sinh viên có 2 dòng trùng MSSV và 1 dòng thiếu họ tên</strong> → hệ thống nhập 37 dòng và liệt kê đúng 3 dòng lỗi kèm số dòng.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Sửa 3 dòng đó trong file rồi import lại → đủ 40, không ai bị trùng.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Sinh viên đăng ký, nhập mã lớp, vào được lớp. Người không có trong danh sách nhập đúng mã vẫn bị từ chối.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đặt chương 1 ở chế độ <code>after_previous_completed</code>, bài 1 bắt buộc → sinh viên thấy bài 2 bị khóa kèm lời giải thích rõ ràng.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Học xong bài 1 → bài 2 mở, % hoàn thành chương cập nhật.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Mở trang học trên điện thoại → đọc được, không phải cuộn ngang.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Xem trước PDF ngay trong trình duyệt, không phải tải về.</li>
+</ol>
+
+<h2>Rủi ro đã biết của phase này</h2>
+<table>
+<thead><tr><th>Rủi ro</th><th>Dấu hiệu</th><th>Xử lý</th></tr></thead>
+<tbody>
+<tr><td>File Excel của trường có cấu trúc lạ</td><td>Import không nhận được cột nào</td><td>Nhận diện theo tên header + bảng alias; báo lỗi kèm danh sách header đọc được. <strong>Lấy file thật của bạn làm fixture test ngay từ đầu.</strong></td></tr>
+<tr><td>Chuyển đổi PPTX cần LibreOffice</td><td>Job lỗi trên máy chưa cài</td><td>Quyết sớm: hoặc cài, hoặc bỏ hẳn preview PPTX và yêu cầu upload PDF.</td></tr>
+<tr><td>Race khi bấm "hoàn thành" nhiều lần</td><td>Lỗi 500 vi phạm unique index</td><td>Upsert (<code>ON CONFLICT DO UPDATE</code>), không phải "check rồi insert".</td></tr>
+<tr><td>Mã lớp bị chia sẻ ra ngoài</td><td>Người lạ vào được lớp</td><td>Đã chặn: bắt buộc có tên trong danh sách + mã có hạn dùng.</td></tr>
+<tr><td>Đánh dấu hoàn thành quá dễ dãi</td><td>SV bấm qua hết mà không học</td><td>Chấp nhận ở MVP. Chống gian lận tiến độ không phải mục tiêu của hệ thống này — điểm số mới là thứ được bảo vệ.</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">Tiếp theo: <a href="2026-08-13-phase-3-assignments-submissions.html">Phase 3 — Bài tập &amp; Nộp bài</a> · Quay lại <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a></p>
+
+</main>
+</body>
+</html>

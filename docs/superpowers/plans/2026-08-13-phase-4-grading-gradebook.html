@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 4a — Chấm điểm &amp; Làm việc nhóm · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.8rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.task{border:1px solid var(--bd);border-radius:10px;padding:.2rem 1.1rem 1.1rem;margin:1.6rem 0}
+.task.crown{border-color:var(--acc2);border-width:2px}
+.task>h3{margin-top:1rem}
+.files{background:var(--cbg);border-radius:8px;padding:.6rem .9rem;font-size:.86rem;margin:.8rem 0}
+.files b{color:var(--acc2)}
+label.ck{display:block;margin:1rem 0 .4rem;font-weight:600;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.15)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+.danger{border-left:3px solid var(--err);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+.done{background:linear-gradient(90deg,transparent,var(--cbg));border-left:5px solid var(--ok);padding:1rem;border-radius:0 10px 10px 0;margin:2rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 4a — Chấm điểm &amp; Làm việc nhóm</h1>
+
+<blockquote>
+<strong>Dành cho agentic worker — BẮT BUỘC:</strong> thực thi bằng <code>superpowers:subagent-driven-development</code>
+hoặc <code>superpowers:executing-plans</code>. Sinh kèm bản <code>.md</code> để tick checkbox.
+</blockquote>
+
+<p><strong>Mục tiêu:</strong> chấm bài theo rubric ngay trên trình duyệt, làm việc nhóm, đợt chấm điểm cuối môn dạng bài tập lớn, và dashboard giảng viên.</p>
+
+<p><strong>Kiến trúc:</strong> mọi thay đổi điểm đều ghi <code>GradeAuditLog</code> — bảng chỉ ghi thêm, không sửa không xóa. <code>FinalAssessment</code> loại <code>final_project</code> tái sử dụng nguyên vẹn <code>SubmissionSlot</code>/<code>Submission</code>/màn hình chấm của Phase 3 — không xây hệ thống thứ hai.</p>
+
+<p class="meta"><strong>Ước lượng:</strong> 6–8 ngày · <strong>Phụ thuộc:</strong> Phase 3 · <strong>UC:</strong> 07b, 10, 21, 22, 23, 24, 25 · <strong>Màn hình:</strong> 6.1, 6.5, 6.7, 6.9</p>
+
+<p class="meta"><strong>Không nằm trong file này:</strong> sổ điểm động (cột điểm, trọng số, quy tắc tổng hợp), điểm cộng và thư viện lý do,
+xuất Excel theo mẫu — toàn bộ đã tách sang <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b — Sổ điểm động</a>.
+Làm 4a trước, 4b ngay sau; hết 4b mới là MVP.</p>
+
+<div class="danger">
+<strong>Đây là phase động tới điểm số thật của sinh viên.</strong> Một lỗi làm tròn hay một tiêu chí rubric cộng sai
+sẽ đi thẳng vào bảng điểm nộp cho phòng đào tạo. Mọi phép tính điểm dùng <code>decimal</code>, có test cho từng ca biên,
+và mọi thay đổi đều để lại vết trong <code>GradeAuditLog</code>. Không có ngoại lệ nào ở đây cả.
+</div>
+
+<h2>Quyết định nghiệp vụ đã chốt (13/08/2026)</h2>
+<p>Không còn gì phải hỏi trước khi bắt đầu. Chủ hệ thống — cũng chính là giảng viên dùng thật — đã chốt,
+và chi tiết đầy đủ nằm ở <a href="../../architecture/00-tech-stack-decisions.html">ADR-008 trong tài liệu kiến trúc</a>.
+Ở phạm vi 4a chỉ có hai điều cần nhớ:</p>
+<table>
+<thead><tr><th>Quyết định</th><th>Nội dung đã chốt</th></tr></thead>
+<tbody>
+<tr><td>Thang điểm</td><td>Chỉ <strong>số từ 0 đến 10</strong>, làm tròn 1 chữ số thập phân theo <code>AwayFromZero</code>. Không có hệ quy đổi nào khác trong MVP; muốn thì để backlog P2.</td></tr>
+<tr><td>Vết thay đổi điểm</td><td>Mọi lần chấm, chấm lại hay sửa tay đều ghi một dòng <code>GradeAuditLog</code> có người sửa, thời điểm, giá trị cũ và giá trị mới. Đây là thứ bảo vệ bạn khi sinh viên khiếu nại điểm sáu tháng sau.</td></tr>
+</tbody>
+</table>
+<p class="meta">Các quyết định về cột điểm, trọng số, quy tắc tổng hợp, đích của điểm cộng và thư viện lý do
+nằm ở <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a> — đọc bên đó trước khi động vào phần sổ điểm.</p>
+
+<h2>Kiến trúc API — Controllers + MediatR</h2>
+
+<p>Phase này không có endpoint kiểu Minimal API nào. Mọi đường vào hệ thống là một <em>action</em> trong controller
+gắn <code>[ApiController]</code>, kế thừa <code>ApiControllerBase</code>. Controller làm đúng ba việc:
+định tuyến, lấy <code>CurrentUserId</code> từ claim, gọi <code>sender.Send</code> rồi quy đổi <code>Result</code>.
+Không có <code>if</code> nghiệp vụ, không truy vấn <code>DbContext</code>, không <code>try/catch</code> trong controller —
+toàn bộ nghiệp vụ nằm ở Command/Query handler của tầng Application.</p>
+
+<p>Hợp đồng API ở SRS mục 7 <strong>không đổi một ký tự nào</strong>: cùng đường dẫn, cùng payload, cùng mã lỗi.
+Chỉ đổi cách hiện thực.</p>
+
+<table>
+<thead><tr><th>Nhóm endpoint</th><th>Controller</th><th>Command / Query</th></tr></thead>
+<tbody>
+<tr><td>Nhóm sinh viên (4a.1)</td><td><code>GroupsController</code></td>
+<td><code>GetGroupsQuery</code>, <code>CreateGroupCommand</code>, <code>AutoGenerateGroupsCommand</code>,
+<code>JoinGroupCommand</code>, <code>UpdateGroupMembersCommand</code></td></tr>
+<tr><td>Chấm bài, trả bài (4a.2)</td><td><code>SubmissionsController</code> <em>(đã có từ Phase 3 — chỉ thêm action)</em></td>
+<td><code>GradeSubmissionCommand</code>, <code>ReturnSubmissionCommand</code>;
+<code>GetSubmissionQuery</code> của Phase 3 chỉ được mở rộng, không viết lại</td></tr>
+<tr><td>Đợt cuối môn (4a.4)</td><td><code>FinalAssessmentsController</code></td>
+<td><code>CreateFinalAssessmentCommand</code>, <code>AddSubmissionSlotCommand</code>,
+<code>GetFinalAssessmentsQuery</code></td></tr>
+<tr><td>Dashboard (4a.5)</td><td><code>DashboardController</code></td>
+<td><code>GetInstructorDashboardQuery</code></td></tr>
+</tbody>
+</table>
+
+<div class="hint">
+<strong>Hai lớp chặn dữ liệu sai, và chúng không thay nhau được:</strong>
+<br>• <strong>Sai hình dạng đầu vào</strong> (điểm âm, nhận xét dài quá, <code>group_size</code> nhỏ hơn 2) →
+FluentValidation viết trên chính command. Nó chạy trong <code>ValidationBehavior</code>, tức là <strong>trước</strong>
+<code>TransactionBehavior</code>: một request sai dữ liệu không bao giờ mở transaction rồi rollback vô ích.
+<br>• <strong>Sai theo dữ liệu đang có</strong> (điểm vượt trần của tiêu chí rubric, sinh viên không thuộc nhóm nào,
+bài đã có bản nộp) → handler đọc DB rồi trả <code>Result</code>, vì đó là một phần hợp đồng của use case
+và phải hiện ra trong chữ ký hàm chứ không giấu vào exception.
+</div>
+
+<div class="danger">
+<strong><code>[Authorize]</code> trên class và trên action CỘNG DỒN, không ghi đè nhau.</strong>
+Một controller gắn <code>[Authorize(Policy = Policies.Instructor)]</code> ở cấp class thì mọi action bên trong
+đều đòi vai trò giảng viên — kể cả action bạn vừa gắn thêm <code>[Authorize(Policy = Policies.Student)]</code>,
+và kết quả là <em>không ai</em> vào được vì không tài khoản nào có cả hai vai. Endpoint mà sinh viên phải gọi được
+(xem bài nộp của mình, tự tham gia nhóm) <strong>không được</strong> nằm trong một class mang policy chỉ dành cho
+giảng viên: để class trống policy — <code>SetFallbackPolicy</code> đã bắt buộc đăng nhập — rồi gắn policy xuống
+từng action. Chồng policy chỉ an toàn khi policy hẹp nằm trọn trong policy rộng — hiện dự án
+không có cặp nào như vậy, nên quy tắc thực tế đơn giản: <strong>chỉ đặt policy ở cấp action</strong>.
+</div>
+
+<hr>
+
+<h2>Chunk 1 — Làm việc nhóm</h2>
+
+<div class="task">
+<h3>Task 4a.1 — <code>StudentGroup</code>, <code>GroupMember</code>, chia nhóm</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Groups/StudentGroup.cs</code>, <code>GroupMember.cs</code>, <code>GroupAllocator.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/GroupAllocatorTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho bộ chia nhóm ngẫu nhiên</label>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Groups;
+
+namespace TeachHub.Domain.Tests;
+
+public class GroupAllocatorTests
+{
+    private static List&lt;Guid&gt; Sv(int n) =&gt; [.. Enumerable.Range(0, n).Select(_ =&gt; Guid.CreateVersion7())];
+
+    [Fact]
+    public void Chia_deu_khi_si_so_chia_het()
+    {
+        var nhom = GroupAllocator.Allocate(Sv(12), groupSize: 4, seed: 42);
+
+        nhom.Count.ShouldBe(3);
+        nhom.ShouldAllBe(g =&gt; g.Count == 4);
+    }
+
+    [Fact]
+    public void Khong_de_lai_nhom_le_loi_mot_nguoi()
+    {
+        // 13 sinh viên, nhóm 4 → KHÔNG được ra 4/4/4/1.
+        // Một sinh viên làm bài tập nhóm một mình là lỗi cấu hình, không phải kết quả hợp lệ.
+        var nhom = GroupAllocator.Allocate(Sv(13), groupSize: 4, seed: 42);
+
+        nhom.ShouldAllBe(g =&gt; g.Count &gt;= 3);
+        nhom.Sum(g =&gt; g.Count).ShouldBe(13);
+    }
+
+    [Fact]
+    public void Moi_sinh_vien_xuat_hien_dung_mot_lan()
+    {
+        var sv = Sv(37);
+        var nhom = GroupAllocator.Allocate(sv, groupSize: 5, seed: 7);
+
+        nhom.SelectMany(g =&gt; g).OrderBy(x =&gt; x).ShouldBe(sv.OrderBy(x =&gt; x));
+    }
+
+    [Fact]
+    public void Cung_seed_cho_ket_qua_giong_nhau()
+    {
+        // Giảng viên bấm "Chia ngẫu nhiên", xem trước, rồi mới xác nhận —
+        // kết quả không được đổi giữa lúc xem và lúc lưu.
+        var sv = Sv(20);
+        GroupAllocator.Allocate(sv, 4, seed: 99)
+            .ShouldBe(GroupAllocator.Allocate(sv, 4, seed: 99));
+    }
+
+    [Fact]
+    public void Si_so_it_hon_mot_nhom_thi_gom_lam_mot()
+    {
+        GroupAllocator.Allocate(Sv(3), groupSize: 5, seed: 1).Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Danh_sach_rong_tra_ve_khong_nhom_nao()
+    {
+        GroupAllocator.Allocate([], groupSize: 4, seed: 1).ShouldBeEmpty();
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Viết <code>GroupAllocator</code></label>
+<pre><code>namespace TeachHub.Domain.Groups;
+
+public static class GroupAllocator
+{
+    /// &lt;summary&gt;
+    /// Chia đều nhất có thể. Phần dư được rải sang các nhóm sẵn có thay vì gom
+    /// thành một nhóm lẻ loi — nhóm 1 người không phải là bài tập nhóm.
+    /// seed cố định để "xem trước" và "xác nhận" cho cùng kết quả.
+    /// &lt;/summary&gt;
+    public static List&lt;List&lt;Guid&gt;&gt; Allocate(IReadOnlyList&lt;Guid&gt; enrollmentIds, int groupSize, int seed)
+    {
+        if (enrollmentIds.Count == 0) return [];
+        if (groupSize &lt; 1) throw new ArgumentOutOfRangeException(nameof(groupSize));
+
+        var xao = enrollmentIds.OrderBy(_ =&gt; 0).ToList();
+        var rng = new Random(seed);
+        for (var i = xao.Count - 1; i &gt; 0; i--)          // Fisher–Yates
+        {
+            var j = rng.Next(i + 1);
+            (xao[i], xao[j]) = (xao[j], xao[i]);
+        }
+
+        var soNhom = Math.Max(1, (int)Math.Round(xao.Count / (double)groupSize, MidpointRounding.ToZero));
+        var nhom = Enumerable.Range(0, soNhom).Select(_ =&gt; new List&lt;Guid&gt;()).ToList();
+
+        // Chia vòng tròn: chênh lệch giữa nhóm lớn nhất và nhỏ nhất luôn ≤ 1.
+        for (var i = 0; i &lt; xao.Count; i++) nhom[i % soNhom].Add(xao[i]);
+
+        return nhom;
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Entity + <code>GroupsController</code></label>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/GroupsController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Groups/Queries/GetGroups/</code>,
+<code>Commands/CreateGroup/</code>, <code>Commands/AutoGenerateGroups/</code>,
+<code>Commands/JoinGroup/</code>, <code>Commands/UpdateGroupMembers/</code> — mỗi thư mục một
+Command/Query + Handler (+ Validator nếu có luật đầu vào)
+</div>
+<pre><code>[ApiController]
+[Route("api")]
+[Produces("application/json")]
+public sealed class GroupsController(ISender sender) : ApiControllerBase
+{
+    [HttpGet("offerings/{offeringId:guid}/groups")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType&lt;IReadOnlyList&lt;GroupDto&gt;&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetByOffering(Guid offeringId, CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetGroupsQuery(offeringId, CurrentUserId), ct));
+
+    [HttpPost("offerings/{offeringId:guid}/groups")]
+    [Authorize(Policy = Policies.Instructor)]
+    public async Task&lt;IActionResult&gt; Create(
+        Guid offeringId, CreateGroupCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    [HttpPost("offerings/{offeringId:guid}/groups/auto-generate")]
+    [Authorize(Policy = Policies.Instructor)]
+    public async Task&lt;IActionResult&gt; AutoGenerate(
+        Guid offeringId, AutoGenerateGroupsCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;Sinh viên tự tham gia, nếu lớp cho phép.&lt;/summary&gt;
+    [HttpPost("groups/{id:guid}/join")]
+    [Authorize(Policy = Policies.Student)]
+    public async Task&lt;IActionResult&gt; Join(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new JoinGroupCommand(id, CurrentUserId), ct));
+
+    [HttpPut("groups/{id:guid}/members")]
+    [Authorize(Policy = Policies.Instructor)]
+    public async Task&lt;IActionResult&gt; UpdateMembers(
+        Guid id, UpdateGroupMembersCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { GroupId = id, ActorId = CurrentUserId }, ct));
+}</code></pre>
+<p class="meta">Route ở cấp class chỉ là <code>"api"</code> vì tài nguyên nhóm sống dưới hai tiền tố:
+<code>/api/offerings/{id}/groups</code> khi thao tác theo lớp, <code>/api/groups/{id}/…</code> khi đã biết id nhóm.
+Đường dẫn viết đủ trên từng action nên hợp đồng API giữ nguyên như SRS mục 7. Class không mang policy nào —
+action <code>Join</code> dành cho sinh viên, mà policy ở class thì cộng dồn chứ không ghi đè (xem khối cảnh báo
+ở phần Kiến trúc API).</p>
+<pre><code>// Luật đầu vào thuần hình dạng → validator, chạy TRƯỚC khi TransactionBehavior mở transaction.
+public sealed class AutoGenerateGroupsCommandValidator : AbstractValidator&lt;AutoGenerateGroupsCommand&gt;
+{
+    public AutoGenerateGroupsCommandValidator()
+    {
+        RuleFor(x =&gt; x.GroupSize).InclusiveBetween(2, 20)
+            .WithMessage("Số người mỗi nhóm phải từ 2 trở lên — nhóm một người không phải bài tập nhóm.");
+    }
+}
+
+public sealed class CreateGroupCommandValidator : AbstractValidator&lt;CreateGroupCommand&gt;
+{
+    public CreateGroupCommandValidator()
+    {
+        RuleFor(x =&gt; x.Name).NotEmpty().MaximumLength(100);
+        RuleFor(x =&gt; x.MemberEnrollmentIds).NotEmpty()
+            .WithMessage("Nhóm rỗng thì không có gì để chấm.");
+    }
+}</code></pre>
+<p>Ràng buộc: unique index <code>(offering_id, enrollment_id)</code> trên <code>group_members</code> — một sinh viên không thể ở hai nhóm cùng lúc trong cùng lớp. Đây là luật <em>theo dữ liệu đang có</em> nên nó nằm ở handler (trả <code>Result</code> → 409) và ở database, không nằm ở validator.</p>
+<div class="hint">SRS mục 5.5 cho phép <em>dùng lại nhóm cũ</em> cho bài tập sau. Vì <code>StudentGroup</code> gắn vào <code>offering</code> chứ không vào <code>assignment</code>, chuyện này miễn phí — chỉ cần UI có nút "Dùng lại nhóm của bài trước".</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Nộp bài nhóm</label>
+<pre><code>[Fact]
+public async Task Mot_thanh_vien_nop_thi_ca_nhom_deu_thay()
+{
+    var (nhom, leader, thanhVien) = await factory.SeedGroupAssignmentAsync();
+    await leader.UploadToSlotAsync(...);
+    await leader.PostAsync($"/api/assignments/{id}/submissions/submit", null);
+
+    var baiNop = await thanhVien.GetFromJsonAsync&lt;JsonElement&gt;($"/api/assignments/{id}/my-submission");
+    baiNop.GetProperty("group_id").GetGuid().ShouldBe(nhom);
+}
+
+[Fact]
+public async Task Thanh_vien_thu_hai_khong_tao_duoc_ban_nop_trung()
+{
+    var (_, leader, thanhVien) = await factory.SeedGroupAssignmentAsync();
+    await leader.SubmitAsync(...);
+
+    var res = await thanhVien.PostAsync($"/api/assignments/{id}/submissions/submit", null);
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+}
+
+[Fact]
+public async Task Sv_khong_thuoc_nhom_nao_khong_nop_duoc_bai_tap_nhom()
+{
+    var svLeLoi = await factory.SeedStudentWithoutGroupAsync();
+    (await svLeLoi.PostAsync($"/api/assignments/{id}/submissions/submit", null))
+        .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Màn hình 6.5: chia nhóm (kéo-thả + nút chia ngẫu nhiên)</label>
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(groups): add student groups, allocation and group submissions"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 2 — Chấm điểm</h2>
+
+<div class="task">
+<h3>Task 4a.2 — API chấm bài + nhật ký thay đổi điểm</h3>
+<div class="files">
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/SubmissionsController.cs</code> — controller này
+<strong>đã tồn tại từ Phase 3 (Task 3.4)</strong>, phase này chỉ <em>thêm hai action</em> chấm bài và trả bài<br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Commands/GradeSubmission/</code> —
+<code>GradeSubmissionCommand.cs</code>, <code>GradeSubmissionCommandHandler.cs</code>,
+<code>GradeSubmissionCommandValidator.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Commands/ReturnSubmission/</code><br>
+<b>Sửa:</b> <code>src/TeachHub.Application/Features/Submissions/Queries/GetSubmission/</code> —
+<code>GetSubmissionQuery</code> đã có từ Phase 3, phase này chỉ bổ sung <code>score</code>/<code>feedback</code>
+vào DTO và luật che điểm khi bài chưa <code>returned</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradeAuditLog.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/GradingTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task Cham_theo_rubric_tinh_dung_tong_diem()
+{
+    var (gv, submissionId, rubric) = await factory.SeedSubmittedWorkAsync();
+
+    var res = await gv.PostAsJsonAsync($"/api/submissions/{submissionId}/grade", new
+    {
+        rubric_scores = new Dictionary&lt;string, decimal&gt;
+        {
+            [rubric.Criteria[0].Id.ToString()] = 4.5m,
+            [rubric.Criteria[1].Id.ToString()] = 2m,
+            [rubric.Criteria[2].Id.ToString()] = 1.5m,
+        },
+        feedback = "Bài làm tốt, cần chú ý xử lý lỗi mạng.",
+    });
+
+    (await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;()).GetProperty("score").GetDecimal().ShouldBe(8m);
+}
+
+[Fact]
+public async Task Cham_diem_vuot_tran_tieu_chi_bi_tu_choi()
+{
+    var (gv, submissionId, rubric) = await factory.SeedSubmittedWorkAsync();
+
+    var res = await gv.PostAsJsonAsync($"/api/submissions/{submissionId}/grade", new
+    {
+        rubric_scores = new Dictionary&lt;string, decimal&gt; { [rubric.Criteria[0].Id.ToString()] = 99m },
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Sua_diem_ghi_lai_nhat_ky_co_nguoi_sua_va_gia_tri_cu()
+{
+    // SRS mục 5.8: "giảng viên vẫn có thể sửa tay (ghi log ai sửa)".
+    // Đây là thứ bảo vệ bạn khi sinh viên khiếu nại điểm sáu tháng sau.
+    var (gv, submissionId, rubric) = await factory.SeedSubmittedWorkAsync();
+
+    await gv.GradeAsync(submissionId, 7m);
+    await gv.GradeAsync(submissionId, 8.5m);
+
+    await using var db = await factory.CreateDbContextAsync();
+    var log = await db.GradeAuditLogs.Where(l =&gt; l.TargetId == submissionId)
+        .OrderBy(l =&gt; l.ChangedAt).ToListAsync();
+
+    log.Count.ShouldBe(2);
+    log[1].OldValue.ShouldBe(7m);
+    log[1].NewValue.ShouldBe(8.5m);
+    log[1].ChangedBy.ShouldNotBe(Guid.Empty);
+}
+
+[Fact]
+public async Task Tro_giang_cham_duoc_nhung_khong_sua_duoc_cau_truc_mon()
+{
+    var ta = await factory.LoginAsTeachingAssistantAsync();
+
+    (await ta.GradeRawAsync(submissionId, 8m)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    (await ta.PostAsJsonAsync($"/api/subject-versions/{versionId}/chapters", new { title = "x" }))
+        .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+}
+
+[Fact]
+public async Task Sinh_vien_thay_diem_va_nhan_xet_cua_minh_sau_khi_tra_bai()
+{
+    var (gv, submissionId, _) = await factory.SeedSubmittedWorkAsync();
+    await gv.GradeAsync(submissionId, 8m);
+    await gv.PostAsync($"/api/submissions/{submissionId}/return", null);
+
+    var sv = await factory.LoginAsOwnerStudentAsync(submissionId);
+    var bai = await sv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/submissions/{submissionId}");
+
+    bai.GetProperty("score").GetDecimal().ShouldBe(8m);
+    bai.GetProperty("feedback").GetString().ShouldNotBeNullOrEmpty();
+}
+
+[Fact]
+public async Task Sinh_vien_KHONG_thay_diem_truoc_khi_giang_vien_tra_bai()
+{
+    var (gv, submissionId, _) = await factory.SeedSubmittedWorkAsync();
+    await gv.GradeAsync(submissionId, 8m);          // đã chấm nhưng chưa trả
+
+    var sv = await factory.LoginAsOwnerStudentAsync(submissionId);
+    var bai = await sv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/submissions/{submissionId}");
+
+    bai.TryGetProperty("score", out var diem).ShouldBeFalse();
+}</code></pre>
+<div class="hint">Ca cuối quan trọng hơn vẻ ngoài của nó: giảng viên thường chấm rải rác nhiều ngày. Nếu điểm hiện ngay khi vừa chấm, sinh viên chấm trước sẽ so bì với sinh viên chưa được chấm. Trạng thái <code>graded</code> và <code>returned</code> tách biệt chính là để giải quyết chuyện này.</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Command + Validator + Handler</label>
+<pre><code>namespace TeachHub.Application.Features.Grading.Commands.GradeSubmission;
+
+/// &lt;summary&gt;
+/// ICommand chứ không phải IQuery: TransactionBehavior nhận diện qua marker IBaseCommand
+/// và bọc nguyên lời gọi trong một transaction. Ghi điểm + ghi GradeAuditLog phải cùng
+/// sống hoặc cùng chết — một bản ghi điểm không có dòng nhật ký là thứ bạn không giải thích
+/// được sáu tháng sau.
+/// &lt;/summary&gt;
+public sealed record GradeSubmissionCommand(
+    IReadOnlyDictionary&lt;Guid, decimal&gt; RubricScores,
+    string? Feedback) : ICommand&lt;Result&lt;GradedSubmissionDto&gt;&gt;
+{
+    public Guid SubmissionId { get; init; }   // controller điền từ route
+    public Guid GraderId { get; init; }       // controller điền từ claim
+}
+
+public sealed class GradeSubmissionCommandValidator : AbstractValidator&lt;GradeSubmissionCommand&gt;
+{
+    public GradeSubmissionCommandValidator()
+    {
+        RuleFor(x =&gt; x.RubricScores).NotEmpty()
+            .WithMessage("Phải chấm ít nhất một tiêu chí.");
+
+        RuleForEach(x =&gt; x.RubricScores)
+            .Must(kv =&gt; kv.Value &gt;= 0m)
+            .WithMessage("Điểm tiêu chí không được âm.");
+
+        RuleFor(x =&gt; x.Feedback).MaximumLength(4000);
+    }
+}</code></pre>
+
+<div class="hint">
+Trần của <em>từng tiêu chí</em> (test <code>Cham_diem_vuot_tran_tieu_chi_bi_tu_choi</code>) <strong>không</strong> nằm
+trong validator: muốn biết tiêu chí đó tối đa mấy điểm thì phải đọc rubric từ database, mà validator là hàm thuần
+chạy trước khi có transaction. Handler đọc rubric rồi trả <code>Result.Invalid</code> →
+<code>ToActionResult</code> quy đổi thành 400. Ranh giới này giữ cho <code>ValidationBehavior</code> không cần
+<code>DbContext</code> — một khi behavior chạm vào I/O thì thứ tự Logging → Validation → Transaction mất hết ý nghĩa.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Thêm hai action vào <code>SubmissionsController</code> đã có</label>
+<pre><code>// trong SubmissionsController — controller này do Phase 3 Task 3.4 tạo ra, đến cuối Task 3.5
+// đã có [Route("api/submissions")], [Produces] và ba action Get / FileTree / Entry.
+// CHỈ THÊM hai action dưới đây vào cuối lớp; KHÔNG khai báo lại lớp, KHÔNG lặp lại
+// [ApiController] / [Route] / [Produces] — lớp đã có sẵn cả ba.
+// Class vẫn để trống policy (fallback đã bắt buộc đăng nhập), policy gắn xuống từng action.
+[HttpPost("{id:guid}/grade")]
+[Authorize(Policy = Policies.Instructor)]
+[ProducesResponseType&lt;GradedSubmissionDto&gt;(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+public async Task&lt;IActionResult&gt; Grade(
+    Guid id, GradeSubmissionCommand command, CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(
+        command with { SubmissionId = id, GraderId = CurrentUserId }, ct));
+
+[HttpPost("{id:guid}/return")]
+[Authorize(Policy = Policies.Instructor)]
+public async Task&lt;IActionResult&gt; Return(Guid id, CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(new ReturnSubmissionCommand(id, CurrentUserId), ct));</code></pre>
+
+<div class="danger">
+<strong>Không viết thêm một action <code>GetById</code> cho <code>GET /api/submissions/{id}</code>.</strong>
+Phase 3 đã có action <code>Get</code> đúng đường dẫn đó (khối code cuối Task 3.5). Chép lại lớp thành file thứ hai thì trình biên dịch
+báo <code>error CS0101: The namespace 'TeachHub.Api.Controllers' already contains a definition for
+'SubmissionsController'</code> (kèm CS0579 do lặp attribute). Còn nếu gộp tay hai action cùng route vào một lớp thì
+biên dịch qua nhưng <em>chạy</em> mới hỏng: request đầu tiên tới đường dẫn đó ném
+<code>AmbiguousMatchException: The request matched multiple endpoints</code> và trả 500 — lỗi chỉ lộ ra lúc chạy,
+không test nào ở tầng biên dịch bắt được.
+</div>
+
+<p>Việc của phase này với endpoint đọc bài nộp nằm ở <strong>handler</strong>, không ở controller:
+mở rộng <code>GetSubmissionQueryHandler</code> (Phase 3) để trả thêm <code>score</code> và <code>feedback</code>.
+Giữ nguyên lý do Phase 3 không gắn policy giảng viên lên action <code>Get</code>: chính chủ bài nộp cũng phải đọc được,
+fallback policy đã bắt buộc đăng nhập, và handler quyết định người gọi thấy những trường nào —
+<strong>sinh viên chỉ thấy <code>score</code>/<code>feedback</code> sau khi bài đã <code>returned</code></strong>.
+Đặt luật che điểm ở handler chứ không ở controller là chủ ý: cùng một truy vấn được cả ba màn hình dùng lại,
+nếu luật nằm ở controller thì màn hình thứ hai gọi thẳng query sẽ lộ điểm mà không ai nhận ra.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — <code>GradeAuditLog</code></label>
+<pre><code>public class GradeAuditLog : Entity
+{
+    public required Guid OfferingId { get; set; }
+    public required Guid EnrollmentId { get; set; }
+    public required GradeTargetType TargetType { get; set; }   // Submission (Phase 4b mở rộng thêm đích khác)
+    public required Guid TargetId { get; set; }
+    public decimal? OldValue { get; set; }
+    public decimal? NewValue { get; set; }
+    public required Guid ChangedBy { get; set; }
+    public required DateTimeOffset ChangedAt { get; set; }
+    public string? Reason { get; set; }
+}</code></pre>
+<p class="meta"><code>GradeAuditLog</code> chỉ ghi thêm, không bao giờ sửa hay xóa. Không đặt query filter soft-delete lên nó.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 4a.3 — Màn hình 6.7: trang chấm bài 3 cột</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/app/(instructor)/grading/[submissionId]/page.tsx</code> + components</div>
+
+<p>Theo SRS mục 6.7 — <strong>một màn hình duy nhất, không phải chuyển qua lại</strong>:</p>
+<pre><code>┌──────────────┬────────────────────────────┬──────────────────────┐
+│ Slot đã nộp  │  Nội dung slot đang xem     │  Rubric &amp; nhận xét   │
+│              │                             │                      │
+│ ▸ Source code│  ├ src/                     │  Chạy đúng   [4.5/5] │
+│   (zip)      │  │ ├ App.tsx  ← đang xem     │  Xử lý lỗi   [2  /3] │
+│ ▸ Hình ảnh(3)│  │ └ utils.ts                │  Code sạch   [1.5/2] │
+│ ▸ Video      │  └ README.md                │  ───────────────────  │
+│              │                             │  Tổng: 8.0 / 10      │
+│              │  [code có tô màu cú pháp]   │  ┌─ Nhận xét ──────┐ │
+│              │                             │  └─────────────────┘ │
+├──────────────┴────────────────────────────┴──────────────────────┤
+│ NHÓM 3 — Nguyễn A (2251012001) [+Điểm cộng]  Trần B [+Điểm cộng] │
+│          Lê C [+0.5 · Thuyết trình tự tin]   Phạm D [+Điểm cộng] │
+└───────────────────────────────────────────────────────────────────┘</code></pre>
+<p class="meta">Dải nhóm ở đáy là trạng thái <em>sau khi xong Phase 4b</em>. Ở 4a hai cột trên cùng và rubric chạy đầy đủ,
+còn nút <code>[+Điểm cộng]</code> và nhãn <code>[+0.5 · …]</code> chỉ là chỗ trống đã bố trí sẵn — xem Bước 4.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Bố cục 3 cột, cột giữa đổi theo slot đang chọn</label>
+<label class="ck"><input type="checkbox"> Bước 2 — Trình xem theo loại</label>
+<table>
+<thead><tr><th>Loại slot</th><th>Cách hiển thị</th></tr></thead>
+<tbody>
+<tr><td><code>.zip</code></td><td>Cây thư mục + xem file có tô màu cú pháp (Shiki, render phía server)</td></tr>
+<tr><td>Ảnh</td><td>Lưới thumbnail, click phóng to</td></tr>
+<tr><td>Video</td><td><code>&lt;video&gt;</code> hoặc iframe từ nguồn cho phép</td></tr>
+<tr><td>PDF/Word</td><td><code>react-pdf</code>; Word thì tải về (không đáng công dựng viewer)</td></tr>
+</tbody>
+</table>
+<div class="danger">Nội dung do sinh viên nộp <strong>không bao giờ</strong> được render thành HTML. Dùng Shiki để tô màu cú pháp — nó nhận vào chuỗi text và sinh ra HTML đã thoát ký tự, chứ không thực thi nội dung đầu vào.</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Nếu là bài nhóm: hiện tên nhóm + đầy đủ thành viên ở đầu trang</label>
+<p class="meta">SRS mục 6.7 nói rõ: "báo cáo xong thì list ra nhóm đó có ai" — avatar, họ tên, MSSV. Đây là nhu cầu trực tiếp của UC-25 (chấm ngay sau buổi báo cáo trên lớp).</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chừa sẵn chỗ cho khu vực điểm cộng cạnh mỗi thành viên</label>
+<p>Ở 4a chỉ dựng <strong>chỗ trống</strong>: nút <code>[+Điểm cộng]</code> cạnh tên từng sinh viên trong dải nhóm ở đáy trang,
+cùng vị trí render nhãn kết quả. Bấm vào nút này ở 4a chưa mở được gì — đó là hành vi đúng, không phải thiếu sót.</p>
+<p class="meta">Popover cấp điểm cộng là <em>một component dùng chung</em> (<code>BonusPointPopover</code>) do
+<a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a> viết và nối vào đúng chỗ trống này, đồng thời dùng lại nguyên vẹn ở màn hình sổ điểm.
+4a tuyệt đối không viết một bản popover riêng để "tạm dùng" — hai bản popover là cách chắc chắn nhất để ô sổ điểm và ô màn hình chấm hiển thị lệch nhau.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Phím tắt cho việc chấm liên tục</label>
+<div class="hint">Chấm 40 bài liên tiếp mà phải rê chuột từng ô là công việc bào mòn ý chí. Thêm: <kbd>Tab</kbd> chuyển giữa các tiêu chí, gõ số để nhập điểm, <kbd>Ctrl+Enter</kbd> lưu và sang bài tiếp theo. Đây là thứ quyết định bạn có thật sự dùng hệ thống này để chấm hay lại quay về Excel.</div>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+</div>
+
+<hr>
+
+<h2>Chunk 3 — Sổ điểm động → đã chuyển sang Phase 4b</h2>
+
+<p>Toàn bộ cột điểm, trọng số, quy tắc tổng hợp, điểm cộng, thư viện lý do và xuất Excel nằm ở
+<a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b — Sổ điểm động</a>. Không viết bản rút gọn nào ở 4a:
+hai bản tính điểm song song là cách chắc chắn nhất để hai chỗ ra hai con số.</p>
+
+<hr>
+
+<h2>Chunk 4 — Đợt chấm điểm cuối môn &amp; dashboard</h2>
+
+<div class="task">
+<h3>Task 4a.4 — <code>FinalAssessment</code> loại <code>final_project</code> (UC-21…24)</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Assessments/FinalAssessment.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/FinalAssessmentsController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Assessments/Commands/CreateFinalAssessment/</code>
+(Command + Handler + Validator), <code>Commands/AddSubmissionSlot/</code>,
+<code>Queries/GetFinalAssessments/</code>
+</div>
+
+<blockquote>
+Đây là task <strong>rẻ nhất so với giá trị mang lại</strong> trong cả phase. Vì Phase 3 đã dựng <code>SubmissionSlot</code>/<code>Submission</code>
+dùng chung và Task 4a.3 đã có màn hình chấm dùng chung, loại <code>final_project</code> gần như chỉ là một bản ghi mới với
+<code>owner_type = final_assessment</code>. Ước lượng ~1 ngày. Không có nó thì học kỳ đầu tiên không chấm được điểm cuối môn.
+</blockquote>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task Tao_dot_bai_tap_lon_dung_lai_toan_bo_co_che_slot()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedActiveOfferingAsync(gv);
+
+    var res = await gv.PostAsJsonAsync($"/api/offerings/{offeringId}/final-assessments", new
+    {
+        type = "final_project", title = "Bài tập lớn cuối kỳ",
+        grade_column_id = cotCuoiKy, due_at = "2027-01-15T23:59:00+07:00",
+        submission_mode = "group",
+    });
+
+    var fa = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    var faId = fa.GetProperty("id").GetGuid();
+
+    // Cùng một endpoint slot với Assignment, chỉ khác owner
+    var slot = await gv.PostAsJsonAsync($"/api/final-assessments/{faId}/slots", new
+    {
+        slot_key = "report", label = "Báo cáo", accepted_file_types = new[] { ".pdf" }, is_required = true,
+    });
+    slot.StatusCode.ShouldBe(HttpStatusCode.OK);
+}
+
+[Fact]
+public async Task Loai_exam_bi_tu_choi_o_giai_doan_nay()
+{
+    // SRS mục 5.7: loại Thi hiển thị nhưng vô hiệu hóa. "exam" KHÔNG có trong enum
+    // FinalAssessmentType nên JsonStringEnumConverter chặn ngay ở tầng đọc JSON —
+    // 400, nhưng thông báo là của bộ đọc JSON, không phải câu tiếng Việt của mình.
+    // Vì vậy ở đây chỉ khẳng định mã lỗi; xem test kế tiếp cho phần thông báo.
+    var res = await gv.PostAsJsonAsync($"/api/offerings/{offeringId}/final-assessments",
+        new { type = "exam", title = "Thi cuối kỳ" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Loai_quiz_bi_tu_choi_cho_toi_khi_co_engine_quiz()
+{
+    // Phase 5 mới mở. "quiz" CÓ trong enum nên nó đi tới được validator —
+    // đây là chỗ duy nhất kiểm chứng được câu "chưa hỗ trợ" do mình viết ra.
+    // Từ chối rõ ràng còn hơn tạo ra một bản ghi rỗng không dùng được.
+    var res = await gv.PostAsJsonAsync($"/api/offerings/{offeringId}/final-assessments",
+        new { type = "quiz", title = "Trắc nghiệm cuối kỳ" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    (await res.Content.ReadAsStringAsync()).ShouldContain("chưa hỗ trợ", Case.Insensitive);
+}
+
+[Fact]
+public async Task Diem_bai_tap_lon_chay_vao_dung_cot_diem()
+{
+    var faId = await factory.SeedFinalProjectAsync(gradeColumnId: cotCuoiKy);
+    await gv.GradeAsync(submissionId, 8.5m);
+
+    var so = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{offeringId}/gradebook");
+    so.RowOf(sv1).ColumnScore(cotCuoiKy).ShouldBe(8.5m);
+}</code></pre>
+<p class="meta">Test cuối đọc sổ điểm nên chỉ xanh được sau khi <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a>
+dựng xong cột điểm. Ở 4a chỉ cần khẳng định <code>grade_column_id</code> được lưu đúng như gửi lên; giữ nguyên test này ở trạng thái
+đỏ-có-chủ-đích thì tốt hơn là xóa rồi quên viết lại — nhưng phải đánh dấu <code>[Fact(Skip = "Chờ Phase 4b")]</code>,
+không để nó làm đỏ cả bộ test của 4a.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Entity (bỏ <code>weight_percent</code>, dùng <code>grade_column_id</code> — Gap #7)</label>
+<pre><code>public class FinalAssessment : Entity
+{
+    public required Guid OfferingId { get; set; }
+    public required FinalAssessmentType Type { get; set; }   // Quiz | FinalProject (Exam chưa hỗ trợ)
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+
+    /// &lt;summary&gt;
+    /// Gap #7: SRS để weight_percent ở đây VÀ ở GradeColumn — hai nguồn sự thật sẽ lệch nhau.
+    /// Trọng số chỉ tồn tại ở GradeColumn.
+    /// &lt;/summary&gt;
+    public required Guid GradeColumnId { get; set; }
+
+    public DateTimeOffset? DueAt { get; set; }
+    public SubmissionMode SubmissionMode { get; set; } = SubmissionMode.Individual;
+    public GroupConfig? GroupConfig { get; set; }
+    public Guid? RefQuizId { get; set; }                     // Phase 5
+    public Guid? RubricId { get; set; }
+    public List&lt;SubmissionSlot&gt; Slots { get; set; } = [];
+}
+
+public enum FinalAssessmentType { Quiz, FinalProject }</code></pre>
+<div class="hint"><code>GradeColumn</code> là entity của <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a>.
+Ở 4a khai <code>GradeColumnId</code> như một <code>Guid</code> có khóa ngoại được thêm trong migration của 4b — đừng dựng tạm một bảng
+<code>grade_columns</code> rút gọn ở 4a rồi phải viết migration đổi kiểu về sau.</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — <code>FinalAssessmentsController</code> + command</label>
+<pre><code>[ApiController]
+[Route("api")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class FinalAssessmentsController(ISender sender) : ApiControllerBase
+{
+    [HttpGet("offerings/{offeringId:guid}/final-assessments")]
+    public async Task&lt;IActionResult&gt; GetByOffering(Guid offeringId, CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetFinalAssessmentsQuery(offeringId, CurrentUserId), ct));
+
+    [HttpPost("offerings/{offeringId:guid}/final-assessments")]
+    [ProducesResponseType&lt;FinalAssessmentDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; Create(
+        Guid offeringId, CreateFinalAssessmentCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, InstructorId = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;
+    /// Dùng lại NGUYÊN VẸN command tạo slot của Phase 3 — chỉ khác owner.
+    /// Nếu bạn thấy mình viết AddFinalAssessmentSlotCommand riêng thì đã có hệ thống thứ hai.
+    /// &lt;/summary&gt;
+    [HttpPost("final-assessments/{id:guid}/slots")]
+    public async Task&lt;IActionResult&gt; AddSlot(
+        Guid id, AddSubmissionSlotCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OwnerType = SubmissionOwnerType.FinalAssessment, OwnerId = id }, ct));
+}
+
+public sealed class CreateFinalAssessmentCommandValidator
+    : AbstractValidator&lt;CreateFinalAssessmentCommand&gt;
+{
+    public CreateFinalAssessmentCommandValidator()
+    {
+        RuleFor(x =&gt; x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x =&gt; x.GradeColumnId).NotEmpty()
+            .WithMessage("Đợt cuối môn phải chảy vào một cột điểm, nếu không điểm chấm ra không đi đâu cả.");
+
+        RuleFor(x =&gt; x.Type)
+            .Must(t =&gt; t == FinalAssessmentType.FinalProject)
+            .WithMessage("Loại này chưa hỗ trợ trong MVP — chỉ có bài tập lớn cuối kỳ. "
+                       + "Trắc nghiệm chờ engine quiz ở Phase 5.");
+    }
+}</code></pre>
+<div class="hint">
+Hai giá trị bị từ chối đi bằng hai đường khác nhau, và biết rõ đường nào là điều kiện để test không đỏ oan:
+<code>"exam"</code> không nằm trong enum nên <code>JsonStringEnumConverter</code> chặn ở tầng đọc JSON và trả 400
+với thông báo của bộ đọc; <code>"quiz"</code> nằm trong enum nên nó đi tới <code>ValidationBehavior</code> và nhận
+đúng câu tiếng Việt bạn viết. Khẳng định nội dung thông báo cho <code>"exam"</code> là khẳng định vào thứ mình
+không kiểm soát.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Màn hình 6.9, tái sử dụng component cấu hình slot của Task 3.6</label>
+<p class="meta">Nếu bạn thấy mình đang copy-paste code từ màn hình cấu hình Assignment sang, dừng lại và tách thành component dùng chung. SRS mục 6.9 nói rõ: "dùng chung UI với Assignment trong chương, không xây riêng".</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 4a.5 — Màn hình 6.1: dashboard giảng viên</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/DashboardController.cs</code>
+(<code>GET /api/instructor/dashboard</code>)<br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Dashboard/Queries/GetInstructorDashboard/</code><br>
+<b>Tạo:</b> <code>frontend/src/app/(instructor)/page.tsx</code>
+</div>
+
+<pre><code>[ApiController]
+[Route("api")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class DashboardController(ISender sender) : ApiControllerBase
+{
+    // Đường dẫn của SRS mục 7 là /api/instructor/dashboard — "instructor" đứng TRƯỚC "dashboard".
+    // Vì tiền tố này không trùng tên controller nên [Route] chỉ giữ "api", phần còn lại
+    // viết thẳng vào [HttpGet] — đúng khuôn GradeSchemeTemplatesController của Phase 4b.
+    [HttpGet("instructor/dashboard")]
+    [ProducesResponseType&lt;InstructorDashboardDto&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetInstructorDashboard(CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetInstructorDashboardQuery(CurrentUserId), ct));
+}</code></pre>
+
+<div class="danger">
+Đừng đảo thành <code>[Route("api/dashboard")]</code> + <code>[HttpGet("instructor")]</code>: nó ra
+<code>/api/dashboard/instructor</code>, khác đường dẫn SRS mục 7 đúng một chỗ hoán vị. Không có gì báo lỗi —
+build xanh, test của bạn cũng xanh vì test gọi theo đường dẫn bạn tự viết; chỉ có client TypeScript sinh từ
+OpenAPI là trỏ sang một đường dẫn trả 404, và bạn phát hiện ra khi trang chủ trắng trơn.
+</div>
+
+<p class="meta">Màn hình 6.8 (sổ điểm) không nằm ở đây — xem <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a>.</p>
+<p class="meta">Đây là <code>IQuery</code>, không phải <code>ICommand</code>: <code>TransactionBehavior</code> nhìn
+marker <code>IBaseCommand</code> nên nó bỏ qua truy vấn này. Bọc dashboard trong transaction chỉ giữ connection lâu
+hơn cần thiết mà không đổi được gì.</p>
+
+<label class="ck"><input type="checkbox"> Thẻ tổng quan: số lớp đang dạy · số bài chưa chấm · số SV chưa nộp bài sắp tới hạn</label>
+<label class="ck"><input type="checkbox"> Danh sách "Cần xử lý" sắp theo hạn gần nhất, click vào là mở thẳng màn hình chấm</label>
+<label class="ck"><input type="checkbox"> Biểu đồ % hoàn thành từng chương theo lớp</label>
+<p class="meta">Truy vấn dashboard là chỗ dễ sinh N+1 nhất. Viết bằng <em>một</em> câu truy vấn có projection, dùng <code>LeftJoin</code> của EF Core 10 để giữ được cả sinh viên chưa nộp gì. Có test khẳng định số câu truy vấn sinh ra là hằng số, không phụ thuộc sĩ số.</p>
+<label class="ck"><input type="checkbox"> Commit</label>
+</div>
+
+<hr>
+
+<h2>Nghiệm thu Phase 4a — kịch bản một buổi báo cáo thật</h2>
+<p>Diễn lại đúng UC-25, từ đầu tới cuối, bấm giờ. Phần điểm cộng và sổ điểm của buổi báo cáo được nghiệm thu
+ở <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a>, trên đúng kịch bản này:</p>
+<ol>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Chia lớp 40 sinh viên thành nhóm 4 người bằng nút "Chia ngẫu nhiên"; sửa tay 2 nhóm.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Bấm "Chia ngẫu nhiên" lần nữa với cùng seed → ra đúng kết quả vừa xem trước, không nhóm nào đổi.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Tạo đợt cuối môn "Bài tập lớn" với 4 slot: Báo cáo (.pdf), Slide (.pptx), Source code (.zip), Video demo (link).</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Một nhóm nộp đủ 4 slot; các thành viên khác đều xem được bài đã nộp.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Nhóm báo cáo trên lớp → mở màn hình chấm → <strong>thấy ngay đủ 4 thành viên kèm MSSV</strong>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Chấm rubric bằng bàn phím (<kbd>Tab</kbd> + gõ số), viết nhận xét, lưu bằng <kbd>Ctrl+Enter</kbd> — <strong>không rời khỏi màn hình</strong>. Cả 4 thành viên nhận cùng điểm và cùng nhận xét.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Cả quy trình từ bước 5 đến bước 6 <strong>dưới 3 phút</strong>. Nếu lâu hơn, sửa giao diện — vì trên lớp bạn chỉ có chừng đó thời gian giữa hai nhóm.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Chấm lại chính bài đó với điểm khác → mở <code>GradeAuditLog</code>: có đủ hai dòng, dòng thứ hai ghi đúng ai sửa, lúc nào, từ mấy sang mấy.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Trước khi trả bài: đăng nhập bằng tài khoản sinh viên → <strong>không thấy điểm</strong>. Bấm "Trả bài" rồi tải lại → thấy điểm và nhận xét của mình, <strong>không thấy của ai khác</strong>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Mở dashboard 6.1 với lớp 40 sinh viên → số bài chưa chấm đúng, và số câu truy vấn không tăng theo sĩ số.</li>
+</ol>
+
+<div class="done">
+<h3 style="margin-top:.4rem;color:var(--ok)">🎓 Xong 4a thì làm tiếp 4b — hết Phase 4b mới là MVP</h3>
+<p>4a cho bạn chấm được bài và làm việc nhóm, nhưng chưa ra được bảng điểm cuối kỳ.
+Đi thẳng sang <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b — Sổ điểm động</a>: cột điểm, trọng số,
+điểm cộng, xuất Excel. <strong>Hết 4b mới dừng lại</strong> — dùng thật một kỳ, ghi lại chỗ nào vướng,
+rồi mới quyết định Phase 5–8 làm gì trước, đúng như Rủi ro #4 trong SRS mục 11.</p>
+<p class="meta">Danh sách việc nên làm ngay sau MVP, trước khi mở tính năng mới: sao lưu database hằng ngày (đã có trong NFR nhưng dễ quên),
+theo dõi dung lượng lưu trữ theo lớp, và ghi lại mọi thao tác vướng víu gặp phải trong tuần đầu dùng thật.</p>
+</div>
+
+<h2>Rủi ro đã biết của phase này</h2>
+<table>
+<thead><tr><th>Rủi ro</th><th>Dấu hiệu</th><th>Xử lý</th></tr></thead>
+<tbody>
+<tr><td><strong>Sinh viên thấy điểm trước khi giảng viên trả bài</strong></td><td>Sinh viên chấm trước so bì với sinh viên chưa được chấm</td><td>Hai trạng thái <code>graded</code> và <code>returned</code> tách biệt, có test cho cả hai chiều.</td></tr>
+<tr><td>Làm tròn sai ở ranh giới</td><td>Sinh viên 8.25 bị làm tròn xuống 8.2</td><td><code>AwayFromZero</code> + test theo bảng. Không dùng <code>double</code> ở bất kỳ đâu.</td></tr>
+<tr><td>Chấm lại bài mà không để lại vết</td><td>Sinh viên khiếu nại điểm, không ai dựng lại được lịch sử</td><td><code>GradeAuditLog</code> chỉ ghi thêm, ghi đủ người sửa / thời điểm / giá trị cũ / giá trị mới. Có test.</td></tr>
+<tr><td>Nội dung sinh viên nộp bị render thành HTML</td><td>Mở một bài nộp làm chạy script trên phiên của giảng viên</td><td>Chỉ tô màu cú pháp bằng Shiki (nhận text, sinh HTML đã thoát ký tự). Không <code>dangerouslySetInnerHTML</code>.</td></tr>
+<tr><td>Chia nhóm để lại nhóm lẻ loi một người</td><td>13 sinh viên nhóm 4 ra 4/4/4/1</td><td>Rải phần dư sang các nhóm sẵn có; có test khẳng định mọi nhóm ≥ 3 người.</td></tr>
+<tr><td>Truy vấn dashboard N+1</td><td>Trang chủ tải hàng giây khi lớp đông</td><td>Một truy vấn có projection + test đếm số câu truy vấn.</td></tr>
+<tr><td>Màn hình chấm quá chậm để dùng trên lớp</td><td>Bạn quay về chấm bằng giấy</td><td>Bước 7 của nghiệm thu chính là để bắt lỗi này. Nếu quá 3 phút, đó là lỗi phải sửa, không phải chuyện nhỏ.</td></tr>
+<tr><td>4a viết tạm một popover điểm cộng riêng</td><td>Ô điểm cộng ở màn hình chấm hiển thị khác sổ điểm</td><td>4a chỉ chừa chỗ; component <code>BonusPointPopover</code> do Phase 4b viết một lần, dùng ở cả hai màn hình.</td></tr>
+<tr><td>Action của sinh viên nằm trong controller mang policy giảng viên</td><td>Chính chủ bài nộp nhận 403 khi mở bài của mình, mà log không nói vì sao</td><td><code>[Authorize]</code> ở class và ở action cộng dồn chứ không ghi đè. Class để trống policy (fallback đã bắt buộc đăng nhập), gắn policy xuống từng action; có test cho cả vai sinh viên lẫn vai trợ giảng.</td></tr>
+<tr><td>Nghiệp vụ rơi vào controller</td><td>Controller có <code>if</code>, có <code>DbContext</code>, có <code>try/catch</code></td><td>Controller chỉ định tuyến + lấy claim + <code>sender.Send</code> + <code>ToActionResult</code>. Mọi luật nằm ở handler hoặc validator.</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">Tiếp theo, làm ngay: <a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b — Sổ điểm động</a>
+· Sau MVP (chỉ khi đã dùng thật một học kỳ): <a href="2026-08-13-phases-5-9-backlog.html">Backlog P1/P2 — Phase 5 đến 9</a>
+· Quay lại <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a></p>
+
+</main>
+</body>
+</html>

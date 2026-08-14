@@ -1,0 +1,1629 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 1 — Nội dung &amp; Versioning · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.8rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.task{border:1px solid var(--bd);border-radius:10px;padding:.2rem 1.1rem 1.1rem;margin:1.6rem 0}
+.task.crown{border-color:var(--acc2);border-width:2px}
+.task>h3{margin-top:1rem}
+.files{background:var(--cbg);border-radius:8px;padding:.6rem .9rem;font-size:.86rem;margin:.8rem 0}
+.files b{color:var(--acc2)}
+label.ck{display:block;margin:1rem 0 .4rem;font-weight:600;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.15)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 1 — Nội dung dạy học &amp; Versioning</h1>
+
+<blockquote>
+<strong>Dành cho agentic worker — BẮT BUỘC:</strong> thực thi bằng <code>superpowers:subagent-driven-development</code>
+hoặc <code>superpowers:executing-plans</code>. Sinh kèm bản <code>.md</code> để tick checkbox.
+</blockquote>
+
+<p><strong>Mục tiêu:</strong> giảng viên tạo được môn học, soạn nội dung theo cấu trúc động (chương → N bài → 0..N component), xuất bản, và tạo phiên bản mới cho năm sau bằng một cú bấm mà không đụng tới bản cũ.</p>
+
+<p><strong>Kiến trúc:</strong> toàn bộ nội dung dạy học gắn vào <code>SubjectVersion</code> chứ không gắn vào <code>Subject</code> (SRS mục 3.2). Versioning làm bằng <em>deep clone</em> trong một transaction (ADR-004) — không dùng copy-on-write. Máy trạng thái <code>draft → published → archived</code> nằm hoàn toàn trong Domain, test được không cần database.</p>
+
+<p class="meta"><strong>Ước lượng:</strong> 5–7 ngày · <strong>Phụ thuộc:</strong> Phase 0 · <strong>UC:</strong> 01, 02, 03, 06, 06b, 06c · <strong>Màn hình:</strong> 6.2, 6.10</p>
+
+<blockquote>
+<strong>Task 1.6 (deep clone) là phần khó nhất của cả dự án.</strong> Nếu clone làm sai, mọi thứ vẫn <em>trông</em> như chạy đúng
+cho tới học kỳ sau — lúc bạn sửa nội dung năm mới và phát hiện điểm/bài tập của lớp năm ngoái đã bị đổi theo.
+Task đó có phần test viết chi tiết hơn hẳn phần code; đừng rút gọn.
+</blockquote>
+
+<h2>Mô hình dữ liệu của phase này</h2>
+
+<pre><code>Subject ─1:N─ SubjectVersion ─1:N─ Chapter ─1:N─ Lesson ─1:N─ LessonComponent
+   │                │                                              │ ref_id (nullable)
+   │                ├─1:N─ Assignment  ←──────────────────────────┘
+   │                └─1:N─ Quiz        ←──────────────────────────┘
+   └─ current_version_id ──► SubjectVersion (bản published mới nhất)
+
+Trạng thái SubjectVersion:
+   draft ──publish──► published ──(có version khác publish)──► archived
+     ▲                    │                    │
+     └── clone ───────────┴────────────────────┘   (clone từ bất kỳ trạng thái nào → draft mới)</code></pre>
+
+<table>
+<thead><tr><th>Bảng</th><th>Thay đổi so với SRS</th></tr></thead>
+<tbody>
+<tr><td><code>subjects</code></td><td>Đúng SRS. <code>instructor_id</code> → FK tới <code>asp_net_users</code> (Gap #1).</td></tr>
+<tr><td><code>subject_versions</code></td><td>Đúng SRS. <code>syllabus_json</code> map bằng <code>ToJson()</code> sang complex type có kiểu.</td></tr>
+<tr><td><code>chapters</code>, <code>lessons</code></td><td>Đúng SRS + <code>is_deleted</code>/<code>deleted_at</code> (Gap #15).</td></tr>
+<tr><td><code>lesson_components</code></td><td>Đúng SRS. <code>config_json</code> → complex type <code>ComponentConfig</code>.</td></tr>
+<tr><td><code>assignments</code>, <code>quizzes</code></td><td><strong>THÊM <code>subject_version_id</code></strong> (Gap #3) — bắt buộc cho versioning. Phase này chỉ tạo bảng ở mức tối thiểu để clone chạy được; nội dung đầy đủ ở Phase 3 và Phase 5.</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Chunk 1 — Môn học &amp; phiên bản</h2>
+
+<div class="task">
+<h3>Task 1.1 — Entity <code>Subject</code> và <code>SubjectVersion</code> + máy trạng thái</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Content/Subject.cs</code>, <code>SubjectVersion.cs</code>, <code>Syllabus.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/SubjectVersionTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Viết test đỏ cho máy trạng thái</label>
+<p>Đây là luật nghiệp vụ thuần, không cần database — nên nó phải nằm ở Domain và chạy trong mili-giây.</p>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Content;
+
+namespace TeachHub.Domain.Tests;
+
+public class SubjectVersionTests
+{
+    private static readonly DateTimeOffset Now = new(2026, 8, 13, 0, 0, 0, TimeSpan.Zero);
+
+    private static SubjectVersion Draft(string label = "2026-2027") =&gt;
+        SubjectVersion.CreateDraft(Guid.CreateVersion7(), label, Now);
+
+    [Fact]
+    public void Version_moi_tao_luon_o_trang_thai_draft()
+    {
+        Draft().Status.ShouldBe(SubjectVersionStatus.Draft);
+    }
+
+    [Fact]
+    public void Chi_draft_moi_sua_duoc_noi_dung()
+    {
+        var v = Draft();
+        v.CanEditContent.ShouldBeTrue();
+
+        v.Publish(Now);
+        v.CanEditContent.ShouldBeFalse();   // published là bất biến
+
+        v.Archive(Now);
+        v.CanEditContent.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Publish_ghi_lai_thoi_diem_xuat_ban()
+    {
+        var v = Draft();
+        v.Publish(Now);
+
+        v.Status.ShouldBe(SubjectVersionStatus.Published);
+        v.PublishedAt.ShouldBe(Now);
+    }
+
+    [Fact]
+    public void Publish_hai_lan_la_loi()
+    {
+        var v = Draft();
+        v.Publish(Now);
+
+        Should.Throw&lt;InvalidOperationException&gt;(() =&gt; v.Publish(Now));
+    }
+
+    [Fact]
+    public void Khong_the_publish_mot_version_da_archived()
+    {
+        // Muốn dùng lại nội dung cũ thì phải clone ra draft mới, không "hồi sinh"
+        // version cũ — nếu không, các lớp đang tham chiếu nó sẽ đổi nghĩa dưới chân.
+        var v = Draft();
+        v.Publish(Now);
+        v.Archive(Now);
+
+        Should.Throw&lt;InvalidOperationException&gt;(() =&gt; v.Publish(Now));
+    }
+
+    [Fact]
+    public void Archive_mot_draft_la_loi()
+    {
+        Should.Throw&lt;InvalidOperationException&gt;(() =&gt; Draft().Archive(Now));
+    }
+
+    [Fact]
+    public void Nhan_version_khong_duoc_de_trong()
+    {
+        Should.Throw&lt;ArgumentException&gt;(() =&gt; Draft("   "));
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<pre><code>dotnet test backend/tests/TeachHub.Domain.Tests --filter SubjectVersionTests</code></pre>
+<p>Kỳ vọng: <code>CS0246 ... 'SubjectVersion' could not be found</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết entity</label>
+<p><code>src/TeachHub.Domain/Content/SubjectVersion.cs</code>:</p>
+<pre><code>using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Content;
+
+public enum SubjectVersionStatus { Draft, Published, Archived }
+
+public class SubjectVersion : Entity
+{
+    private SubjectVersion() { }   // cho EF Core
+
+    public Guid SubjectId { get; private set; }
+    public string VersionLabel { get; private set; } = null!;
+    public SubjectVersionStatus Status { get; private set; }
+    public Syllabus Syllabus { get; set; } = new();
+    public Guid? ClonedFromVersionId { get; private set; }
+    public string? Changelog { get; set; }
+    public DateTimeOffset? PublishedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+
+    public List&lt;Chapter&gt; Chapters { get; private set; } = [];
+
+    /// &lt;summary&gt;
+    /// Chỉ bản draft mới sửa được. Đây là bảo đảm cốt lõi khiến các lớp học phần
+    /// đã mở không bị đổi nội dung dưới chân (SRS mục 5.2).
+    /// &lt;/summary&gt;
+    public bool CanEditContent =&gt; Status == SubjectVersionStatus.Draft;
+
+    public static SubjectVersion CreateDraft(Guid subjectId, string label, DateTimeOffset now,
+                                             Guid? clonedFrom = null)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+            throw new ArgumentException("Nhãn phiên bản không được để trống.", nameof(label));
+
+        return new SubjectVersion
+        {
+            SubjectId = subjectId,
+            VersionLabel = label.Trim(),
+            Status = SubjectVersionStatus.Draft,
+            ClonedFromVersionId = clonedFrom,
+            CreatedAt = now,
+        };
+    }
+
+    public void Publish(DateTimeOffset now)
+    {
+        if (Status != SubjectVersionStatus.Draft)
+            throw new InvalidOperationException(
+                $"Chỉ xuất bản được bản nháp. Phiên bản '{VersionLabel}' đang ở trạng thái {Status}.");
+
+        Status = SubjectVersionStatus.Published;
+        PublishedAt = now;
+    }
+
+    public void Archive(DateTimeOffset now)
+    {
+        if (Status != SubjectVersionStatus.Published)
+            throw new InvalidOperationException(
+                $"Chỉ lưu trữ được phiên bản đã xuất bản. '{VersionLabel}' đang ở {Status}.");
+
+        Status = SubjectVersionStatus.Archived;
+    }
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Content/Syllabus.cs</code> — nội dung đề cương, lưu jsonb:</p>
+<pre><code>namespace TeachHub.Domain.Content;
+
+/// &lt;summary&gt;Snapshot đề cương theo từng version (SRS: syllabus_json).&lt;/summary&gt;
+public class Syllabus
+{
+    public int? Credits { get; set; }
+    public int? TheoryPeriods { get; set; }
+    public int? PracticePeriods { get; set; }
+    public List&lt;LearningOutcome&gt; Outcomes { get; set; } = [];
+    public List&lt;string&gt; References { get; set; } = [];
+    public string? Description { get; set; }
+
+    public Syllabus DeepCopy() =&gt; new()
+    {
+        Credits = Credits, TheoryPeriods = TheoryPeriods, PracticePeriods = PracticePeriods,
+        Outcomes = [.. Outcomes.Select(o =&gt; new LearningOutcome { Code = o.Code, Text = o.Text })],
+        References = [.. References],
+        Description = Description,
+    };
+}
+
+public class LearningOutcome
+{
+    public required string Code { get; set; }   // VD: CĐR1.2
+    public required string Text { get; set; }
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Content/Subject.cs</code>:</p>
+<pre><code>using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Content;
+
+public class Subject : Entity, IAuditable, ISoftDeletable
+{
+    public required string Code { get; set; }        // VD: IN4203
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public required Guid InstructorId { get; set; }
+
+    /// &lt;summary&gt;Bản published mới nhất — dùng làm mặc định khi mở lớp mới.&lt;/summary&gt;
+    public Guid? CurrentVersionId { get; set; }
+
+    public List&lt;SubjectVersion&gt; Versions { get; private set; } = [];
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy, xác nhận xanh</label>
+<pre><code>dotnet test backend/tests/TeachHub.Domain.Tests --filter SubjectVersionTests</code></pre>
+<p>Kỳ vọng: <code>Passed: 7</code>, thời gian &lt; 100 ms.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(content): add subject and subject version with publish state machine"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 1.2 — Chapter, Lesson, LessonComponent</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Content/Chapter.cs</code>, <code>Lesson.cs</code>, <code>LessonComponent.cs</code>, <code>ComponentConfig.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/LessonStructureTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho quy tắc cấu trúc động</label>
+<p>Điều SRS nhấn mạnh nhất ở mục 5.1: <em>không có khuôn cố định</em>. Test phải khẳng định đúng chuyện đó — một Lesson với 0 component là hoàn toàn hợp lệ.</p>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Content;
+
+namespace TeachHub.Domain.Tests;
+
+public class LessonStructureTests
+{
+    [Fact]
+    public void Mot_lesson_khong_co_component_nao_van_hop_le()
+    {
+        // Đúng ví dụ trong SRS mục 5.1: "chương có 2 bài, 1 bài có bài tập +
+        // trắc nghiệm, bài kia không có gì".
+        var lesson = new Lesson { Title = "Giới thiệu", OrderIndex = 0, ContentType = LessonContentType.Ppt };
+
+        lesson.Components.ShouldBeEmpty();
+        lesson.IsValid().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Mot_lesson_gan_duoc_nhieu_component_khac_loai()
+    {
+        var lesson = new Lesson { Title = "Hooks", OrderIndex = 0, ContentType = LessonContentType.Ppt };
+        var assignmentId = Guid.CreateVersion7();
+
+        lesson.AddComponent(LessonComponentType.Recap, refId: null, new ComponentConfig { RecapQuestionCount = 3 });
+        lesson.AddComponent(LessonComponentType.Assignment, refId: assignmentId, new ComponentConfig());
+        lesson.AddComponent(LessonComponentType.Reflection, refId: null,
+            new ComponentConfig { ReflectionPrompt = "3 điều em nhớ nhất?" });
+
+        lesson.Components.Count.ShouldBe(3);
+        lesson.Components.Select(c =&gt; c.OrderIndex).ShouldBe([0, 1, 2]);
+    }
+
+    [Fact]
+    public void Component_loai_assignment_bat_buoc_co_ref_id()
+    {
+        var lesson = new Lesson { Title = "x", OrderIndex = 0, ContentType = LessonContentType.Text };
+
+        Should.Throw&lt;ArgumentException&gt;(() =&gt;
+            lesson.AddComponent(LessonComponentType.Assignment, refId: null, new ComponentConfig()));
+    }
+
+    [Fact]
+    public void Component_loai_noi_dung_nhung_khong_duoc_co_ref_id()
+    {
+        var lesson = new Lesson { Title = "x", OrderIndex = 0, ContentType = LessonContentType.Text };
+
+        Should.Throw&lt;ArgumentException&gt;(() =&gt;
+            lesson.AddComponent(LessonComponentType.Reflection, refId: Guid.CreateVersion7(), new ComponentConfig()));
+    }
+
+    [Fact]
+    public void Sap_xep_lai_component_giu_lien_tuc_order_index()
+    {
+        var lesson = new Lesson { Title = "x", OrderIndex = 0, ContentType = LessonContentType.Text };
+        lesson.AddComponent(LessonComponentType.Hook, null, new ComponentConfig());
+        lesson.AddComponent(LessonComponentType.Reflection, null, new ComponentConfig());
+        lesson.AddComponent(LessonComponentType.CustomNote, null, new ComponentConfig());
+
+        lesson.MoveComponent(lesson.Components[2].Id, toIndex: 0);
+
+        lesson.Components.Select(c =&gt; c.Type)
+            .ShouldBe([LessonComponentType.CustomNote, LessonComponentType.Hook, LessonComponentType.Reflection]);
+        lesson.Components.Select(c =&gt; c.OrderIndex).ShouldBe([0, 1, 2]);
+    }
+
+    [Fact]
+    public void Xoa_component_van_giu_order_index_lien_tuc()
+    {
+        var lesson = new Lesson { Title = "x", OrderIndex = 0, ContentType = LessonContentType.Text };
+        lesson.AddComponent(LessonComponentType.Hook, null, new ComponentConfig());
+        var giua = lesson.AddComponent(LessonComponentType.Reflection, null, new ComponentConfig());
+        lesson.AddComponent(LessonComponentType.CustomNote, null, new ComponentConfig());
+
+        lesson.RemoveComponent(giua.Id);
+
+        lesson.Components.Select(c =&gt; c.OrderIndex).ShouldBe([0, 1]);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết entity</label>
+<p><code>src/TeachHub.Domain/Content/LessonComponent.cs</code>:</p>
+<pre><code>using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Content;
+
+public enum LessonComponentType
+{
+    Recap, Hook, CheckpointQuiz, CodeAlong, Assignment, Quiz, Reflection, CustomNote
+}
+
+public class LessonComponent : Entity
+{
+    public Guid LessonId { get; set; }
+    public LessonComponentType Type { get; set; }
+    public int OrderIndex { get; set; }
+
+    /// &lt;summary&gt;
+    /// Trỏ tới Assignment.Id hoặc Quiz.Id. Null với các loại mang nội dung nhúng.
+    /// CHÚ Ý: khi clone SubjectVersion, giá trị này BẮT BUỘC phải được ánh xạ lại
+    /// sang id của bản sao — xem Task 1.6.
+    /// &lt;/summary&gt;
+    public Guid? RefId { get; set; }
+
+    public ComponentConfig Config { get; set; } = new();
+    public bool IsRequired { get; set; }
+
+    /// &lt;summary&gt;Các loại trỏ tới bản ghi khác; phần còn lại nhúng nội dung trong Config.&lt;/summary&gt;
+    public static bool RequiresRef(LessonComponentType t) =&gt;
+        t is LessonComponentType.Assignment or LessonComponentType.Quiz;
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Content/ComponentConfig.cs</code>:</p>
+<pre><code>namespace TeachHub.Domain.Content;
+
+/// &lt;summary&gt;
+/// SRS khai config_json là jsonb tự do. Ở đây gom lại thành một kiểu có trường rõ ràng
+/// để tránh magic string rải khắp code — vẫn lưu xuống DB dưới dạng jsonb qua ToJson().
+/// Thêm loại component mới thì thêm trường ở đây, không phải migrate schema.
+/// &lt;/summary&gt;
+public class ComponentConfig
+{
+    // recap
+    public int? RecapQuestionCount { get; set; }
+    public List&lt;string&gt; RecapFoundationTags { get; set; } = [];
+
+    // hook / custom_note / code_along
+    public string? Html { get; set; }
+
+    // checkpoint_quiz (câu hỏi nhúng trực tiếp, không tạo Quiz riêng)
+    public List&lt;InlineQuestion&gt; InlineQuestions { get; set; } = [];
+
+    // reflection
+    public string? ReflectionPrompt { get; set; }
+
+    // code_along
+    public string? StarterCodeUrl { get; set; }
+    public string? Language { get; set; }
+
+    public ComponentConfig DeepCopy() =&gt; new()
+    {
+        RecapQuestionCount = RecapQuestionCount,
+        RecapFoundationTags = [.. RecapFoundationTags],
+        Html = Html,
+        InlineQuestions = [.. InlineQuestions.Select(q =&gt; q.DeepCopy())],
+        ReflectionPrompt = ReflectionPrompt,
+        StarterCodeUrl = StarterCodeUrl,
+        Language = Language,
+    };
+}
+
+public class InlineQuestion
+{
+    public required string Text { get; set; }
+    public List&lt;string&gt; Options { get; set; } = [];
+    public List&lt;int&gt; CorrectIndexes { get; set; } = [];
+    public string? Explanation { get; set; }
+
+    public InlineQuestion DeepCopy() =&gt; new()
+    {
+        Text = Text, Options = [.. Options],
+        CorrectIndexes = [.. CorrectIndexes], Explanation = Explanation,
+    };
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Content/Lesson.cs</code>:</p>
+<pre><code>using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Content;
+
+public enum LessonContentType { Ppt, Pdf, VideoEmbed, Text, Interactive }
+
+public class Lesson : Entity, ISoftDeletable
+{
+    public Guid ChapterId { get; set; }
+    public int OrderIndex { get; set; }
+    public required string Title { get; set; }
+    public LessonContentType ContentType { get; set; }
+    public string? FileUrl { get; set; }
+    public string? TextContent { get; set; }
+    public int DurationMinutes { get; set; }
+
+    /// &lt;summary&gt;Giảng viên bật/tắt cho TỪNG bài — không phải cài đặt toàn cục (SRS mục 3.2).&lt;/summary&gt;
+    public bool IsRequiredToUnlockNext { get; set; }
+
+    public List&lt;LessonComponent&gt; Components { get; private set; } = [];
+
+    public bool IsDeleted { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    /// &lt;summary&gt;Không có ràng buộc nào bắt Lesson phải có component (SRS mục 5.1).&lt;/summary&gt;
+    public bool IsValid() =&gt; !string.IsNullOrWhiteSpace(Title);
+
+    public LessonComponent AddComponent(LessonComponentType type, Guid? refId, ComponentConfig config)
+    {
+        if (LessonComponent.RequiresRef(type) &amp;&amp; refId is null)
+            throw new ArgumentException($"Component loại {type} bắt buộc phải trỏ tới một bản ghi.", nameof(refId));
+        if (!LessonComponent.RequiresRef(type) &amp;&amp; refId is not null)
+            throw new ArgumentException($"Component loại {type} mang nội dung nhúng, không được có ref_id.", nameof(refId));
+
+        var c = new LessonComponent
+        {
+            LessonId = Id, Type = type, RefId = refId,
+            Config = config, OrderIndex = Components.Count,
+        };
+        Components.Add(c);
+        return c;
+    }
+
+    public void RemoveComponent(Guid componentId)
+    {
+        var c = Components.SingleOrDefault(x =&gt; x.Id == componentId)
+                ?? throw new InvalidOperationException($"Không có component {componentId} trong bài này.");
+        Components.Remove(c);
+        Reindex();
+    }
+
+    public void MoveComponent(Guid componentId, int toIndex)
+    {
+        var c = Components.SingleOrDefault(x =&gt; x.Id == componentId)
+                ?? throw new InvalidOperationException($"Không có component {componentId} trong bài này.");
+
+        Components.Remove(c);
+        Components.Insert(Math.Clamp(toIndex, 0, Components.Count), c);
+        Reindex();
+    }
+
+    // OrderIndex phải luôn là 0..n-1 liên tục. Nếu để hở, kéo-thả ở UI sẽ
+    // dần tạo ra các khoảng trống và thứ tự hiển thị thành không xác định.
+    private void Reindex()
+    {
+        for (var i = 0; i &lt; Components.Count; i++) Components[i].OrderIndex = i;
+    }
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Content/Chapter.cs</code> — tương tự, có <code>Lessons</code>, <code>FoundationTags</code> (<code>List&lt;string&gt;</code> → cột <code>text[]</code>), <code>UnlockRule</code>, và các phương thức <code>AddLesson</code>/<code>RemoveLesson</code>/<code>MoveLesson</code> cùng cơ chế <code>Reindex</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy, xác nhận xanh</label>
+<pre><code>dotnet test backend/tests/TeachHub.Domain.Tests --filter LessonStructureTests</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(content): add chapter, lesson and dynamic lesson components"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 1.3 — Ánh xạ EF Core + migration</h3>
+<div class="files"><b>Tạo:</b> <code>src/TeachHub.Infrastructure/Persistence/Configurations/ContentConfigurations.cs</code> · <b>Sửa:</b> <code>AppDbContext.cs</code>, <code>IAppDbContext.cs</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ: lưu rồi đọc lại nguyên vẹn qua Postgres thật</label>
+<pre><code>[Fact]
+public async Task Luu_lesson_co_component_roi_doc_lai_giu_nguyen_config_jsonb()
+{
+    await using var db = await fixture.CreateDbContextAsync();
+
+    var subject  = new Subject { Code = "IN4203", Name = "Lập trình di động", InstructorId = fixture.InstructorId };
+    var version  = SubjectVersion.CreateDraft(subject.Id, "2026-2027", Now);
+    var chapter  = new Chapter { SubjectVersionId = version.Id, Title = "React Native cơ bản", OrderIndex = 0 };
+    var lesson   = new Lesson  { ChapterId = chapter.Id, Title = "Hooks", OrderIndex = 0,
+                                 ContentType = LessonContentType.Ppt };
+    lesson.AddComponent(LessonComponentType.Reflection, null,
+        new ComponentConfig { ReflectionPrompt = "3 điều em nhớ nhất?" });
+
+    db.Subjects.Add(subject); db.SubjectVersions.Add(version);
+    db.Chapters.Add(chapter); db.Lessons.Add(lesson);
+    await db.SaveChangesAsync();
+
+    await using var db2 = await fixture.CreateDbContextAsync();
+    var doc = await db2.Lessons.Include(l =&gt; l.Components).SingleAsync(l =&gt; l.Id == lesson.Id);
+
+    doc.Components.Single().Config.ReflectionPrompt.ShouldBe("3 điều em nhớ nhất?");
+}
+
+[Fact]
+public async Task Config_duoc_luu_thanh_jsonb_that_chu_khong_phai_chuoi_text()
+{
+    // Nếu lưu nhầm sang text, các truy vấn JSON sau này (thống kê reflection,
+    // lọc theo foundation tag) sẽ không dùng được index và phải parse thủ công.
+    await using var db = await fixture.CreateDbContextAsync();
+    var kieu = await db.Database
+        .SqlQuery&lt;string&gt;($"SELECT data_type FROM information_schema.columns WHERE table_name='lesson_components' AND column_name='config'")
+        .SingleAsync();
+
+    kieu.ShouldBe("jsonb");
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Viết configuration</label>
+<pre><code>public sealed class LessonComponentConfiguration : IEntityTypeConfiguration&lt;LessonComponent&gt;
+{
+    public void Configure(EntityTypeBuilder&lt;LessonComponent&gt; b)
+    {
+        b.HasKey(x =&gt; x.Id);
+        b.Property(x =&gt; x.Type).HasConversion&lt;string&gt;().HasMaxLength(32);
+
+        // config_json của SRS → jsonb có kiểu, không phải string
+        b.OwnsOne(x =&gt; x.Config, c =&gt; c.ToJson());
+
+        b.HasIndex(x =&gt; new { x.LessonId, x.OrderIndex });
+    }
+}
+
+public sealed class ChapterConfiguration : IEntityTypeConfiguration&lt;Chapter&gt;
+{
+    public void Configure(EntityTypeBuilder&lt;Chapter&gt; b)
+    {
+        b.HasKey(x =&gt; x.Id);
+        b.Property(x =&gt; x.Title).HasMaxLength(300).IsRequired();
+        b.Property(x =&gt; x.FoundationTags).HasColumnType("text[]");
+        b.Property(x =&gt; x.UnlockRule).HasConversion&lt;string&gt;().HasMaxLength(32);
+
+        b.HasMany(x =&gt; x.Lessons).WithOne().HasForeignKey(l =&gt; l.ChapterId)
+         .OnDelete(DeleteBehavior.Cascade);
+
+        // EF Core 10: named query filter — cho phép chồng nhiều filter trên một entity
+        b.HasQueryFilter("SoftDelete", x =&gt; !x.IsDeleted);
+
+        b.HasIndex(x =&gt; new { x.SubjectVersionId, x.OrderIndex });
+    }
+}</code></pre>
+<div class="hint">Nếu <code>HasQueryFilter(name, expr)</code> không có trong bản EF Core đang dùng, dùng <code>HasQueryFilter(x =&gt; !x.IsDeleted)</code> (một filter mỗi entity). Chỉ khi cần chồng nhiều điều kiện mới cần dạng có tên.</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Bổ sung <code>DbSet</code> vào <code>IAppDbContext</code> và <code>AppDbContext</code></label>
+<pre><code>DbSet&lt;Subject&gt; Subjects { get; }
+DbSet&lt;SubjectVersion&gt; SubjectVersions { get; }
+DbSet&lt;Chapter&gt; Chapters { get; }
+DbSet&lt;Lesson&gt; Lessons { get; }
+DbSet&lt;LessonComponent&gt; LessonComponents { get; }</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Migration + chạy test</label>
+<pre><code>dotnet ef migrations add ContentModel -p src/TeachHub.Infrastructure -s src/TeachHub.Api -o Persistence/Migrations
+dotnet test backend/tests/TeachHub.Api.Tests --filter Content</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(data): map content model with jsonb configs and soft delete filters"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 2 — API nội dung &amp; cơ chế versioning</h2>
+
+<div class="task">
+<h3>Task 1.4 — Controller Subject &amp; SubjectVersion</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/SubjectsController.cs</code>, <code>SubjectVersionsController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Subjects/Queries/GetSubjects/</code>, <code>Queries/GetSubjectVersions/</code>,
+<code>Commands/CreateSubject/</code>, <code>Commands/UpdateVersion/</code>, <code>Commands/PublishVersion/</code>
+(mỗi thư mục: Command hoặc Query + Handler + Validator + DTO)<br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/SubjectsControllerTests.cs</code>
+</div>
+
+<p>Hợp đồng API giữ nguyên SRS mục 7 — <strong>đường dẫn, payload và mã lỗi không đổi</strong>, chỉ đổi cách hiện thực
+sang controller + MediatR:</p>
+<table>
+<thead><tr><th>Method</th><th>Route</th><th>Quyền</th><th>Controller · action</th><th>Request MediatR</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/subjects</code></td><td>Instructor</td><td><code>SubjectsController.GetAll</code></td><td><code>GetSubjectsQuery</code></td><td>Chỉ trả môn của chính mình</td></tr>
+<tr><td>POST</td><td><code>/api/subjects</code></td><td>Instructor</td><td><code>SubjectsController.Create</code></td><td><code>CreateSubjectCommand</code></td><td>Tự tạo luôn một version <code>draft</code> đầu tiên</td></tr>
+<tr><td>GET</td><td><code>/api/subjects/{id}/versions</code></td><td>Instructor</td><td><code>SubjectsController.GetVersions</code></td><td><code>GetSubjectVersionsQuery</code></td><td>UC-06c — lịch sử, kèm danh sách lớp đang dùng mỗi version</td></tr>
+<tr><td>POST</td><td><code>/api/subjects/{id}/versions</code></td><td>Instructor</td><td><code>SubjectsController.CreateVersion</code></td><td><code>CloneSubjectVersionCommand</code></td><td>UC-06 — <code>{cloned_from_version_id?, version_label}</code></td></tr>
+<tr><td>PUT</td><td><code>/api/subject-versions/{id}</code></td><td>Instructor</td><td><code>SubjectVersionsController.Update</code></td><td><code>UpdateVersionCommand</code></td><td><strong>409</strong> nếu không phải <code>draft</code></td></tr>
+<tr><td>POST</td><td><code>/api/subject-versions/{id}/publish</code></td><td>Instructor</td><td><code>SubjectVersionsController.Publish</code></td><td><code>PublishVersionCommand</code></td><td>draft → published, bản published cũ → archived</td></tr>
+</tbody>
+</table>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ, tập trung vào các ca dễ sai</label>
+<pre><code>[Fact]
+public async Task Giang_vien_khong_thay_mon_hoc_cua_giang_vien_khac()
+{
+    // Đây là ranh giới bảo mật quan trọng nhất của hệ thống nhiều giảng viên.
+    var gv1 = await factory.LoginAsAsync("gv1@teachhub.local");
+    var gv2 = await factory.LoginAsAsync("gv2@teachhub.local");
+
+    var tao = await gv1.PostAsJsonAsync("/api/subjects", new { code = "IN01", name = "Môn của GV1" });
+    var id  = (await tao.Content.ReadFromJsonAsync&lt;JsonElement&gt;()).GetProperty("id").GetGuid();
+
+    var ds = await gv2.GetFromJsonAsync&lt;JsonElement&gt;("/api/subjects");
+    ds.EnumerateArray().ShouldNotContain(s =&gt; s.GetProperty("id").GetGuid() == id);
+
+    var truyCap = await gv2.GetAsync($"/api/subjects/{id}/versions");
+    truyCap.StatusCode.ShouldBe(HttpStatusCode.NotFound);   // 404 chứ không 403 — không xác nhận id có tồn tại
+}
+
+[Fact]
+public async Task Sua_version_da_publish_tra_ve_409()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (_, versionId) = await factory.SeedSubjectWithDraftAsync(gv);
+    await gv.PostAsync($"/api/subject-versions/{versionId}/publish", null);
+
+    var res = await gv.PutAsJsonAsync($"/api/subject-versions/{versionId}",
+        new { changelog = "sửa sau khi đã xuất bản" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+}
+
+[Fact]
+public async Task Publish_version_moi_tu_dong_archive_version_cu()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (subjectId, v1) = await factory.SeedSubjectWithDraftAsync(gv);
+    await gv.PostAsync($"/api/subject-versions/{v1}/publish", null);
+
+    var tao = await gv.PostAsJsonAsync($"/api/subjects/{subjectId}/versions",
+        new { cloned_from_version_id = v1, version_label = "2027-2028" });
+    var v2 = (await tao.Content.ReadFromJsonAsync&lt;JsonElement&gt;()).GetProperty("id").GetGuid();
+    await gv.PostAsync($"/api/subject-versions/{v2}/publish", null);
+
+    var versions = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/subjects/{subjectId}/versions");
+    var map = versions.EnumerateArray()
+        .ToDictionary(x =&gt; x.GetProperty("id").GetGuid(), x =&gt; x.GetProperty("status").GetString());
+
+    map[v1].ShouldBe("archived");
+    map[v2].ShouldBe("published");
+}
+
+[Fact]
+public async Task Publish_cap_nhat_current_version_id_cua_mon_hoc()
+{
+    // current_version_id là thứ dùng làm mặc định khi mở lớp mới (SRS mục 3.2).
+    var gv = await factory.LoginAsInstructorAsync();
+    var (subjectId, v1) = await factory.SeedSubjectWithDraftAsync(gv);
+
+    await gv.PostAsync($"/api/subject-versions/{v1}/publish", null);
+
+    var subject = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/subjects/{subjectId}");
+    subject.GetProperty("current_version_id").GetGuid().ShouldBe(v1);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Command xuất bản + handler (phần có luật nghiệp vụ)</label>
+<pre><code>using MediatR;
+using TeachHub.Application.Common.Messaging;
+
+namespace TeachHub.Application.Features.Subjects.Commands.PublishVersion;
+
+/// &lt;summary&gt;
+/// Ghi dữ liệu ⇒ khai là ICommand chứ không phải IQuery. Đây không phải hình thức:
+/// TransactionBehavior chỉ mở transaction cho request cài IBaseCommand, nên khai sai
+/// kiểu là mất luôn tính nguyên tử của bước đổi trạng thái bên dưới.
+/// &lt;/summary&gt;
+public sealed record PublishVersionCommand(Guid VersionId, Guid InstructorId) : ICommand&lt;Result&gt;;
+
+public sealed class PublishVersionCommandHandler(IAppDbContext db, TimeProvider clock)
+    : ICommandHandler&lt;PublishVersionCommand, Result&gt;
+{
+    public async Task&lt;Result&gt; Handle(PublishVersionCommand request, CancellationToken ct)
+    {
+        var (versionId, instructorId) = request;
+
+        var version = await db.SubjectVersions
+            .SingleOrDefaultAsync(v =&gt; v.Id == versionId, ct);
+
+        if (version is null) return Result.NotFound();
+
+        var subject = await db.Subjects
+            .SingleOrDefaultAsync(s =&gt; s.Id == version.SubjectId &amp;&amp; s.InstructorId == instructorId, ct);
+
+        // Không phải chủ sở hữu ⇒ trả 404 chứ không 403: 403 vô tình xác nhận
+        // "id này có tồn tại", đủ để dò ra cấu trúc dữ liệu của giảng viên khác.
+        if (subject is null) return Result.NotFound();
+
+        if (version.Status != SubjectVersionStatus.Draft)
+            return Result.Conflict($"Phiên bản đang ở trạng thái {version.Status}, chỉ xuất bản được bản nháp.");
+
+        var now = clock.GetUtcNow();
+
+        // Toàn bộ chuyển trạng thái nằm trong một SaveChanges, và TransactionBehavior
+        // đã bọc sẵn cả handler trong một transaction. Nếu tách ra nhiều lần lưu,
+        // một lỗi giữa chừng sẽ để lại hai bản published cùng lúc.
+        var dangPublished = await db.SubjectVersions
+            .Where(v =&gt; v.SubjectId == version.SubjectId &amp;&amp; v.Status == SubjectVersionStatus.Published)
+            .ToListAsync(ct);
+
+        foreach (var cu in dangPublished) cu.Archive(now);
+
+        version.Publish(now);
+        subject.CurrentVersionId = version.Id;
+
+        await db.SaveChangesAsync(ct);
+        return Result.Ok();
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Validator cho dữ liệu đầu vào</label>
+<p>Quy tắc về <em>hình dạng dữ liệu</em> nằm ở validator, không nằm trong handler. Validator chạy trước
+TransactionBehavior nên request sai dữ liệu bị chặn trước khi kịp mở transaction:</p>
+<pre><code>using FluentValidation;
+
+namespace TeachHub.Application.Features.Subjects.Commands.CreateSubject;
+
+public sealed class CreateSubjectCommandValidator : AbstractValidator&lt;CreateSubjectCommand&gt;
+{
+    public CreateSubjectCommandValidator()
+    {
+        RuleFor(x =&gt; x.Code).NotEmpty().MaximumLength(20)
+            .Matches("^[A-Z0-9]+$").WithMessage("Mã môn chỉ gồm chữ in hoa và số.");
+        RuleFor(x =&gt; x.Name).NotEmpty().MaximumLength(300);
+    }
+}</code></pre>
+<p class="meta">Thất bại ở đây ném <code>ValidationException</code>, được <code>IExceptionHandler</code> toàn cục quy đổi thành
+400 <code>ValidationProblemDetails</code>. Không handler nào phải tự trả 400.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Controller</label>
+<pre><code>using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace TeachHub.Api.Controllers;
+
+[ApiController]
+[Route("api/subjects")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class SubjectsController(ISender sender) : ApiControllerBase
+{
+    [HttpGet]
+    [ProducesResponseType&lt;IReadOnlyList&lt;SubjectDto&gt;&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetAll(CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetSubjectsQuery(CurrentUserId), ct));
+
+    [HttpPost]
+    [ProducesResponseType&lt;SubjectDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; Create(CreateSubjectCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { InstructorId = CurrentUserId }, ct));
+
+    // Test Publish_cap_nhat_current_version_id_cua_mon_hoc ở Bước 1 gọi đường dẫn này.
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType&lt;SubjectDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task&lt;IActionResult&gt; GetById(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new GetSubjectQuery(id, CurrentUserId), ct));
+
+    [HttpGet("{id:guid}/versions")]
+    public async Task&lt;IActionResult&gt; GetVersions(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new GetSubjectVersionsQuery(id, CurrentUserId), ct));
+
+    [HttpPost("{id:guid}/versions")]
+    public async Task&lt;IActionResult&gt; CreateVersion(Guid id, CloneSubjectVersionCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+               command with { SubjectId = id, InstructorId = CurrentUserId }, ct));
+}
+
+[ApiController]
+[Route("api/subject-versions")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class SubjectVersionsController(ISender sender) : ApiControllerBase
+{
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task&lt;IActionResult&gt; Update(Guid id, UpdateVersionCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { VersionId = id, InstructorId = CurrentUserId }, ct));
+
+    [HttpPost("{id:guid}/publish")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task&lt;IActionResult&gt; Publish(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new PublishVersionCommand(id, CurrentUserId), ct));
+}</code></pre>
+<div class="hint">
+<strong>Ba thứ tuyệt đối không được xuất hiện trong controller:</strong> <code>if</code> nghiệp vụ, truy vấn <code>DbContext</code>,
+và <code>try/catch</code>. Controller chỉ định tuyến, lấy <code>CurrentUserId</code> từ claim, gọi <code>sender.Send</code> và quy đổi
+<code>Result</code>. Ngay khi có một <code>if</code> lọt vào đây, luật đó sẽ không được test ở tầng Application nữa và sẽ bị nhân bản
+sai ở controller tiếp theo.
+<br><br>
+<code>InstructorId</code> luôn được ghi đè bằng <code>command with { InstructorId = CurrentUserId }</code>. Nếu tin giá trị client gửi lên,
+bất kỳ ai cũng tạo được môn học đứng tên giảng viên khác.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(api): add subject and version controllers with publish command"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 1.5 — Controller Chapter / Lesson / Component + reorder</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/ChaptersController.cs</code>, <code>LessonsController.cs</code>, <code>LessonComponentsController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Filters/RequireDraftVersionAttribute.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Content/</code> (Command/Query + Handler + Validator)<br>
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/SubjectVersionsController.cs</code> (nhánh <code>chapters</code>)<br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/ContentControllerTests.cs</code>
+</div>
+
+<p>Đường dẫn giữ nguyên SRS mục 7, phân bổ vào controller theo tiền tố route:</p>
+<table>
+<thead><tr><th>Route</th><th>Controller · action</th><th>Request MediatR</th></tr></thead>
+<tbody>
+<tr><td><code>GET/POST /api/subject-versions/{id}/chapters</code></td><td><code>SubjectVersionsController.GetChapters</code> / <code>AddChapter</code></td><td><code>GetChaptersQuery</code> / <code>CreateChapterCommand</code></td></tr>
+<tr><td><code>GET/POST /api/chapters/{id}/lessons</code></td><td><code>ChaptersController.GetLessons</code> / <code>AddLesson</code></td><td><code>GetLessonsQuery</code> / <code>CreateLessonCommand</code></td></tr>
+<tr><td><code>DELETE /api/chapters/{id}</code></td><td><code>ChaptersController.Delete</code></td><td><code>DeleteChapterCommand</code></td></tr>
+<tr><td><code>GET /api/lessons/{id}</code></td><td><code>LessonsController.GetById</code></td><td><code>GetLessonQuery</code></td></tr>
+<tr><td><code>PUT /api/lessons/{id}/reorder</code></td><td><code>LessonsController.Reorder</code></td><td><code>ReorderLessonCommand</code></td></tr>
+<tr><td><code>POST /api/lessons/{id}/components</code></td><td><code>LessonsController.AddComponent</code></td><td><code>AddComponentCommand</code></td></tr>
+<tr><td><code>DELETE /api/lesson-components/{id}</code></td><td><code>LessonComponentsController.Delete</code></td><td><code>DeleteComponentCommand</code></td></tr>
+<tr><td><code>PUT /api/lesson-components/{id}/reorder</code></td><td><code>LessonComponentsController.Reorder</code></td><td><code>ReorderComponentCommand</code></td></tr>
+</tbody>
+</table>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ, nhấn vào bất biến "chỉ sửa được draft" và tính liên tục của order</label>
+<pre><code>[Fact]
+public async Task Khong_them_duoc_chuong_vao_version_da_publish()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (_, versionId) = await factory.SeedSubjectWithDraftAsync(gv);
+    await gv.PostAsync($"/api/subject-versions/{versionId}/publish", null);
+
+    var res = await gv.PostAsJsonAsync($"/api/subject-versions/{versionId}/chapters",
+        new { title = "Chương thêm lén", order_index = 0 });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+}
+
+[Fact]
+public async Task Reorder_giu_order_index_lien_tuc_tu_0()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var chapterId = await factory.SeedChapterAsync(gv);
+    var a = await factory.AddLessonAsync(gv, chapterId, "Bài A");
+    var b = await factory.AddLessonAsync(gv, chapterId, "Bài B");
+    var c = await factory.AddLessonAsync(gv, chapterId, "Bài C");
+
+    await gv.PutAsJsonAsync($"/api/lessons/{c}/reorder", new { to_index = 0 });
+
+    var lessons = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/chapters/{chapterId}/lessons");
+    lessons.EnumerateArray().Select(l =&gt; l.GetProperty("title").GetString())
+        .ShouldBe(["Bài C", "Bài A", "Bài B"]);
+    lessons.EnumerateArray().Select(l =&gt; l.GetProperty("order_index").GetInt32())
+        .ShouldBe([0, 1, 2]);
+}
+
+[Fact]
+public async Task Chuong_co_hai_bai_mot_bai_co_component_bai_kia_khong()
+{
+    // Kịch bản chính xác trong SRS mục 5.1 — nghiệm thu bằng test, không chỉ bằng lời.
+    var gv = await factory.LoginAsInstructorAsync();
+    var chapterId = await factory.SeedChapterAsync(gv);
+    var bai1 = await factory.AddLessonAsync(gv, chapterId, "Bài 1");
+    var bai2 = await factory.AddLessonAsync(gv, chapterId, "Bài 2");
+    var assignmentId = await factory.SeedAssignmentAsync(gv);
+
+    await gv.PostAsJsonAsync($"/api/lessons/{bai1}/components",
+        new { type = "assignment", ref_id = assignmentId, config = new { } });
+    await gv.PostAsJsonAsync($"/api/lessons/{bai1}/components",
+        new { type = "reflection", config = new { reflection_prompt = "Em học được gì?" } });
+
+    var l1 = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/lessons/{bai1}");
+    var l2 = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/lessons/{bai2}");
+
+    l1.GetProperty("components").GetArrayLength().ShouldBe(2);
+    l2.GetProperty("components").GetArrayLength().ShouldBe(0);   // hoàn toàn hợp lệ
+}
+
+[Fact]
+public async Task Them_component_assignment_ma_thieu_ref_id_tra_ve_400()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var lessonId = await factory.SeedLessonAsync(gv);
+
+    var res = await gv.PostAsJsonAsync($"/api/lessons/{lessonId}/components",
+        new { type = "assignment", config = new { } });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Viết Command/Query + Handler + Validator</label>
+<p>Ca <code>Them_component_assignment_ma_thieu_ref_id_tra_ve_400</code> là quy tắc dữ liệu đầu vào thuần túy ⇒ thuộc về validator,
+không phải handler:</p>
+<pre><code>public sealed class AddComponentCommandValidator : AbstractValidator&lt;AddComponentCommand&gt;
+{
+    public AddComponentCommandValidator()
+    {
+        RuleFor(x =&gt; x.RefId).NotNull()
+            .When(x =&gt; LessonComponent.RequiresRef(x.Type))
+            .WithMessage(x =&gt; $"Component loại {x.Type} bắt buộc phải trỏ tới một bản ghi.");
+
+        RuleFor(x =&gt; x.RefId).Null()
+            .When(x =&gt; !LessonComponent.RequiresRef(x.Type))
+            .WithMessage(x =&gt; $"Component loại {x.Type} mang nội dung nhúng, không được có ref_id.");
+    }
+}</code></pre>
+<p class="meta">Luật vẫn nằm ở Domain (<code>LessonComponent.RequiresRef</code> + <code>Lesson.AddComponent</code> vẫn ném lỗi);
+validator chỉ mượn lại nó để đổi 500 thành 400 có thông điệp đọc được.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Action filter <code>[RequireDraftVersion]</code></label>
+<div class="hint">
+<strong>Kiểm tra "chỉ sửa được draft" phải nằm ở một chỗ duy nhất.</strong> Viết một <em>action filter</em>
+(<code>IAsyncActionFilter</code>) tên <code>RequireDraftVersionAttribute</code>: đọc id từ route, lần ngược lên
+<code>subject_version_id</code>, trả 409 nếu không phải <code>draft</code>. Gắn nó cho mọi action sửa nội dung.
+Rải <code>if</code> ở từng handler thì chắc chắn sẽ sót — và chỗ sót đó chính là chỗ làm hỏng dữ liệu lớp đang dạy.
+<br><br>
+<strong>Vì sao action filter chứ không phải pipeline behavior của MediatR?</strong> Vì thứ cần kiểm tra là
+<em>tham số route</em> (<code>chapterId</code>, <code>lessonId</code>, <code>componentId</code>) chứ không phải một trường có sẵn trên command.
+Behavior chỉ nhìn thấy request object, muốn dùng được thì phải bắt mọi command tự khai một interface
+<code>IHasVersionScope</code> và nhớ cài nó — tức là lại quay về "nhớ thì đúng, quên thì sai". Action filter đứng
+đúng chỗ dữ liệu route còn nguyên và gắn được bằng một attribute duy nhất, không lệ thuộc vào việc lập trình viên
+có nhớ hay không.
+</div>
+<pre><code>using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
+
+namespace TeachHub.Api.Filters;
+
+/// &lt;summary&gt;
+/// Chặn mọi thao tác sửa nội dung khi SubjectVersion không còn ở trạng thái draft.
+/// Đặt trên action, hoặc trên cả controller nếu mọi action đều là thao tác sửa.
+/// &lt;/summary&gt;
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public sealed class RequireDraftVersionAttribute : Attribute, IFilterFactory
+{
+    public bool IsReusable =&gt; false;
+
+    public IFilterMetadata CreateInstance(IServiceProvider services) =&gt;
+        ActivatorUtilities.CreateInstance&lt;Filter&gt;(services);
+
+    private sealed class Filter(AppDbContext db) : IAsyncActionFilter
+    {
+        public async Task OnActionExecutionAsync(ActionExecutingContext ctx, ActionExecutionDelegate next)
+        {
+            var ct = ctx.HttpContext.RequestAborted;
+
+            // Lần ngược từ bất kỳ id nào có trong route về SubjectVersion.
+            var status = await ResolveVersionStatusAsync(db, ctx.RouteData.Values, ct);
+
+            if (status is null)
+            {
+                ctx.Result = new NotFoundResult();
+                return;
+            }
+
+            if (status != SubjectVersionStatus.Draft)
+            {
+                ctx.Result = new ConflictObjectResult(new ProblemDetails
+                {
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Phiên bản không sửa được",
+                    Detail = $"Phiên bản đang ở trạng thái {status}, chỉ bản nháp mới sửa được nội dung.",
+                });
+                return;
+            }
+
+            await next();
+        }
+    }
+}</code></pre>
+<div class="danger">
+<strong>Gắn <code>[RequireDraftVersion]</code> xuống TỪNG ACTION SỬA NỘI DUNG, tuyệt đối không gắn ở cấp class.</strong>
+Cụ thể: các action <code>Create</code>/<code>Update</code>/<code>Delete</code>/<code>Reorder</code> của
+<code>ChaptersController</code>, <code>LessonsController</code> và <code>LessonComponentsController</code>.
+<br><br>
+Lý do không gắn cấp class: cùng ba controller đó còn phải chứa các action <em>ghi của sinh viên</em> mà Phase 2
+thêm vào — <code>POST /api/lessons/{id}/complete</code> và <code>POST /api/lesson-components/{id}/complete</code>.
+Những action này chạy trên lớp đang dạy, tức trên một <code>SubjectVersion</code> đã <code>published</code>.
+Gắn filter ở cấp class thì mọi sinh viên đánh dấu hoàn thành bài học đều nhận <strong>409</strong>, và tính năng
+mở khóa tuần tự của Phase 2 chết hoàn toàn — lỗi chỉ lộ ra khi ghép hai phase lại, mỗi phase xét riêng đều "đúng".
+<br><br>
+Cũng vì thế <strong>không dùng cơ chế <code>[SkipDraftCheck]</code></strong>: danh sách loại trừ luôn thiếu một cái,
+và cái thiếu đó là một tính năng chết âm thầm. Danh sách bao gồm thì rõ ràng hơn danh sách loại trừ.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(api): add chapter, lesson and component controllers with reordering"</code></pre>
+</div>
+
+<div class="task crown">
+<h3>Task 1.6 — <code>SubjectVersionCloner</code> (deep clone) ⭐ task quan trọng nhất</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Subjects/SubjectVersionCloner.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Subjects/Commands/CloneSubjectVersion/</code> —
+<code>CloneSubjectVersionCommand.cs</code>, <code>CloneSubjectVersionCommandHandler.cs</code>, <code>CloneSubjectVersionCommandValidator.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/SubjectVersionClonerTests.cs</code>
+</div>
+
+<blockquote>
+Clone sai theo kiểu "quên remap <code>ref_id</code>" sẽ <strong>không</strong> làm test nào đỏ nếu bạn chỉ kiểm tra số lượng
+chương/bài. Nó chỉ lộ ra một năm sau, khi bạn sửa bài tập của version mới và phát hiện bài tập của lớp năm ngoái
+đã đổi theo — lúc đó sinh viên đã nộp bài rồi. Vì vậy test dưới đây kiểm tra <em>quan hệ</em>, không chỉ kiểm tra <em>số lượng</em>.
+</blockquote>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ (viết đủ 7 ca, đừng rút gọn)</label>
+<pre><code>using Shouldly;
+
+namespace TeachHub.Api.Tests;
+
+public class SubjectVersionClonerTests(TeachHubApiFactory factory) : IClassFixture&lt;TeachHubApiFactory&gt;
+{
+    /// &lt;summary&gt;
+    /// Dựng sẵn: 1 version có 2 chương; chương 1 có 2 bài (bài 1 gắn assignment + quiz,
+    /// bài 2 không gắn gì); chương 2 có 1 bài. Đúng hình dạng ví dụ trong SRS mục 5.1.
+    /// &lt;/summary&gt;
+    private async Task&lt;Guid&gt; SeedFullVersionAsync() =&gt; await factory.SeedRealisticVersionAsync();
+
+    [Fact]
+    public async Task Clone_sao_chep_du_so_luong_chuong_bai_va_component()
+    {
+        var nguon = await SeedFullVersionAsync();
+        var moi = await factory.CloneAsync(nguon, "2027-2028");
+
+        await using var db = await factory.CreateDbContextAsync();
+        var soChuong = await db.Chapters.CountAsync(c =&gt; c.SubjectVersionId == moi);
+        soChuong.ShouldBe(await db.Chapters.CountAsync(c =&gt; c.SubjectVersionId == nguon));
+    }
+
+    [Fact]
+    public async Task Ban_clone_luon_o_trang_thai_draft_va_ghi_nho_nguon()
+    {
+        var nguon = await SeedFullVersionAsync();
+        await factory.PublishAsync(nguon);
+
+        var moi = await factory.CloneAsync(nguon, "2027-2028");
+
+        await using var db = await factory.CreateDbContextAsync();
+        var v = await db.SubjectVersions.SingleAsync(x =&gt; x.Id == moi);
+        v.Status.ShouldBe(SubjectVersionStatus.Draft);
+        v.ClonedFromVersionId.ShouldBe(nguon);
+    }
+
+    [Fact]
+    public async Task KHONG_co_ban_ghi_nao_cua_ban_clone_dung_chung_id_voi_ban_goc()
+    {
+        var nguon = await SeedFullVersionAsync();
+        var moi = await factory.CloneAsync(nguon, "2027-2028");
+
+        await using var db = await factory.CreateDbContextAsync();
+        var idNguon = await db.Chapters.Where(c =&gt; c.SubjectVersionId == nguon).Select(c =&gt; c.Id).ToHashSetAsync();
+        var idMoi   = await db.Chapters.Where(c =&gt; c.SubjectVersionId == moi).Select(c =&gt; c.Id).ToHashSetAsync();
+
+        idNguon.Overlaps(idMoi).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Ref_id_cua_component_tro_toi_BAN_SAO_chu_khong_phai_ban_goc()
+    {
+        // ĐÂY LÀ TEST QUAN TRỌNG NHẤT CỦA CẢ PHASE.
+        var nguon = await SeedFullVersionAsync();
+        var moi = await factory.CloneAsync(nguon, "2027-2028");
+
+        await using var db = await factory.CreateDbContextAsync();
+
+        var assignmentCuaBanGoc = await db.Assignments
+            .Where(a =&gt; a.SubjectVersionId == nguon).Select(a =&gt; a.Id).ToHashSetAsync();
+
+        var refIdTrongBanClone = await db.LessonComponents
+            .Where(c =&gt; db.Lessons.Any(l =&gt; l.Id == c.LessonId &amp;&amp;
+                        db.Chapters.Any(ch =&gt; ch.Id == l.ChapterId &amp;&amp; ch.SubjectVersionId == moi)))
+            .Where(c =&gt; c.RefId != null)
+            .Select(c =&gt; c.RefId!.Value)
+            .ToListAsync();
+
+        refIdTrongBanClone.ShouldNotBeEmpty("bộ dữ liệu seed phải có ít nhất 1 component có ref_id");
+        refIdTrongBanClone.ShouldAllBe(id =&gt; !assignmentCuaBanGoc.Contains(id));
+    }
+
+    [Fact]
+    public async Task Sua_ban_clone_KHONG_lam_thay_doi_ban_goc()
+    {
+        var nguon = await SeedFullVersionAsync();
+        var moi = await factory.CloneAsync(nguon, "2027-2028");
+
+        var gv = await factory.LoginAsInstructorAsync();
+        await using (var db = await factory.CreateDbContextAsync())
+        {
+            var chuongClone = await db.Chapters.FirstAsync(c =&gt; c.SubjectVersionId == moi);
+            await gv.DeleteAsync($"/api/chapters/{chuongClone.Id}");
+        }
+
+        await using var db2 = await factory.CreateDbContextAsync();
+        var conLaiONguon = await db2.Chapters.CountAsync(c =&gt; c.SubjectVersionId == nguon);
+        conLaiONguon.ShouldBe(2);   // vẫn nguyên vẹn
+    }
+
+    [Fact]
+    public async Task Clone_giu_nguyen_thu_tu_va_noi_dung_config()
+    {
+        var nguon = await SeedFullVersionAsync();
+        var moi = await factory.CloneAsync(nguon, "2027-2028");
+
+        await using var db = await factory.CreateDbContextAsync();
+        string Ky(Guid v) =&gt; string.Join("|", db.Chapters.Where(c =&gt; c.SubjectVersionId == v)
+            .OrderBy(c =&gt; c.OrderIndex).Select(c =&gt; c.Title));
+
+        Ky(moi).ShouldBe(Ky(nguon));
+    }
+
+    [Fact]
+    public async Task Clone_that_bai_giua_chung_khong_de_lai_du_lieu_do_dang()
+    {
+        // Clone chạm hàng trăm bản ghi ở 5 bảng. Transaction do TransactionBehavior mở
+        // (vì CloneSubjectVersionCommand là ICommand); test này là thứ chứng minh nó thật sự
+        // có hiệu lực. Nếu behavior bị đăng ký sai thứ tự hoặc command khai nhầm thành IQuery,
+        // một lỗi giữa chừng sẽ để lại một version rỗng ruột mà giao diện vẫn hiển thị bình thường.
+        var nguon = await SeedFullVersionAsync();
+        await Should.ThrowAsync&lt;Exception&gt;(() =&gt; factory.CloneWithInjectedFailureAsync(nguon, "2027-2028"));
+
+        await using var db = await factory.CreateDbContextAsync();
+        (await db.SubjectVersions.CountAsync(v =&gt; v.VersionLabel == "2027-2028")).ShouldBe(0);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<pre><code>dotnet test backend/tests/TeachHub.Api.Tests --filter SubjectVersionClonerTests</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết cloner</label>
+<pre><code>using Microsoft.EntityFrameworkCore;
+using TeachHub.Application.Common;
+using TeachHub.Domain.Content;
+
+namespace TeachHub.Application.Features.Subjects;
+
+/// &lt;summary&gt;
+/// Nhân bản toàn bộ nội dung của một SubjectVersion sang một bản draft mới (ADR-004).
+///
+/// Điểm mấu chốt: LessonComponent.RefId trỏ tới Assignment/Quiz. Nếu copy nguyên giá trị
+/// cũ, bản clone sẽ dùng chung Assignment với bản gốc — sửa bài tập ở năm mới sẽ đổi luôn
+/// bài tập của lớp năm cũ. Vì vậy phải clone Assignment/Quiz TRƯỚC, dựng bảng ánh xạ
+/// id cũ → id mới, rồi mới remap RefId.
+/// &lt;/summary&gt;
+public sealed class SubjectVersionCloner(IAppDbContext db, TimeProvider clock)
+{
+    public async Task&lt;SubjectVersion&gt; CloneAsync(Guid sourceVersionId, string newLabel, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow();
+
+        var source = await db.SubjectVersions
+            .AsNoTracking()
+            .SingleAsync(v =&gt; v.Id == sourceVersionId, ct);
+
+        var chapters = await db.Chapters.AsNoTracking()
+            .Where(c =&gt; c.SubjectVersionId == sourceVersionId)
+            .OrderBy(c =&gt; c.OrderIndex).ToListAsync(ct);
+
+        var chapterIds = chapters.Select(c =&gt; c.Id).ToList();
+        var lessons = await db.Lessons.AsNoTracking()
+            .Where(l =&gt; chapterIds.Contains(l.ChapterId))
+            .OrderBy(l =&gt; l.OrderIndex).ToListAsync(ct);
+
+        var lessonIds = lessons.Select(l =&gt; l.Id).ToList();
+        var components = await db.LessonComponents.AsNoTracking()
+            .Where(c =&gt; lessonIds.Contains(c.LessonId))
+            .OrderBy(c =&gt; c.OrderIndex).ToListAsync(ct);
+
+        var assignments = await db.Assignments.AsNoTracking()
+            .Where(a =&gt; a.SubjectVersionId == sourceVersionId).ToListAsync(ct);
+        var quizzes = await db.Quizzes.AsNoTracking()
+            .Where(q =&gt; q.SubjectVersionId == sourceVersionId).ToListAsync(ct);
+
+        var target = SubjectVersion.CreateDraft(source.SubjectId, newLabel, now, clonedFrom: source.Id);
+        target.Syllabus = source.Syllabus.DeepCopy();
+        db.SubjectVersions.Add(target);
+
+        // id cũ → id mới, cho MỌI bản ghi được nhân bản
+        var map = new Dictionary&lt;Guid, Guid&gt;();
+
+        // 1) Assignment và Quiz phải clone TRƯỚC — component sẽ tham chiếu tới chúng.
+        foreach (var a in assignments)
+        {
+            var copy = a.CloneTo(target.Id);
+            map[a.Id] = copy.Id;
+            db.Assignments.Add(copy);
+        }
+        foreach (var q in quizzes)
+        {
+            var copy = q.CloneTo(target.Id);
+            map[q.Id] = copy.Id;
+            db.Quizzes.Add(copy);
+        }
+
+        // 2) Chương → bài → component, remap FK theo bảng ánh xạ.
+        foreach (var ch in chapters)
+        {
+            var chCopy = new Chapter
+            {
+                SubjectVersionId = target.Id,
+                Title = ch.Title, OrderIndex = ch.OrderIndex,
+                Objective = ch.Objective,
+                FoundationTags = [.. ch.FoundationTags],
+                UnlockRule = ch.UnlockRule,
+            };
+            map[ch.Id] = chCopy.Id;
+            db.Chapters.Add(chCopy);
+
+            foreach (var ls in lessons.Where(l =&gt; l.ChapterId == ch.Id))
+            {
+                var lsCopy = new Lesson
+                {
+                    ChapterId = chCopy.Id,
+                    Title = ls.Title, OrderIndex = ls.OrderIndex,
+                    ContentType = ls.ContentType,
+                    FileUrl = ls.FileUrl,          // dùng chung file đã upload — cố ý,
+                    TextContent = ls.TextContent,  // nhân bản file PPT/PDF là lãng phí vô nghĩa
+                    DurationMinutes = ls.DurationMinutes,
+                    IsRequiredToUnlockNext = ls.IsRequiredToUnlockNext,
+                };
+                map[ls.Id] = lsCopy.Id;
+                db.Lessons.Add(lsCopy);
+
+                foreach (var cp in components.Where(c =&gt; c.LessonId == ls.Id))
+                {
+                    db.LessonComponents.Add(new LessonComponent
+                    {
+                        LessonId = lsCopy.Id,
+                        Type = cp.Type,
+                        OrderIndex = cp.OrderIndex,
+                        IsRequired = cp.IsRequired,
+                        Config = cp.Config.DeepCopy(),
+
+                        // ★ Dòng quan trọng nhất của cả phase.
+                        RefId = cp.RefId is null ? null
+                              : map.TryGetValue(cp.RefId.Value, out var moi) ? moi
+                              : throw new InvalidOperationException(
+                                  $"Component {cp.Id} trỏ tới {cp.RefId} nhưng bản ghi đó không thuộc " +
+                                  $"version nguồn {sourceVersionId}. Dữ liệu không nhất quán, dừng clone."),
+                    });
+                }
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return target;
+    }
+}</code></pre>
+
+<div class="hint">
+<strong>Vì sao <code>throw</code> chứ không âm thầm gán <code>null</code>?</strong> Nếu một component trỏ tới bản ghi ngoài version nguồn thì
+dữ liệu đã sai từ trước. Gán <code>null</code> sẽ giấu lỗi đi và tạo ra một bài học có "component bài tập" nhưng không có bài tập nào —
+lỗi câm sẽ chỉ lộ ra khi sinh viên mở bài và thấy trang trắng. Ném lỗi làm nó hiện ngay lúc clone, khi còn dễ sửa.
+</div>
+
+<p class="meta">Đăng ký trong <code>AddApplication</code>: <code>services.AddScoped&lt;SubjectVersionCloner&gt;();</code>.
+Cloner cố ý vẫn là một lớp thường chứ không phải MediatR handler — nó là bước nhân bản cơ học, được Phase 4b
+dùng lại (thêm đúng một dòng FK mẫu điểm). Phần điều phối, kiểm quyền sở hữu và hợp đồng use case nằm ở
+command handler tại Bước 4.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Bọc bằng command, KHÔNG tự mở transaction</label>
+<pre><code>using FluentValidation;
+using TeachHub.Application.Common.Messaging;
+
+namespace TeachHub.Application.Features.Subjects.Commands.CloneSubjectVersion;
+
+// SubjectId và InstructorId là property init-only, KHÔNG phải tham số positional có giá trị mặc định.
+// Lý do không phải thẩm mỹ: một tham số record kiểu giá trị mang `= default` (VD `Guid InstructorId = default`)
+// làm JsonSchemaExporter của Microsoft.AspNetCore.OpenApi ném JsonException khi sinh schema, và
+// GET /openapi/v1.json trả 500 — kéo theo `pnpm gen:api` ở Task 0.11 không chạy được.
+// `Guid? X = null` thì không sao, nhưng init-only property là khuôn thống nhất cho mọi command
+// có trường server tự điền (Phase 4a/4b đã dùng đúng khuôn này).
+public sealed record CloneSubjectVersionCommand(
+    Guid? ClonedFromVersionId,
+    string VersionLabel) : ICommand&lt;Result&lt;SubjectVersionDto&gt;&gt;
+{
+    public Guid SubjectId { get; init; }
+    public Guid InstructorId { get; init; }
+}
+
+public sealed class CloneSubjectVersionCommandValidator : AbstractValidator&lt;CloneSubjectVersionCommand&gt;
+{
+    public CloneSubjectVersionCommandValidator()
+    {
+        RuleFor(x =&gt; x.VersionLabel).NotEmpty().MaximumLength(50);
+    }
+}
+
+public sealed class CloneSubjectVersionCommandHandler(IAppDbContext db, SubjectVersionCloner cloner)
+    : ICommandHandler&lt;CloneSubjectVersionCommand, Result&lt;SubjectVersionDto&gt;&gt;
+{
+    public async Task&lt;Result&lt;SubjectVersionDto&gt;&gt; Handle(
+        CloneSubjectVersionCommand request, CancellationToken ct)
+    {
+        var subject = await db.Subjects.SingleOrDefaultAsync(
+            s =&gt; s.Id == request.SubjectId &amp;&amp; s.InstructorId == request.InstructorId, ct);
+
+        if (subject is null) return Result&lt;SubjectVersionDto&gt;.NotFound();
+
+        var nguonId = request.ClonedFromVersionId ?? subject.CurrentVersionId;
+        if (nguonId is null)
+            return Result&lt;SubjectVersionDto&gt;.Conflict("Môn học chưa có phiên bản nào để nhân bản.");
+
+        var moi = await cloner.CloneAsync(nguonId.Value, request.VersionLabel, ct);
+        return Result&lt;SubjectVersionDto&gt;.Ok(SubjectVersionDto.From(moi));
+    }
+}</code></pre>
+
+<p><strong>Không có một dòng <code>BeginTransactionAsync</code> nào trong toàn bộ đoạn trên — đó là điểm chính.</strong>
+<code>CloneSubjectVersionCommand</code> là <code>ICommand</code> nên nó cài <code>IBaseCommand</code>; <code>TransactionBehavior</code>
+mở transaction trước khi handler chạy và <code>Commit</code> sau khi handler trả về. Ngoại lệ ném ra ở giữa làm behavior
+thoát qua <code>await using</code> mà chưa commit ⇒ Postgres rollback toàn bộ.</p>
+
+<p>Đây là lợi ích trực tiếp và đo được của MediatR ở dự án này: trước đây tính nguyên tử phụ thuộc vào việc
+<em>người viết action có nhớ bọc transaction hay không</em> — một chỗ quên là một version rỗng ruột nằm lại trong
+database mà giao diện vẫn hiển thị bình thường. Bây giờ nó là hệ quả của việc khai đúng kiểu request, và kiểu sai
+thì trình biên dịch không bắt nhưng test <code>Clone_that_bai_giua_chung_khong_de_lai_du_lieu_do_dang</code> ở Bước 1 sẽ bắt.</p>
+
+<p class="meta">Hệ quả phụ: <code>IAppDbContext</code> không cần lộ <code>Database</code>, Application vẫn không tham chiếu EF Core
+để lấy transaction — <code>TransactionBehavior</code> sống ở Infrastructure, nơi đã thấy <code>AppDbContext</code> cụ thể.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy toàn bộ 7 test, xác nhận xanh</label>
+<pre><code>dotnet test backend/tests/TeachHub.Api.Tests --filter SubjectVersionClonerTests</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Kiểm tra hiệu năng với dữ liệu thật</label>
+<p>Seed một version có 15 chương × 6 bài × 3 component (≈ 270 component) và đo:</p>
+<pre><code>[Fact]
+public async Task Clone_mon_hoc_co_quy_mo_that_hoan_thanh_duoi_3_giay()
+{
+    var nguon = await factory.SeedLargeVersionAsync(chapters: 15, lessonsPerChapter: 6, componentsPerLesson: 3);
+    var sw = System.Diagnostics.Stopwatch.StartNew();
+    await factory.CloneAsync(nguon, "quy-mo-lon");
+    sw.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(3));
+}</code></pre>
+<p class="meta">Nếu chậm hơn: nguyên nhân gần như luôn là N+1 query. Cloner ở trên cố ý nạp tất cả bằng 5 câu truy vấn phẳng rồi ghép trong bộ nhớ, thay vì <code>Include</code> lồng nhau.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(versioning): deep clone subject versions with reference remapping"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 3 — Giao diện giảng viên</h2>
+
+<div class="task">
+<h3>Task 1.7 — Upload nội dung bài học (PPT/PDF/video)</h3>
+<div class="files">
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/LessonsController.cs</code> (action <code>UploadFile</code>)<br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Content/Commands/UploadLessonFile/</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Domain/Files/FileSignatureValidator.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ về an toàn file</label>
+<pre><code>[Theory]
+[InlineData("bai-giang.exe", "application/octet-stream")]
+[InlineData("bai-giang.pdf.exe", "application/pdf")]     // đuôi kép
+[InlineData("bai-giang.pdf", "application/x-msdownload")] // MIME nói dối
+public async Task Tu_choi_file_khong_dung_dinh_dang_bai_giang(string ten, string mime)
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var lessonId = await factory.SeedLessonAsync(gv);
+
+    var res = await gv.PostFileAsync($"/api/lessons/{lessonId}/file", ten, mime, noiDung: [0x4D, 0x5A]);
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Chap_nhan_pdf_that_va_tra_ve_url_xem_duoc()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var lessonId = await factory.SeedLessonAsync(gv);
+    byte[] pdf = [0x25, 0x50, 0x44, 0x46, 0x2D];   // "%PDF-"
+
+    var res = await gv.PostFileAsync($"/api/lessons/{lessonId}/file", "slide.pdf", "application/pdf", pdf);
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Viết <code>FileSignatureValidator</code> (Domain, thuần, không I/O)</label>
+<pre><code>namespace TeachHub.Domain.Files;
+
+/// &lt;summary&gt;
+/// Kiểm tra chữ ký byte đầu file thay vì tin phần mở rộng hay Content-Type do client gửi —
+/// đúng yêu cầu NFR "validate loại file thực tế" (SRS mục 9). Cùng lớp này sẽ được
+/// Phase 3 dùng lại cho file sinh viên nộp.
+/// &lt;/summary&gt;
+public static class FileSignatureValidator
+{
+    private static readonly Dictionary&lt;string, byte[][]&gt; Signatures = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [".pdf"]  = [[0x25, 0x50, 0x44, 0x46]],                       // %PDF
+        [".zip"]  = [[0x50, 0x4B, 0x03, 0x04], [0x50, 0x4B, 0x05, 0x06]],
+        [".pptx"] = [[0x50, 0x4B, 0x03, 0x04]],                       // OOXML là zip
+        [".docx"] = [[0x50, 0x4B, 0x03, 0x04]],
+        [".png"]  = [[0x89, 0x50, 0x4E, 0x47]],
+        [".jpg"]  = [[0xFF, 0xD8, 0xFF]],
+        [".jpeg"] = [[0xFF, 0xD8, 0xFF]],
+        [".mp4"]  = [[0x00, 0x00, 0x00]],                             // ftyp nằm ở offset 4
+    };
+
+    public static bool Matches(string fileName, ReadOnlySpan&lt;byte&gt; head)
+    {
+        var ext = Path.GetExtension(fileName);
+        if (!Signatures.TryGetValue(ext, out var sigs)) return false;
+
+        foreach (var sig in sigs)
+            if (head.Length &gt;= sig.Length &amp;&amp; head[..sig.Length].SequenceEqual(sig)) return true;
+
+        return false;
+    }
+}</code></pre>
+<div class="hint">Đuôi kép như <code>bai-giang.pdf.exe</code> bị chặn nhờ <code>Path.GetExtension</code> trả về <code>.exe</code> — không có trong bảng chữ ký. Nhưng vẫn phải chuẩn hóa tên file lúc lưu (Task 0.9 đã làm: đổi hẳn sang UUID, chỉ giữ phần mở rộng).</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Action upload + giới hạn dung lượng + rate limit</label>
+<pre><code>// trong LessonsController
+[HttpPost("{id:guid}/file")]
+[Consumes("multipart/form-data")]
+[RequestSizeLimit(200 * 1024 * 1024)]                              // hạn mức Kestrel
+[RequestFormLimits(MultipartBodyLengthLimit = 200L * 1024 * 1024)]  // hạn mức model binder multipart
+[EnableRateLimiting("upload")]
+[IgnoreAntiforgeryToken]
+[ProducesResponseType&lt;LessonFileDto&gt;(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+public async Task&lt;IActionResult&gt; UploadFile(Guid id, [FromForm] UploadLessonFileForm form, CancellationToken ct)
+{
+    await using var stream = form.File.OpenReadStream();
+
+    return ToActionResult(await sender.Send(
+        new UploadLessonFileCommand(id, CurrentUserId, form.File.FileName, form.File.Length, stream), ct));
+}
+
+/// &lt;summary&gt;
+/// Bọc IFormFile vào một lớp [FromForm] thay vì để tham số rời — bắt buộc, không phải thẩm mỹ.
+/// Đo trên host .NET 10 thật: với tham số rời, /openapi/v1.json sinh ra content-type
+/// application/x-www-form-urlencoded và schema liệt kê các thuộc tính NỘI BỘ của IFormFile
+/// (ContentType, ContentDisposition, Headers, Length, Name, FileName) — không có field nhị phân nào.
+/// Với lớp bọc thì đúng multipart/form-data và schema { "file": { "type":"string", "format":"binary" } }.
+/// Vì client TypeScript sinh từ chính tài liệu đó (Task 0.11), sai chỗ này là frontend không upload được.
+/// &lt;/summary&gt;
+public sealed class UploadLessonFileForm
+{
+    public required IFormFile File { get; init; }
+}</code></pre>
+<div class="hint">
+Command mang <code>Stream</code> + tên file + độ dài, <strong>không mang <code>IFormFile</code></strong>. <code>IFormFile</code> là kiểu của
+ASP.NET Core; đưa nó vào Application là kéo cả tầng web vào tầng nghiệp vụ và làm test handler phải dựng
+<code>FormFile</code> giả. Với <code>Stream</code>, test chỉ cần <code>new MemoryStream(bytes)</code>.
+Lớp <code>UploadLessonFileForm</code> ở trên nằm cạnh controller trong tầng Api, không đi sâu hơn.
+<br><br>
+Có <strong>hai</strong> hạn mức dung lượng độc lập, phải nâng cả hai: <code>[RequestSizeLimit]</code> nâng <code>MaxRequestBodySize</code> của Kestrel, còn <code>[RequestFormLimits(MultipartBodyLengthLimit = …)]</code> nâng hạn mức riêng của model binder multipart trong MVC (mặc định 128 MB). Nâng mỗi cái đầu thì file 150 MB vẫn qua Kestrel rồi chết ở binder với <code>InvalidDataException</code> — lỗi 500 khó hiểu chứ không phải 413 tử tế. Các attribute <code>[RequestSizeLimit]</code> / <code>[RequestFormLimits]</code> / <code>[EnableRateLimiting]</code> / <code>[IgnoreAntiforgeryToken]</code> phải khai
+tường minh trên action. Thiếu <code>[RequestSizeLimit]</code> thì Kestrel chặn ở 30 MB mặc định và giảng viên nhận lỗi 413
+không rõ nguyên nhân — file đúng định dạng, đúng quyền, mà vẫn hỏng.
+</div>
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 1.8 — Màn hình 6.2: trình soạn thảo chương</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/app/(instructor)/subjects/[id]/versions/[versionId]/page.tsx</code> + components</div>
+
+<p>Yêu cầu từ SRS mục 6.2:</p>
+<ul>
+<li>Danh sách Lesson dạng khối mở rộng/thu gọn được.</li>
+<li>Trong mỗi Lesson: khu vực nội dung chính (upload) + danh sách thẻ component + nút <strong>"+ Thêm phần"</strong>.</li>
+<li>Mỗi thẻ component có nút sửa/xóa/kéo-thả riêng, độc lập giữa các Lesson.</li>
+<li>Thêm <code>assignment</code>/<code>quiz</code> → chọn <em>tạo mới</em> hoặc <em>lấy từ thư viện</em>.</li>
+</ul>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Cài thư viện kéo-thả</label>
+<pre><code>pnpm add @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Dựng cây component</label>
+<pre><code>ChapterEditor
+ ├─ ChapterHeader        (tiêu đề, mục tiêu, foundation tags, quy tắc mở khóa)
+ └─ LessonList           (SortableContext — kéo-thả bài)
+     └─ LessonCard       (accordion)
+         ├─ LessonContentPanel   (upload PPT/PDF hoặc nhúng video, xem trước)
+         ├─ ComponentList        (SortableContext lồng — kéo-thả component)
+         │   └─ ComponentCard    (icon theo loại, nút sửa/xóa)
+         └─ AddComponentMenu     (dropdown 8 loại)</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Cập nhật lạc quan (optimistic) khi kéo-thả</label>
+<div class="hint">
+Kéo-thả mà phải chờ round-trip mạng mới thấy thứ tự đổi sẽ khiến việc soạn một chương 20 bài trở nên khó chịu tới mức bạn sẽ ngừng dùng.
+Dùng <code>useMutation</code> của TanStack Query với <code>onMutate</code> cập nhật cache ngay, <code>onError</code> hoàn tác. Server vẫn là nguồn chân lý —
+chỉ có phản hồi hình ảnh là tức thì.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Khóa toàn bộ thao tác sửa khi version không phải <code>draft</code></label>
+<p>Hiện banner "Phiên bản này đã xuất bản — chỉ xem" + tất cả control ở trạng thái <code>disabled</code>, kèm nút "Tạo phiên bản mới từ đây". Đây là chỗ ngăn giảng viên vô tình sửa nội dung của lớp đang chạy.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Kiểm tra tay theo kịch bản nghiệm thu</label>
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 1.9 — Màn hình 6.10: lịch sử phiên bản</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/app/(instructor)/subjects/[id]/versions/page.tsx</code></div>
+<p>Timeline dọc, mỗi mốc là một version: nhãn, badge trạng thái (xanh = published, xám = archived, vàng = draft), ngày xuất bản, changelog rút gọn, <strong>danh sách lớp học phần đang dùng version đó</strong>, nút "Tạo phiên bản mới từ đây" và "Xem chỉ đọc".</p>
+<label class="ck"><input type="checkbox"> Bước 1 — Bổ sung <code>offerings</code> vào DTO trả về của <code>GetSubjectVersionsQuery</code> (<code>GET /api/subjects/{id}/versions</code>)</label>
+<label class="ck"><input type="checkbox"> Bước 2 — Dựng timeline</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Nút "Tạo phiên bản mới" mở dialog nhập nhãn + changelog, gọi API clone rồi chuyển sang trang soạn thảo bản draft mới</label>
+<label class="ck"><input type="checkbox"> Bước 4 — Commit</label>
+</div>
+
+<hr>
+
+<h2>Nghiệm thu Phase 1</h2>
+<p>Làm tay trên UI, theo đúng kịch bản trong SRS mục 5.1 và 5.2:</p>
+<ol>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Tạo môn <em>"IN4203 — Lập trình di động React Native"</em>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Trong version <code>2026-2027</code>, tạo 2 chương.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Chương 1 có 2 bài: bài 1 gắn 1 assignment + 1 quiz + 1 reflection; <strong>bài 2 không gắn gì cả</strong> — hệ thống chấp nhận bình thường.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Upload 1 file PPT và 1 PDF, xem trước được ngay trong trình duyệt.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Kéo-thả đổi thứ tự bài và component, tải lại trang thấy thứ tự đã lưu.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Xuất bản version → toàn bộ nút sửa chuyển sang <code>disabled</code>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Tạo version <code>2027-2028</code> từ nó → thấy đủ 2 chương, đúng thứ tự, đúng component.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <strong>Xóa hẳn một chương ở bản 2027-2028, quay lại bản 2026-2027 — chương đó vẫn còn nguyên.</strong></li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Xuất bản <code>2027-2028</code> → <code>2026-2027</code> tự chuyển <code>archived</code>, vẫn xem được ở chế độ chỉ đọc.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Trang lịch sử phiên bản hiện đủ 2 mốc với badge trạng thái đúng.</li>
+</ol>
+
+<h2>Rủi ro đã biết của phase này</h2>
+<table>
+<thead><tr><th>Rủi ro</th><th>Dấu hiệu</th><th>Xử lý</th></tr></thead>
+<tbody>
+<tr><td><strong>Clone quên remap <code>ref_id</code></strong></td><td>Không có dấu hiệu gì — cho tới học kỳ sau</td><td>Test ở Task 1.6 Bước 1 ca thứ 4. Đừng bỏ nó.</td></tr>
+<tr><td>Sót một action sửa nội dung không kiểm tra <code>draft</code></td><td>Sửa được version đã publish</td><td>Dùng action filter chung <code>[RequireDraftVersion]</code>, không rải <code>if</code> trong handler.</td></tr>
+<tr><td>Kéo-thả tạo ra <code>order_index</code> trùng hoặc hở</td><td>Thứ tự hiển thị nhảy loạn sau khi tải lại</td><td><code>Reindex()</code> sau mọi thao tác; test đã phủ.</td></tr>
+<tr><td>Clone chậm với môn học lớn</td><td>&gt; 3 s</td><td>Truy vấn phẳng + ghép trong bộ nhớ, không <code>Include</code> lồng nhau.</td></tr>
+<tr><td>File PPT/PDF bị nhân bản mỗi lần clone</td><td>Dung lượng tăng vọt</td><td>Cố ý dùng chung <code>FileUrl</code>. Chỉ tách bản sao khi giảng viên thật sự thay file ở bản mới.</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">Tiếp theo: <a href="2026-08-13-phase-2-offering-enrollment.html">Phase 2 — Lớp học phần &amp; Trải nghiệm học</a> · Quay lại <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a></p>
+
+</main>
+</body>
+</html>

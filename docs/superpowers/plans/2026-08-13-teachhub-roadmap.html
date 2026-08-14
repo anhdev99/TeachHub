@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Roadmap triển khai (.NET 10)</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.6rem;font-size:1.45rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:1.9rem;font-size:1.14rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:1rem}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:1rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.82rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.5rem .65rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.3rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.phase{border:1px solid var(--bd);border-left:5px solid var(--acc);border-radius:0 10px 10px 0;padding:.2rem 1.1rem 1rem;margin:1.4rem 0;background:var(--cbg)}
+.phase.mvp{border-left-color:var(--ok)}
+.phase.p1{border-left-color:var(--warn)}
+.phase.p2{border-left-color:var(--muted)}
+.phase h3{margin-top:1rem}
+.tag{display:inline-block;padding:.08rem .5rem;border-radius:999px;font-size:.74rem;font-weight:700;border:1px solid currentColor;vertical-align:middle}
+.t-mvp{color:var(--ok)}.t-p1{color:var(--warn)}.t-p2{color:var(--muted)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+label.ck{display:block;margin:.25rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>TeachHub — Roadmap triển khai</h1>
+<p class="meta">13/08/2026 · Backend .NET 10 (LTS) · Clean Architecture 4 tầng · Controllers + MediatR (CQRS) · Frontend Next.js 15 · PostgreSQL 17<br>
+Dựa trên <a href="../../requirements/SRS-LMS-GiangVien.md">SRS v1.0</a> và <a href="../../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a>.</p>
+
+<blockquote>
+<strong>Dành cho agentic worker:</strong> mỗi phase có một file plan riêng với các bước dạng checkbox.
+Thực thi bằng <code>superpowers:subagent-driven-development</code> (nếu có subagent) hoặc <code>superpowers:executing-plans</code>.
+Khi bắt đầu code một phase, sinh kèm bản <code>.md</code> của plan đó để tick checkbox theo dõi (theo quy ước tài liệu của người dùng).
+</blockquote>
+
+<h2>Mục tiêu &amp; ràng buộc thực tế</h2>
+
+<p><strong>Mục tiêu:</strong> một hệ thống LMS cá nhân cho một giảng viên, <em>dùng được thật trong học kỳ tới</em>, tập trung hóa nội dung dạy học có phiên bản theo năm, nộp bài đa định dạng, chấm theo rubric và sổ điểm tự động.</p>
+
+<p><strong>Ràng buộc chi phối mọi quyết định (Rủi ro #4 của SRS):</strong> người dùng và lập trình viên là <em>cùng một người</em>, làm song song với việc dạy. Roadmap này vì thế:</p>
+<ul>
+<li>Ưu tiên <strong>thời điểm dùng được</strong> hơn độ hoàn chỉnh — mỗi phase kết thúc là một hệ thống chạy được, không phải một tầng kiến trúc chạy được.</li>
+<li>Chỉ tự động hóa cái <em>lặp lại nhiều lần mỗi học kỳ</em>. Cái làm một lần mỗi kỳ (tạo lớp, cấu hình cột điểm) chấp nhận thao tác tay.</li>
+<li>Không làm P1 khi MVP chưa chạy trọn một học kỳ.</li>
+</ul>
+
+<h2>Bản đồ phase &amp; phụ thuộc</h2>
+
+<pre><code>          ┌──────────────────────────────┐
+          │ Phase 0 · Nền móng            │  ~6–8 ngày
+          │ solution · DB · Auth · CI     │
+          └───────────────┬──────────────┘
+                          ▼
+          ┌──────────────────────────────┐
+          │ Phase 1 · Nội dung &amp; Version  │  ~5–7 ngày   UC-01,02,03,06,06b,06c
+          │ Subject→Version→Chapter→      │
+          │ Lesson→Component · clone      │
+          └───────────────┬──────────────┘
+                          ▼
+          ┌──────────────────────────────┐
+          │ Phase 2 · Lớp &amp; Người học     │  ~6–8 ngày   UC-04,05,19(một phần)
+          │ Offering · import Excel ·     │
+          │ trang học SV · tiến độ        │
+          └───────────────┬──────────────┘
+                          ▼
+          ┌──────────────────────────────┐
+          │ Phase 3 · Bài tập &amp; Nộp bài   │  ~7–10 ngày  UC-07,08,09
+          │ SubmissionSlot · upload ·     │
+          │ pipeline ZIP nền              │
+          └───────────────┬──────────────┘
+                          ▼
+          ┌──────────────────────────────┐
+          │ Phase 4a · Chấm điểm &amp; Nhóm   │  ~6–8 ngày   UC-07b,10,21,22,23,24,25
+          │ rubric · chia nhóm · chấm bài │
+          │ theo rubric · đợt cuối môn    │
+          └───────────────┬──────────────┘
+                          ▼
+          ┌──────────────────────────────┐
+          │ Phase 4b · Sổ điểm động       │  ~6–8 ngày   UC-15,16,17,17b,18
+          │ cột động · công thức &amp; tỷ lệ  │
+          │ điểm cộng · xuất Excel        │
+          └───────────────┬──────────────┘
+                          ▼
+                  ╔═══════════════╗
+                  ║  🎓 MVP RELEASE ║  ← dạy được trọn một học kỳ bằng hệ thống này
+                  ╚═══════╤═══════╝
+                          ▼
+     ┌────────────────────┼────────────────────┐
+     ▼                    ▼                    ▼
+┌──────────┐       ┌──────────────┐    ┌──────────────┐
+│ Phase 5  │       │  Phase 6     │    │  Phase 7     │   (chạy song song được)
+│ Quiz     │       │ Similarity · │    │ Gamification │
+│ engine   │       │ hint · phạt  │    │ XP/badge/    │
+│ UC-11,12 │       │ trễ · điểm   │    │ streak       │
+│ +cuối môn│       │ riêng nhóm   │    │ UC-19        │
+└────┬─────┘       └──────────────┘    └──────────────┘
+     ▼
+┌──────────────┐
+│ Phase 8      │  Ôn tập ngắt quãng — phụ thuộc Quiz
+│ UC-13,14     │
+└──────────────┘
+
+Phase 9+ (P2): dashboard nâng cao · chấm code tự động · email nhắc hạn · điểm danh QR · PWA</code></pre>
+
+<h3>Vì sao thứ tự này chứ không phải thứ tự S1–S12 của SRS</h3>
+<table>
+<thead><tr><th>Thay đổi</th><th>Lý do</th></tr></thead>
+<tbody>
+<tr><td><strong>Thêm Phase 0</strong> (SRS gộp vào S1)</td><td>Auth + migration + CI + Testcontainers là hạ tầng dùng cho mọi phase sau. Gộp vào S1 khiến sprint đầu vừa dựng nền vừa làm nghiệp vụ, rất dễ vỡ ước lượng.</td></tr>
+<tr><td><strong>Tách Phase 4 thành 4a và 4b</strong></td><td>Phase 4 cũ ghi 8–11 ngày, nhưng sau khi chốt sổ điểm động (cột cấu hình được, quy tắc tổng hợp, điều kiện điểm sàn, mẫu xuất Excel) khối lượng thật là <strong>12–16 ngày</strong> gộp cả chấm bài lẫn sổ điểm — <em>không có mốc giao hàng nào ở giữa</em>, tức nửa tháng làm việc mà không lần nào biết chắc mình đang đi đúng. Tách ra thì hết 4a đã chấm được bài thật (rubric + nhóm + đợt cuối môn), và 4b ship tiếp sau khoảng một tuần. Quan trọng hơn: nó cho một <strong>phương án dự phòng thật sự</strong> — nếu 4b chậm, điểm vẫn nhập tay vào Excel như mọi kỳ trước và lớp vẫn dạy được bình thường; còn nếu 4a chậm thì không có cách nào chấm bài cả. Hai phần rủi ro khác nhau thì không nên bị trói vào cùng một mốc.</td></tr>
+<tr><td><strong>Đợt chấm cuối môn (UC-21…25) kéo từ "không rõ sprint" về Phase 4a</strong></td><td>SRS mục 5.7 nói rõ <code>final_project</code> dùng lại y hệt <code>SubmissionSlot</code> + <code>Submission</code> + màn hình chấm. Làm ngay sau Phase 3/4a tốn thêm ~1 ngày; để sang P1 thì học kỳ đầu tiên không chấm được điểm cuối môn — mà đó lại là thứ bắt buộc phải có để nộp điểm cho trường.</td></tr>
+<tr><td><strong>Chia nhóm (UC-07b) và điểm riêng thành viên (UC-10b) tách nhau</strong></td><td>Chia nhóm + nộp bài nhóm ở Phase 4a (MVP, vì bài tập lớn thường làm nhóm). Điểm riêng từng thành viên ở Phase 6 (P1, vì mặc định cả nhóm cùng điểm đã đủ dùng).</td></tr>
+<tr><td><strong>Thư viện lý do điểm cộng (UC-17b) kéo từ S6 lên Phase 4b</strong></td><td>Người dùng yêu cầu bắt buộc, không còn là tùy chọn. Cấp điểm cộng diễn ra <em>hằng buổi học</em> — đây là thao tác lặp lại nhiều nhất trong cả hệ thống, đúng tiêu chí "chỉ tự động hóa cái lặp lại nhiều lần mỗi học kỳ" ở trên. Không có thư viện lý do thì mỗi lần cộng điểm phải gõ lại một câu giống hệt lần trước, và gõ tay nhiều lần sẽ sinh ra hàng chục biến thể của cùng một lý do, làm hỏng luôn thống kê sau này.</td></tr>
+<tr><td><strong>Quiz lùi xuống Phase 5</strong> (giữ như SRS)</td><td>Đúng như SRS. Quiz là hệ thống con lớn và độc lập; không có nó vẫn dạy và chấm được cả học kỳ.</td></tr>
+<tr><td><strong>Điểm danh (Attendance) đẩy hẳn ra Phase 9</strong></td><td>Có trong sơ đồ ER của SRS nhưng không có đặc tả bảng lẫn use case. Cột "Chuyên cần" trong sổ điểm nhập tay là đủ cho MVP.</td></tr>
+</tbody>
+</table>
+
+<h2>Định nghĩa "Xong" (Definition of Done)</h2>
+<p>Áp dụng cho <strong>mọi task</strong> trong mọi phase. Một task chưa đạt đủ các mục dưới đây thì chưa được tick:</p>
+<ol>
+<li>Có test viết <em>trước</em>, đã thấy nó <strong>đỏ</strong> vì đúng lý do mong đợi, rồi mới có code làm nó xanh.</li>
+<li><code>dotnet build</code> không cảnh báo (<code>TreatWarningsAsErrors</code> đang bật).</li>
+<li>Toàn bộ test suite xanh, không chỉ test vừa viết.</li>
+<li>Nếu chạm schema: có migration EF Core, và migration đó đã <code>Update-Database</code> thành công trên DB trống <em>lẫn</em> DB có sẵn dữ liệu.</li>
+<li>Nếu chạm API: OpenAPI doc sinh lại được, client TS của frontend sinh lại được, frontend vẫn build.</li>
+<li>Đã commit với message theo Conventional Commits.</li>
+<li><strong>Nếu phase này thêm một loại tài nguyên mới thuộc về giảng viên</strong>, đã thêm dòng tương ứng vào
+<code>CrossInstructorIsolationTests</code> (Phase 0 Task 0.8c). Thiếu dòng đó thì task <em>chưa</em> được tick —
+ma trận cách ly chỉ có giá trị khi nó lớn cùng nhịp với hệ thống, chứ không phải khi được nhớ ra lúc đã muộn.</li>
+</ol>
+
+<h3>Định nghĩa "Xong" cấp phase</h3>
+<p>Ngoài DoD từng task, kết thúc mỗi phase phải chạy được <strong>kịch bản nghiệm thu</strong> ghi trong plan của phase đó — thao tác tay trên UI thật, không phải chỉ test tự động.</p>
+
+<h2>Chi tiết các phase</h2>
+
+<div class="phase mvp">
+<h3><span class="tag t-mvp">MVP</span> Phase 0 — Nền móng</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phase-0-foundation.html">2026-08-13-phase-0-foundation.html</a> · <strong>Ước lượng:</strong> 6–8 ngày</p>
+<p><strong>Kết quả bàn giao:</strong> chạy <code>docker compose up</code> + <code>dotnet run</code> + <code>pnpm dev</code> là có một API .NET 10 sống, đăng nhập được bằng tài khoản giảng viên, trang chủ Next.js gọi được endpoint có bảo vệ, CI xanh trên GitHub.</p>
+<p><strong>Bao gồm:</strong> solution 4 project + 3 test project (Clean Architecture: Domain ← Application ← Infrastructure ← Api) · Central Package Management · docker-compose (Postgres 17 + MinIO) · EF Core 10 + Npgsql + snake_case + UUIDv7 · <strong>Controllers</strong> (<code>[ApiController]</code>, fallback policy bắt buộc xác thực) · <strong>MediatR 12.5 + pipeline behaviors (logging / validation / transaction)</strong> · <strong>FluentValidation</strong> · ASP.NET Identity + JWT + refresh token · ProblemDetails RFC 9457 · OpenAPI 3.1 + Scalar · Serilog · health check · Hangfire + dashboard · <code>IFileStorage</code> (local + S3) · Testcontainers harness · Next.js 15 + Tailwind v4 + shadcn/ui + sinh client TS từ OpenAPI · GitHub Actions.</p>
+<p><strong>Vì sao ước lượng tăng từ 3–5 lên 6–8 ngày:</strong> thêm hẳn một lớp hạ tầng phải dựng đúng ngay từ đầu — hợp đồng <code>ICommand</code>/<code>IQuery</code>, ba pipeline behavior và thứ tự đăng ký của chúng (Logging → Validation → Transaction → Handler). Đăng ký sai thứ tự thì mỗi request sai dữ liệu vẫn mở một transaction rồi rollback vô ích, và lỗi kiểu đó không hiện ra ở test nào cả. Ghim <code>MediatR 12.5.0</code> (Apache-2.0), không nhảy lên 13.x — từ v13 giấy phép đổi sang RPL-1.5 hoặc bản thương mại.</p>
+<p><strong>Nghiệm thu:</strong> đăng nhập bằng tài khoản seed <code>instructor@teachhub.local</code> → nhận JWT → gọi <code>GET /api/me</code> trả đúng role → refresh token đổi được token mới → token cũ bị vô hiệu.</p>
+</div>
+
+<div class="phase mvp">
+<h3><span class="tag t-mvp">MVP</span> Phase 1 — Nội dung dạy học &amp; Versioning</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phase-1-content-versioning.html">2026-08-13-phase-1-content-versioning.html</a> · <strong>Ước lượng:</strong> 5–7 ngày · <strong>UC:</strong> 01, 02, 03, 06, 06b, 06c</p>
+<p><strong>Kết quả bàn giao:</strong> tạo được môn học, soạn phiên bản nội dung (chương → bài → component tùy ý), xuất bản, và tạo phiên bản mới cho năm sau bằng một cú bấm mà không đụng tới bản cũ.</p>
+<p><strong>Bao gồm:</strong> Subject CRUD · SubjectVersion (draft/published/archived) · <code>SubjectVersionCloner</code> (deep clone trong 1 transaction) · Chapter/Lesson CRUD + reorder · LessonComponent 8 loại (0..N mỗi Lesson) · upload PPT/PDF/video-link · trang soạn thảo chương kéo-thả (màn hình 6.2) · trang lịch sử phiên bản (màn hình 6.10) · soft delete.</p>
+<p><strong>Rủi ro kỹ thuật lớn nhất:</strong> deep clone phải remap toàn bộ FK nội bộ (component <code>ref_id</code> trỏ tới Assignment/Quiz cũng vừa được clone). Plan có một task riêng chỉ để test đúng chuyện này.</p>
+<p><strong>Nghiệm thu:</strong> tạo môn "Lập trình di động", version <code>2026-2027</code>, 2 chương; chương 1 có 2 bài — bài 1 gắn 1 assignment + 1 quiz, bài 2 không gắn gì (đúng ví dụ trong SRS mục 5.1). Xuất bản. Tạo version <code>2027-2028</code> từ nó, sửa chương 1, xác nhận version <code>2026-2027</code> không đổi.</p>
+</div>
+
+<div class="phase mvp">
+<h3><span class="tag t-mvp">MVP</span> Phase 2 — Lớp học phần &amp; Trải nghiệm học</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phase-2-offering-enrollment.html">2026-08-13-phase-2-offering-enrollment.html</a> · <strong>Ước lượng:</strong> 4–6 ngày · <strong>UC:</strong> 04, 05, 19 (tiến độ)</p>
+<p><strong>Kết quả bàn giao:</strong> mở lớp cho một học kỳ, import danh sách SV từ Excel, SV đăng nhập và học tuần tự với cơ chế mở khóa.</p>
+<p><strong>Bao gồm:</strong> CourseOffering (ghim <code>subject_version_id</code>) · join code · import Excel có báo lỗi theo dòng · kích hoạt tài khoản SV · <code>LessonProgress</code>/<code>ComponentProgress</code> (bảng SRS còn thiếu) · engine mở khóa (<code>free</code> / <code>after_previous_completed</code>) · trang học của SV (màn hình 6.3) · preview PPT/PDF trong trình duyệt.</p>
+<p><strong>Nghiệm thu:</strong> import file Excel 40 SV có 2 dòng trùng MSSV → hệ thống báo đúng 2 dòng lỗi và import 38 dòng còn lại. SV đăng nhập, thấy bài 2 bị khóa cho tới khi hoàn thành bài 1.</p>
+</div>
+
+<div class="phase mvp">
+<h3><span class="tag t-mvp">MVP</span> Phase 3 — Bài tập &amp; Nộp bài đa định dạng</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phase-3-assignments-submissions.html">2026-08-13-phase-3-assignments-submissions.html</a> · <strong>Ước lượng:</strong> 7–10 ngày · <strong>UC:</strong> 07, 08, 09</p>
+<p><strong>Kết quả bàn giao:</strong> giảng viên cấu hình bài tập với các slot nộp tùy ý; SV nộp file theo từng slot; ZIP được giải nén nền và xem được cây thư mục trên trình duyệt.</p>
+<p><strong>Bao gồm:</strong> Assignment CRUD · <code>SubmissionSlot</code> động + "Dùng mẫu gợi ý" · Rubric &amp; RubricCriterion · upload theo slot có validate magic bytes + rate limit · lưu nháp / nộp chính thức · <code>attempt_no</code> + lịch sử nộp lại · pipeline ZIP nền (chống zip-slip, zip bomb) · <code>file_tree_json</code> · kiểm tra <code>required_structure_json</code> · màn hình cấu hình 6.4 và nộp bài 6.6.</p>
+<p><strong>Đây là phase nặng nhất.</strong> Nếu phải cắt, cắt theo thứ tự: video-embed → thumbnail ảnh → preview PDF. <strong>Không cắt</strong> phần bảo vệ ZIP.</p>
+<p><strong>Nghiệm thu:</strong> tạo bài tập 3 slot (source <code>.zip</code> bắt buộc, ảnh tùy chọn, video link tùy chọn). SV nộp thiếu slot bắt buộc → nút "Nộp chính thức" bị khóa. Nộp đủ → xem được cây thư mục ZIP có tô màu cú pháp. Nộp một ZIP thiếu <code>README.md</code> → vẫn nộp được nhưng gắn cờ đỏ cho giảng viên.</p>
+</div>
+
+<div class="phase mvp">
+<h3><span class="tag t-mvp">MVP</span> Phase 4a — Chấm điểm &amp; Làm việc nhóm</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phase-4-grading-gradebook.html">2026-08-13-phase-4-grading-gradebook.html</a> · <strong>Ước lượng:</strong> 6–8 ngày · <strong>UC:</strong> 07b, 10, 21, 22, 23, 24, 25</p>
+<p><strong>Kết quả bàn giao:</strong> chấm bài theo rubric ngay trên trình duyệt, chia nhóm và nộp bài nhóm, và làm được đợt chấm điểm cuối môn dạng bài tập lớn. Hết phase này là <em>bài nộp thật đã chấm được</em> — điểm có thể tạm ghi ra Excel trong lúc chờ 4b.</p>
+<p><strong>Bao gồm:</strong> màn hình chấm 3 cột (6.7) · rubric scoring + feedback · <code>StudentGroup</code> + chia tay/chia ngẫu nhiên + nộp bài nhóm + trang chia nhóm (6.5) · <code>FinalAssessment</code> loại <code>final_project</code> và trang đợt chấm cuối môn (6.9) — tái dùng toàn bộ hạ tầng slot/submission/chấm của Phase 3, không xây UI riêng · dashboard giảng viên cơ bản (6.1).</p>
+<p><strong>Nghiệm thu:</strong> chia một lớp thành các nhóm 4 người (một phần kéo tay, một phần bấm chia ngẫu nhiên), nhóm nộp một bài chung; chấm xong bài nhóm đó theo rubric ngay sau buổi báo cáo, cả 4 thành viên nhận cùng điểm và cùng nhận xét. Tạo một đợt chấm cuối môn loại bài tập lớn, xác nhận nó dùng đúng màn hình cấu hình slot (6.4) và màn hình chia nhóm (6.5) đã có, không phải màn hình mới.</p>
+</div>
+
+<div class="phase mvp">
+<h3><span class="tag t-mvp">MVP</span> Phase 4b — Sổ điểm động &amp; Điểm cộng</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phase-4b-dynamic-gradebook.html">2026-08-13-phase-4b-dynamic-gradebook.html</a> · <strong>Ước lượng:</strong> 6–8 ngày · <strong>UC:</strong> 15, 16, 17, 17b, 18</p>
+<p><strong>Kết quả bàn giao:</strong> mỗi lớp tự định nghĩa bộ cột điểm của riêng nó (2 cột, 3 cột, hay nhiều hơn), chọn quy tắc tổng hợp và trọng số cho từng cột, cấp điểm cộng vào bất kỳ cột nào hoặc vào điểm tổng — luôn kèm lý do — rồi xuất Excel đúng mẫu phòng đào tạo yêu cầu.</p>
+<p><strong>Bao gồm:</strong> <code>GradeSchemeTemplate</code> (thư viện bộ cột mẫu cấp giảng viên) + ghim mẫu mặc định theo môn qua <code>SubjectVersion.grade_scheme_template_id</code> · <code>GradeColumn</code> + <code>GradeColumnSource</code> <strong>sao chép</strong> từ mẫu lúc mở lớp + validate tổng trọng số 100% · <code>GradeAggregation</code> (trung bình / có trọng số / tổng / cao nhất / thấp nhất / bỏ N thấp nhất / lấy N tốt nhất) · <code>GradeCondition</code> điểm sàn kiểu "cuối môn &lt; 4.0 thì tổng tối đa 3.9" · <code>GradebookCalculator</code> (Domain thuần) + <code>BonusLedger</code> · <code>GradeRecord.IsManualOverride</code> + <code>GradeSnapshot</code> · <code>GradeAuditLog</code> · BonusPoint có lý do bắt buộc và <code>points &gt; 0</code>, chọn đích (điểm tổng / cột điểm) · thư viện lý do soạn sẵn (<code>BonusPointReasonTemplate</code>) + nút bấm nhanh + màn hình 6.7b · màn hình cấu hình sổ điểm (cột, công thức, điều kiện, mặc định điểm cộng) · sổ điểm 6.8 + công tắc "xem điểm tạm tính" · <code>GradeExportTemplate</code> — chọn cột, đổi thứ tự, sửa tiêu đề, lưu lại dùng cho kỳ sau · xuất Excel ClosedXML.</p>
+<p><strong>Rủi ro kỹ thuật lớn nhất:</strong> ba chỗ dễ sai âm thầm, đều đã có quyết định chốt và phải có test riêng. (1) Cột điểm phải <em>sao chép</em> từ mẫu chứ không tham chiếu — sửa mẫu ở kỳ sau mà đổi luôn điểm lớp đã dạy xong thì hỏng dữ liệu lịch sử, cùng nguyên tắc với việc CourseOffering ghim SubjectVersion. (2) Mẫu xuất Excel thuộc về giảng viên còn cột điểm thuộc về lớp, nên hai bên nối nhau bằng <code>key</code> (slug), không bằng id — nối bằng id thì mỗi mẫu xuất chỉ dùng được cho đúng một lớp. (3) Mọi nguồn điểm phải quy về thang 10 <em>trước</em> khi gộp: bài chấm theo rubric thang 20 được 16 điểm là 8.0, không phải 10 sau khi bị kẹp.</p>
+<p><strong>Nghiệm thu:</strong> đổi một lớp từ bộ 2 cột mặc định ("Thường kỳ" 30% + "Cuối môn" 70%) sang bộ 3 cột ("Trắc nghiệm" 20% + "Bài tập" 30% + "Cuối môn" 50%), lưu lại thành mẫu để dùng cho lớp sau. Bấm nút nhanh "Thuyết trình tự tin" lấy từ thư viện lý do để cấp <code>+0.5</code> vào cột "Trắc nghiệm" cho đúng 1 sinh viên — popover hiện "→ Điểm tổng: +0.1" theo trọng số 20% của cột; mở sổ điểm thấy đúng con số đó, các sinh viên còn lại không đổi. Cấp thêm một điểm cộng với lý do gõ tự do (không có trong thư viện) vào điểm tổng; bỏ trống lý do thì hệ thống chặn không cho lưu; nhập số âm thì API trả 400. Bật điều kiện "Cuối môn &lt; 4.0 thì tổng tối đa 3.9", xác nhận điểm cộng không kéo được sinh viên qua ngưỡng đó. Cuối cùng dựng một mẫu xuất chỉ gồm MSSV · Họ tên · 3 cột điểm · Điểm tổng, đổi tiêu đề cho khớp mẫu của trường, xuất ra và mở được bằng Excel thật.</p>
+<p style="color:var(--ok);font-weight:600">🎓 Hết phase này là MVP — đủ để dạy trọn một học kỳ. Dừng lại, dùng thật một kỳ, rồi mới đi tiếp.</p>
+</div>
+
+<div class="phase p1">
+<h3><span class="tag t-p1">P1</span> Phase 5 — Trắc nghiệm (Quiz engine)</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phases-5-9-backlog.html#phase-5">Backlog P1/P2 §Phase 5</a> · <strong>Ước lượng:</strong> 6–8 ngày · <strong>UC:</strong> 11, 12, 21 (loại quiz)</p>
+<p>Ngân hàng câu hỏi gắn <code>foundation_tag</code> · 4 loại câu hỏi · checkpoint quiz (không tính điểm, giải thích ngay) · graded quiz (giới hạn thời gian, số lần, xáo trộn) · chấm tự động (kể cả <code>fill_blank</code> có chuẩn hóa unicode tiếng Việt) · component <code>quiz</code>/<code>checkpoint_quiz</code>/<code>recap</code> trong bài học · <code>FinalAssessment</code> loại <code>quiz</code>.</p>
+</div>
+
+<div class="phase p1">
+<h3><span class="tag t-p1">P1</span> Phase 6 — Liêm chính học thuật &amp; Chấm nâng cao</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phases-5-9-backlog.html#phase-6">Backlog P1/P2 §Phase 6</a> · <strong>Ước lượng:</strong> 4–6 ngày · <strong>UC:</strong> 09 (similarity), 10b</p>
+<p>Similarity check Winnowing cho slot <code>.zip</code> + màn hình so sánh cạnh nhau · hint mở dần có trừ điểm · phạt nộp trễ theo ngày · <code>SubmissionMemberScore</code> (điểm riêng từng thành viên).</p>
+</div>
+
+<div class="phase p1">
+<h3><span class="tag t-p1">P1</span> Phase 7 — Động lực học tập</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phases-5-9-backlog.html#phase-7">Backlog P1/P2 §Phase 7</a> · <strong>Ước lượng:</strong> 4–6 ngày · <strong>UC:</strong> 19</p>
+<p>XP theo sự kiện · huy hiệu có điều kiện cấu hình được · streak ngày học liên tiếp · bảng xếp hạng ẩn danh bật/tắt theo lớp. <em>Chạy song song được với Phase 5/6.</em></p>
+</div>
+
+<div class="phase p1">
+<h3><span class="tag t-p1">P1</span> Phase 8 — Ôn tập ngắt quãng</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phases-5-9-backlog.html#phase-8">Backlog P1/P2 §Phase 8</a> · <strong>Ước lượng:</strong> 3–5 ngày · <strong>UC:</strong> 13, 14 · <strong>Cần Phase 5 xong trước.</strong></p>
+<p><code>ReviewQueueItem</code> sinh tự động từ câu trả lời sai · Hangfire recurring job quét hằng ngày · mục "Ôn tập hôm nay" · thang 3 ngày → 1 tuần → 2 tuần → <code>mastered</code> · component <code>recap</code> tự chọn câu theo <code>foundation_tags</code>.</p>
+</div>
+
+<div class="phase p2">
+<h3><span class="tag t-p2">P2</span> Phase 9+ — Mở rộng</h3>
+<p><strong>Plan:</strong> <a href="2026-08-13-phases-5-9-backlog.html#phase-9">Backlog P1/P2 §Phase 9</a></p>
+<p>Dashboard nâng cao (SV nguy cơ, thống kê CĐR) · chấm code tự động bằng test case trong sandbox · email nhắc hạn · điểm danh QR (<code>Attendance</code>) · tối ưu mobile + PWA · so sánh diff giữa 2 SubjectVersion.</p>
+</div>
+
+<h2>Tổng ước lượng</h2>
+<table>
+<thead><tr><th>Mốc</th><th>Ngày công</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td><strong>MVP (Phase 0–4b)</strong></td><td><strong>34–47 ngày</strong></td><td>Tổng thuần của 6–8 + 5–7 + 4–6 + 7–10 + 6–8 + 6–8, <strong>không có đệm rủi ro</strong>. Muốn đệm thì tự cộng thêm và ghi rõ mức đệm, đừng giấu nó vào ước lượng phase. Với người làm bán thời gian song song việc dạy, nhịp thực tế khoảng 11 ngày công/tháng → <strong>3–4 tháng</strong>. Nên bắt đầu trước học kỳ ít nhất một kỳ.</td></tr>
+<tr><td>P1 (Phase 5–8)</td><td>17–25 ngày</td><td>Tổng thuần của 6–8 + 4–6 + 4–6 + 3–5. Phase 7 chạy song song được nên thời gian thực tế ngắn hơn tổng.</td></tr>
+<tr><td>P2 (Phase 9+)</td><td>chưa ước lượng</td><td>Chỉ lập kế hoạch chi tiết sau khi MVP chạy thật một học kỳ.</td></tr>
+</tbody>
+</table>
+
+<blockquote>
+<strong>Nếu quỹ thời gian hẹp hơn nhiều:</strong> sau khi tách 4a/4b, lối đi tắt hợp lệ là <strong>Phase 0 → 1 → 2 → 4b</strong> —
+bỏ Phase 3, và 4a bị bỏ theo, vì 4a chấm bài nộp mà bài nộp là sản phẩm của Phase 3: giữ 4a mà không có Phase 3 thì không có gì để chấm.
+Đường này dùng hệ thống chỉ để <em>quản lý nội dung + sổ điểm</em> trong học kỳ đầu, còn bài tập vẫn nộp qua kênh cũ rồi nhập điểm tay vào sổ điểm.
+Cắt như vậy vẫn có một hệ thống dùng được (<strong>19–27 ngày công</strong> = 4–6 + 5–7 + 4–6 + 6–8) và giải quyết được đúng nỗi đau lớn nhất trong SRS mục 1.1 là điểm số rải rác.
+Ngược lại, <strong>đừng</strong> cắt bằng cách làm Phase 3 rồi bỏ Phase 4a — nhận bài về mà không chấm được thì tệ hơn không nhận.
+Bỏ 4b thì chấp nhận được: điểm ghi tạm ra Excel vẫn dạy trọn được một kỳ, chỉ mất công cộng tay.
+</blockquote>
+
+<h2>Quyết định nghiệp vụ đã chốt</h2>
+<p>Bốn câu hỏi từng chặn phần sổ điểm đã có câu trả lời của người dùng, không còn gì phải quyết trước khi code Phase 4b (chi tiết mô hình dữ liệu và công thức ở <a href="../../architecture/00-tech-stack-decisions.html">Kiến trúc §4, mục 9 và 10</a>):</p>
+<table>
+<thead><tr><th>Chủ đề</th><th>Quyết định</th></tr></thead>
+<tbody>
+<tr><td><strong>Thang điểm</strong></td><td>Chỉ dùng số 0–10. Không quy đổi điểm chữ. <span class="meta">(chốt 13/08/2026)</span></td></tr>
+<tr><td><strong>Bộ cột điểm</strong></td><td>Cấu hình động theo từng lớp, không cố định 2 cột. Có thư viện bộ cột mẫu cấp giảng viên, và ghim được mẫu mặc định theo môn (đặt ở <code>SubjectVersion</code> vì tỷ lệ điểm thuộc về đề cương và đổi theo năm học). Mở lớp thì <em>sao chép</em> mẫu thành cột của lớp rồi độc lập hoàn toàn — sửa mẫu ở kỳ sau không được đụng vào lớp đã dạy xong. <span class="meta">(chốt 13/08/2026)</span></td></tr>
+<tr><td><strong>Công thức tính</strong></td><td>Trọng số + quy tắc tổng hợp <em>chọn từ danh sách</em> (trung bình, có trọng số, tổng, cao nhất, thấp nhất, bỏ N thấp nhất, lấy N tốt nhất), cộng thêm điều kiện điểm sàn kiểu "cuối môn dưới 4.0 thì tổng tối đa 3.9". <strong>Không</strong> làm parser biểu thức tự do — không gõ được sai cú pháp thì không có cả một lớp lỗi phải xử lý. <span class="meta">(chốt 13/08/2026)</span></td></tr>
+<tr><td><strong>Điểm cộng</strong></td><td>Chọn đích: cộng vào điểm tổng <em>hoặc</em> vào bất kỳ cột điểm nào. Bắt buộc có lý do. Có thư viện lý do soạn sẵn, không có sẵn thì gõ tự do. <span class="meta">(chốt 13/08/2026)</span></td></tr>
+</tbody>
+</table>
+<p>Hai chi tiết dễ làm sai khi hiện thực, ghi ra đây để không ai bỏ qua lúc code Phase 4b:</p>
+<ul>
+<li><strong>Lý do phải được chụp lại thành text, không chỉ là khóa ngoại tới template.</strong> Khi giảng viên chọn từ thư viện, hệ thống copy <code>label</code> vào cột <code>reason</code> của <code>BonusPoint</code>. Nếu chỉ lưu <code>template_id</code>, sáu tháng sau sửa hoặc ẩn template là mọi điểm cộng cũ đổi nghĩa — đúng lúc sinh viên khiếu nại điểm thì không còn biết lý do thật tại thời điểm cấp. <code>template_id</code> chỉ giữ để thống kê lý do nào hay dùng.</li>
+<li><strong>Cộng vào cột khác hẳn cộng vào tổng.</strong> Bonus gắn vào cột được cộng <em>trước</em> khi nhân trọng số, nên <code>+0.5</code> vào cột "Thường kỳ" trọng số 20% chỉ làm điểm tổng tăng <code>0.1</code>. Giảng viên hầu như luôn hiểu nhầm chuyện này, vì thế popover cấp điểm cộng bắt buộc hiện dòng "→ Điểm tổng: +0.1" ngay khi chọn đích, tính theo trọng số thật của cột.</li>
+</ul>
+
+<hr>
+<p class="meta">
+Tài liệu liên quan:
+<a href="../../requirements/SRS-LMS-GiangVien.md">SRS v1.0</a> ·
+<a href="../../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định (.NET 10)</a> ·
+<a href="2026-08-13-phase-0-foundation.html">Phase 0</a> ·
+<a href="2026-08-13-phase-1-content-versioning.html">Phase 1</a> ·
+<a href="2026-08-13-phase-2-offering-enrollment.html">Phase 2</a> ·
+<a href="2026-08-13-phase-3-assignments-submissions.html">Phase 3</a> ·
+<a href="2026-08-13-phase-4-grading-gradebook.html">Phase 4a</a> ·
+<a href="2026-08-13-phase-4b-dynamic-gradebook.html">Phase 4b</a> ·
+<a href="2026-08-13-phases-5-9-backlog.html">Backlog P1/P2</a>
+</p>
+
+</main>
+</body>
+</html>

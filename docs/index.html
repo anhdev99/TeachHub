@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Tài liệu dự án</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2.5rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:920px;margin:0 auto}
+h1{font-size:2.2rem;line-height:1.2;margin:0 0 .3rem}
+.sub{color:var(--muted);margin:0 0 2.5rem}
+h2{margin-top:2.8rem;font-size:1.25rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+a{color:var(--acc);text-decoration:none}
+a:hover{text-decoration:underline}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.doc{display:block;border:1px solid var(--bd);border-radius:10px;padding:.9rem 1.1rem;margin:.7rem 0;background:var(--cbg);color:inherit;transition:border-color .15s}
+.doc:hover{border-color:var(--acc);text-decoration:none}
+.doc .t{font-weight:650;font-size:1.02rem;color:var(--acc)}
+.doc .d{color:var(--muted);font-size:.9rem;margin-top:.15rem}
+.doc .n{font-size:.78rem;font-weight:700;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.row{display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+.tag{display:inline-block;padding:.06rem .5rem;border-radius:999px;font-size:.72rem;font-weight:700;border:1px solid currentColor}
+.t-mvp{color:var(--ok)}.t-p1{color:var(--warn)}.t-p2{color:var(--muted)}.t-ref{color:var(--acc2)}
+blockquote{border-left:4px solid var(--acc2);margin:1.5rem 0;padding:.7rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem}
+th,td{border:1px solid var(--bd);padding:.45rem .65rem;text-align:left}
+th{background:var(--cbg);font-weight:600}
+ul{padding-left:1.3rem}li{margin:.3rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>TeachHub</h1>
+<p class="sub">Hệ thống quản lý dạy học cá nhân · Backend <strong>.NET 10 (LTS)</strong> · Clean Architecture 4 tầng + <strong>Controllers + MediatR (CQRS)</strong> · Frontend Next.js 15 · PostgreSQL 17<br>
+Bộ tài liệu cập nhật 13/08/2026</p>
+
+<blockquote>
+<strong>Bắt đầu từ đâu:</strong> đọc <a href="#roadmap">Roadmap</a> để nắm bức tranh tổng thể, rồi mở
+<a href="superpowers/plans/2026-08-13-phase-0-foundation.html">Phase 0</a> và code theo từng bước checkbox.
+Tra <a href="architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a> khi cần biết
+"tại sao lại làm thế này" hoặc khi gặp chỗ SRS mô tả chưa đủ.
+</blockquote>
+
+<h2>Tài liệu nền</h2>
+
+<a class="doc" href="requirements/SRS-LMS-GiangVien.md">
+  <div class="row"><span class="n">Nghiệp vụ</span> <span class="tag t-ref">GỐC</span></div>
+  <div class="t">SRS — Đặc tả hệ thống v1.0</div>
+  <div class="d">Nguồn chân lý về nghiệp vụ: mô hình dữ liệu, 25 use case, đặc tả 10 màn hình chính, thiết kế API. Giữ nguyên hiệu lực.</div>
+</a>
+
+<a class="doc" href="architecture/00-tech-stack-decisions.html">
+  <div class="row"><span class="n">Kỹ thuật</span> <span class="tag t-ref">HIỆU LỰC</span></div>
+  <div class="t">Kiến trúc &amp; Quyết định thiết kế (.NET 10)</div>
+  <div class="d">Bảng đối chiếu điều chỉnh .NET 8 → .NET 10 · các ADR có lý do đầy đủ (kể cả ADR về Controllers + MediatR) · <strong>phân tích 19 lỗ hổng của SRS</strong> và cách xử lý từng cái · quy ước bắt buộc khi code.</div>
+</a>
+
+<h2 id="roadmap">Lộ trình</h2>
+
+<a class="doc" href="superpowers/plans/2026-08-13-teachhub-roadmap.html">
+  <div class="n">Tổng quan</div>
+  <div class="t">Roadmap triển khai</div>
+  <div class="d">Bản đồ phase và phụ thuộc · lý do đổi thứ tự so với S1–S12 của SRS · Definition of Done · ước lượng · phương án cắt giảm khi thiếu thời gian.</div>
+</a>
+
+<h2>Plan thực thi — MVP</h2>
+<p class="sub" style="margin:0 0 1rem">Chi tiết tới từng bước TDD, có mã nguồn đầy đủ và lệnh chạy kèm kết quả mong đợi.</p>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phase-0-foundation.html">
+  <div class="row"><span class="n">Phase 0 · 6–8 ngày</span> <span class="tag t-mvp">MVP</span></div>
+  <div class="t">Nền móng</div>
+  <div class="d">Solution 4 tầng (Domain ← Application ← Infrastructure ← Api) · Postgres 17 + MinIO · EF Core 10 + UUIDv7 + snake_case · <strong>Controllers + MediatR 12.5</strong> với ba pipeline behavior (logging / validation / transaction) · <strong>FluentValidation</strong> · Identity + JWT xoay vòng · OpenAPI 3.1 + Scalar · Hangfire · Testcontainers · Next.js + client TS sinh tự động · CI.</div>
+</a>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phase-1-content-versioning.html">
+  <div class="row"><span class="n">Phase 1 · 5–7 ngày</span> <span class="tag t-mvp">MVP</span></div>
+  <div class="t">Nội dung dạy học &amp; Versioning</div>
+  <div class="d">Subject → SubjectVersion → Chapter → Lesson → LessonComponent (0..N, hoàn toàn động) · máy trạng thái draft/published/archived · <strong>deep clone có remap tham chiếu</strong> · trình soạn thảo kéo-thả · lịch sử phiên bản.</div>
+</a>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phase-2-offering-enrollment.html">
+  <div class="row"><span class="n">Phase 2 · 4–6 ngày</span> <span class="tag t-mvp">MVP</span></div>
+  <div class="t">Lớp học phần &amp; Trải nghiệm học</div>
+  <div class="d">CourseOffering ghim phiên bản nội dung · import Excel báo lỗi theo dòng · kích hoạt tài khoản SV · <strong>bảng tiến độ học SRS còn thiếu</strong> · engine mở khóa · trang học kiểu Udemy · xem trước PPT/PDF.</div>
+</a>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phase-3-assignments-submissions.html">
+  <div class="row"><span class="n">Phase 3 · 7–10 ngày</span> <span class="tag t-mvp">MVP</span></div>
+  <div class="t">Bài tập &amp; Nộp bài đa định dạng</div>
+  <div class="d">SubmissionSlot động dùng chung cho cả bài tập lớn cuối môn · Rubric · upload có kiểm chữ ký byte + rate limit · <strong>bộ giải nén ZIP chống zip-slip và zip bomb</strong> · pipeline xử lý nền · lưu nháp / nộp chính thức / lịch sử nộp lại.</div>
+</a>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phase-4-grading-gradebook.html">
+  <div class="row"><span class="n">Phase 4a · 6–8 ngày</span> <span class="tag t-mvp">MVP</span></div>
+  <div class="t">Chấm điểm &amp; Làm việc nhóm</div>
+  <div class="d">Chia nhóm + nộp bài nhóm · màn hình chấm 3 cột chấm theo <strong>Rubric</strong> không rời chuột · <strong>nhật ký thay đổi điểm</strong> ghi lại mọi lần sửa kèm lý do · FinalAssessment loại bài tập lớn · dashboard lớp. Đây là phần <em>làm ra điểm</em> — phần <em>tổng hợp và xuất điểm</em> nằm ở Phase 4b.</div>
+</a>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phase-4b-dynamic-gradebook.html">
+  <div class="row"><span class="n">Phase 4b · 6–8 ngày</span> <span class="tag t-mvp">MVP</span></div>
+  <div class="t">Sổ điểm động &amp; Điểm cộng</div>
+  <div class="d"><strong>Thư viện bộ cột mẫu</strong> ("2 cột chuẩn", "3 cột có trắc nghiệm"…), ghim được mẫu mặc định theo môn và <strong>sao chép</strong> sang lớp lúc mở lớp · quy tắc tổng hợp trong một cột (trung bình, có trọng số, bỏ N thấp nhất, lấy N tốt nhất…) thay cho ô gõ công thức tự do · <strong>điều kiện điểm sàn</strong> kiểu "cuối môn &lt; 4.0 thì điểm tổng tối đa 3.9" · <strong>điểm cộng vào bất kỳ cột nào</strong> hoặc vào điểm tổng, bắt buộc có lý do, kèm thư viện lý do soạn sẵn · mẫu xuất Excel tự chọn cột, thứ tự và tiêu đề rồi lưu lại dùng lại.<br>
+  <strong style="color:var(--ok)">🎓 Hết phase này là dạy được trọn một học kỳ.</strong></div>
+</a>
+
+<h2>Backlog sau MVP</h2>
+
+<a class="doc" href="superpowers/plans/2026-08-13-phases-5-9-backlog.html">
+  <div class="row"><span class="n">Phase 5–9</span> <span class="tag t-p1">P1</span> <span class="tag t-p2">P2</span></div>
+  <div class="t">Trắc nghiệm · Liêm chính học thuật · Động lực · Ôn tập ngắt quãng · P2</div>
+  <div class="d">Đặc tả ở mức nhiệm vụ + tiêu chí nghiệm thu, chưa chi tiết tới bước TDD — có chủ ý, vì một học kỳ dùng thật sẽ đổi thứ tự ưu tiên. Kèm danh sách nợ kỹ thuật cần trả xen kẽ.</div>
+</a>
+
+<h2>Tra cứu nhanh</h2>
+<table>
+<thead><tr><th>Cần gì</th><th>Mở ở đâu</th></tr></thead>
+<tbody>
+<tr><td>Nghiệp vụ của một use case</td><td>SRS mục 4 và 5</td></tr>
+<tr><td>Bố cục một màn hình</td><td>SRS mục 6</td></tr>
+<tr><td>Hợp đồng API</td><td>SRS mục 7 (giữ nguyên) — đường dẫn, payload và mã lỗi không đổi khi chuyển sang Controllers + MediatR</td></tr>
+<tr><td>Cấu trúc Command/Query, pipeline behavior</td><td>Kiến trúc §3 ADR-001/010/011</td></tr>
+<tr><td>"Tại sao chọn cách này?"</td><td>Kiến trúc §3 (ADR-001…011)</td></tr>
+<tr><td>Quy tắc điểm cộng và thang điểm</td><td>Kiến trúc §3 ADR-008 và §4 mục 9, 10, 19</td></tr>
+<tr><td>Cấu hình cột điểm, công thức, mẫu xuất Excel</td><td>Phase 4b, và Kiến trúc §3 ADR-008/009</td></tr>
+<tr><td>"SRS không nói rõ chỗ này"</td><td>Kiến trúc §4 — 19 lỗ hổng đã phân tích và chốt cách xử lý</td></tr>
+<tr><td>Quy ước đặt tên, kiểu dữ liệu, ngưỡng chất lượng</td><td>Kiến trúc §5</td></tr>
+<tr><td>Làm gì tiếp theo</td><td>Roadmap → plan của phase đang làm</td></tr>
+</tbody>
+</table>
+
+<h2>Quyết định nghiệp vụ đã chốt</h2>
+<p>Không còn mục nào chờ xác nhận trước Phase 4a và 4b. Bốn quyết định dưới đây là yêu cầu bắt buộc của người dùng, không phải mặc định có thể bỏ qua — code sai ở đây thì phải sửa cả dữ liệu điểm đã cấp:</p>
+<table>
+<thead><tr><th>Quyết định</th><th>Nội dung</th></tr></thead>
+<tbody>
+<tr><td>Thang điểm (13/08/2026)</td><td>Chỉ dùng thang số 0–10. Không quy đổi điểm chữ.</td></tr>
+<tr><td>Bộ cột điểm (13/08/2026)</td><td>Số cột do giảng viên cấu hình theo từng lớp, không cố định 2 cột: lớp này 2 cột Thường kỳ + Cuối môn, lớp kia 3 cột Trắc nghiệm + Bài tập + Cuối môn. Có thư viện bộ cột mẫu cấp giảng viên, đồng thời ghim được mẫu mặc định cho từng phiên bản môn học. Mở lớp thì <strong>sao chép</strong> mẫu sang lớp rồi lớp độc lập hoàn toàn — sửa mẫu ở học kỳ sau không được đổi cột điểm của lớp đã dạy xong.</td></tr>
+<tr><td>Công thức tính (13/08/2026)</td><td>Không có ô gõ công thức tự do. Mỗi cột chọn <em>một</em> quy tắc tổng hợp từ danh sách (trung bình · trung bình có trọng số · tổng · cao nhất · thấp nhất · bỏ N thấp nhất · lấy N tốt nhất) kèm trọng số phần trăm, cộng thêm điều kiện điểm sàn cấp lớp kiểu "cuối môn &lt; 4.0 thì điểm tổng tối đa 3.9". Chọn từ danh sách thì luôn tính ra số; gõ tự do thì sinh lỗi cú pháp mà giữa kỳ giảng viên không tự sửa được.</td></tr>
+<tr><td>Điểm cộng (13/08/2026)</td><td>Chọn đích cộng: điểm tổng hoặc <em>bất kỳ</em> cột điểm nào (điển hình: Thường kỳ). Bắt buộc có lý do. Có thư viện lý do soạn sẵn dùng lại mọi lớp; lý do ngoài thư viện thì gõ tự do. Điểm cộng luôn dương — muốn trừ điểm thì sửa thẳng điểm cột, vì trừ qua cơ chế điểm cộng làm hỏng cả thống kê lẫn cách đọc lịch sử. Điều kiện điểm sàn áp <em>sau</em> khi đã cộng, nên điểm cộng không kéo được sinh viên qua ngưỡng chặn.</td></tr>
+</tbody>
+</table>
+<p class="sub" style="margin:.4rem 0 0">Ràng buộc dữ liệu, công thức tính và các quy tắc phải có test: xem ADR-008 (điểm cộng) và ADR-009 (sổ điểm động) ở <a href="architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a>.</p>
+
+</main>
+</body>
+</html>

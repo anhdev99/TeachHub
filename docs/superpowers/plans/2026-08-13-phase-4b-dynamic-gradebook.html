@@ -1,0 +1,3464 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 4b — Sổ điểm động &amp; Điểm cộng · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.8rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.task{border:1px solid var(--bd);border-radius:10px;padding:.2rem 1.1rem 1.1rem;margin:1.6rem 0}
+.task.crown{border-color:var(--acc2);border-width:2px}
+.task>h3{margin-top:1rem}
+.files{background:var(--cbg);border-radius:8px;padding:.6rem .9rem;font-size:.86rem;margin:.8rem 0}
+.files b{color:var(--acc2)}
+label.ck{display:block;margin:1rem 0 .4rem;font-weight:600;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.15)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+.danger{border-left:3px solid var(--err);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+.done{background:linear-gradient(90deg,transparent,var(--cbg));border-left:5px solid var(--ok);padding:1rem;border-radius:0 10px 10px 0;margin:2rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 4b — Sổ điểm động &amp; Điểm cộng</h1>
+
+<blockquote>
+<strong>Dành cho agentic worker — BẮT BUỘC:</strong> thực thi bằng <code>superpowers:subagent-driven-development</code>
+hoặc <code>superpowers:executing-plans</code>. Sinh kèm bản <code>.md</code> để tick checkbox.
+</blockquote>
+
+<p><strong>Mục tiêu:</strong> cột điểm cấu hình được hoàn toàn theo từng lớp — môn này 2 cột "Thường kỳ / Cuối môn",
+môn kia 3 cột "Trắc nghiệm / Bài tập / Cuối môn" — mỗi cột đặt được tỷ lệ và quy tắc tổng hợp riêng,
+điểm cộng cấp được vào <em>bất kỳ</em> cột nào hoặc thẳng vào điểm tổng, và xuất Excel theo mẫu tự cấu hình.</p>
+
+<p><strong>Kiến trúc:</strong> mọi phép tính điểm vẫn thuần Domain, không I/O, không lưu cứng điểm tổng (ADR-006).
+Phase 4a để lại một sổ điểm có cột <em>cố định trong code</em>; 4b thay phần cố định đó bằng dữ liệu cấu hình:
+<code>GradeSchemeTemplate</code> (mẫu, thuộc giảng viên) → <strong>sao chép</strong> thành <code>GradeColumn</code> (thuộc lớp)
+→ <code>GradeAggregation</code> quyết định cách gộp điểm trong cột → <code>BonusLedger</code> chốt sổ điểm cộng đúng một lần
+→ <code>GradeCondition</code> áp điểm sàn sau cùng.</p>
+
+<p class="meta"><strong>Ước lượng:</strong> 6–8 ngày · <strong>Phụ thuộc:</strong> Phase 4a ·
+<strong>UC:</strong> 15, 16, 17, 17b, 18 · <strong>Màn hình:</strong> 6.7b, 6.8 + trình cấu hình cột điểm</p>
+
+<div class="danger">
+<strong>Phase này viết lại đường đi của điểm số thật.</strong> Một trọng số tính sai hay một trần điểm cộng
+áp hai lần sẽ đi thẳng vào bảng điểm nộp phòng đào tạo. Mọi phép tính dùng <code>decimal</code>, mọi ca biên có test,
+mọi thay đổi để lại vết trong <code>GradeAuditLog</code>.
+<br><br>
+<strong>Điểm cộng chuyển toàn bộ từ Phase 4a sang đây</strong> (Task 4b.7) — 4a không còn phần điểm cộng nữa.
+Nếu bạn thấy hai bản <code>BonusPoint</code> trong repo thì một trong hai là rác của lần gộp hỏng, xóa bản không có
+<code>GrantedAt</code> tham gia sắp xếp.
+</div>
+
+<h2>Yêu cầu gốc và ba lựa chọn đã chốt (13/08/2026)</h2>
+
+<blockquote>
+"Tôi nghĩ có config động luôn, ví dụ lớp đó mặc định là 2 cột thường kỳ và cuối môn, tuy nhiên có thể môn đó cho
+3 cột Trắc nghiệm, bài tập, và cột cuối môn, và cho giảng viên có thể cộng vào bất kỳ điểm nào, và sau đó có thể
+thiết lập công thức và tỷ lệ tính điểm của 2 cột đó, và cho config xuất điểm các cột đã cho xử lý"
+</blockquote>
+
+<table>
+<thead><tr><th>Câu hỏi phạm vi</th><th>Đã chốt</th><th>Vì sao không chọn phương án kia</th></tr></thead>
+<tbody>
+<tr><td><strong>"Công thức" nghĩa là gì</strong></td>
+<td><strong>Trọng số + quy tắc tổng hợp chọn từ danh sách</strong>: trung bình, cao nhất, thấp nhất, cộng dồn,
+bỏ N thấp nhất, lấy N tốt nhất, trung bình có trọng số — cộng thêm điều kiện điểm sàn.</td>
+<td>Không làm parser biểu thức tự do. Một ô nhập công thức nghĩa là gõ sai cú pháp được, chia cho 0 được,
+và tham chiếu vòng được — trên dữ liệu điểm thật thì mỗi lỗi đó là một bảng điểm sai mà không ai đọc ra nổi
+từ chuỗi công thức.</td></tr>
+<tr><td><strong>Bộ cột mẫu ở cấp nào</strong></td>
+<td><strong>Cả hai</strong>: thư viện mẫu cấp giảng viên (<code>GradeSchemeTemplate</code>) + ghim một mẫu mặc định
+cho từng <code>SubjectVersion</code>.</td>
+<td>Chỉ có mẫu cấp giảng viên thì mỗi lần mở lớp vẫn phải chọn tay và sẽ chọn nhầm.
+Chỉ ghim theo môn thì không dùng lại được giữa các môn.</td></tr>
+<tr><td><strong>Xuất Excel tới đâu</strong></td>
+<td><strong>Chọn cột + đổi thứ tự + đổi tiêu đề</strong>, lưu lại thành <code>GradeExportTemplate</code> dùng lại
+cho lớp khác.</td>
+<td>Xuất cứng một bố cục thì mỗi lần phòng đào tạo đổi mẫu bảng điểm là một lần sửa code — mà họ đổi mỗi năm.</td></tr>
+</tbody>
+</table>
+
+<h2>Mô hình dữ liệu — ai sở hữu cái gì</h2>
+<pre><code>AppUser (giảng viên)
+ ├── GradeSchemeTemplate      "3 cột có trắc nghiệm"     ← thư viện mẫu, dùng lại mọi học kỳ
+ │      └── GradeSchemeTemplateItem   key / name / weight_percent / aggregation
+ ├── GradeExportTemplate      "Mẫu phòng đào tạo"        ← nối vào cột bằng KEY
+ │      └── GradeExportItem           source / column_key / header / decimal_places
+ └── BonusPointReasonTemplate "Thuyết trình tự tin"      ← nối vào cột bằng KEY
+
+SubjectVersion.grade_scheme_template_id ──┐   ghim mẫu mặc định của đề cương (nullable)
+                                          ▼
+CourseOffering            mở lớp = SAO CHÉP mẫu thành cột, rồi cắt dây
+ ├── GradeColumn          key / name / weight_percent / aggregation      ← độc lập với mẫu
+ │      └── GradeColumnSource        assignment | quiz | final_assessment (+ weight_within_column)
+ ├── GradeCondition[] (jsonb)        "cuoi_mon &lt; 4 → điểm tổng tối đa 3.9"
+ ├── grade_scheme_template_id       chỉ ghi nhận nguồn gốc — KHÔNG phép tính nào đọc
+ ├── bonus_default_target / bonus_default_column_id / bonus_max_points_per_student
+ └── GradeRecord · BonusPoint · GradeAuditLog · GradeSnapshot</code></pre>
+
+<p><strong>Vì sao mở lớp là SAO CHÉP chứ không tham chiếu tới mẫu.</strong> Học kỳ sau bạn sửa mẫu "3 cột" từ
+20/30/50 thành 30/20/50. Nếu cột của lớp chỉ là con trỏ tới mẫu thì bảng điểm của lớp <em>đã dạy xong và đã nộp</em>
+lập tức đổi số. Không ai bấm nút nào cả, và không có gì trong hệ thống nói cho bạn biết. Cùng nguyên tắc với việc
+<code>CourseOffering</code> ghim <code>SubjectVersion</code> ở ADR-004: lớp đã mở thì nội dung và cách tính điểm của nó
+đóng băng.</p>
+
+<p><code>CourseOffering.grade_scheme_template_id</code> vẫn được lưu, nhưng <strong>chỉ để ghi nhận nguồn gốc</strong>
+("lớp này mở từ mẫu nào") — không có phép tính nào đọc tới nó. Nếu bạn thấy một câu truy vấn join từ offering sang
+template để lấy trọng số thì đó là bug, không phải tối ưu.</p>
+
+<p><strong>Vì sao ghim mẫu ở <code>SubjectVersion</code> chứ không ở <code>Subject</code>.</strong> Tỷ lệ điểm thuộc về
+<em>đề cương</em>: năm nay môn Lập trình Web chia 40/60, sang năm đổi thành 20/30/50 thì đó là một phiên bản đề cương
+khác, không phải một môn học khác. Đặt ở <code>Subject</code> thì việc đổi tỷ lệ cho năm sau sẽ hồi tố lên mọi đề cương
+cũ, và lịch sử "kỳ đó tính điểm thế nào" biến mất.</p>
+
+<div class="hint">
+<strong><code>key</code> (slug) là thứ nối ba bên với nhau, và nó phải là <code>key</code> chứ không phải <code>id</code>.</strong>
+Mẫu xuất Excel, thư viện lý do điểm cộng và điều kiện điểm sàn đều thuộc về <em>giảng viên</em>, trong khi cột điểm thuộc về
+<em>lớp</em> — mỗi lớp một bộ id mới. Nối bằng id thì mẫu xuất "Mẫu phòng đào tạo" chỉ dùng được cho đúng một lớp,
+và người dùng phải tạo lại mẫu cho từng lớp, tức là tính năng coi như không tồn tại. Nối bằng <code>key</code>
+(<code>thuong_ky</code>, <code>cuoi_mon</code>, <code>trac_nghiem</code>, <code>bai_tap</code>) thì một mẫu dùng được cho
+mọi lớp có cùng bộ key. Đó là lý do <code>GradeColumn.key</code> phải được chép nguyên văn từ mẫu và không đổi về sau.
+</div>
+
+<h2>Thứ tự tính điểm — bản chốt, thay thế mọi mô tả cũ</h2>
+<pre><code>1. rawColumn[c] = IsManualOverride ? GradeRecord.Score
+                                   : c.Aggregation.Apply(normalizedSourceScores)
+   -- normalizedSourceScores: MỌI nguồn quy về thang 10 TRƯỚC khi gộp
+2. ledger = BonusLedger.Build(bonuses, settings)     -- sắp xếp tất định + áp trần MỘT LẦN
+3. columnScore[c] = clamp(rawColumn[c] + ledger.ByColumn[c], 0, 10)
+4. total = Σ(columnScore[c] × weight/100) + ledger.ToFinalTotal
+5. total = ApplyConditions(total, columnScore, conditions)    -- cap điểm sàn
+6. total = clamp(round(total, 1, AwayFromZero), 0, 10)</code></pre>
+
+<div class="danger">
+Thứ tự sáu bước này không phải chi tiết cài đặt, nó là nghiệp vụ:
+<br>• <strong>Bước 2 trước bước 3</strong> — trần điểm cộng áp <em>một lần</em> trên toàn bộ điểm cộng của sinh viên.
+Áp lại ở từng chỗ dùng thì ô sổ điểm và điểm tổng sẽ ra hai con số khác nhau (đây chính là Blocker B1).
+<br>• <strong>Bước 5 sau bước 4</strong> — điều kiện điểm sàn áp SAU khi đã cộng mọi điểm cộng.
+Đảo lại thì sinh viên thi cuối môn 3.5 vẫn qua môn nhờ điểm phát biểu trên lớp, đúng thứ mà quy định điểm sàn
+sinh ra để ngăn.
+<br>• <strong>Bước 6 cuối cùng</strong> — làm tròn đúng một lần, ở bước cuối. Làm tròn ở từng cột rồi cộng lại
+sẽ lệch tới 0.2–0.3 điểm trên lớp 6 cột.
+</div>
+
+<h2>Quy ước lưu enum xuống database (Blocker B5)</h2>
+<p>Mọi enum của phase này lưu <strong>dạng chuỗi</strong>, không phải số — nhất quán với các enum đã có từ Phase 1–3:</p>
+<pre><code>// AppDbContext.OnModelCreating — áp cho MỌI enum xuống DB:
+// BonusTarget, AggregationKind, ConditionOperator, CapAction, GradeExportSource, GradeSourceType.
+modelBuilder.Entity&lt;BonusPoint&gt;()
+    .Property(b =&gt; b.Target)
+    .HasConversion&lt;string&gt;()
+    .HasMaxLength(32);
+
+// ⚠️ Enum nằm BÊN TRONG jsonb KHÔNG đi theo JsonStringEnumConverter của cấu hình JSON chung.
+// AddJsonOptions/ConfigureHttpJsonOptions chỉ cấu hình serializer của ASP.NET Core;
+// EF Core dùng JsonValueReaderWriter riêng của nó cho cột ToJson(), nên nếu không khai
+// tường minh thì Kind/Op/Action ra SỐ trong jsonb — đọc log DB không hiểu gì, và mọi
+// truy vấn JSON theo tên enum về sau đều trượt.
+modelBuilder.Entity&lt;GradeColumn&gt;().OwnsOne(c =&gt; c.Aggregation, b =&gt;
+{
+    b.ToJson();
+    b.Property(a =&gt; a.Kind).HasConversion&lt;string&gt;();
+});
+
+// MỖI nơi có property kiểu GradeAggregation đều phải có một dòng OwnsOne riêng —
+// EF không suy ra được từ cấu hình của entity khác. Thiếu dòng dưới đây thì mô hình EF
+// không dựng được và ứng dụng không khởi động nổi.
+modelBuilder.Entity&lt;GradeSchemeTemplateItem&gt;().OwnsOne(i =&gt; i.Aggregation, b =&gt;
+{
+    b.ToJson();
+    b.Property(a =&gt; a.Kind).HasConversion&lt;string&gt;();
+});
+
+modelBuilder.Entity&lt;CourseOffering&gt;().OwnsMany(o =&gt; o.GradeConditions, b =&gt;
+{
+    b.ToJson();
+    b.Property(c =&gt; c.Op).HasConversion&lt;string&gt;();
+    b.Property(c =&gt; c.Action).HasConversion&lt;string&gt;();
+});</code></pre>
+
+<div class="danger">
+Giá trị chuỗi trong <code>CHECK constraint</code> phải khớp <strong>đúng tên enum trong C#</strong>:
+<code>'GradeColumn'</code> và <code>'FinalTotal'</code>, KHÔNG phải <code>'grade_column'</code>.
+Quy ước <code>snake_case</code> của dự án áp cho <em>tên bảng và tên cột</em> (<code>UseSnakeCaseNamingConvention</code>),
+nó không đụng tới <em>giá trị</em> bên trong ô. Viết nhầm sang <code>'grade_column'</code> thì migration vẫn chạy trót lọt,
+bảng vẫn tạo ra, và mọi lệnh <code>INSERT</code> đều bị chặn — bạn chỉ phát hiện lúc cấp điểm cộng đầu tiên,
+thường là trên lớp, giữa hai nhóm báo cáo.
+</div>
+
+<h2>Kiến trúc API — Controllers + MediatR</h2>
+
+<p>Không có endpoint kiểu Minimal API nào trong phase này. Mọi đường vào hệ thống là một <em>action</em> trong
+controller gắn <code>[ApiController]</code>, kế thừa <code>ApiControllerBase</code>, và làm đúng ba việc:
+định tuyến, lấy <code>CurrentUserId</code> từ claim, gọi <code>sender.Send</code> rồi quy đổi <code>Result</code>
+bằng <code>ToActionResult</code>. Đường dẫn, payload và mã lỗi giữ nguyên hợp đồng ở SRS mục 7 — chỉ đổi cách
+hiện thực.</p>
+
+<table>
+<thead><tr><th>Nhóm endpoint</th><th>Controller</th><th>Command / Query</th></tr></thead>
+<tbody>
+<tr><td>Thư viện bộ cột mẫu (4b.1)</td><td><code>GradeSchemeTemplatesController</code></td>
+<td><code>GetSchemeTemplatesQuery</code>, <code>SaveGradeSchemeTemplateCommand</code>,
+<code>DeleteSchemeTemplateCommand</code></td></tr>
+<tr><td>Ô điểm, sửa tay (4b.6)</td><td><code>GradesController</code></td>
+<td><code>SetManualGradeCommand</code>, <code>ClearManualOverrideCommand</code></td></tr>
+<tr><td>Điểm cộng (4b.7)</td><td><code>BonusPointsController</code>,
+<code>BonusPointTemplatesController</code></td>
+<td><code>GrantBonusPointCommand</code>, <code>DeleteBonusPointCommand</code>,
+<code>GetBonusPointsQuery</code>, <code>SaveBonusReasonTemplateCommand</code>,
+<code>HideBonusReasonTemplateCommand</code>, <code>RestoreBonusReasonTemplateCommand</code></td></tr>
+<tr><td>Sổ điểm + cấu hình cột (4b.8)</td><td><code>GradebookController</code></td>
+<td><code>GetGradebookQuery</code>, <code>GetGradeColumnsQuery</code>, <code>UpdateGradeColumnsCommand</code>,
+<code>UpdateGradebookSettingsCommand</code>, <code>UpdateGradeConditionsCommand</code>,
+<code>ApplySchemeTemplateCommand</code></td></tr>
+<tr><td>Xuất Excel (4b.9)</td><td><code>GradeExportTemplatesController</code> +
+hai action trong <code>GradebookController</code></td>
+<td><code>SaveGradeExportTemplateCommand</code>, <code>ExportGradebookQuery</code>,
+<code>PreviewGradebookExportQuery</code></td></tr>
+</tbody>
+</table>
+
+<div class="hint">
+<strong>Ba lớp chặn dữ liệu sai, xếp từ ngoài vào trong, và không lớp nào thay được lớp khác:</strong>
+<br>1. <strong>FluentValidation trên command</strong> — luật thuần hình dạng, không cần đọc database:
+lý do không rỗng, <code>points &gt; 0</code>, đích là cột thì bắt buộc có <code>column_id</code>,
+tổng trọng số bằng 100, <code>key</code> khớp slug, hai cột không trùng key. Chạy trong
+<code>ValidationBehavior</code>, tức là <strong>trước</strong> <code>TransactionBehavior</code>:
+mỗi request sai dữ liệu bị chặn mà không mở transaction nào để rồi rollback.
+<br>2. <strong>Handler trả <code>Result</code></strong> — luật phụ thuộc dữ liệu đang có: cột phải thuộc đúng lớp
+của sinh viên đó, xóa cột đang có điểm (409), áp mẫu chế độ <code>replace</code> khi đã có điểm (409).
+Những thứ này là một phần hợp đồng của use case nên phải hiện ra trong chữ ký hàm.
+<br>3. <strong><code>CHECK constraint</code> ở database</strong> — <strong>giữ nguyên toàn bộ</strong>
+(<code>ck_bonus_points_positive</code>, <code>ck_bonus_reason_not_blank</code>,
+<code>ck_bonus_target_column</code>, <code>ck_grade_column_key_slug</code>, Task 4b.6).
+Validator là lớp phòng thủ thứ nhất, constraint là lớp cuối: seed, migration dữ liệu, script sửa tay trên production
+và mọi thứ không đi qua MediatR đều không thấy validator. Bỏ constraint vì "đã có validator rồi" là bỏ đúng lớp
+duy nhất còn đứng vững khi ba lớp trên bị đi vòng.
+</div>
+
+<div class="danger">
+<strong>Query string KHÔNG đi theo quy ước <code>snake_case</code> của JSON.</strong>
+<code>AddJsonOptions</code> chỉ đổi cách đọc/ghi thân request; model binder của query string đọc theo đúng tên tham số
+trong C#. <code>?include_hidden=true</code> sẽ <em>không</em> bind vào tham số <code>includeHidden</code>, và bạn
+không nhận được lỗi nào cả — cờ luôn là <code>false</code>, danh sách luôn thiếu mục đã ẩn, còn test thì đỏ ở một
+chỗ trông chẳng liên quan. Viết tường minh <code>[FromQuery(Name = "include_hidden")]</code>,
+<code>[FromQuery(Name = "template_id")]</code>, <code>[FromQuery(Name = "offering_id")]</code> cho mọi tham số
+nhiều chữ.
+</div>
+
+<div class="danger">
+<strong><code>[Authorize]</code> ở class và ở action cộng dồn chứ không ghi đè.</strong>
+Gắn <code>Policies.Instructor</code> lên cả class rồi thêm <code>Policies.Student</code> lên một action nghĩa là
+action đó đòi <em>cả hai</em> vai và không ai vào được. Ở phase này <code>GradebookController</code> để
+class ở <code>[Authorize]</code> trần — <code>SetFallbackPolicy</code> đã bắt buộc đăng nhập — rồi gắn
+<code>Policies.Instructor</code> xuống từng action. Sổ điểm là dữ liệu nhạy cảm nhất hệ thống, và vai trò
+trợ giảng hiện chưa có cách giới hạn theo lớp (ADR-013) nên không được cấp quyền đọc ở đây. Test
+<code>Chi_giang_vien_cua_lop_moi_sua_duoc_cau_hinh_so_diem</code> là thứ giữ cho quy tắc này không trôi.
+</div>
+
+<hr>
+
+<h2>Chunk 1 — Bộ cột mẫu và khởi tạo sổ điểm của lớp</h2>
+
+<div class="task">
+<h3>Task 4b.1 — <code>GradeSchemeTemplate</code>: thư viện bộ cột mẫu</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradeSchemeTemplate.cs</code>, <code>GradeSchemeTemplateItem.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/GradeSchemeTemplatesController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Commands/SaveGradeSchemeTemplate/</code>
+(Command + Handler + Validator), <code>Commands/DeleteSchemeTemplate/</code>,
+<code>Queries/GetSchemeTemplates/</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/GradeSchemeTemplateTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Entity</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+/// &lt;summary&gt;
+/// Thư viện bộ cột mẫu của MỘT giảng viên. Gắn vào giảng viên chứ không vào môn học:
+/// soạn một lần, dùng cho mọi môn và mọi học kỳ về sau.
+/// &lt;/summary&gt;
+public class GradeSchemeTemplate : Entity
+{
+    public required Guid InstructorId { get; set; }
+    public required string Name { get; set; }        // "2 cột chuẩn", "3 cột có trắc nghiệm"
+
+    /// &lt;summary&gt;Mẫu dùng khi mở lớp mà không chỉ định gì và môn cũng chưa ghim mẫu nào.&lt;/summary&gt;
+    public bool IsDefault { get; set; }
+
+    public int OrderIndex { get; set; }
+    public List&lt;GradeSchemeTemplateItem&gt; Items { get; set; } = [];
+}
+
+public class GradeSchemeTemplateItem : Entity
+{
+    public required Guid TemplateId { get; set; }
+
+    /// &lt;summary&gt;
+    /// Slug ổn định: thuong_ky, cuoi_mon, trac_nghiem, bai_tap.
+    /// Mẫu xuất Excel, điều kiện điểm sàn và thư viện lý do điểm cộng đều nối vào cột qua key này.
+    /// &lt;/summary&gt;
+    public required string Key { get; set; }
+
+    public required string Name { get; set; }        // "Thường kỳ" — chữ hiện cho người đọc
+    public required decimal WeightPercent { get; set; }
+    public int OrderIndex { get; set; }
+    public GradeAggregation Aggregation { get; set; } = new();
+}</code></pre>
+
+<p class="meta">Ràng buộc: unique index <code>(template_id, key)</code>; <code>key</code> khớp
+<code>^[a-z][a-z0-9_]{0,31}$</code>. Không cho dấu tiếng Việt, không cho khoảng trắng, không cho chữ hoa —
+vì key đi vào mẫu xuất Excel và điều kiện điểm sàn dưới dạng chuỗi so sánh đúng từng ký tự.
+<code>name</code> mới là chỗ để viết "Thường kỳ" có dấu.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task Tong_trong_so_cua_mau_phai_bang_100()
+{
+    // Mẫu tổng 90% mà lọt xuống DB thì mọi lớp mở từ nó đều sai điểm ngay từ ngày đầu,
+    // và lỗi chỉ lộ ra ở cuối kỳ khi đối chiếu bảng điểm.
+    var gv = await factory.LoginAsInstructorAsync();
+
+    var res = await gv.PostAsJsonAsync("/api/instructor/grade-scheme-templates", new
+    {
+        name = "Mẫu thiếu",
+        items = new[]
+        {
+            new { key = "thuong_ky", name = "Thường kỳ", weight_percent = 40m, order_index = 0 },
+            new { key = "cuoi_mon",  name = "Cuối môn",  weight_percent = 50m, order_index = 1 },
+        },
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    (await res.Content.ReadAsStringAsync()).ShouldContain("90");   // nói rõ đang là bao nhiêu
+}
+
+[Fact]
+public async Task Key_khong_phai_slug_hop_le_bi_tu_choi()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+
+    foreach (var keyHong in new[] { "Thường kỳ", "thuong ky", "Thuong-Ky", "1_cot", "" })
+    {
+        var res = await gv.PostAsJsonAsync("/api/instructor/grade-scheme-templates", new
+        {
+            name = "Mẫu",
+            items = new[] { new { key = keyHong, name = "X", weight_percent = 100m, order_index = 0 } },
+        });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+}
+
+[Fact]
+public async Task Key_trung_nhau_trong_cung_mau_bi_tu_choi()
+{
+    // Hai cột cùng key thì mẫu xuất Excel không biết lấy cột nào, và điều kiện điểm sàn
+    // cũng trỏ vào chỗ nhập nhằng. Chặn ngay lúc tạo mẫu, đừng đợi tới lúc mở lớp.
+    var gv = await factory.LoginAsInstructorAsync();
+
+    var res = await gv.PostAsJsonAsync("/api/instructor/grade-scheme-templates", new
+    {
+        name = "Mẫu trùng key",
+        items = new[]
+        {
+            new { key = "thuong_ky", name = "Thường kỳ 1", weight_percent = 50m, order_index = 0 },
+            new { key = "thuong_ky", name = "Thường kỳ 2", weight_percent = 50m, order_index = 1 },
+        },
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Giang_vien_khac_khong_thay_mau_cua_toi()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    await gv.CreateSchemeTemplateAsync("3 cột có trắc nghiệm");
+    var gvKhac = await factory.LoginAsAnotherInstructorAsync();
+
+    var ds = await gvKhac.GetFromJsonAsync&lt;JsonElement&gt;("/api/instructor/grade-scheme-templates");
+
+    ds.GetArrayLength().ShouldBe(0);
+}
+
+[Fact]
+public async Task Dat_mau_moi_lam_mac_dinh_thi_mau_cu_thoi_mac_dinh()
+{
+    // Hai mẫu cùng is_default thì bước "lấy mẫu mặc định" lúc mở lớp trở thành xổ số.
+    var gv = await factory.LoginAsInstructorAsync();
+    var cu = await gv.CreateSchemeTemplateAsync("2 cột chuẩn", isDefault: true);
+    var moi = await gv.CreateSchemeTemplateAsync("3 cột có trắc nghiệm", isDefault: true);
+
+    await using var db = await factory.CreateDbContextAsync();
+    (await db.GradeSchemeTemplates.SingleAsync(t =&gt; t.Id == cu)).IsDefault.ShouldBeFalse();
+    (await db.GradeSchemeTemplates.SingleAsync(t =&gt; t.Id == moi)).IsDefault.ShouldBeTrue();
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — <code>GradeSchemeTemplatesController</code> + validator</label>
+<pre><code>[ApiController]
+[Route("api")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class GradeSchemeTemplatesController(ISender sender) : ApiControllerBase
+{
+    [HttpGet("instructor/grade-scheme-templates")]
+    [ProducesResponseType&lt;IReadOnlyList&lt;GradeSchemeTemplateDto&gt;&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetMine(CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetSchemeTemplatesQuery(CurrentUserId), ct));
+
+    [HttpPost("instructor/grade-scheme-templates")]
+    [ProducesResponseType&lt;GradeSchemeTemplateDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; Create(
+        SaveGradeSchemeTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { InstructorId = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;Thay CẢ BỘ items, không patch từng item — xem ghi chú bên dưới.&lt;/summary&gt;
+    [HttpPut("grade-scheme-templates/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Update(
+        Guid id, SaveGradeSchemeTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { Id = id, InstructorId = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;Xóa THẬT, khác hẳn BonusPointReasonTemplate — xem ghi chú bên dưới.&lt;/summary&gt;
+    [HttpDelete("grade-scheme-templates/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Delete(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new DeleteSchemeTemplateCommand(id, CurrentUserId), ct));
+}</code></pre>
+
+<p class="meta">Thân request giữ nguyên hợp đồng cũ:
+<code>{ name, is_default, items: [{ key, name, weight_percent, order_index, aggregation }] }</code> —
+đó chính là các thuộc tính của <code>SaveGradeSchemeTemplateCommand</code>, đọc theo
+<code>JsonNamingPolicy.SnakeCaseLower</code> đã cấu hình ở <code>AddControllers().AddJsonOptions</code>.
+Một command dùng cho cả tạo và sửa vì hai thao tác nhận đúng một payload; <code>Id</code> rỗng nghĩa là tạo mới.</p>
+
+<pre><code>using FluentValidation;
+
+public sealed class SaveGradeSchemeTemplateValidator
+    : AbstractValidator&lt;SaveGradeSchemeTemplateCommand&gt;
+{
+    // Cùng biểu thức với CHECK constraint ck_grade_column_key_slug ở Task 4b.6.
+    // Hai chỗ, cùng một luật, có chủ ý: validator nói được câu tiếng Việt tử tế,
+    // constraint chặn cả những đường không đi qua MediatR (seed, migration, sửa tay).
+    private static readonly Regex Slug = new("^[a-z][a-z0-9_]{0,31}$", RegexOptions.Compiled);
+
+    public SaveGradeSchemeTemplateValidator()
+    {
+        RuleFor(x =&gt; x.Name).NotEmpty().MaximumLength(120);
+
+        RuleFor(x =&gt; x.Items).NotEmpty()
+            .WithMessage("Mẫu phải có ít nhất một cột.");
+
+        RuleForEach(x =&gt; x.Items).ChildRules(i =&gt;
+        {
+            i.RuleFor(x =&gt; x.Key).Must(k =&gt; k is not null &amp;&amp; Slug.IsMatch(k))
+                .WithMessage("Key phải khớp ^[a-z][a-z0-9_]{0,31}$: không dấu tiếng Việt, "
+                           + "không khoảng trắng, không chữ hoa, không bắt đầu bằng số.");
+            i.RuleFor(x =&gt; x.Name).NotEmpty().MaximumLength(60);
+            i.RuleFor(x =&gt; x.WeightPercent).InclusiveBetween(0m, 100m);
+        });
+
+        RuleFor(x =&gt; x.Items)
+            .Must(items =&gt; items.Select(i =&gt; i.Key)
+                                .Distinct(StringComparer.Ordinal).Count() == items.Count)
+            .WithMessage("Hai cột trong cùng một mẫu không được trùng key — "
+                       + "mẫu xuất Excel sẽ không biết lấy cột nào.");
+
+        // Thông báo phải NÓI RA đang là bao nhiêu. "Không hợp lệ" là câu vô dụng
+        // khi người dùng đang sửa 6 cột; test khẳng định thân phản hồi chứa "90".
+        RuleFor(x =&gt; x.Items)
+            .Must(items =&gt; items.Sum(i =&gt; i.WeightPercent) == 100m)
+            .WithMessage(x =&gt; $"Tổng trọng số các cột phải bằng 100%, "
+                            + $"hiện tại là {x.Items.Sum(i =&gt; i.WeightPercent)}%.");
+    }
+}</code></pre>
+
+<p class="meta">Cả bốn luật trên đều thuần hình dạng nên chúng nằm trọn trong validator và chạy
+<strong>trước</strong> <code>TransactionBehavior</code>: một mẫu tổng 90% bị chặn mà không mở transaction nào.
+<code>ValidationException</code> ném ra được <code>IExceptionHandler</code> toàn cục bắt và quy thành 400
+<code>ValidationProblemDetails</code> — handler không thấy request hỏng bao giờ. Luật duy nhất <em>không</em> nằm ở
+đây là "đặt mẫu mới làm mặc định thì mẫu cũ thôi mặc định": nó phải đọc và ghi các mẫu khác của cùng giảng viên,
+nên nó nằm ở handler, bên trong transaction.</p>
+
+<div class="hint">
+<code>DELETE</code> ở đây <strong>xóa thật</strong>, khác hẳn <code>BonusPointReasonTemplate</code> (chỉ ẩn, Task 4b.7).
+Khác biệt này có lý do: cột của lớp đã được <em>sao chép</em> nên xóa mẫu không đụng tới bất kỳ bảng điểm nào,
+trong khi lý do điểm cộng thì gắn với lịch sử cấp điểm. Chỉ cần đặt FK ghim ở <code>SubjectVersion</code> là
+<code>ON DELETE SET NULL</code> — xóa mẫu thì đề cương mất ghim, không phải xóa dây chuyền.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Seed hai mẫu gợi ý</label>
+<pre><code>"2 cột chuẩn"            thuong_ky    Thường kỳ     40 %   Average
+                         cuoi_mon     Cuối môn      60 %   Manual
+
+"3 cột có trắc nghiệm"   trac_nghiem  Trắc nghiệm   20 %   Average
+                         bai_tap      Bài tập       30 %   DropLowestN (N = 1)
+                         cuoi_mon     Cuối môn      50 %   Manual</code></pre>
+
+<p class="meta">Hai mẫu này sinh ra lần đầu giảng viên mở màn hình cấu hình sổ điểm, thuộc sở hữu của chính giảng viên đó
+— sửa được, xóa được, không phải dữ liệu hệ thống. Chúng chỉ tồn tại để người dùng mới không phải nhìn một danh sách rỗng
+rồi tự đoán key nên đặt thế nào.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): add grade scheme templates"</code></pre>
+</div>
+
+<div class="task crown">
+<h3>Task 4b.2 — Ghim mẫu ở <code>SubjectVersion</code> + mở lớp thì SAO CHÉP cột ⭐</h3>
+<div class="files">
+<b>Sửa:</b> <code>src/TeachHub.Domain/Subjects/SubjectVersion.cs</code> (thêm FK ghim mẫu)<br>
+<b>Sửa:</b> <code>src/TeachHub.Application/Features/Subjects/Commands/CloneSubjectVersion/</code>
+<code>SubjectVersionCloner.cs</code> (đúng một dòng)<br>
+<b>Sửa:</b> <code>src/TeachHub.Application/Features/Offerings/Commands/OpenOffering/</code>
+(handler gọi thêm bộ khởi tạo sổ điểm)<br>
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradeColumnFactory.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Offerings/GradebookInitializer.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/OfferingGradebookInitTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Ghim mẫu mặc định trên <code>SubjectVersion</code></label>
+<pre><code>// SubjectVersion — tỷ lệ điểm thuộc về ĐỀ CƯƠNG, nên nó nằm ở version chứ không ở Subject.
+// Đổi tỷ lệ cho năm sau = tạo version mới, lịch sử "kỳ đó tính điểm thế nào" giữ nguyên.
+public Guid? GradeSchemeTemplateId { get; set; }     // ON DELETE SET NULL</code></pre>
+
+<div class="hint">
+<strong><code>SubjectVersionCloner</code> của Phase 1 chỉ COPY FK, tuyệt đối không deep clone mẫu.</strong>
+ADR-004 nói clone thật toàn bộ nội dung dạy học — nhưng <code>GradeSchemeTemplate</code> không phải nội dung dạy học,
+nó thuộc về giảng viên. Nhân bản mẫu ở mỗi lần tạo version sẽ đẻ ra hàng chục mẫu gần giống nhau trong thư viện,
+và sáu tháng sau không ai biết bản nào đang được lớp nào dùng.
+</div>
+<pre><code>// SubjectVersionCloner — thêm đúng một dòng, cạnh các FK khác:
+ban.GradeSchemeTemplateId = goc.GradeSchemeTemplateId;   // copy FK, KHÔNG deep clone</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Thứ tự chọn mẫu lúc mở lớp</label>
+<pre><code>1. Body của POST /api/offerings có grade_scheme_template_id  → dùng mẫu đó
+2. Không có → SubjectVersion.grade_scheme_template_id          (mẫu ghim của đề cương)
+3. Không có nữa → mẫu is_default của giảng viên
+4. Không có nữa → mở lớp với 0 cột điểm + trả cảnh báo "Lớp chưa có cột điểm nào"</code></pre>
+
+<div class="danger">
+Nhánh 4 <strong>không được chặn việc mở lớp</strong>, và cũng <strong>không được im lặng</strong>.
+Chặn thì giảng viên không mở nổi lớp vào đầu kỳ chỉ vì chưa nghĩ xong tỷ lệ điểm — trong khi việc cần làm ngay
+là thêm sinh viên vào lớp. Im lặng thì tới cuối kỳ mới phát hiện sổ điểm rỗng. Đúng cách là mở lớp bình thường,
+trả về <code>warnings: ["Lớp chưa có cột điểm nào — vào Cấu hình sổ điểm để áp một mẫu."]</code>,
+và màn hình lớp hiện dải cảnh báo cho tới khi có cột.
+</div>
+
+<div class="hint">
+<strong>Không mở transaction thủ công trong <code>GradebookInitializer</code>.</strong>
+Tạo lớp và sao chép cột nằm trong <code>OpenOfferingCommand</code>, mà đó là một <code>ICommand</code> —
+<code>TransactionBehavior</code> đã bọc sẵn cả lời gọi, và nó còn kiểm tra
+<code>db.Database.CurrentTransaction is not null</code> nên transaction lồng nhau cũng không xảy ra.
+Một lớp được tạo ra mà không có cột điểm vì bước sao chép ném ngoại lệ giữa chừng là trạng thái không được phép tồn tại;
+behavior lo chuyện đó, <code>GradebookInitializer</code> chỉ việc viết logic sao chép.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Hàm sao chép, thuần Domain</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+public static class GradeColumnFactory
+{
+    /// &lt;summary&gt;
+    /// SAO CHÉP mẫu thành cột của lớp. Sau lời gọi này, cột và mẫu không còn liên hệ nào
+    /// ngoài CourseOffering.grade_scheme_template_id lưu để ghi nhận nguồn gốc.
+    /// &lt;/summary&gt;
+    public static List&lt;GradeColumn&gt; FromTemplate(GradeSchemeTemplate template, Guid offeringId) =&gt;
+        [.. template.Items.OrderBy(i =&gt; i.OrderIndex).Select(i =&gt; new GradeColumn
+        {
+            OfferingId = offeringId,
+            Key = i.Key,
+            Name = i.Name,
+            WeightPercent = i.WeightPercent,
+            OrderIndex = i.OrderIndex,
+
+            // Dựng đối tượng MỚI, không gán tham chiếu Aggregation của item.
+            Aggregation = new GradeAggregation
+            {
+                Kind = i.Aggregation.Kind,
+                N = i.Aggregation.N,
+                TreatMissingAsZero = i.Aggregation.TreatMissingAsZero,
+            },
+        })];
+}</code></pre>
+
+<div class="danger">
+Dòng <code>Aggregation = new GradeAggregation { ... }</code> trông thừa nhưng không thừa.
+Gán thẳng <code>Aggregation = i.Aggregation</code> thì mẫu và cột dùng chung một đối tượng: EF sẽ theo dõi nó như một
+thực thể con của <em>mẫu</em>, và lần sau bạn sửa quy tắc "bỏ 1 bài thấp nhất" trong mẫu thì cách tính điểm của lớp
+đã dạy xong đổi theo — đúng thứ mà việc sao chép sinh ra để tránh.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Test, bắt đầu bằng test quan trọng nhất của cả task</label>
+<pre><code>[Fact]
+public async Task Sua_mau_sau_khi_mo_lop_KHONG_lam_doi_cot_cua_lop()
+{
+    // TEST QUAN TRỌNG NHẤT CỦA TASK NÀY. Học kỳ sau giảng viên đổi mẫu 20/30/50 thành 30/20/50.
+    // Lớp đã dạy xong và đã nộp bảng điểm KHÔNG được đổi một con số nào.
+    var gv = await factory.LoginAsInstructorAsync();
+    var mau = await gv.CreateSchemeTemplateAsync("3 cột có trắc nghiệm",
+        ("trac_nghiem", 20m), ("bai_tap", 30m), ("cuoi_mon", 50m));
+    var lop = await gv.OpenOfferingAsync(schemeTemplateId: mau);
+
+    await gv.PutSchemeTemplateAsync(mau,
+        ("trac_nghiem", 30m), ("bai_tap", 20m), ("cuoi_mon", 50m));
+
+    var cot = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{lop}/grade-columns");
+
+    cot.ColumnByKey("trac_nghiem").GetProperty("weight_percent").GetDecimal().ShouldBe(20m);
+    cot.ColumnByKey("bai_tap").GetProperty("weight_percent").GetDecimal().ShouldBe(30m);
+}
+
+[Fact]
+public async Task Mo_lop_sao_chep_cot_tu_mau_ke_ca_quy_tac_tong_hop()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var mau = await gv.CreateSchemeTemplateAsync("3 cột có trắc nghiệm",
+        ("trac_nghiem", 20m), ("bai_tap", 30m), ("cuoi_mon", 50m));
+
+    var lop = await gv.OpenOfferingAsync(schemeTemplateId: mau);
+
+    var cot = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{lop}/grade-columns");
+    cot.GetArrayLength().ShouldBe(3);
+    cot.ColumnByKey("bai_tap").GetProperty("aggregation").GetProperty("kind").GetString()
+        .ShouldBe("DropLowestN");
+
+    // Cột của lớp có id RIÊNG, không phải id của item trong mẫu.
+    await using var db = await factory.CreateDbContextAsync();
+    var idItem = await db.GradeSchemeTemplateItems.Where(i =&gt; i.TemplateId == mau)
+        .Select(i =&gt; i.Id).ToListAsync();
+    var idCot = await db.GradeColumns.Where(c =&gt; c.OfferingId == lop)
+        .Select(c =&gt; c.Id).ToListAsync();
+    idCot.Intersect(idItem).ShouldBeEmpty();
+}
+
+[Fact]
+public async Task Mo_lop_khong_chi_dinh_mau_thi_lay_mau_ghim_o_subject_version()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var mau = await gv.CreateSchemeTemplateAsync("2 cột chuẩn", ("thuong_ky", 40m), ("cuoi_mon", 60m));
+    var version = await gv.CreateSubjectVersionAsync(gradeSchemeTemplateId: mau);
+
+    var lop = await gv.OpenOfferingAsync(subjectVersionId: version);   // không truyền mẫu
+
+    var cot = await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{lop}/grade-columns");
+    cot.GetArrayLength().ShouldBe(2);
+}
+
+[Fact]
+public async Task Khong_co_mau_ghim_thi_lay_mau_mac_dinh_cua_giang_vien()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    await gv.CreateSchemeTemplateAsync("2 cột chuẩn", isDefault: true,
+        ("thuong_ky", 40m), ("cuoi_mon", 60m));
+    var version = await gv.CreateSubjectVersionAsync(gradeSchemeTemplateId: null);
+
+    var lop = await gv.OpenOfferingAsync(subjectVersionId: version);
+
+    (await gv.GetFromJsonAsync&lt;JsonElement&gt;($"/api/offerings/{lop}/grade-columns"))
+        .GetArrayLength().ShouldBe(2);
+}
+
+[Fact]
+public async Task Khong_co_mau_nao_thi_van_mo_duoc_lop_nhung_phai_canh_bao()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var version = await gv.CreateSubjectVersionAsync(gradeSchemeTemplateId: null);
+
+    var res = await gv.PostAsJsonAsync("/api/offerings",
+        new { subject_id = subjectId, subject_version_id = version,
+              semester = "HK1 2026-2027", class_code = "L01" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+    var lop = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    lop.GetProperty("warnings").EnumerateArray().ShouldContain(
+        w =&gt; w.GetString()!.Contains("chưa có cột điểm", StringComparison.OrdinalIgnoreCase));
+}
+
+[Fact]
+public async Task Tao_version_moi_chi_copy_fk_mau_chu_khong_nhan_ban_mau()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var mau = await gv.CreateSchemeTemplateAsync("2 cột chuẩn", ("thuong_ky", 40m), ("cuoi_mon", 60m));
+    var v1 = await gv.CreateSubjectVersionAsync(gradeSchemeTemplateId: mau);
+
+    var v2 = await gv.CloneSubjectVersionAsync(v1);
+
+    await using var db = await factory.CreateDbContextAsync();
+    (await db.SubjectVersions.SingleAsync(v =&gt; v.Id == v2)).GradeSchemeTemplateId.ShouldBe(mau);
+    (await db.GradeSchemeTemplates.CountAsync(t =&gt; t.InstructorId == gv.UserId)).ShouldBe(1);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): copy grade columns from scheme template when opening an offering"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 2 — Máy tính điểm</h2>
+
+<div class="task crown">
+<h3>Task 4b.3 — <code>GradeAggregation</code>: quy tắc tổng hợp trong một cột ⭐</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradeAggregation.cs</code> (enum + quy tắc + <code>GradeAggregator</code>)<br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/GradeAggregatorTests.cs</code>
+</div>
+
+<p>Đây là "công thức" mà người dùng nói tới, ở dạng an toàn: <strong>chọn quy tắc từ danh sách</strong>, không gõ biểu thức.
+Hàm thuần, không I/O, chạy dưới 1 ms — đúng quy ước test của dự án (mục 5 tài liệu kiến trúc).</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ, phủ cả 8 <code>Kind</code> và mọi ca biên</label>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Grading;
+
+namespace TeachHub.Domain.Tests;
+
+public class GradeAggregatorTests
+{
+    /// Nguồn thang 10 (thang mặc định của bài tập trong hệ thống).
+    private static SourceScore Nguon(decimal? diem, decimal? trongSo = null) =&gt; new(diem, 10m, trongSo);
+
+    private static GradeAggregation Quy(AggregationKind kind, int n = 0, bool thieuLa0 = true) =&gt;
+        new() { Kind = kind, N = n, TreatMissingAsZero = thieuLa0 };
+
+    [Fact]
+    public void Trung_binh_cong_cac_nguon()
+    {
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(6m), Nguon(10m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Average), nguon).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Bo_n_diem_thap_nhat_roi_moi_trung_binh()
+    {
+        // Quy định phổ biến: "bỏ 1 bài thấp nhất". Nếu cài sai thành bỏ bài ĐẦU TIÊN,
+        // sinh viên làm tốt bài đầu và trượt bài cuối sẽ bị thiệt mà không ai nhìn ra.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(6m), Nguon(10m), Nguon(4m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.DropLowestN, n: 1), nguon).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Bo_n_thap_nhat_voi_n_lon_hon_so_nguon_van_giu_lai_it_nhat_mot_bai()
+    {
+        // N ≥ số nguồn mà bỏ sạch thì mẫu số bằng 0 → chia cho 0 → cả sổ điểm của lớp nổ.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(6m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.DropLowestN, n: 5), nguon).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Lay_n_bai_tot_nhat()
+    {
+        // "Lấy 3 bài tốt nhất trong 5 bài" — [10, 9, 8] → 9.0.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(6m), Nguon(10m), Nguon(4m), Nguon(9m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.BestNOfM, n: 3), nguon).ShouldBe(9m);
+    }
+
+    [Fact]
+    public void Lay_diem_cao_nhat_va_thap_nhat()
+    {
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(6m), Nguon(10m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Max), nguon).ShouldBe(10m);
+        GradeAggregator.Apply(Quy(AggregationKind.Min), nguon).ShouldBe(6m);
+    }
+
+    [Fact]
+    public void Cong_don_vuot_10_thi_bi_kep_o_10()
+    {
+        // Cột "chuyên cần cộng dồn" kiểu mỗi buổi 0.5. Vượt 10 thì dừng ở 10,
+        // phần thừa KHÔNG được tràn sang cột khác hay sang điểm tổng.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(4m), Nguon(3m), Nguon(5m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Sum), nguon).ShouldBe(10m);
+    }
+
+    [Fact]
+    public void Trung_binh_co_trong_so_dung_weight_within_column()
+    {
+        // Trong cột "Bài tập": bài lớn 70%, bài nhỏ 30% → 9*0.7 + 6*0.3 = 8.1.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(9m, trongSo: 70m), Nguon(6m, trongSo: 30m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.WeightedAverage), nguon).ShouldBe(8.1m);
+    }
+
+    [Fact]
+    public void Manual_khong_gop_nguon_nao()
+    {
+        // Cột Manual lấy thẳng điểm nhập tay từ GradeRecord; Apply trả 0 để lỡ gọi nhầm
+        // thì thấy ngay 0 chứ không phải một con số trông có vẻ hợp lý.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(6m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Manual), nguon).ShouldBe(0m);
+    }
+
+    [Fact]
+    public void Bai_chua_cham_tinh_la_0_khi_treat_missing_as_zero()
+    {
+        // Mặc định — đúng về mặt cuối kỳ: bài không nộp là 0 điểm.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(null) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Average, thieuLa0: true), nguon).ShouldBe(4m);
+    }
+
+    [Fact]
+    public void Bai_chua_cham_bi_loai_khoi_mau_so_khi_tat_treat_missing_as_zero()
+    {
+        // Đây là điểm "tạm tính" giữa học kỳ: 8.0 chứ không phải 4.0.
+        var nguon = new List&lt;SourceScore&gt; { Nguon(8m), Nguon(null) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Average, thieuLa0: false), nguon).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Khong_con_nguon_nao_sau_khi_loai_thi_tra_0_chu_khong_chia_cho_0()
+    {
+        var nguon = new List&lt;SourceScore&gt; { Nguon(null), Nguon(null) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Average, thieuLa0: false), nguon).ShouldBe(0m);
+    }
+
+    [Fact]
+    public void Danh_sach_nguon_rong_tra_ve_0()
+    {
+        GradeAggregator.Apply(Quy(AggregationKind.Average), Array.Empty&lt;SourceScore&gt;()).ShouldBe(0m);
+    }
+
+    [Fact]
+    public void Nguon_co_thang_diem_rieng_duoc_chuan_hoa_ve_thang_10()
+    {
+        // Blocker B3. Rubric tổng 20 điểm, sinh viên được 16 → vào cột là 8.0.
+        // Gộp thẳng 16 rồi kẹp ở 10 thì sinh viên được 10 — sai theo hướng nới tay,
+        // và sai đều trên cả lớp nên không ai thấy bất thường.
+        var nguon = new List&lt;SourceScore&gt; { new(RawScore: 16m, SourceMaxScore: 20m) };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Average), nguon).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Cac_nguon_khac_thang_diem_duoc_gop_sau_khi_da_quy_ve_thang_10()
+    {
+        // Rubric thang 20 được 16 (= 8.0) và quiz thang 10 được 9 → trung bình 8.5.
+        // Không chuẩn hóa thì phép này ra (16+9)/2 = 12.5 rồi bị kẹp còn 10.
+        var nguon = new List&lt;SourceScore&gt;
+        {
+            new(RawScore: 16m, SourceMaxScore: 20m),
+            new(RawScore: 9m, SourceMaxScore: 10m),
+        };
+
+        GradeAggregator.Apply(Quy(AggregationKind.Average), nguon).ShouldBe(8.5m);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ (14 test)</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết quy tắc tổng hợp</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+/// &lt;summary&gt;Quy tắc gộp điểm TRONG một cột. Chọn từ danh sách, không phải công thức gõ tay.&lt;/summary&gt;
+public enum AggregationKind
+{
+    Manual,            // nhập tay hoàn toàn, không tự tổng hợp
+    Average,           // trung bình cộng các nguồn
+    WeightedAverage,   // dùng GradeColumnSource.WeightWithinColumn
+    Sum,               // cộng dồn rồi kẹp [0, 10]
+    Max,
+    Min,
+    DropLowestN,       // bỏ N điểm thấp nhất rồi trung bình
+    BestNOfM,          // lấy N bài tốt nhất rồi trung bình
+}
+
+/// &lt;summary&gt;Lưu jsonb trên GradeColumn. Không có biểu thức tự do nên không thể gõ sai cú pháp.&lt;/summary&gt;
+public sealed class GradeAggregation
+{
+    public AggregationKind Kind { get; set; } = AggregationKind.Average;
+
+    /// &lt;summary&gt;Số bài bỏ đi (DropLowestN) hoặc số bài lấy (BestNOfM). Các Kind khác bỏ qua.&lt;/summary&gt;
+    public int N { get; set; }
+
+    /// &lt;summary&gt;Bài chưa chấm tính là 0 (mặc định, đúng về mặt cuối kỳ) hay bị loại khỏi mẫu số.&lt;/summary&gt;
+    public bool TreatMissingAsZero { get; set; } = true;
+}
+
+/// &lt;summary&gt;
+/// Một nguồn điểm ĐÃ LẤY VỀ cho một sinh viên. SourceMaxScore là thang điểm gốc của nguồn
+/// (rubric tổng 20 điểm thì là 20) — bắt buộc phải có để chuẩn hóa.
+/// &lt;/summary&gt;
+public sealed record SourceScore(decimal? RawScore, decimal SourceMaxScore, decimal? WeightWithinColumn = null);
+
+/// &lt;summary&gt;
+/// Hàm thuần, không I/O. Toàn bộ quy tắc gộp điểm trong một cột nằm ở đây.
+/// MỌI nguồn được quy về thang 10 TRƯỚC khi gộp — bài rubric thang 20 được 16 thì vào cột là 8.0,
+/// không phải 16 rồi bị kẹp thành 10.
+/// &lt;/summary&gt;
+public static class GradeAggregator
+{
+    public static decimal Apply(GradeAggregation rule, IReadOnlyList&lt;SourceScore&gt; sources, decimal maxScore = 10m)
+    {
+        // Cột Manual không đi qua đây trong luồng thật — điểm lấy thẳng từ GradeRecord.
+        // Trả 0 để nếu ai đó gọi nhầm thì thấy 0 rõ ràng, chứ không phải một con số trông có vẻ đúng.
+        if (rule.Kind == AggregationKind.Manual) return 0m;
+
+        var items = ChuanHoa(rule, sources, maxScore);
+        if (items.Count == 0) return 0m;                 // không nguồn nào → 0, KHÔNG chia cho 0
+
+        var giaTri = items.Select(i =&gt; i.Value).ToList();
+
+        var ketQua = rule.Kind switch
+        {
+            AggregationKind.Average =&gt; giaTri.Sum() / giaTri.Count,
+            AggregationKind.WeightedAverage =&gt; TrungBinhCoTrongSo(items),
+            AggregationKind.Sum =&gt; giaTri.Sum(),
+            AggregationKind.Max =&gt; giaTri.Max(),
+            AggregationKind.Min =&gt; giaTri.Min(),
+            AggregationKind.DropLowestN =&gt; BoNThapNhat(giaTri, rule.N),
+            AggregationKind.BestNOfM =&gt; LayNTotNhat(giaTri, rule.N),
+            _ =&gt; 0m,
+        };
+
+        return Math.Clamp(ketQua, 0m, maxScore);
+    }
+
+    /// &lt;summary&gt;
+    /// Quy mọi nguồn về thang 10. Bài tập có MaxScore riêng (rubric tổng có thể là 20):
+    /// gộp thẳng điểm thô rồi kẹp ở 10 sẽ cho điểm sai theo hướng nới tay.
+    /// &lt;/summary&gt;
+    private static List&lt;(decimal Value, decimal Weight)&gt; ChuanHoa(
+        GradeAggregation rule, IReadOnlyList&lt;SourceScore&gt; sources, decimal maxScore)
+    {
+        var ketQua = new List&lt;(decimal Value, decimal Weight)&gt;(sources.Count);
+        foreach (var nguon in sources)
+        {
+            var trongSo = nguon.WeightWithinColumn ?? 1m;
+
+            if (nguon.RawScore is not { } tho)
+            {
+                if (rule.TreatMissingAsZero) ketQua.Add((0m, trongSo));
+                continue;                                 // false → loại khỏi cả tử lẫn mẫu
+            }
+
+            var tranNguon = nguon.SourceMaxScore &gt; 0m ? nguon.SourceMaxScore : maxScore;
+            ketQua.Add((Math.Clamp(tho / tranNguon * maxScore, 0m, maxScore), trongSo));
+        }
+        return ketQua;
+    }
+
+    private static decimal TrungBinhCoTrongSo(List&lt;(decimal Value, decimal Weight)&gt; items)
+    {
+        var tongTrongSo = items.Sum(i =&gt; i.Weight);
+        return tongTrongSo &lt;= 0m
+            ? items.Sum(i =&gt; i.Value) / items.Count       // trọng số để trống hết = chia đều
+            : items.Sum(i =&gt; i.Value * i.Weight) / tongTrongSo;
+    }
+
+    private static decimal BoNThapNhat(List&lt;decimal&gt; giaTri, int n)
+    {
+        // Giữ lại ít nhất 1 bài: N ≥ số nguồn KHÔNG được bỏ sạch rồi chia cho 0.
+        var bo = Math.Clamp(n, 0, giaTri.Count - 1);
+        var conLai = giaTri.Order().Skip(bo).ToList();
+        return conLai.Sum() / conLai.Count;
+    }
+
+    private static decimal LayNTotNhat(List&lt;decimal&gt; giaTri, int n)
+    {
+        var lay = Math.Clamp(n, 1, giaTri.Count);
+        var top = giaTri.OrderDescending().Take(lay).ToList();
+        return top.Sum() / top.Count;
+    }
+}</code></pre>
+
+<div class="hint">
+<code>SourceScore.SourceMaxScore</code> lấy từ <em>chính nguồn</em>: tổng điểm rubric của assignment, hoặc tổng điểm
+của quiz. Nó <strong>không phải hằng số 10</strong>. Handler dựng sổ điểm phải đọc thang điểm gốc cùng lúc với đọc điểm
+— nếu bạn thấy mình gõ <code>new SourceScore(diem, 10m)</code> ở tầng Application thì phần chuẩn hóa đã bị vô hiệu hóa
+và Blocker B3 quay lại.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy, xác nhận 14 test xanh</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): add per-column aggregation rules"</code></pre>
+</div>
+
+<div class="task crown">
+<h3>Task 4b.4 — <code>BonusLedger</code> + <code>GradebookCalculator</code> ⭐</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradebookCalculator.cs</code> (kèm <code>BonusEntry</code>,
+<code>BonusLedger</code>, <code>GradebookSettings</code>)<br>
+<b>Sửa:</b> <code>src/TeachHub.Domain/Grading/GradeColumn.cs</code> (thêm <code>Key</code>, <code>Aggregation</code>)<br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/GradebookCalculatorTests.cs</code>
+</div>
+
+<p>Đây là chỗ sửa <strong>Blocker B1 + B2</strong>. Bản cũ có hai lỗi ăn vào nhau:</p>
+<ul>
+<li><code>ColumnScore</code> và <code>FinalScore</code> mỗi hàm tự áp trần điểm cộng trên một tập bonus khác nhau,
+nên ô sổ điểm hiển thị một số còn điểm tổng tính bằng số khác — và không có gì trong hệ thống chỉ ra sự lệch đó.</li>
+<li>Hàm áp trần cắt theo <em>thứ tự phần tử của danh sách truyền vào</em>, mà thứ tự đó do câu truy vấn quyết định.
+Cùng một tập điểm cộng đọc hai lần có thể ra hai kết quả.</li>
+</ul>
+<p>Cách sửa: một kiểu <code>BonusLedger</code> đã <strong>chốt sổ</strong> — sắp xếp tất định rồi áp trần đúng một lần.
+Mọi hàm tính điểm nhận ledger này, <strong>không hàm nào nhận danh sách bonus thô</strong>. Sự lệch trở thành
+chuyện không biểu diễn được, chứ không phải chuyện phải nhớ tránh.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Grading;
+
+namespace TeachHub.Domain.Tests;
+
+public class GradebookCalculatorTests
+{
+    private static readonly Guid LopId = Guid.CreateVersion7();
+    private static readonly DateTimeOffset T0 = new(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+
+    private static GradeColumn Cot(string key, string ten, decimal trongSo) =&gt;
+        new() { OfferingId = LopId, Key = key, Name = ten, WeightPercent = trongSo };
+
+    /// Điểm cộng thẳng vào điểm tổng. phut = thứ tự cấp, vì ledger sắp xếp theo (GrantedAt, Id).
+    private static BonusEntry VaoTong(decimal diem, int phut = 0) =&gt;
+        new(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, diem, T0.AddMinutes(phut));
+
+    /// Điểm cộng gắn vào một cột điểm cụ thể.
+    private static BonusEntry VaoCot(Guid cotId, decimal diem, int phut = 0) =&gt;
+        new(Guid.CreateVersion7(), BonusTarget.GradeColumn, cotId, diem, T0.AddMinutes(phut));
+
+    private static BonusLedger So(GradebookSettings cauHinh, params BonusEntry[] bonuses) =&gt;
+        BonusLedger.Build(bonuses, cauHinh);
+
+    // ── Trọng số ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Tong_trong_so_khac_100_bi_tu_choi()
+    {
+        var cot = new List&lt;GradeColumn&gt; { Cot("chuyen_can", "Chuyên cần", 10m), Cot("giua_ky", "Giữa kỳ", 30m) };
+
+        var kq = GradebookCalculator.ValidateColumns(cot);
+
+        kq.IsValid.ShouldBeFalse();
+        kq.Error!.ShouldContain("40");     // nói rõ đang là bao nhiêu, không chỉ "không hợp lệ"
+    }
+
+    [Fact]
+    public void Tong_trong_so_dung_100_thi_hop_le()
+    {
+        GradebookCalculator.ValidateColumns(new List&lt;GradeColumn&gt;
+        {
+            Cot("a", "A", 10m), Cot("b", "B", 30m), Cot("c", "C", 60m),
+        }).IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Trong_so_thap_phan_cong_lai_bang_100_van_hop_le()
+    {
+        // 33.33 + 33.33 + 33.34 — cộng bằng decimal thì chính xác tuyệt đối.
+        // Với double, phép này ra 99.99999999999999 và bị từ chối oan.
+        GradebookCalculator.ValidateColumns(new List&lt;GradeColumn&gt;
+        {
+            Cot("a", "A", 33.33m), Cot("b", "B", 33.33m), Cot("c", "C", 33.34m),
+        }).IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Key_cot_bi_trung_thi_bi_tu_choi()
+    {
+        // Key là thứ mẫu xuất Excel và điều kiện điểm sàn nối vào. Hai cột cùng key
+        // nghĩa là mẫu xuất không biết lấy cột nào — chặn ngay lúc lưu cấu hình.
+        var kq = GradebookCalculator.ValidateColumns(new List&lt;GradeColumn&gt;
+        {
+            Cot("thuong_ky", "Thường kỳ", 50m), Cot("thuong_ky", "Thường kỳ 2", 50m),
+        });
+
+        kq.IsValid.ShouldBeFalse();
+        kq.Error!.ShouldContain("thuong_ky");
+    }
+
+    // ── Điểm tổng ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Tinh_diem_tong_theo_trong_so()
+    {
+        var cot = new List&lt;GradeColumn&gt;
+        {
+            Cot("chuyen_can", "Chuyên cần", 10m), Cot("bai_tap", "Bài tập", 30m),
+            Cot("giua_ky", "Giữa kỳ", 20m), Cot("cuoi_ky", "Cuối kỳ", 40m),
+        };
+        var diem = new Dictionary&lt;Guid, decimal&gt;
+        {
+            [cot[0].Id] = 10m, [cot[1].Id] = 8m, [cot[2].Id] = 7m, [cot[3].Id] = 9m,
+        };
+
+        // 10*0.1 + 8*0.3 + 7*0.2 + 9*0.4 = 1 + 2.4 + 1.4 + 3.6 = 8.4
+        GradebookCalculator.FinalScore(cot, diem, BonusLedger.Empty, GradebookSettings.Default)
+            .ShouldBe(8.4m);
+    }
+
+    [Fact]
+    public void Cot_chua_co_diem_duoc_tinh_la_0()
+    {
+        var cot = new List&lt;GradeColumn&gt; { Cot("a", "A", 50m), Cot("b", "B", 50m) };
+
+        GradebookCalculator.FinalScore(cot, new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 10m },
+            BonusLedger.Empty, GradebookSettings.Default).ShouldBe(5m);
+    }
+
+    [Fact]
+    public void Lop_khong_co_cot_diem_nao_tra_ve_0_thay_vi_no_loi()
+    {
+        GradebookCalculator.FinalScore(Array.Empty&lt;GradeColumn&gt;(), new Dictionary&lt;Guid, decimal&gt;(),
+            BonusLedger.Empty, GradebookSettings.Default).ShouldBe(0m);
+    }
+
+    [Fact]
+    public void Lam_tron_theo_kieu_ra_xa_so_khong()
+    {
+        // 8.25 → 8.3, KHÔNG phải 8.2 (làm tròn ngân hàng mặc định của .NET).
+        // Sinh viên luôn được hưởng lợi ở ranh giới — lựa chọn nghiệp vụ có chủ ý.
+        var cot = new List&lt;GradeColumn&gt; { Cot("a", "A", 100m) };
+
+        GradebookCalculator.FinalScore(cot, new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 8.25m },
+            BonusLedger.Empty, GradebookSettings.Default).ShouldBe(8.3m);
+    }
+
+    // ── Điểm cộng đi qua ledger ─────────────────────────────────────────────
+
+    [Fact]
+    public void Bonus_vao_diem_tong_duoc_cong_thang_khong_qua_trong_so()
+    {
+        var cot = new List&lt;GradeColumn&gt; { Cot("thuong_ky", "Thường kỳ", 20m), Cot("cuoi_ky", "Cuối kỳ", 80m) };
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 8m, [cot[1].Id] = 8m };
+        var cauHinh = GradebookSettings.Default;
+
+        GradebookCalculator.FinalScore(cot, diem, So(cauHinh, VaoTong(0.5m)), cauHinh).ShouldBe(8.5m);
+    }
+
+    [Fact]
+    public void Bonus_vao_cot_di_qua_trong_so_chu_khong_cong_thang_vao_tong()
+    {
+        // Cột "Thường kỳ" trọng số 20%, điểm gốc 8. Cấp +0.5 vào cột:
+        //   cột: 8 + 0.5 = 8.5  →  đóng góp vào tổng 8.5*0.2 = 1.7 (trước đó 1.6)
+        //   tổng: 8.0 → 8.1, tức chỉ tăng 0.1 chứ KHÔNG phải 0.5.
+        // Làm sai chỗ này thì mọi bảng điểm cuối kỳ đều sai, và sai theo hướng nới tay.
+        var cot = new List&lt;GradeColumn&gt; { Cot("thuong_ky", "Thường kỳ", 20m), Cot("cuoi_ky", "Cuối kỳ", 80m) };
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 8m, [cot[1].Id] = 8m };
+        var cauHinh = GradebookSettings.Default;
+
+        GradebookCalculator.FinalScore(cot, diem, BonusLedger.Empty, cauHinh).ShouldBe(8m);
+        GradebookCalculator.FinalScore(cot, diem, So(cauHinh, VaoCot(cot[0].Id, 0.5m)), cauHinh)
+            .ShouldBe(8.1m);
+    }
+
+    [Fact]
+    public void Bonus_day_diem_cot_vuot_10_thi_cot_bi_kep_o_10()
+    {
+        // Phần thừa KHÔNG tràn sang điểm tổng. Cột là cột, trần của nó là 10.
+        var cot = Cot("thuong_ky", "Thường kỳ", 100m);
+        var cauHinh = GradebookSettings.Default;
+        var so = So(cauHinh, VaoCot(cot.Id, 0.5m));
+
+        GradebookCalculator.ColumnScore(cot, 9.8m, so, cauHinh).ShouldBe(10m);
+        GradebookCalculator.FinalScore(new List&lt;GradeColumn&gt; { cot },
+            new Dictionary&lt;Guid, decimal&gt; { [cot.Id] = 9.8m }, so, cauHinh).ShouldBe(10m);
+    }
+
+    [Fact]
+    public void Nhieu_bonus_vao_cung_mot_cot_thi_cong_don()
+    {
+        // Giảng viên cấp rải rác cả kỳ. Nếu chỉ lấy lần cấp mới nhất thì công sức cả kỳ biến mất.
+        var cot = Cot("thuong_ky", "Thường kỳ", 100m);
+        var cauHinh = GradebookSettings.Default;
+
+        GradebookCalculator.ColumnScore(cot, 7m,
+            So(cauHinh, VaoCot(cot.Id, 0.25m, 0), VaoCot(cot.Id, 0.5m, 10), VaoCot(cot.Id, 0.25m, 20)),
+            cauHinh).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Bonus_tro_toi_cot_khong_ton_tai_thi_bi_bo_qua_chu_khong_no()
+    {
+        // Cột bị xóa sau khi đã cấp điểm cộng vào nó. Sổ điểm phải mở được,
+        // không được ném ngoại lệ làm hỏng bảng điểm của cả 40 sinh viên.
+        var cot = new List&lt;GradeColumn&gt; { Cot("a", "A", 100m) };
+        var cauHinh = GradebookSettings.Default;
+
+        GradebookCalculator.FinalScore(cot, new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 8m },
+            So(cauHinh, VaoCot(Guid.CreateVersion7(), 0.5m)), cauHinh).ShouldBe(8m);
+    }
+
+    [Fact]
+    public void O_so_diem_va_diem_tong_luon_dung_chung_mot_ledger()
+    {
+        // Blocker B1. Trước đây ColumnScore và FinalScore mỗi hàm tự áp trần trên tập bonus riêng,
+        // nên ô "Thường kỳ" hiện 8.8 trong khi điểm tổng lại tính bằng một con số khác.
+        // Ledger chốt sổ một lần khiến chuyện đó không thể xảy ra nữa.
+        var cot = Cot("thuong_ky", "Thường kỳ", 100m);
+        var cauHinh = GradebookSettings.Default with { MaxBonusPerStudent = 1m };
+        var so = So(cauHinh, VaoCot(cot.Id, 0.8m, 0), VaoTong(0.7m, 10));
+
+        GradebookCalculator.ColumnScore(cot, 8m, so, cauHinh).ShouldBe(8.8m);
+        GradebookCalculator.FinalScore(new List&lt;GradeColumn&gt; { cot },
+            new Dictionary&lt;Guid, decimal&gt; { [cot.Id] = 8m }, so, cauHinh).ShouldBe(9m);   // 8.8 + 0.2
+    }
+
+    [Fact]
+    public void Ledger_tat_dinh_du_thu_tu_dau_vao_bi_xao_tron()
+    {
+        // Blocker B2. Trần cắt theo thứ tự phần tử của danh sách gọi tới, mà thứ tự đó phụ thuộc
+        // câu truy vấn — nên cùng một tập điểm cộng đọc hai lần có thể ra hai kết quả.
+        var cot = Cot("thuong_ky", "Thường kỳ", 100m);
+        var cauHinh = GradebookSettings.Default with { MaxBonusPerStudent = 1m };
+        var ds = new List&lt;BonusEntry&gt;
+        {
+            VaoCot(cot.Id, 0.5m, 0), VaoTong(0.3m, 10), VaoCot(cot.Id, 0.4m, 20),
+        };
+
+        var xuoi = BonusLedger.Build(ds, cauHinh);
+        var nguoc = BonusLedger.Build(Enumerable.Reverse(ds).ToList(), cauHinh);
+
+        // So sánh NỘI DUNG chứ không so sánh cả bản ghi: record chứa dictionary nên phép == của
+        // record là so sánh tham chiếu, dùng ShouldBe trên nguyên ledger sẽ đỏ oan.
+        nguoc.ToFinalTotal.ShouldBe(xuoi.ToFinalTotal);
+        nguoc.TotalGranted.ShouldBe(xuoi.TotalGranted);
+        nguoc.ForColumn(cot.Id).ShouldBe(xuoi.ForColumn(cot.Id));
+
+        xuoi.ForColumn(cot.Id).ShouldBe(0.7m);   // 0.5 + phần còn lại 0.2 của lần cấp cuối
+        xuoi.ToFinalTotal.ShouldBe(0.3m);
+        xuoi.TotalGranted.ShouldBe(1m);
+    }
+
+    [Fact]
+    public void Tran_diem_cong_moi_sinh_vien_cat_lan_cap_moi_nhat()
+    {
+        // Trần 1.0: cấp 0.8 rồi 0.7 thì chỉ 1.0 có hiệu lực, và phần bị cắt là của lần cấp SAU —
+        // để những lần cấp trước không đổi nghĩa mỗi khi giảng viên cấp thêm.
+        var cot = new List&lt;GradeColumn&gt; { Cot("a", "A", 100m) };
+        var cauHinh = GradebookSettings.Default with { MaxBonusPerStudent = 1m };
+
+        GradebookCalculator.FinalScore(cot, new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 8m },
+            So(cauHinh, VaoTong(0.8m, 0), VaoTong(0.7m, 10)), cauHinh).ShouldBe(9m);
+    }
+
+    [Fact]
+    public void Tran_bonus_de_null_thi_khong_co_tran_rieng()
+    {
+        // null nghĩa là lớp không đặt trần riêng — chỉ còn [0, 10] chặn.
+        // Đừng ngầm biến null thành 1.0, giảng viên sẽ không hiểu điểm cộng của mình đi đâu.
+        var cot = new List&lt;GradeColumn&gt; { Cot("a", "A", 100m) };
+        var cauHinh = GradebookSettings.Default;
+
+        GradebookCalculator.FinalScore(cot, new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 5m },
+            So(cauHinh, VaoTong(2.5m)), cauHinh).ShouldBe(7.5m);
+    }
+
+    [Fact]
+    public void Diem_cong_khong_duong_bi_loai_khoi_ledger()
+    {
+        // Blocker B8: điểm cộng luôn &gt; 0, API trả 400 nếu ≤ 0. Ledger vẫn lọc thêm một lớp
+        // để dữ liệu cũ hoặc import lỗi không âm thầm TRỪ điểm sinh viên.
+        var cauHinh = GradebookSettings.Default;
+
+        var so = So(cauHinh, VaoTong(-5m), VaoTong(0m));
+
+        so.ToFinalTotal.ShouldBe(0m);
+        so.TotalGranted.ShouldBe(0m);
+    }
+
+    [Fact]
+    public void Diem_cuoi_khong_bao_gio_vuot_10()
+    {
+        var cot = new List&lt;GradeColumn&gt; { Cot("a", "A", 100m) };
+        var cauHinh = GradebookSettings.Default;
+
+        GradebookCalculator.FinalScore(cot, new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 10m },
+            So(cauHinh, VaoTong(1m)), cauHinh).ShouldBe(10m);
+    }
+
+    // ── Điểm thô của cột (bước 1) ───────────────────────────────────────────
+
+    [Fact]
+    public void Cot_sua_tay_bo_qua_moi_nguon_tu_dong()
+    {
+        // GradeRecord.IsManualOverride = true: chấm lại bài KHÔNG được ghi đè điểm giảng viên đã sửa.
+        var cot = Cot("bai_tap", "Bài tập", 100m);
+        var nguon = new List&lt;SourceScore&gt; { new(5m, 10m), new(5m, 10m) };
+
+        GradebookCalculator.RawColumnScore(cot, isManualOverride: true, manualScore: 9m,
+            nguon, GradebookSettings.Default).ShouldBe(9m);
+
+        GradebookCalculator.RawColumnScore(cot, isManualOverride: false, manualScore: 9m,
+            nguon, GradebookSettings.Default).ShouldBe(5m);
+    }
+}</code></pre>
+
+<div class="danger">
+<strong>Blocker B4 — những cái bẫy biên dịch trong chính file test này.</strong> Bản trước có 8/16 test không build được:
+<br>• Truyền <code>new() { ... }</code> cho tham số kiểu <code>IReadOnlyDictionary&lt;Guid, decimal&gt;</code> → CS0144:
+interface không khởi tạo trực tiếp được. Viết tường minh <code>new Dictionary&lt;Guid, decimal&gt; { ... }</code>.
+<br>• Truyền <code>[]</code> cho tham số kiểu interface không dựng được → CS9174. Dùng
+<code>Array.Empty&lt;BonusEntry&gt;()</code> hoặc <code>new List&lt;BonusEntry&gt;()</code>.
+<br>• <code>ds.Reverse()</code> trên <code>List&lt;T&gt;</code> gọi trúng <code>List.Reverse()</code> (đảo tại chỗ,
+trả <code>void</code>) chứ không phải LINQ. Viết <code>Enumerable.Reverse(ds)</code>.
+<br>Dự án bật <code>TreatWarningsAsErrors</code> nên một cảnh báo cũng là build đỏ — kể cả <code>async</code> mà
+không <code>await</code> (CS1998).
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ (19 test)</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết <code>BonusLedger</code> và calculator</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+/// &lt;summary&gt;Điểm cộng đi vào đâu: thẳng điểm tổng, hay vào một cột điểm.&lt;/summary&gt;
+public enum BonusTarget { FinalTotal, GradeColumn }
+
+/// &lt;summary&gt;
+/// Một lần cấp điểm cộng của MỘT sinh viên, đã tước phần nghiệp vụ (lý do, người cấp).
+/// Id và GrantedAt bắt buộc có mặt: chúng là khóa sắp xếp tất định của BonusLedger.
+/// &lt;/summary&gt;
+public sealed record BonusEntry(Guid Id, BonusTarget Target, Guid? ColumnId, decimal Points, DateTimeOffset GrantedAt);
+
+public sealed record GradebookSettings
+{
+    public BonusTarget DefaultTarget { get; init; } = BonusTarget.GradeColumn;
+    public Guid? DefaultColumnId { get; init; }
+    public decimal? MaxBonusPerStudent { get; init; }   // null = không trần riêng
+    public decimal MaxScore { get; init; } = 10m;
+    public int DecimalPlaces { get; init; } = 1;
+
+    public static GradebookSettings Default =&gt; new();
+}
+
+public sealed record ValidationOutcome(bool IsValid, string? Error);
+
+/// &lt;summary&gt;
+/// Kết quả điểm cộng đã CHỐT SỔ một lần: đã sắp xếp tất định và đã áp trần.
+/// Chỉ tạo được qua Build. Mọi hàm tính điểm nhận Ledger này chứ không nhận danh sách bonus thô —
+/// nhờ đó ô sổ điểm và điểm tổng không thể lệch nhau, và hai lần đọc không thể ra hai kết quả.
+/// &lt;/summary&gt;
+public sealed record BonusLedger
+{
+    public required IReadOnlyDictionary&lt;Guid, decimal&gt; ByColumnId { get; init; }
+    public decimal ToFinalTotal { get; init; }
+
+    /// &lt;summary&gt;
+    /// Tổng điểm cộng có hiệu lực sau khi áp trần, GỒM CẢ phần gắn vào cột.
+    /// Dùng cho tooltip và thống kê — KHÔNG phải số hiện ở cột "Điểm cộng" của sổ điểm.
+    ///
+    /// Cột "Điểm cộng" ở CẢ màn hình lẫn file Excel chỉ hiện &lt;c&gt;ToFinalTotal&lt;/c&gt;. Lý do:
+    /// phần cộng vào cột đã nằm sẵn trong con số của chính cột đó rồi; hiện lại ở cột
+    /// "Điểm cộng" nữa là đếm hai lần, và giảng viên cộng tay để đối chiếu sẽ ra sai.
+    /// &lt;/summary&gt;
+    public decimal TotalGranted { get; init; }
+
+    public static BonusLedger Empty { get; } = new() { ByColumnId = new Dictionary&lt;Guid, decimal&gt;() };
+
+    public decimal ForColumn(Guid columnId) =&gt; ByColumnId.TryGetValue(columnId, out var v) ? v : 0m;
+
+    /// &lt;summary&gt;
+    /// Sắp xếp theo (GrantedAt, Id) rồi áp trần MaxBonusPerStudent MỘT LẦN, cắt từ lần cấp mới nhất.
+    /// Không sắp xếp thì trần cắt theo thứ tự phần tử của danh sách gọi tới — mà thứ tự đó
+    /// phụ thuộc câu truy vấn, nên cùng một tập điểm cộng đọc hai lần cho hai kết quả khác nhau.
+    /// &lt;/summary&gt;
+    public static BonusLedger Build(IEnumerable&lt;BonusEntry&gt; bonuses, GradebookSettings settings)
+    {
+        var theoThuTu = bonuses
+            .Where(b =&gt; b.Points &gt; 0m)                 // điểm cộng luôn &gt; 0 (API chặn ở 400), phòng dữ liệu cũ
+            .OrderBy(b =&gt; b.GrantedAt).ThenBy(b =&gt; b.Id)
+            .ToList();
+
+        var conLai = settings.MaxBonusPerStudent;
+        var theoCot = new Dictionary&lt;Guid, decimal&gt;();
+        decimal vaoTong = 0m;
+        decimal tong = 0m;
+
+        foreach (var b in theoThuTu)
+        {
+            var diem = b.Points;
+            if (conLai is { } tran)
+            {
+                if (tran &lt;= 0m) break;                 // hết trần: mọi lần cấp sau không còn hiệu lực
+                diem = Math.Min(diem, tran);
+                conLai = tran - diem;
+            }
+
+            tong += diem;
+
+            if (b.Target == BonusTarget.GradeColumn &amp;&amp; b.ColumnId is { } cotId)
+            {
+                theoCot[cotId] = theoCot.TryGetValue(cotId, out var daCo) ? daCo + diem : diem;
+            }
+            else if (b.Target == BonusTarget.FinalTotal)
+            {
+                vaoTong += diem;
+            }
+            // Target = GradeColumn mà ColumnId null là dữ liệu hỏng (CHECK constraint đã chặn ở DB).
+            // Bỏ qua trong im lặng thay vì ném ngoại lệ làm hỏng sổ điểm của cả lớp.
+        }
+
+        return new BonusLedger { ByColumnId = theoCot, ToFinalTotal = vaoTong, TotalGranted = tong };
+    }
+}
+
+/// &lt;summary&gt;
+/// Toàn bộ phép tính điểm nằm ở đây, thuần túy, không I/O (ADR-006). Điểm cuối KHÔNG lưu cứng:
+/// trọng số và quy tắc tổng hợp đổi được giữa kỳ, giá trị lưu cứng sẽ lệch một cách âm thầm.
+/// &lt;/summary&gt;
+public static class GradebookCalculator
+{
+    public static ValidationOutcome ValidateColumns(IReadOnlyList&lt;GradeColumn&gt; columns)
+    {
+        if (columns.Count == 0) return new(false, "Chưa có cột điểm nào.");
+
+        var trung = columns.GroupBy(c =&gt; c.Key).FirstOrDefault(g =&gt; g.Count() &gt; 1);
+        if (trung is not null) return new(false, $"Khóa cột \"{trung.Key}\" bị trùng.");
+
+        var tong = columns.Sum(c =&gt; c.WeightPercent);
+        return tong == 100m
+            ? new(true, null)
+            : new(false, $"Tổng trọng số các cột phải bằng 100%, hiện tại là {tong}%.");
+    }
+
+    /// &lt;summary&gt;Bước 1 — điểm thô của một cột: sửa tay thì lấy điểm tay, không thì gộp các nguồn.&lt;/summary&gt;
+    public static decimal RawColumnScore(
+        GradeColumn column, bool isManualOverride, decimal manualScore,
+        IReadOnlyList&lt;SourceScore&gt; sources, GradebookSettings settings)
+        =&gt; isManualOverride || column.Aggregation.Kind == AggregationKind.Manual
+            ? Math.Clamp(manualScore, 0m, settings.MaxScore)
+            : GradeAggregator.Apply(column.Aggregation, sources, settings.MaxScore);
+
+    /// &lt;summary&gt;Bước 3 — điểm một cột SAU khi cộng điểm cộng gắn vào cột đó, kẹp [0, MaxScore].&lt;/summary&gt;
+    public static decimal ColumnScore(
+        GradeColumn column, decimal rawScore, BonusLedger ledger, GradebookSettings settings)
+        =&gt; Math.Clamp(rawScore + ledger.ForColumn(column.Id), 0m, settings.MaxScore);
+
+    /// &lt;summary&gt;Bước 4–6, lớp không đặt điều kiện điểm sàn.&lt;/summary&gt;
+    public static decimal FinalScore(
+        IReadOnlyList&lt;GradeColumn&gt; columns,
+        IReadOnlyDictionary&lt;Guid, decimal&gt; rawColumnScores,
+        BonusLedger ledger,
+        GradebookSettings settings)
+        =&gt; FinalScore(columns, rawColumnScores, ledger, Array.Empty&lt;GradeCondition&gt;(), settings);
+
+    /// &lt;summary&gt;
+    /// Bước 4–6. THỨ TỰ LÀ QUAN TRỌNG: cộng điểm cộng vào từng cột rồi kẹp cột TRƯỚC, nhân trọng số,
+    /// cộng điểm cộng đích final_total, RỒI mới áp điều kiện điểm sàn — điểm cộng không được phép
+    /// kéo sinh viên qua ngưỡng chặn.
+    /// &lt;/summary&gt;
+    public static decimal FinalScore(
+        IReadOnlyList&lt;GradeColumn&gt; columns,
+        IReadOnlyDictionary&lt;Guid, decimal&gt; rawColumnScores,
+        BonusLedger ledger,
+        IReadOnlyList&lt;GradeCondition&gt; conditions,
+        GradebookSettings settings)
+    {
+        if (columns.Count == 0) return 0m;
+
+        var diemCot = new Dictionary&lt;Guid, decimal&gt;(columns.Count);
+        decimal tong = 0m;
+
+        foreach (var c in columns)
+        {
+            var goc = rawColumnScores.TryGetValue(c.Id, out var v) ? v : 0m;   // chưa chấm = 0
+            var diem = ColumnScore(c, goc, ledger, settings);
+            diemCot[c.Id] = diem;
+            tong += diem * c.WeightPercent / 100m;
+        }
+
+        // Điểm cộng đích final_total không đi qua trọng số nào. Điểm cộng trỏ tới cột đã bị xóa
+        // nằm trong ledger nhưng không cột nào đọc tới — bị bỏ qua, không làm hỏng cả sổ điểm.
+        tong += ledger.ToFinalTotal;
+
+        // ⚠️ GradeCondition và GradeConditionEvaluator được TẠO Ở TASK 4b.5.
+        // Làm tuần tự thì tới bước chạy test của task này sẽ vấp CS0246. Cách xử lý:
+        // tạo trước hai file rỗng của 4b.5 (chỉ cần đủ kiểu để biên dịch), hoặc làm 4b.5
+        // trước rồi quay lại chạy test của 4b.4.
+        tong = GradeConditionEvaluator.Apply(tong, columns, diemCot, conditions).Score;
+        tong = Math.Clamp(tong, 0m, settings.MaxScore);
+
+        // AwayFromZero, KHÔNG phải mặc định ToEven của .NET: 8.25 phải thành 8.3.
+        return Math.Round(tong, settings.DecimalPlaces, MidpointRounding.AwayFromZero);
+    }
+}</code></pre>
+
+<div class="hint">
+<code>BonusPoint</code> (thực thể, Task 4b.7) mang thêm <code>EnrollmentId</code>, <code>Reason</code>,
+<code>GrantedBy</code> — calculator không cần và không nên biết những thứ đó, vì nó tính cho <em>một</em> sinh viên
+tại một thời điểm. Cầu nối là đúng một hàm <code>BonusPoint.ToEntry()</code> ở tầng Application.
+Điều bắt buộc: <code>BonusPoint</code> phải có <code>Id</code> và <code>GrantedAt</code> để
+<code>BonusLedger.Build</code> sắp xếp tất định — không có hai trường đó thì Blocker B2 quay lại nguyên vẹn.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy, xác nhận cả 19 test xanh trong dưới 50 ms</label>
+
+<p class="meta">Toàn bộ khối code của Task 4b.3, 4b.4 và 4b.5 đã được biên dịch thử bằng
+<code>dotnet build</code> với SDK 10.0.203, bật <code>Nullable</code> và <code>TreatWarningsAsErrors</code>:
+<strong>0 lỗi, 0 cảnh báo</strong>; 39 test trong ba lớp test chạy qua hết. Chép nguyên văn là dùng được,
+đừng "sửa cho gọn" phần <code>Math.Clamp</code> hay thứ tự các bước.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Xóa cache sổ điểm ở mọi đường ghi</label>
+<pre><code>// Xóa ở MỌI chỗ động tới điểm: chấm bài, sửa tay, đổi trọng số, đổi quy tắc tổng hợp,
+// cấp/xóa điểm cộng, thêm/bớt/xóa cột, đổi điều kiện điểm sàn, áp mẫu cột mới.
+await cache.RemoveAsync($"gradebook:{offeringId}");</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): deterministic bonus ledger and dynamic gradebook calculator"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 4b.5 — <code>GradeCondition</code>: điều kiện điểm sàn</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradeCondition.cs</code> (+ <code>GradeConditionEvaluator</code>)<br>
+<b>Sửa:</b> <code>src/TeachHub.Domain/Offerings/CourseOffering.cs</code> — thêm <code>GradeConditions</code> (jsonb), <code>GradeSchemeTemplateId</code> (uuid?, <em>chỉ ghi nhận nguồn gốc, không phép tính nào đọc</em>), <code>BonusDefaultTarget</code>, <code>BonusDefaultColumnId</code>, <code>BonusMaxPointsPerStudent</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/GradeConditionTests.cs</code>
+</div>
+
+<p>Quy định phổ biến ở đại học Việt Nam: <strong>thi cuối môn dưới 4.0 thì không qua môn dù điểm quá trình có đẹp
+tới đâu</strong>. Không có bước này, một sinh viên thường kỳ 9.0 và cuối môn 3.5 sẽ hiện điểm tổng 5.7 — con số đó
+vừa sai quy chế vừa khiến sinh viên tin rằng mình đã qua.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Grading;
+
+namespace TeachHub.Domain.Tests;
+
+public class GradeConditionTests
+{
+    private static readonly Guid LopId = Guid.CreateVersion7();
+    private static readonly DateTimeOffset T0 = new(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+
+    private static GradeColumn Cot(string key, string ten, decimal trongSo) =&gt;
+        new() { OfferingId = LopId, Key = key, Name = ten, WeightPercent = trongSo };
+
+    /// Lớp mẫu: Thường kỳ 40% + Cuối môn 60%.
+    private static List&lt;GradeColumn&gt; LopHaiCot() =&gt;
+        new() { Cot("thuong_ky", "Thường kỳ", 40m), Cot("cuoi_mon", "Cuối môn", 60m) };
+
+    /// "Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9".
+    private static GradeCondition SanCuoiMon() =&gt;
+        new() { ColumnKey = "cuoi_mon", Op = ConditionOperator.LessThan, Threshold = 4m, ActionValue = 3.9m };
+
+    [Fact]
+    public void Cuoi_mon_duoi_4_thi_diem_tong_bi_cap_o_3_9()
+    {
+        var cot = LopHaiCot();
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 9m, [cot[1].Id] = 3.5m };
+        var dieuKien = new List&lt;GradeCondition&gt; { SanCuoiMon() };
+
+        // Không có điều kiện: 9*0.4 + 3.5*0.6 = 3.6 + 2.1 = 5.7 — "qua môn" dù thi rớt.
+        GradebookCalculator.FinalScore(cot, diem, BonusLedger.Empty, GradebookSettings.Default)
+            .ShouldBe(5.7m);
+
+        GradebookCalculator.FinalScore(cot, diem, BonusLedger.Empty, dieuKien, GradebookSettings.Default)
+            .ShouldBe(3.9m);
+    }
+
+    [Fact]
+    public void Diem_cong_khong_keo_duoc_sinh_vien_qua_nguong_chan()
+    {
+        // Điều kiện áp SAU khi đã cộng mọi điểm cộng (bước 5 sau bước 4). Nếu đảo thứ tự,
+        // một sinh viên thi cuối môn 3.5 vẫn qua môn nhờ điểm phát biểu — đúng thứ mà
+        // quy định điểm sàn sinh ra để ngăn.
+        var cot = LopHaiCot();
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 9m, [cot[1].Id] = 3.5m };
+        var cauHinh = GradebookSettings.Default;
+        var so = BonusLedger.Build(
+            new List&lt;BonusEntry&gt; { new(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, 2m, T0) },
+            cauHinh);
+
+        GradebookCalculator.FinalScore(cot, diem, so, new List&lt;GradeCondition&gt; { SanCuoiMon() }, cauHinh)
+            .ShouldBe(3.9m);
+    }
+
+    [Fact]
+    public void Nhieu_dieu_kien_cung_dinh_thi_lay_muc_cap_thap_nhat()
+    {
+        // Thường kỳ 5 và Cuối môn 3.5 → tổng 5*0.4 + 3.5*0.6 = 4.1, cả hai điều kiện cùng đúng.
+        // Lấy mức chặn thấp nhất → 3.9. Lấy nhầm mức 4.5 thì kết quả là 4.1 và sinh viên qua môn.
+        var cot = LopHaiCot();
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 5m, [cot[1].Id] = 3.5m };
+        var dieuKien = new List&lt;GradeCondition&gt;
+        {
+            SanCuoiMon(),
+            new() { ColumnKey = "thuong_ky", Op = ConditionOperator.LessOrEqual, Threshold = 5m, ActionValue = 4.5m },
+        };
+
+        GradebookCalculator.FinalScore(cot, diem, BonusLedger.Empty, dieuKien, GradebookSettings.Default)
+            .ShouldBe(3.9m);
+    }
+
+    [Fact]
+    public void Dieu_kien_khong_dinh_thi_khong_doi_gi()
+    {
+        var cot = LopHaiCot();
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 9m, [cot[1].Id] = 8m };
+
+        GradebookCalculator.FinalScore(cot, diem, BonusLedger.Empty,
+            new List&lt;GradeCondition&gt; { SanCuoiMon() }, GradebookSettings.Default).ShouldBe(8.4m);
+    }
+
+    [Fact]
+    public void Dieu_kien_tro_toi_cot_khong_ton_tai_thi_bo_qua_va_bao_ra_ngoai()
+    {
+        // Giảng viên đổi từ mẫu 3 cột về mẫu 2 cột, cột "trac_nghiem" biến mất nhưng điều kiện
+        // vẫn còn. Bỏ qua trong IM LẶNG nghĩa là quy định điểm sàn của môn mất hiệu lực
+        // mà không ai biết — nên phải trả tên khóa ra cho tầng trên hiện cảnh báo.
+        var cot = LopHaiCot();
+        var diem = new Dictionary&lt;Guid, decimal&gt; { [cot[0].Id] = 9m, [cot[1].Id] = 8m };
+        var dieuKien = new List&lt;GradeCondition&gt;
+        {
+            new() { ColumnKey = "trac_nghiem", Threshold = 4m, ActionValue = 3.9m },
+        };
+
+        var kq = GradeConditionEvaluator.Apply(8.4m, cot, diem, dieuKien);
+
+        kq.Score.ShouldBe(8.4m);
+        kq.UnknownColumnKeys.ShouldContain("trac_nghiem");
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Viết điều kiện và bộ đánh giá</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+public enum ConditionOperator { LessThan, LessOrEqual }
+
+public enum CapAction { CapFinalAt }
+
+/// &lt;summary&gt;
+/// Điều kiện điểm sàn của lớp (jsonb trên CourseOffering).
+/// Ví dụ có thật: "Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9".
+/// &lt;/summary&gt;
+public sealed class GradeCondition
+{
+    /// &lt;summary&gt;Nối bằng KEY của cột, không bằng Id — đổi cột vẫn giữ được ý nghĩa điều kiện.&lt;/summary&gt;
+    public required string ColumnKey { get; set; }
+
+    public ConditionOperator Op { get; set; } = ConditionOperator.LessThan;
+    public required decimal Threshold { get; set; }
+    public CapAction Action { get; set; } = CapAction.CapFinalAt;
+    public required decimal ActionValue { get; set; }
+}
+
+/// &lt;summary&gt;
+/// Score = điểm sau khi áp điều kiện. UnknownColumnKeys = những điều kiện trỏ tới cột không tồn tại:
+/// bị bỏ qua nhưng PHẢI hiện cảnh báo, vì im lặng ở đây nghĩa là quy định điểm sàn của môn
+/// không có hiệu lực mà không ai biết.
+/// &lt;/summary&gt;
+public sealed record ConditionOutcome(decimal Score, IReadOnlyList&lt;string&gt; UnknownColumnKeys);
+
+public static class GradeConditionEvaluator
+{
+    public static ConditionOutcome Apply(
+        decimal total,
+        IReadOnlyList&lt;GradeColumn&gt; columns,
+        IReadOnlyDictionary&lt;Guid, decimal&gt; columnScores,
+        IReadOnlyList&lt;GradeCondition&gt; conditions)
+    {
+        if (conditions.Count == 0) return new(total, Array.Empty&lt;string&gt;());
+
+        var khongTonTai = new List&lt;string&gt;();
+        decimal? tran = null;
+
+        foreach (var dk in conditions)
+        {
+            var cot = columns.FirstOrDefault(c =&gt; c.Key == dk.ColumnKey);
+            if (cot is null)
+            {
+                khongTonTai.Add(dk.ColumnKey);
+                continue;
+            }
+
+            var diemCot = columnScores.TryGetValue(cot.Id, out var v) ? v : 0m;
+            var dinh = dk.Op switch
+            {
+                ConditionOperator.LessThan =&gt; diemCot &lt; dk.Threshold,
+                ConditionOperator.LessOrEqual =&gt; diemCot &lt;= dk.Threshold,
+                _ =&gt; false,
+            };
+            if (!dinh) continue;
+
+            // Nhiều điều kiện cùng đúng → lấy mức chặn THẤP NHẤT. Quy định điểm sàn là điều kiện cần,
+            // không phải điều kiện được chọn lấy cái dễ chịu nhất.
+            tran = tran is { } daCo ? Math.Min(daCo, dk.ActionValue) : dk.ActionValue;
+        }
+
+        return new(tran is { } muc ? Math.Min(total, muc) : total, khongTonTai);
+    }
+}</code></pre>
+
+<div class="hint">
+Điểm cột dùng để so với ngưỡng là điểm <strong>đã cộng điểm cộng gắn vào cột đó</strong> (bước 3), chứ không phải
+điểm thô. Điều đó có chủ ý: điểm cộng vào cột "Cuối môn" là điểm của chính bài cuối môn. Cái không được phép là
+điểm cộng đích <em>điểm tổng</em> kéo sinh viên qua ngưỡng — và bước 5 nằm sau bước 4 chính là để chặn đúng chuyện đó.
+</div>
+
+<p class="meta">Chỉ có một <code>CapAction</code> trong MVP. Enum vẫn tồn tại vì mức chặn khác (ví dụ "buộc học lại",
+"đánh dấu cấm thi") sẽ tới từ quy chế trường chứ không phải từ ý muốn của người viết code —
+và lúc đó thêm một nhánh <code>switch</code> rẻ hơn nhiều so với đổi kiểu dữ liệu đã lưu trong jsonb.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 4 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): add grade floor conditions"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 3 — Dữ liệu điểm, điểm cộng và cấu hình</h2>
+
+<div class="task">
+<h3>Task 4b.6 — <code>GradeColumn</code>, <code>GradeRecord</code>, <code>GradeAuditLog</code>, <code>GradeSnapshot</code></h3>
+<div class="files">
+<b>Tạo/Sửa:</b> <code>src/TeachHub.Domain/Grading/GradeColumn.cs</code>, <code>GradeColumnSource.cs</code>,
+<code>GradeRecord.cs</code>, <code>GradeSnapshot.cs</code><br>
+<b>Sửa:</b> <code>src/TeachHub.Infrastructure/Persistence/AppDbContext.cs</code> (ánh xạ enum + jsonb + CHECK)<br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/GradesController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Commands/SetManualGrade/</code>
+(Command + Handler + Validator), <code>Commands/ClearManualOverride/</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/GradeRecordTests.cs</code>, <code>GradeSnapshotTests.cs</code>
+</div>
+
+<p>Task này nhận nuôi hai thứ đang mồ côi trong tài liệu cũ (<strong>Blocker B7</strong>):
+<code>GradeRecord.IsManualOverride</code> chỉ được nhắc trong một khối gợi ý mà không phase nào tạo ra,
+và <code>GradeSnapshot</code> của ADR-006 thì không có ở bất kỳ plan nào. Cả hai thuộc về đây, có entity và có test.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Cột điểm và nguồn của cột</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+public enum GradeSourceType { Assignment, Quiz, FinalAssessment }
+
+/// &lt;summary&gt;
+/// Cột điểm của MỘT lớp. Được SAO CHÉP từ GradeSchemeTemplate lúc mở lớp rồi sống độc lập:
+/// sửa mẫu ở học kỳ sau không được đổi cột điểm của lớp đã dạy xong (cùng nguyên tắc với ADR-004).
+/// &lt;/summary&gt;
+public class GradeColumn : Entity
+{
+    public required Guid OfferingId { get; set; }
+
+    /// &lt;summary&gt;Slug ổn định. Mẫu xuất Excel và điều kiện điểm sàn nối vào cột bằng KEY, không bằng Id.&lt;/summary&gt;
+    public required string Key { get; set; }
+
+    public required string Name { get; set; }
+    public required decimal WeightPercent { get; set; }
+    public int OrderIndex { get; set; }
+    public GradeAggregation Aggregation { get; set; } = new();
+    public List&lt;GradeColumnSource&gt; Sources { get; set; } = [];
+}
+
+public class GradeColumnSource : Entity
+{
+    public required Guid GradeColumnId { get; set; }
+    public required GradeSourceType SourceType { get; set; }
+    public required Guid SourceId { get; set; }
+
+    /// &lt;summary&gt;Trọng số của nguồn này TRONG cột, chỉ dùng khi Kind = WeightedAverage. Null = chia đều.&lt;/summary&gt;
+    public decimal? WeightWithinColumn { get; set; }
+}</code></pre>
+
+<p class="meta">Unique index <code>(offering_id, key)</code>. Đây là ràng buộc phải nằm ở database chứ không chỉ ở
+tầng validate, vì cột còn được sinh ra bởi việc sao chép mẫu và bởi thao tác "áp mẫu khác" — cả hai đều không đi qua
+màn hình cấu hình.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — <code>GradeRecord</code> và <code>GradeSnapshot</code></label>
+<pre><code>/// &lt;summary&gt;Điểm của một sinh viên ở một cột. KHÔNG lưu điểm tổng ở đâu cả (ADR-006).&lt;/summary&gt;
+public class GradeRecord : Entity
+{
+    public required Guid EnrollmentId { get; set; }
+    public required Guid GradeColumnId { get; set; }
+    public decimal? Score { get; set; }
+
+    /// &lt;summary&gt;
+    /// true = giảng viên đã sửa tay ô này. Việc chấm lại một bài trong cột KHÔNG được ghi đè.
+    /// Thiếu cờ này thì điểm giảng viên điều chỉnh sẽ âm thầm biến mất khi chấm lại,
+    /// và không ai phát hiện cho tới lúc sinh viên hỏi.
+    /// &lt;/summary&gt;
+    public bool IsManualOverride { get; set; }
+
+    public string? Note { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+/// &lt;summary&gt;
+/// Bản chốt bất biến khi CourseOffering chuyển sang closed (ngoại lệ của ADR-006).
+/// Chỉ ghi thêm, không sửa, không xóa — kể cả khi lớp được mở lại rồi đóng lần nữa.
+/// &lt;/summary&gt;
+public class GradeSnapshot : Entity
+{
+    public required Guid OfferingId { get; set; }
+    public required DateTimeOffset TakenAt { get; set; }
+    public required Guid TakenBy { get; set; }
+
+    /// &lt;summary&gt;Toàn bộ bảng điểm lúc chốt: cột, trọng số, quy tắc gộp, điều kiện, từng ô, điểm cộng, điểm tổng.&lt;/summary&gt;
+    public required string PayloadJson { get; set; }
+
+    /// &lt;summary&gt;SHA-256 của PayloadJson — để đối chiếu về sau mà không phải tin vào trí nhớ.&lt;/summary&gt;
+    public required string PayloadHash { get; set; }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Ánh xạ EF: enum ra chuỗi, jsonb, CHECK constraint (Blocker B5)</label>
+<pre><code>// Quy ước chung của dự án, nhất quán với các enum đã có từ Phase 1–3: enum xuống DB là CHUỖI.
+// Áp cho: BonusTarget, AggregationKind, ConditionOperator, CapAction, GradeExportSource, GradeSourceType.
+modelBuilder.Entity&lt;BonusPoint&gt;()
+    .Property(b =&gt; b.Target).HasConversion&lt;string&gt;().HasMaxLength(32);
+
+modelBuilder.Entity&lt;GradeColumnSource&gt;()
+    .Property(s =&gt; s.SourceType).HasConversion&lt;string&gt;().HasMaxLength(32);
+
+// jsonb: GradeAggregation trên cột VÀ trên item của mẫu, GradeCondition[] trên offering.
+// Enum bên trong jsonb phải khai HasConversion&lt;string&gt;() TƯỜNG MINH — EF Core dùng
+// JsonValueReaderWriter riêng, không đọc JsonStringEnumConverter của ASP.NET Core.
+// Và MỖI property kiểu GradeAggregation cần một dòng OwnsOne riêng; thiếu dòng
+// GradeSchemeTemplateItem thì mô hình EF không dựng được, ứng dụng không khởi động.
+modelBuilder.Entity&lt;GradeColumn&gt;().OwnsOne(c =&gt; c.Aggregation, b =&gt;
+{
+    b.ToJson();
+    b.Property(a =&gt; a.Kind).HasConversion&lt;string&gt;();
+});
+
+modelBuilder.Entity&lt;GradeSchemeTemplateItem&gt;().OwnsOne(i =&gt; i.Aggregation, b =&gt;
+{
+    b.ToJson();
+    b.Property(a =&gt; a.Kind).HasConversion&lt;string&gt;();
+});
+
+modelBuilder.Entity&lt;CourseOffering&gt;().OwnsMany(o =&gt; o.GradeConditions, b =&gt;
+{
+    b.ToJson();
+    b.Property(c =&gt; c.Op).HasConversion&lt;string&gt;();
+    b.Property(c =&gt; c.Action).HasConversion&lt;string&gt;();
+});
+
+modelBuilder.Entity&lt;GradeColumn&gt;().HasIndex(c =&gt; new { c.OfferingId, c.Key }).IsUnique();
+modelBuilder.Entity&lt;GradeRecord&gt;().HasIndex(r =&gt; new { r.EnrollmentId, r.GradeColumnId }).IsUnique();</code></pre>
+<pre><code>ALTER TABLE bonus_points ADD CONSTRAINT ck_bonus_target_column CHECK (
+    (target = 'GradeColumn' AND target_column_id IS NOT NULL) OR
+    (target = 'FinalTotal'  AND target_column_id IS NULL));
+
+ALTER TABLE bonus_points ADD CONSTRAINT ck_bonus_reason_not_blank
+    CHECK (length(btrim(reason)) &gt; 0);
+
+ALTER TABLE bonus_points ADD CONSTRAINT ck_bonus_points_positive
+    CHECK (points &gt; 0);
+
+ALTER TABLE grade_columns ADD CONSTRAINT ck_grade_column_key_slug
+    CHECK (key ~ '^[a-z][a-z0-9_]{0,31}$');</code></pre>
+
+<div class="danger">
+<code>'GradeColumn'</code> và <code>'FinalTotal'</code> — <strong>đúng tên enum trong C#</strong>, không phải
+<code>'grade_column'</code>. Bản cũ viết <code>'grade_column'</code> trong khi EF (mặc định) map enum ra
+<em>integer</em>: kiểu dữ liệu không khớp nên migration chết ngay. Sau khi thêm
+<code>.HasConversion&lt;string&gt;()</code> thì cột là text, migration chạy được — nhưng nếu vẫn giữ
+<code>'grade_column'</code> thì mọi <code>INSERT</code> bị CHECK chặn, và bạn phát hiện lúc cấp điểm cộng đầu tiên.
+Hai lỗi này che nhau: sửa một cái mà quên cái kia thì vẫn hỏng.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — <code>GradesController</code> + command sửa tay</label>
+<pre><code>[ApiController]
+[Route("api/offerings/{offeringId:guid}/grade-records")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class GradesController(ISender sender) : ApiControllerBase
+{
+    [HttpPut]
+    [ProducesResponseType&lt;GradeRecordDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; SetManual(
+        Guid offeringId, SetManualGradeCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;Gỡ cờ sửa tay, cột quay lại tự tổng hợp từ nguồn.&lt;/summary&gt;
+    [HttpDelete("{enrollmentId:guid}/{columnId:guid}/manual-override")]
+    public async Task&lt;IActionResult&gt; ClearManualOverride(
+        Guid offeringId, Guid enrollmentId, Guid columnId, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            new ClearManualOverrideCommand(offeringId, enrollmentId, columnId, CurrentUserId), ct));
+}
+
+public sealed class SetManualGradeCommandValidator : AbstractValidator&lt;SetManualGradeCommand&gt;
+{
+    public SetManualGradeCommandValidator()
+    {
+        RuleFor(x =&gt; x.EnrollmentId).NotEmpty();
+        RuleFor(x =&gt; x.ColumnId).NotEmpty();
+        RuleFor(x =&gt; x.Score).InclusiveBetween(0m, 10m);
+
+        // NotEmpty của FluentValidation coi chuỗi chỉ có khoảng trắng là rỗng —
+        // không cần thêm luật riêng cho "   ".
+        RuleFor(x =&gt; x.Reason).NotEmpty().MaximumLength(500)
+            .WithMessage("Sửa tay điểm phải có lý do. Đây chính là dòng bạn sẽ đọc lại "
+                       + "khi sinh viên khiếu nại điểm sáu tháng sau.");
+    }
+}</code></pre>
+
+<p class="meta">Cả hai đều là <code>ICommand</code>: ghi <code>GradeRecord</code>, ghi <code>GradeAuditLog</code>
+và xóa cache sổ điểm phải cùng nằm trong một transaction do <code>TransactionBehavior</code> mở.
+Một ô điểm đổi mà nhật ký không có dòng tương ứng là đúng thứ nhật ký sinh ra để ngăn.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Test</label>
+<pre><code>[Fact]
+public async Task Cham_lai_bai_KHONG_ghi_de_diem_giang_vien_sua_tay()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot, sv, baiTap) = await factory.SeedAutoColumnAsync(gv);
+
+    await gv.PutAsJsonAsync($"/api/offerings/{offeringId}/grade-records", new
+    {
+        enrollment_id = sv, column_id = cot, score = 9m, reason = "Cộng bù bài làm thêm",
+    });
+
+    await gv.GradeSubmissionAsync(baiTap, sv, 5m);       // chấm lại bài trong cột
+
+    var so = await gv.GetGradebookAsync(offeringId);
+    so.RowOf(sv).ColumnScore(cot).ShouldBe(9m);
+}
+
+[Fact]
+public async Task Bo_co_sua_tay_thi_cot_quay_lai_tu_dong_tinh()
+{
+    // Sửa tay phải gỡ được, nếu không giảng viên lỡ tay một lần là cột đó đóng băng cả kỳ.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot, sv, baiTap) = await factory.SeedAutoColumnAsync(gv);
+    await gv.SetManualScoreAsync(offeringId, sv, cot, 9m, "Cộng bù");
+    await gv.GradeSubmissionAsync(baiTap, sv, 5m);
+
+    await gv.DeleteAsync($"/api/offerings/{offeringId}/grade-records/{sv}/{cot}/manual-override");
+
+    (await gv.GetGradebookAsync(offeringId)).RowOf(sv).ColumnScore(cot).ShouldBe(5m);
+}
+
+[Fact]
+public async Task Sua_tay_diem_cot_ghi_day_du_nhat_ky()
+{
+    // Đây là thứ bảo vệ bạn khi sinh viên khiếu nại điểm sáu tháng sau.
+    // Không assert đủ ba trường thì test xanh mà nhật ký vẫn có thể rỗng ruột.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot, sv, _) = await factory.SeedAutoColumnAsync(gv);
+
+    await gv.SetManualScoreAsync(offeringId, sv, cot, 7m, "Chấm lại phần trình bày");
+    await gv.SetManualScoreAsync(offeringId, sv, cot, 8.5m, "Cộng bù bài làm thêm");
+
+    await using var db = await factory.CreateDbContextAsync();
+    var log = await db.GradeAuditLogs
+        .Where(l =&gt; l.EnrollmentId == sv &amp;&amp; l.TargetType == GradeTargetType.GradeRecord)
+        .OrderBy(l =&gt; l.ChangedAt).ToListAsync();
+
+    log.Count.ShouldBe(2);
+    log[1].OldValue.ShouldBe(7m);
+    log[1].NewValue.ShouldBe(8.5m);
+    log[1].ChangedBy.ShouldBe(gv.UserId);
+    log[1].Reason.ShouldBe("Cộng bù bài làm thêm");
+}
+
+[Fact]
+public async Task Dong_lop_thi_chot_mot_ban_snapshot()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 5);
+
+    await gv.PutAsJsonAsync($"/api/offerings/{offeringId}/status", new { status = "closed" });
+
+    await using var db = await factory.CreateDbContextAsync();
+    var snap = await db.GradeSnapshots.SingleAsync(s =&gt; s.OfferingId == offeringId);
+    snap.PayloadJson.ShouldContain("thuong_ky");
+    snap.PayloadHash.ShouldNotBeNullOrWhiteSpace();
+}
+
+[Fact]
+public async Task Snapshot_khong_doi_khi_sua_diem_sau_luc_dong()
+{
+    // Bản chốt là bản chốt. Nếu nó tính lại theo dữ liệu hiện tại thì nó không còn tác dụng
+    // đối chiếu nào — mà đối chiếu là toàn bộ lý do nó tồn tại (ADR-006).
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 5);
+    await gv.CloseOfferingAsync(offeringId);
+
+    await using var db = await factory.CreateDbContextAsync();
+    var truoc = await db.GradeSnapshots.SingleAsync(s =&gt; s.OfferingId == offeringId);
+    var hashTruoc = truoc.PayloadHash;
+
+    await gv.ReopenOfferingAsync(offeringId);
+    await gv.SetColumnWeightsAsync(offeringId, ("thuong_ky", 60m), ("cuoi_mon", 40m));
+
+    await using var db2 = await factory.CreateDbContextAsync();
+    (await db2.GradeSnapshots.SingleAsync(s =&gt; s.Id == truoc.Id)).PayloadHash.ShouldBe(hashTruoc);
+}
+
+[Fact]
+public async Task Dong_lop_lan_hai_ghi_them_ban_moi_chu_khong_ghi_de()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 5);
+
+    await gv.CloseOfferingAsync(offeringId);
+    await gv.ReopenOfferingAsync(offeringId);
+    await gv.CloseOfferingAsync(offeringId);
+
+    await using var db = await factory.CreateDbContextAsync();
+    (await db.GradeSnapshots.CountAsync(s =&gt; s.OfferingId == offeringId)).ShouldBe(2);
+}</code></pre>
+
+<p class="meta"><code>GradeAuditLog</code> giữ nguyên như Phase 4a: chỉ ghi thêm, không sửa, không xóa,
+không đặt query filter soft-delete lên nó. Task này chỉ bổ sung <code>TargetType = GradeRecord</code>
+và bắt buộc điền <code>Reason</code> khi sửa tay.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): grade records with manual override, audit log and closing snapshot"</code></pre>
+</div>
+
+<div class="task crown">
+<h3>Task 4b.7 — Điểm cộng: thư viện lý do + cộng vào bất kỳ cột nào (UC-17, UC-17b) ⭐</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/BonusPoint.cs</code>, <code>BonusPointReasonTemplate.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/BonusPointsController.cs</code>,
+<code>BonusPointTemplatesController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Commands/GrantBonusPoint/</code>
+(Command + Handler + Validator), <code>Commands/DeleteBonusPoint/</code>,
+<code>Queries/GetBonusPoints/</code>, <code>Commands/SaveBonusReasonTemplate/</code>,
+<code>Commands/HideBonusReasonTemplate/</code>, <code>Commands/RestoreBonusReasonTemplate/</code>,
+<code>Queries/GetBonusReasonTemplates/</code><br>
+<b>Sửa:</b> <code>src/TeachHub.Domain/Offerings/CourseOffering.cs</code> (3 trường mặc định điểm cộng)<br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/BonusPointTests.cs</code>
+</div>
+
+<div class="danger">
+<strong>Toàn bộ phần điểm cộng chuyển từ Phase 4a sang task này.</strong> Phase 4a chỉ còn giữ <em>popover</em> trên màn
+hình chấm bài và gọi API ở đây. Lý do gộp về một chỗ: điểm cộng giờ trỏ được vào <em>bất kỳ cột nào của lớp</em>,
+mà danh sách cột chỉ tồn tại sau Task 4b.2 — tách ra hai phase thì 4a phải giả định một cột "Thường kỳ" cứng,
+đúng thứ phase này sinh ra để xóa bỏ.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Ba trường mặc định trên <code>CourseOffering</code></label>
+<pre><code>// Mặc định của LỚP, để giảng viên không phải chọn đích mỗi lần cấp. Vẫn đổi được từng lần trong popover.
+public BonusTarget BonusDefaultTarget { get; set; } = BonusTarget.GradeColumn;
+public Guid? BonusDefaultColumnId { get; set; }          // thường trỏ tới cột "Thường kỳ"
+public decimal? BonusMaxPointsPerStudent { get; set; }   // null = không trần riêng, chỉ kẹp [0, 10]
+public List&lt;GradeCondition&gt; GradeConditions { get; set; } = [];   // jsonb, xem Task 4b.5</code></pre>
+
+<p class="meta">Ba trường đầu ánh xạ thẳng sang <code>GradebookSettings</code> khi dựng sổ điểm —
+không có tham số điểm cộng nào sống ở hai nơi. Nếu bạn thấy một hằng số trần điểm cộng nằm trong code frontend
+thì đó là bản sao thứ hai và nó sẽ lệch.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Entity</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+/// &lt;summary&gt;
+/// Thư viện lý do của MỘT giảng viên. Gắn vào giảng viên chứ không vào lớp:
+/// soạn một lần, dùng lại cho mọi lớp và mọi học kỳ về sau.
+/// &lt;/summary&gt;
+public class BonusPointReasonTemplate : Entity
+{
+    public required Guid InstructorId { get; set; }
+    public required string Label { get; set; }            // "Thuyết trình tự tin"
+    public required decimal DefaultPoints { get; set; }   // điểm gợi ý, vẫn sửa được lúc cấp
+    public BonusTarget? DefaultTarget { get; set; }
+
+    /// &lt;summary&gt;
+    /// Đích mặc định trỏ bằng KEY chứ không bằng column_id: template thuộc giảng viên,
+    /// còn cột thuộc lớp — mỗi lớp một bộ id mới. Trỏ bằng id thì lý do soạn sẵn
+    /// chỉ dùng được cho đúng một lớp, tức là thư viện coi như vô dụng.
+    /// &lt;/summary&gt;
+    public string? DefaultColumnKey { get; set; }         // "thuong_ky"
+
+    public required int OrderIndex { get; set; }          // thứ tự nút bấm nhanh
+    public bool IsActive { get; set; } = true;            // ẩn thay vì xóa, để không phá lịch sử
+}
+
+public class BonusPoint : Entity
+{
+    /// &lt;summary&gt;LUÔN gắn 1 sinh viên cụ thể, kể cả khi đang chấm bài nhóm.&lt;/summary&gt;
+    public required Guid EnrollmentId { get; set; }
+
+    public required BonusTarget Target { get; set; }      // FinalTotal | GradeColumn
+
+    /// &lt;summary&gt;BẮT BUỘC có khi Target = GradeColumn, BẮT BUỘC null khi Target = FinalTotal.&lt;/summary&gt;
+    public Guid? TargetColumnId { get; set; }
+
+    /// &lt;summary&gt;Luôn &gt; 0. Muốn trừ điểm thì sửa điểm cột, xem khối cảnh báo bên dưới.&lt;/summary&gt;
+    public required decimal Points { get; set; }
+
+    /// &lt;summary&gt;null nếu giảng viên gõ lý do tự do. Chỉ để thống kê "lý do nào hay dùng".&lt;/summary&gt;
+    public Guid? TemplateId { get; set; }
+
+    /// &lt;summary&gt;BẮT BUỘC, không được rỗng. Là BẢN SAO văn bản tại thời điểm cấp.&lt;/summary&gt;
+    public required string Reason { get; set; }
+
+    public BonusContextType ContextType { get; set; } = BonusContextType.None;
+    public Guid? ContextId { get; set; }
+
+    public required Guid GrantedBy { get; set; }
+
+    /// &lt;summary&gt;Cùng với Id, đây là khóa sắp xếp tất định của BonusLedger (Task 4b.4).&lt;/summary&gt;
+    public required DateTimeOffset GrantedAt { get; set; }
+}
+
+public enum BonusContextType { None, Assignment, FinalAssessment, Attendance }</code></pre>
+
+<div class="hint">
+<strong><code>reason</code> là bản sao văn bản, KHÔNG chỉ là khóa ngoại tới template.</strong>
+Khi giảng viên bấm nút từ thư viện, hệ thống <em>chép</em> <code>Label</code> vào cột <code>reason</code>,
+chứ không chỉ lưu <code>template_id</code>. Nếu chỉ lưu khóa ngoại: sáu tháng sau bạn sửa nhãn
+"Thuyết trình tự tin" thành "Thuyết trình xuất sắc", hoặc ẩn nó đi — và mọi điểm cộng đã cấp từ đầu kỳ
+lập tức đổi nghĩa hoặc mất chữ. Lúc sinh viên khiếu nại điểm, thứ bạn cần là lý do <em>tại thời điểm cấp</em>.
+<code>template_id</code> giữ lại chỉ để trả lời câu hỏi thống kê "mình hay cấp lý do nào".
+<br><strong>Có test cho cả hai ca:</strong> ẩn template, và <em>sửa nhãn</em> template — ca thứ hai hay bị bỏ sót
+vì người ta chỉ nghĩ tới nút xóa.
+</div>
+
+<div class="danger">
+<strong>Cộng vào CỘT khác hẳn cộng vào TỔNG — và UI bắt buộc phải nói ra điều đó.</strong>
+Điểm cộng vào cột được cộng <em>trước</em> khi nhân trọng số, nên cấp <strong>+0.5</strong> vào cột "Thường kỳ"
+trọng số 20% chỉ làm điểm tổng tăng <strong>0.1</strong>. Gần như giảng viên nào cũng hiểu nhầm chuyện này lần đầu,
+rồi tưởng hệ thống tính sai và cấp thêm cho "đủ" — sai lệch tích lũy trên cả lớp.
+Popover cấp điểm cộng <strong>bắt buộc</strong> hiện dòng "→ Điểm tổng: +0.1" ngay khi chọn đích,
+tính theo trọng số thật của cột đó trong lớp đang mở, cập nhật lại mỗi khi đổi điểm hoặc đổi đích.
+<br><br>
+<strong>Điểm cộng phải &gt; 0 (Blocker B8).</strong> API trả 400 nếu <code>points &lt;= 0</code>.
+Muốn trừ điểm thì sửa điểm cột — trừ điểm qua cơ chế "điểm cộng" làm hỏng cả thống kê lẫn cách đọc lịch sử:
+một dòng "+(-0.5) · Đi trễ" trong danh sách điểm cộng là thứ không ai đọc đúng từ lần đầu.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Mười một quy tắc nghiệp vụ, mỗi quy tắc một test</label>
+
+<table>
+<thead><tr><th>#</th><th>Quy tắc</th><th>Test</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Lý do bắt buộc, không được rỗng — kể cả khi có <code>template_id</code></td><td><code>Diem_cong_khong_co_ly_do_bi_tu_choi</code>, <code>Co_template_nhung_reason_rong_van_bi_tu_choi</code></td></tr>
+<tr><td>2</td><td>Template là gợi ý: điểm và lý do sửa được ngay lúc cấp</td><td><code>Chon_template_thi_tu_dien_nhung_van_sua_duoc</code></td></tr>
+<tr><td>3</td><td>Lý do gõ tự do không cần template</td><td><code>Ly_do_go_tu_do_khong_can_template</code></td></tr>
+<tr><td>4</td><td>Đích là cột thì bắt buộc có <code>target_column_id</code> <em>thuộc đúng lớp đó</em>; đích là tổng thì bắt buộc null</td><td><code>Dich_la_cot_ma_thieu_cot_thi_bi_tu_choi_va_nguoc_lai</code>, <code>Cot_cua_lop_khac_bi_tu_choi</code></td></tr>
+<tr><td>5</td><td>Điểm cộng không đẩy cột hay điểm tổng vượt 10</td><td><code>Bonus_khong_day_diem_cot_hay_diem_tong_vuot_10</code></td></tr>
+<tr><td>6</td><td>Sửa hoặc ẩn template không đổi điểm cộng đã cấp</td><td><code>An_template_khong_lam_doi_cac_diem_cong_da_cap</code>, <code>Sua_nhan_template_khong_lam_doi_lich_su</code></td></tr>
+<tr><td>7</td><td>Xóa điểm cộng cũng ghi <code>GradeAuditLog</code></td><td><code>Xoa_diem_cong_ghi_lai_nhat_ky</code></td></tr>
+<tr><td>8</td><td>Luôn gắn đúng một sinh viên, kể cả khi chấm bài nhóm</td><td><code>Cap_diem_cong_cho_dung_mot_sinh_vien_trong_nhom</code></td></tr>
+<tr><td>9</td><td>Trần điểm cộng mỗi sinh viên được tôn trọng và tất định</td><td><code>Tran_diem_cong_moi_sinh_vien_duoc_ton_trong</code></td></tr>
+<tr><td>10</td><td>Điểm cộng vào cột đi qua trọng số</td><td><code>Bonus_vao_cot_thuong_ky_lam_diem_tong_tang_theo_trong_so</code></td></tr>
+<tr><td>11</td><td><strong>Điểm cộng phải &gt; 0</strong> (B8)</td><td><code>Diem_cong_am_hoac_bang_khong_bi_tu_choi</code></td></tr>
+</tbody>
+</table>
+<pre><code>[Fact]
+public async Task Cap_diem_cong_cho_dung_mot_sinh_vien_trong_nhom()
+{
+    // Quy tắc 8. Điểm cộng LUÔN gắn 1 sinh viên, kể cả khi đang chấm bài nhóm.
+    // Cộng lây sang cả nhóm là cách nhanh nhất để mất lòng tin vào bảng điểm.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, submissionId, thanhVien) = await factory.SeedGroupSubmissionAsync(gv);
+
+    await gv.PostAsJsonAsync($"/api/enrollments/{thanhVien[2]}/bonus-points", new
+    {
+        points = 0.5m, reason = "Thuyết trình tự tin", target = "final_total",
+        context_type = "assignment", context_id = submissionId,
+    });
+
+    var so = await gv.GetGradebookAsync(offeringId);
+    so.RowOf(thanhVien[2]).Bonus().ShouldBe(0.5m);
+    so.RowOf(thanhVien[0]).Bonus().ShouldBe(0m);
+}
+
+[Fact]
+public async Task Diem_cong_khong_co_ly_do_bi_tu_choi()
+{
+    // Quy tắc 1. Điểm cộng không lý do là thứ bạn sẽ không giải thích nổi sau ba tháng.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+
+    foreach (var lyDo in new[] { "", "   " })
+    {
+        var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+            new { points = 0.5m, reason = lyDo, target = "final_total" });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+}
+
+[Fact]
+public async Task Co_template_nhung_reason_rong_van_bi_tu_choi()
+{
+    // Quy tắc 1, phần dễ bỏ sót: có template_id KHÔNG miễn cho reason.
+    // reason là dữ liệu thật của bản ghi, template_id chỉ là dấu vết xuất xứ.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+    var tpl = await gv.CreateReasonTemplateAsync("Thuyết trình tự tin", 0.5m);
+
+    var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+        new { points = 0.5m, reason = "", template_id = tpl, target = "final_total" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Diem_cong_am_hoac_bang_khong_bi_tu_choi()
+{
+    // Quy tắc 11 (Blocker B8). Muốn trừ điểm thì sửa điểm cột — một dòng "+(-0.5) · Đi trễ"
+    // trong danh sách điểm cộng vừa làm hỏng thống kê vừa không ai đọc đúng từ lần đầu.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+
+    foreach (var diem in new[] { -0.5m, 0m })
+    {
+        var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+            new { points = diem, reason = "Đi trễ", target = "final_total" });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+}
+
+[Fact]
+public async Task Chon_template_thi_tu_dien_nhung_van_sua_duoc()
+{
+    // Quy tắc 2. Hôm nay muốn cho 0.75 thay vì 0.5 mặc định thì phải sửa được ngay tại chỗ,
+    // không phải đi sửa template rồi quay lại.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+    var tpl = await gv.CreateReasonTemplateAsync("Thuyết trình tự tin", defaultPoints: 0.5m);
+
+    var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points", new
+    {
+        points = 0.75m, reason = "Thuyết trình tự tin, trả lời tốt câu hỏi phản biện",
+        template_id = tpl, target = "final_total",
+    });
+
+    var bp = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    bp.GetProperty("points").GetDecimal().ShouldBe(0.75m);
+    bp.GetProperty("reason").GetString().ShouldContain("phản biện");
+}
+
+[Fact]
+public async Task Ly_do_go_tu_do_khong_can_template()
+{
+    // Quy tắc 3. Thư viện không bao giờ phủ hết mọi tình huống trên lớp.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+
+    var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+        new { points = 0.5m, reason = "Giúp bạn cùng nhóm sửa lỗi build", target = "final_total" });
+
+    var bp = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    bp.GetProperty("template_id").ValueKind.ShouldBe(JsonValueKind.Null);
+}
+
+[Fact]
+public async Task Dich_la_cot_ma_thieu_cot_thi_bi_tu_choi_va_nguoc_lai()
+{
+    // Quy tắc 4. Hai chiều đều phải chặn: "vào cột nào đó không rõ" hoặc "vào tổng nhưng lại có cột"
+    // đều là dữ liệu không tính được.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (sv, cotThuongKy) = await factory.SeedStudentWithColumnsAsync(gv);
+
+    (await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+        new { points = 0.5m, reason = "x", target = "grade_column" }))
+        .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+    (await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+        new { points = 0.5m, reason = "x", target = "final_total", target_column_id = cotThuongKy }))
+        .StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Cot_cua_lop_khac_bi_tu_choi()
+{
+    // Quy tắc 4, phần dễ quên: cột có tồn tại không chưa đủ, nó phải thuộc đúng lớp của sinh viên đó.
+    // Thiếu kiểm tra này thì điểm cộng rơi vào một cột mà sổ điểm của lớp không bao giờ đọc tới.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (sv, _) = await factory.SeedStudentWithColumnsAsync(gv);
+    var (_, cotLopKhac) = await factory.SeedStudentWithColumnsAsync(gv);
+
+    var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points",
+        new { points = 0.5m, reason = "x", target = "grade_column", target_column_id = cotLopKhac });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Bonus_vao_cot_thuong_ky_lam_diem_tong_tang_theo_trong_so()
+{
+    // Quy tắc 10 — quy tắc hay bị hiểu nhầm nhất. Cột "Thường kỳ" trọng số 20%, điểm gốc 8,
+    // cấp +0.5 vào cột: cột 8 → 8.5, điểm tổng chỉ tăng 0.5 * 0.2 = 0.1.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, sv, cotThuongKy) = await factory.SeedOfferingWithWeightedColumnsAsync(gv);
+    var truoc = (await gv.GetGradebookAsync(offeringId)).RowOf(sv).Final();
+
+    await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points", new
+    {
+        points = 0.5m, reason = "Phát biểu xây dựng bài",
+        target = "grade_column", target_column_id = cotThuongKy,
+    });
+
+    var sau = await gv.GetGradebookAsync(offeringId);
+    sau.RowOf(sv).ColumnScore(cotThuongKy).ShouldBe(8.5m);
+    sau.RowOf(sv).Final().ShouldBe(truoc + 0.1m);
+}
+
+[Fact]
+public async Task Bonus_vao_cot_bat_ky_deu_duoc_chap_nhan()
+{
+    // Yêu cầu gốc của người dùng: "cho giảng viên có thể cộng vào bất kỳ điểm nào".
+    // Lớp 3 cột thì cả ba cột đều là đích hợp lệ, không có cột nào được ưu tiên cứng trong code.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, sv, cot) = await factory.SeedOfferingWithThreeColumnsAsync(gv);
+
+    foreach (var key in new[] { "trac_nghiem", "bai_tap", "cuoi_mon" })
+    {
+        var res = await gv.PostAsJsonAsync($"/api/enrollments/{sv}/bonus-points", new
+        {
+            points = 0.25m, reason = $"Cộng vào {key}",
+            target = "grade_column", target_column_id = cot[key],
+        });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    (await gv.GetGradebookAsync(offeringId)).RowOf(sv).Bonus().ShouldBe(0.75m);
+}
+
+[Fact]
+public async Task Bonus_khong_day_diem_cot_hay_diem_tong_vuot_10()
+{
+    // Quy tắc 5. Cột 9.8 cộng thêm 0.5 vẫn là 10, phần thừa bốc hơi chứ không tràn sang tổng.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, sv, cot) = await factory.SeedColumnWithScoreAsync(gv, diem: 9.8m, trongSo: 100m);
+
+    await gv.GrantBonusToColumnAsync(sv, cot, 0.5m, "Làm thêm bài mở rộng");
+
+    var so = await gv.GetGradebookAsync(offeringId);
+    so.RowOf(sv).ColumnScore(cot).ShouldBe(10m);
+    so.RowOf(sv).Final().ShouldBe(10m);
+}
+
+[Fact]
+public async Task Tran_diem_cong_moi_sinh_vien_duoc_ton_trong()
+{
+    // Quy tắc 9. Lớp đặt trần 1.0 thì cấp 0.8 + 0.7 chỉ có 1.0 vào điểm, và kết quả
+    // không đổi giữa hai lần đọc sổ điểm (BonusLedger sắp xếp theo GrantedAt, Id).
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, sv) = await factory.SeedOfferingAsync(gv, bonusMaxPerStudent: 1m);
+
+    await gv.GrantBonusAsync(sv, 0.8m, "Phát biểu xây dựng bài");
+    await gv.GrantBonusAsync(sv, 0.7m, "Thuyết trình tự tin");
+
+    (await gv.GetGradebookAsync(offeringId)).RowOf(sv).Bonus().ShouldBe(1m);
+    (await gv.GetGradebookAsync(offeringId)).RowOf(sv).Bonus().ShouldBe(1m);   // đọc lại: y hệt
+}
+
+[Fact]
+public async Task An_template_khong_lam_doi_cac_diem_cong_da_cap()
+{
+    // Quy tắc 6, ca thứ nhất: ẩn.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+    var tpl = await gv.CreateReasonTemplateAsync("Thuyết trình tự tin", 0.5m);
+    var bpId = await gv.GrantBonusFromTemplateAsync(sv, tpl);
+
+    await gv.DeleteAsync($"/api/bonus-point-templates/{tpl}");   // ẩn, không xóa cứng
+
+    await using var db = await factory.CreateDbContextAsync();
+    (await db.BonusPoints.SingleAsync(b =&gt; b.Id == bpId)).Reason.ShouldBe("Thuyết trình tự tin");
+    (await db.BonusPointReasonTemplates.SingleAsync(t =&gt; t.Id == tpl)).IsActive.ShouldBeFalse();
+}
+
+[Fact]
+public async Task Sua_nhan_template_khong_lam_doi_lich_su()
+{
+    // Quy tắc 6, ca thứ hai — ca hay bị bỏ sót vì người ta chỉ nghĩ tới nút xóa.
+    // Đổi nhãn là chuyện bình thường (viết lại cho gọn, sửa lỗi chính tả), và nó KHÔNG được
+    // hồi tố lên những điểm cộng đã cấp: sinh viên khiếu nại cần đúng chữ lúc bạn cấp điểm.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+    var tpl = await gv.CreateReasonTemplateAsync("Thuyết trình tự tin", 0.5m);
+    var bpId = await gv.GrantBonusFromTemplateAsync(sv, tpl);
+
+    await gv.PutAsJsonAsync($"/api/bonus-point-templates/{tpl}",
+        new { label = "Thuyết trình xuất sắc", default_points = 0.5m, order_index = 0 });
+
+    await using var db = await factory.CreateDbContextAsync();
+    (await db.BonusPoints.SingleAsync(b =&gt; b.Id == bpId)).Reason.ShouldBe("Thuyết trình tự tin");
+    (await db.BonusPointReasonTemplates.SingleAsync(t =&gt; t.Id == tpl)).Label.ShouldBe("Thuyết trình xuất sắc");
+}
+
+[Fact]
+public async Task Template_da_an_khong_con_hien_o_day_nut_bam_nhanh_nhung_bo_an_duoc()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var tpl = await gv.CreateReasonTemplateAsync("Lý do dùng một lần rồi thôi", 0.25m);
+    await gv.DeleteAsync($"/api/bonus-point-templates/{tpl}");
+
+    var dsSauKhiAn = await gv.GetFromJsonAsync&lt;JsonElement&gt;("/api/instructor/bonus-point-templates");
+    dsSauKhiAn.EnumerateArray().ShouldNotContain(t =&gt; t.GetProperty("id").GetGuid() == tpl);
+
+    // Bỏ ẩn: ẩn nhầm là chuyện thường, và không có đường quay lại thì người dùng
+    // sẽ tạo một template trùng tên rồi thư viện có hai dòng giống hệt nhau.
+    (await gv.PostAsync($"/api/bonus-point-templates/{tpl}/restore", null))
+        .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+    var dsSauKhiBoAn = await gv.GetFromJsonAsync&lt;JsonElement&gt;("/api/instructor/bonus-point-templates");
+    dsSauKhiBoAn.EnumerateArray().ShouldContain(t =&gt; t.GetProperty("id").GetGuid() == tpl);
+}
+
+[Fact]
+public async Task Thu_vien_ly_do_dung_chung_cho_moi_lop_cua_giang_vien()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var tpl = await gv.CreateReasonTemplateAsync("Thuyết trình tự tin", 0.5m);
+    var lopKhac = await factory.SeedAnotherOfferingAsync(gv);
+
+    var ds = await gv.GetFromJsonAsync&lt;JsonElement&gt;(
+        $"/api/instructor/bonus-point-templates?offering_id={lopKhac}");
+
+    ds.EnumerateArray().ShouldContain(t =&gt; t.GetProperty("id").GetGuid() == tpl);
+}
+
+[Fact]
+public async Task Giang_vien_khac_khong_thay_thu_vien_ly_do_cua_toi()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    await gv.CreateReasonTemplateAsync("Thuyết trình tự tin", 0.5m);
+    var gvKhac = await factory.LoginAsAnotherInstructorAsync();
+
+    (await gvKhac.GetFromJsonAsync&lt;JsonElement&gt;("/api/instructor/bonus-point-templates"))
+        .GetArrayLength().ShouldBe(0);
+}
+
+[Fact]
+public async Task Xoa_diem_cong_ghi_lai_nhat_ky()
+{
+    // Quy tắc 7. Xóa điểm cộng cũng là thay đổi điểm — phải để lại vết như mọi thay đổi khác.
+    var gv = await factory.LoginAsInstructorAsync();
+    var sv = await factory.SeedEnrolledStudentAsync(gv);
+    var id = await gv.GrantBonusAsync(sv, 0.5m, "Nhầm người");
+
+    await gv.DeleteAsync($"/api/bonus-points/{id}");
+
+    await using var db = await factory.CreateDbContextAsync();
+    (await db.GradeAuditLogs.AnyAsync(l =&gt; l.TargetId == id)).ShouldBeTrue();
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Hai controller + validator ba quy tắc đầu vào</label>
+<pre><code>[ApiController]
+[Route("api")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class BonusPointsController(ISender sender) : ApiControllerBase
+{
+    /// &lt;summary&gt;Lịch sử cấp, dùng cho tooltip ở sổ điểm.&lt;/summary&gt;
+    [HttpGet("enrollments/{enrollmentId:guid}/bonus-points")]
+    [ProducesResponseType&lt;IReadOnlyList&lt;BonusPointDto&gt;&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetByEnrollment(Guid enrollmentId, CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetBonusPointsQuery(enrollmentId, CurrentUserId), ct));
+
+    [HttpPost("enrollments/{enrollmentId:guid}/bonus-points")]
+    [ProducesResponseType&lt;BonusPointDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; Grant(
+        Guid enrollmentId, GrantBonusPointCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { EnrollmentId = enrollmentId, GrantedBy = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;Xóa THẬT một lần cấp, kèm một dòng GradeAuditLog.&lt;/summary&gt;
+    [HttpDelete("bonus-points/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Delete(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new DeleteBonusPointCommand(id, CurrentUserId), ct));
+}
+
+[ApiController]
+[Route("api")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class BonusPointTemplatesController(ISender sender) : ApiControllerBase
+{
+    // [FromQuery(Name = ...)] là BẮT BUỘC: model binder của query string đọc theo tên tham số C#,
+    // nó KHÔNG đi theo JsonNamingPolicy.SnakeCaseLower. Thiếu attribute này thì include_hidden
+    // luôn là false, danh sách luôn thiếu mục đã ẩn, và không có lỗi nào báo ra.
+    [HttpGet("instructor/bonus-point-templates")]
+    public async Task&lt;IActionResult&gt; GetMine(
+        [FromQuery(Name = "include_hidden")] bool includeHidden,
+        [FromQuery(Name = "offering_id")] Guid? offeringId,
+        CancellationToken ct)
+        =&gt; Ok(await sender.Send(
+            new GetBonusReasonTemplatesQuery(CurrentUserId, includeHidden, offeringId), ct));
+
+    [HttpPost("instructor/bonus-point-templates")]
+    public async Task&lt;IActionResult&gt; Create(
+        SaveBonusReasonTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { InstructorId = CurrentUserId }, ct));
+
+    [HttpPut("bonus-point-templates/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Update(
+        Guid id, SaveBonusReasonTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { Id = id, InstructorId = CurrentUserId }, ct));
+
+    /// &lt;summary&gt;ẨN (is_active = false), KHÔNG xóa hàng — xem ghi chú bên dưới.&lt;/summary&gt;
+    [HttpDelete("bonus-point-templates/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Hide(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            new HideBonusReasonTemplateCommand(id, CurrentUserId), ct));
+
+    [HttpPost("bonus-point-templates/{id:guid}/restore")]
+    public async Task&lt;IActionResult&gt; Restore(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            new RestoreBonusReasonTemplateCommand(id, CurrentUserId), ct));
+}</code></pre>
+
+<p class="meta">Payload giữ nguyên hợp đồng cũ — <code>{ points, reason, target, target_column_id?,
+template_id?, context_type?, context_id? }</code> cho lần cấp, <code>{ label, default_points,
+default_target?, default_column_key?, order_index }</code> cho template — chúng chính là các thuộc tính của
+command, đọc theo <code>JsonNamingPolicy.SnakeCaseLower</code>.</p>
+
+<pre><code>using FluentValidation;
+
+/// &lt;summary&gt;
+/// Ba quy tắc đầu vào của quy tắc 1, 4 và 11 nằm ở đây vì cả ba đều thuần hình dạng:
+/// nhìn vào command là kết luận được, không cần đọc database. Chúng chạy trong
+/// ValidationBehavior, tức là TRƯỚC TransactionBehavior — một lần cấp thiếu lý do
+/// bị trả 400 mà không mở transaction nào.
+/// &lt;/summary&gt;
+public sealed class GrantBonusPointCommandValidator : AbstractValidator&lt;GrantBonusPointCommand&gt;
+{
+    public GrantBonusPointCommandValidator()
+    {
+        // Quy tắc 11 (Blocker B8).
+        RuleFor(x =&gt; x.Points).GreaterThan(0m)
+            .WithMessage("Điểm cộng phải lớn hơn 0. Muốn trừ điểm thì sửa điểm cột: "
+                       + "một dòng \"+(-0.5) · Đi trễ\" trong lịch sử điểm cộng "
+                       + "vừa làm hỏng thống kê vừa không ai đọc đúng từ lần đầu.");
+
+        // Quy tắc 1. NotEmpty của FluentValidation coi chuỗi toàn khoảng trắng là rỗng,
+        // nên "   " bị chặn mà không cần luật riêng. Có template_id KHÔNG miễn cho reason:
+        // reason là dữ liệu thật của bản ghi, template_id chỉ là dấu vết xuất xứ.
+        RuleFor(x =&gt; x.Reason).NotEmpty().MaximumLength(300)
+            .WithMessage("Điểm cộng phải có lý do — kể cả khi bấm nút từ thư viện.");
+
+        // Quy tắc 4, hai chiều. Thiếu một chiều là để lọt dữ liệu không tính được.
+        RuleFor(x =&gt; x.TargetColumnId).NotNull()
+            .When(x =&gt; x.Target == BonusTarget.GradeColumn)
+            .WithMessage("Đích là cột điểm thì bắt buộc có target_column_id.");
+
+        RuleFor(x =&gt; x.TargetColumnId).Null()
+            .When(x =&gt; x.Target == BonusTarget.FinalTotal)
+            .WithMessage("Đích là điểm tổng thì target_column_id phải để trống.");
+    }
+}</code></pre>
+
+<div class="hint">
+Phần còn lại của quy tắc 4 — <strong>cột đó phải thuộc đúng lớp của sinh viên này</strong>
+(test <code>Cot_cua_lop_khac_bi_tu_choi</code>) — <em>không</em> nằm ở validator, vì nó phải đọc
+<code>grade_columns</code> và <code>enrollments</code>. Handler kiểm rồi trả <code>Result.Invalid</code> →
+<code>ToActionResult</code> quy thành 400. Đây là ranh giới cố định của cả dự án: validator không chạm I/O,
+nếu không thì thứ tự Logging → Validation → Transaction mất hết ý nghĩa.
+<br><br>
+Ba <code>CHECK constraint</code> ở Task 4b.6 (<code>ck_bonus_points_positive</code>,
+<code>ck_bonus_reason_not_blank</code>, <code>ck_bonus_target_column</code>) <strong>giữ nguyên</strong>, không bỏ
+đi vì "đã có validator". Validator chỉ bảo vệ đường đi qua MediatR; seed, migration dữ liệu và mọi câu
+<code>INSERT</code> chạy tay đều không thấy nó. Trùng lặp ở đây là có chủ ý.
+</div>
+
+<p class="meta"><code>DELETE</code> trên template <strong>không</strong> xóa hàng khỏi bảng — nó đặt
+<code>is_active = false</code>. Xóa cứng làm gãy khóa ngoại <code>template_id</code> của những điểm cộng đã cấp,
+và bạn mất luôn số liệu "lý do nào hay dùng". Ngược lại, <code>DELETE</code> trên một <code>BonusPoint</code>
+là xóa thật — kèm một dòng <code>GradeAuditLog</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): bonus points targeting any column plus reason library"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 4b.8 — <code>GradebookController</code>: cấu hình sổ điểm</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/GradebookController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Commands/UpdateGradeColumns/</code>
+(Command + Handler + Validator)<br>
+<b>Tạo:</b> <code>Commands/UpdateGradebookSettings/</code>, <code>Commands/UpdateGradeConditions/</code>,
+<code>Commands/ApplySchemeTemplate/</code>, <code>Queries/GetGradeColumns/</code>,
+<code>Queries/GetGradebook/</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/GradebookConfigTests.cs</code>
+</div>
+
+<p>Người dùng dùng đúng chữ <em>"config"</em> ba lần trong yêu cầu gốc. Bản tài liệu trước có mô hình dữ liệu
+nhưng <strong>không có endpoint, không có màn hình, không có test nào để cấu hình</strong> (Blocker B6) —
+nghĩa là tính năng chỉ tồn tại trong database. Task này là phần "config" đúng nghĩa.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Controller</label>
+<pre><code>[ApiController]
+[Route("api/offerings/{offeringId:guid}")]
+[Authorize(Policy = Policies.Instructor)]      // đọc: giảng viên và trợ giảng
+[Produces("application/json")]
+public sealed class GradebookController(ISender sender) : ApiControllerBase
+{
+    [HttpGet("gradebook")]
+    public async Task&lt;IActionResult&gt; GetGradebook(
+        Guid offeringId,
+        [FromQuery(Name = "provisional")] bool provisional,
+        CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            new GetGradebookQuery(offeringId, CurrentUserId, provisional), ct));
+
+    // ⚠️ CƠ CHẾ CỦA provisional — đọc kỹ trước khi hiện thực.
+    // GetGradebookQueryHandler PHẢI nạp cột bằng AsNoTracking() và dựng một BẢN SAO
+    // của quy tắc gộp, KHÔNG được gán đè lên đối tượng gốc:
+    //
+    //     var rule = new GradeAggregation
+    //     {
+    //         Kind = c.Aggregation.Kind,
+    //         N    = c.Aggregation.N,
+    //         TreatMissingAsZero = provisional ? false : c.Aggregation.TreatMissingAsZero,
+    //     };
+    //
+    // Cách viết "tự nhiên" là gán c.Aggregation.TreatMissingAsZero = false cho lần đọc này —
+    // và đó chính là cái bẫy: GradeAggregation là owned entity CÓ SETTER và đang được EF theo dõi.
+    // Chỉ cần SaveChangesAsync chạy ở bất kỳ đâu trong cùng scope là cấu hình THẬT của cột bị
+    // ghi đè vĩnh viễn. Một lần giảng viên bật công tắc "xem điểm tạm tính" là đổi luôn cách tính
+    // điểm của cả lớp — không thông báo gì, và không ai lần ra nguyên nhân.
+
+    [HttpGet("grade-columns")]
+    [ProducesResponseType&lt;IReadOnlyList&lt;GradeColumnDto&gt;&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetColumns(Guid offeringId, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new GetGradeColumnsQuery(offeringId, CurrentUserId), ct));
+
+    /// &lt;summary&gt;
+    /// Thay CẢ BỘ cột: id có = sửa cột đang có, id trống = cột mới,
+    /// cột cũ không xuất hiện trong body = yêu cầu xóa.
+    /// &lt;/summary&gt;
+    [HttpPut("grade-columns")]
+    [Authorize(Policy = Policies.Instructor)]       // ghi: chỉ giảng viên của lớp
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task&lt;IActionResult&gt; UpdateColumns(
+        Guid offeringId, UpdateGradeColumnsCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    [HttpPut("gradebook-settings")]
+    [Authorize(Policy = Policies.Instructor)]
+    public async Task&lt;IActionResult&gt; UpdateSettings(
+        Guid offeringId, UpdateGradebookSettingsCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    [HttpPut("grade-conditions")]
+    [Authorize(Policy = Policies.Instructor)]
+    public async Task&lt;IActionResult&gt; UpdateConditions(
+        Guid offeringId, UpdateGradeConditionsCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    [HttpPost("apply-scheme-template")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task&lt;IActionResult&gt; ApplySchemeTemplate(
+        Guid offeringId, ApplySchemeTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { OfferingId = offeringId, ActorId = CurrentUserId }, ct));
+
+    // Hai action xuất Excel cũng thuộc controller này — xem Task 4b.9.
+}</code></pre>
+
+<p class="meta">Payload không đổi:
+<code>{ columns: [{ id?, key, name, weight_percent, order_index, aggregation, sources: [{ source_type,
+source_id, weight_within_column? }] }] }</code>,
+<code>{ bonus_default_target, bonus_default_column_id?, bonus_max_points_per_student? }</code>,
+<code>{ conditions: [{ column_key, op, threshold, action, action_value }] }</code>,
+<code>{ template_id, mode: "replace" | "merge" }</code>.
+Bốn nhóm endpoint <code>/api/instructor/grade-scheme-templates</code> và
+<code>/api/grade-scheme-templates/{id}</code> nằm ở <code>GradeSchemeTemplatesController</code> của
+Task 4b.1 — chúng thuộc về giảng viên chứ không thuộc về lớp, đừng nhét thêm một bản nữa vào đây.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Validator: những gì kết luận được mà không cần đọc DB</label>
+<pre><code>public sealed class UpdateGradeColumnsCommandValidator
+    : AbstractValidator&lt;UpdateGradeColumnsCommand&gt;
+{
+    private static readonly Regex Slug = new("^[a-z][a-z0-9_]{0,31}$", RegexOptions.Compiled);
+
+    public UpdateGradeColumnsCommandValidator()
+    {
+        RuleFor(x =&gt; x.Columns).NotEmpty()
+            .WithMessage("Lớp phải có ít nhất một cột điểm.");
+
+        RuleForEach(x =&gt; x.Columns).ChildRules(c =&gt;
+        {
+            c.RuleFor(x =&gt; x.Key).Must(k =&gt; k is not null &amp;&amp; Slug.IsMatch(k))
+                .WithMessage("Key phải khớp ^[a-z][a-z0-9_]{0,31}$.");
+            c.RuleFor(x =&gt; x.Name).NotEmpty().MaximumLength(60);
+            c.RuleFor(x =&gt; x.WeightPercent).InclusiveBetween(0m, 100m);
+        });
+
+        RuleFor(x =&gt; x.Columns)
+            .Must(cs =&gt; cs.Select(c =&gt; c.Key)
+                          .Distinct(StringComparer.Ordinal).Count() == cs.Count)
+            .WithMessage("Hai cột không được trùng key.");
+
+        // Test khẳng định thân phản hồi chứa "110" — thông báo phải nói ra con số thật.
+        RuleFor(x =&gt; x.Columns)
+            .Must(cs =&gt; cs.Sum(c =&gt; c.WeightPercent) == 100m)
+            .WithMessage(x =&gt; $"Tổng trọng số các cột phải bằng 100%, "
+                            + $"hiện tại là {x.Columns.Sum(c =&gt; c.WeightPercent)}%.");
+    }
+}
+
+public sealed class UpdateGradebookSettingsCommandValidator
+    : AbstractValidator&lt;UpdateGradebookSettingsCommand&gt;
+{
+    public UpdateGradebookSettingsCommandValidator()
+    {
+        // Mặc định trỏ vào hư không nghĩa là popover cấp điểm cộng mở ra không chọn sẵn được gì,
+        // và giảng viên sẽ tưởng mình chưa cấu hình xong.
+        RuleFor(x =&gt; x.BonusDefaultColumnId).NotNull()
+            .When(x =&gt; x.BonusDefaultTarget == BonusTarget.GradeColumn)
+            .WithMessage("Đích mặc định là cột thì phải chỉ ra cột nào.");
+
+        RuleFor(x =&gt; x.BonusMaxPointsPerStudent)
+            .GreaterThan(0m).When(x =&gt; x.BonusMaxPointsPerStudent is not null)
+            .WithMessage("Trần điểm cộng phải lớn hơn 0. Không muốn đặt trần thì để trống, "
+                       + "đừng đặt 0 — 0 nghĩa là vô hiệu hóa mọi điểm cộng của lớp.");
+    }
+}</code></pre>
+
+<div class="hint">
+Ba luật <strong>không</strong> nằm ở validator, vì cả ba phải đọc dữ liệu đang có:
+<br>• <strong>Xóa cột đang có <code>GradeRecord</code></strong> → handler đếm rồi trả
+<code>Result.Conflict</code> kèm tên cột và số sinh viên bị ảnh hưởng → 409. Là 409 chứ không phải 400:
+yêu cầu hợp lệ về cú pháp, nhưng xung đột với dữ liệu đang có.
+<br>• <strong>Áp mẫu chế độ <code>replace</code> khi đã có điểm</strong> → cũng 409, cùng lý do.
+<br>• <strong>Đổi <code>key</code> của cột đang được điều kiện điểm sàn hoặc mẫu xuất dùng</strong> → vẫn cho phép,
+trả 200 kèm <code>warnings</code>. Cấm hẳn thì người dùng bị kẹt, im lặng thì mẫu xuất thiếu cột và điều kiện
+điểm sàn mất hiệu lực mà không ai biết.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task Doi_trong_so_lam_tong_khac_100_bi_tu_choi_kem_so_thuc_te()
+{
+    // "Không hợp lệ" là câu trả lời vô dụng khi bạn đang sửa 6 cột. Phải nói ra đang là bao nhiêu.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot) = await factory.SeedOfferingWithTwoColumnsAsync(gv);   // 40 + 60
+
+    var res = await gv.PutAsJsonAsync($"/api/offerings/{offeringId}/grade-columns", new
+    {
+        columns = new[]
+        {
+            new { id = cot["thuong_ky"], key = "thuong_ky", name = "Thường kỳ", weight_percent = 50m, order_index = 0 },
+            new { id = cot["cuoi_mon"],  key = "cuoi_mon",  name = "Cuối môn",  weight_percent = 60m, order_index = 1 },
+        },
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    (await res.Content.ReadAsStringAsync()).ShouldContain("110");
+}
+
+[Fact]
+public async Task Dat_bonus_default_target_la_cot_ma_thieu_cot_thi_bi_tu_choi()
+{
+    // Mặc định trỏ vào hư không nghĩa là popover cấp điểm cộng mở ra không chọn sẵn được gì,
+    // và giảng viên sẽ tưởng mình chưa cấu hình xong.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, _) = await factory.SeedOfferingWithTwoColumnsAsync(gv);
+
+    var res = await gv.PutAsJsonAsync($"/api/offerings/{offeringId}/gradebook-settings",
+        new { bonus_default_target = "grade_column" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Xoa_cot_dang_co_diem_bi_tu_choi_kem_huong_dan()
+{
+    // 409 chứ không phải 400: yêu cầu hợp lệ về cú pháp, nhưng xung đột với dữ liệu đang có.
+    // Xóa im lặng ở đây nghĩa là xóa điểm của cả lớp bằng một cú kéo-thả nhầm.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot) = await factory.SeedOfferingWithGradedColumnAsync(gv);
+
+    var res = await gv.PutAsJsonAsync($"/api/offerings/{offeringId}/grade-columns", new
+    {
+        columns = new[]
+        {
+            new { id = cot["cuoi_mon"], key = "cuoi_mon", name = "Cuối môn", weight_percent = 100m, order_index = 0 },
+        },
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+    var loi = await res.Content.ReadAsStringAsync();
+    loi.ShouldContain("Thường kỳ");
+    loi.ShouldContain("đang có điểm");
+}
+
+[Fact]
+public async Task Doi_key_cua_cot_dang_duoc_dieu_kien_hoac_mau_xuat_dung_thi_canh_bao()
+{
+    // Đổi key là cắt dây nối tới mẫu xuất Excel và điều kiện điểm sàn. Vẫn cho phép —
+    // nhưng phải nói ra, vì hậu quả (mẫu xuất thiếu cột, điều kiện mất hiệu lực) xảy ra lặng lẽ.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot) = await factory.SeedOfferingWithConditionAsync(gv);   // điều kiện trỏ cuoi_mon
+
+    var res = await gv.PutAsJsonAsync($"/api/offerings/{offeringId}/grade-columns", new
+    {
+        columns = new[]
+        {
+            new { id = cot["thuong_ky"], key = "thuong_ky", name = "Thường kỳ", weight_percent = 40m, order_index = 0 },
+            new { id = cot["cuoi_mon"],  key = "thi_cuoi",  name = "Cuối môn",  weight_percent = 60m, order_index = 1 },
+        },
+    });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+    var body = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    body.GetProperty("warnings").EnumerateArray()
+        .ShouldContain(w =&gt; w.GetString()!.Contains("cuoi_mon", StringComparison.Ordinal));
+}
+
+[Fact]
+public async Task Ap_mau_khac_o_che_do_replace_khi_da_co_diem_thi_bi_chan()
+{
+    // Đổi từ mẫu 2 cột sang 3 cột giữa kỳ là chuyện có thật và phải làm được — nhưng chỉ khi
+    // chưa có điểm, hoặc bằng chế độ merge để giữ lại cột đang có điểm.
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, _) = await factory.SeedOfferingWithGradedColumnAsync(gv);
+    var mau3Cot = await gv.CreateSchemeTemplateAsync("3 cột có trắc nghiệm",
+        ("trac_nghiem", 20m), ("bai_tap", 30m), ("cuoi_mon", 50m));
+
+    var res = await gv.PostAsJsonAsync($"/api/offerings/{offeringId}/apply-scheme-template",
+        new { template_id = mau3Cot, mode = "replace" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+}
+
+[Fact]
+public async Task Ap_mau_o_che_do_merge_giu_nguyen_cot_trung_key_va_diem_cua_no()
+{
+    // merge khớp theo KEY: cột cùng key giữ nguyên id và mọi GradeRecord của nó,
+    // chỉ cập nhật tên/trọng số/quy tắc. Cột mới được thêm, cột thừa bị đề nghị xóa (không tự xóa).
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, cot) = await factory.SeedOfferingWithGradedColumnAsync(gv);   // thuong_ky có điểm
+    var mau3Cot = await gv.CreateSchemeTemplateAsync("3 cột có trắc nghiệm",
+        ("trac_nghiem", 20m), ("thuong_ky", 30m), ("cuoi_mon", 50m));
+
+    var res = await gv.PostAsJsonAsync($"/api/offerings/{offeringId}/apply-scheme-template",
+        new { template_id = mau3Cot, mode = "merge" });
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+    await using var db = await factory.CreateDbContextAsync();
+    var thuongKy = await db.GradeColumns.SingleAsync(c =&gt; c.OfferingId == offeringId &amp;&amp; c.Key == "thuong_ky");
+    thuongKy.Id.ShouldBe(cot["thuong_ky"]);
+    thuongKy.WeightPercent.ShouldBe(30m);
+    (await db.GradeRecords.CountAsync(r =&gt; r.GradeColumnId == thuongKy.Id)).ShouldBeGreaterThan(0);
+}
+
+[Fact]
+public async Task Chi_giang_vien_cua_lop_moi_sua_duoc_cau_hinh_so_diem()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var (offeringId, _) = await factory.SeedOfferingWithTwoColumnsAsync(gv);
+    var ta = await factory.LoginAsTeachingAssistantAsync(offeringId);
+
+    (await ta.PutAsJsonAsync($"/api/offerings/{offeringId}/gradebook-settings",
+        new { bonus_default_target = "final_total" }))
+        .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+}</code></pre>
+
+<div class="hint">
+Chế độ <code>merge</code> khớp cột cũ với item của mẫu <strong>bằng <code>key</code></strong>, không bằng thứ tự
+và không bằng tên. Khớp bằng thứ tự thì thêm một cột ở đầu mẫu sẽ làm điểm "Thường kỳ" của cả lớp nhảy sang cột
+"Trắc nghiệm". Đây lại là một chỗ nữa mà <code>key</code> cứu bạn.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Xóa cache sổ điểm ở mọi đường ghi của task này</label>
+<p class="meta">Bốn command ghi ở trên đều là <code>ICommand</code> nên <code>TransactionBehavior</code> bọc sẵn:
+đổi cột, ghi <code>GradeAuditLog</code> và xóa cache nằm chung một transaction. Đừng gọi
+<code>BeginTransactionAsync</code> trong handler — behavior đã kiểm
+<code>db.Database.CurrentTransaction is not null</code> và sẽ nhường, nhưng viết thêm ở đó chỉ để lại một dòng
+gây hiểu nhầm rằng handler nào cũng phải tự lo transaction.</p>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): gradebook configuration endpoints"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 4 — Xuất Excel và giao diện</h2>
+
+<div class="task">
+<h3>Task 4b.9 — <code>GradeExportTemplate</code> + xuất Excel theo mẫu (UC-18)</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Grading/GradeExportTemplate.cs</code>, <code>GradeExportItem.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/GradeExportTemplatesController.cs</code><br>
+<b>Sửa:</b> <code>src/TeachHub.Api/Controllers/GradebookController.cs</code> (thêm hai action xuất Excel)<br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Grading/Queries/ExportGradebook/</code>,
+<code>Queries/PreviewGradebookExport/</code>, <code>Commands/SaveGradeExportTemplate/</code>,
+<code>Queries/GetExportTemplates/</code><br>
+<b>Sửa:</b> <code>src/TeachHub.Infrastructure/Excel/GradebookExporter.cs</code> (nhận mẫu xuất)<br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/GradebookExportTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Entity</label>
+<pre><code>namespace TeachHub.Domain.Grading;
+
+public enum GradeExportSource
+{
+    StudentCode, FullName, Email, ClassName,
+    GradeColumn,     // cần ColumnKey
+    Bonus,           // điểm cộng đích final_total (bonus vào cột đã nằm trong chính cột đó)
+    FinalScore,
+    Blank,           // cột trống để phòng đào tạo tự điền
+}
+
+/// &lt;summary&gt;Mẫu xuất của MỘT giảng viên, dùng lại được cho mọi lớp có cùng bộ key.&lt;/summary&gt;
+public class GradeExportTemplate : Entity
+{
+    public required Guid InstructorId { get; set; }
+    public required string Name { get; set; }      // "Mẫu phòng đào tạo"
+    public bool IsDefault { get; set; }
+    public List&lt;GradeExportItem&gt; Items { get; set; } = [];
+}
+
+public class GradeExportItem : Entity
+{
+    public required Guid TemplateId { get; set; }
+    public required GradeExportSource Source { get; set; }
+
+    /// &lt;summary&gt;Chỉ dùng khi Source = GradeColumn. Là KEY của cột, KHÔNG phải id.&lt;/summary&gt;
+    public string? ColumnKey { get; set; }
+
+    /// &lt;summary&gt;Tiêu đề hiện trong file — sửa được cho khớp mẫu bảng điểm của trường.&lt;/summary&gt;
+    public required string Header { get; set; }
+
+    public required int OrderIndex { get; set; }
+    public int DecimalPlaces { get; set; } = 1;
+}</code></pre>
+
+<div class="hint">
+<strong>Mẫu xuất thuộc về giảng viên, cột điểm thuộc về lớp — nối hai bên bằng <code>key</code>, không bằng
+<code>id</code>.</strong> Đây là điểm mấu chốt của cả task. Nối bằng id thì "Mẫu phòng đào tạo" bạn dựng công phu
+chỉ dùng được cho đúng một lớp; sang lớp sau, mọi cột có id mới và mẫu xuất trống trơn — người dùng sẽ phải soạn lại
+mẫu cho từng lớp, và tính năng coi như không tồn tại. Nối bằng <code>key</code> thì một mẫu chạy cho mọi lớp có cùng
+bộ key, kể cả lớp của học kỳ sau.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Controller: CRUD mẫu xuất + hai action xuất file</label>
+<pre><code>[ApiController]
+[Route("api")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class GradeExportTemplatesController(ISender sender) : ApiControllerBase
+{
+    [HttpGet("instructor/grade-export-templates")]
+    public async Task&lt;IActionResult&gt; GetMine(CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetExportTemplatesQuery(CurrentUserId), ct));
+
+    [HttpPost("instructor/grade-export-templates")]
+    public async Task&lt;IActionResult&gt; Create(
+        SaveGradeExportTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { InstructorId = CurrentUserId }, ct));
+
+    [HttpPut("grade-export-templates/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Update(
+        Guid id, SaveGradeExportTemplateCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { Id = id, InstructorId = CurrentUserId }, ct));
+
+    [HttpDelete("grade-export-templates/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Delete(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            new DeleteExportTemplateCommand(id, CurrentUserId), ct));
+}</code></pre>
+
+<pre><code>// GradebookController (Task 4b.8) — thêm hai action. Cùng lớp vì cả hai đọc đúng
+// sổ điểm của lớp đó, và tách ra một controller riêng chỉ để giữ hai action là thừa.
+
+/// &lt;summary&gt;
+/// Xuất file .xlsx. Là IQuery chứ không phải ICommand: TransactionBehavior nhìn marker
+/// IBaseCommand nên nó bỏ qua. Dựng file Excel cho lớp 40 sinh viên mất vài trăm mili giây —
+/// giữ một transaction mở suốt chừng đó thời gian chỉ để ĐỌC là cách làm cạn connection pool
+/// vào đúng tuần cuối kỳ, khi cả trường cùng xuất bảng điểm.
+/// &lt;/summary&gt;
+[HttpGet("export-excel")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+public async Task&lt;IActionResult&gt; ExportExcel(
+    Guid offeringId,
+    [FromQuery(Name = "template_id")] Guid? templateId,
+    CancellationToken ct)
+{
+    var result = await sender.Send(
+        new ExportGradebookQuery(offeringId, CurrentUserId, templateId), ct);
+
+    if (!result.IsSuccess) return ToActionResult(result);
+    var file = result.Value;
+
+    // Cảnh báo đi theo header vì thân phản hồi là file nhị phân, không nhét JSON vào được.
+    // Percent-encode vì header HTTP chỉ nhận ASCII, mà cảnh báo là tiếng Việt có dấu —
+    // gán thẳng chuỗi có dấu vào header thì Kestrel trả 500 chứ không phải cắt bớt ký tự.
+    Response.Headers["X-Export-Warnings"] =
+        Uri.EscapeDataString(JsonSerializer.Serialize(file.Warnings));
+
+    return File(
+        file.Content,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        file.FileName);            // "bang-diem-LTW-L01-2026-1.xlsx"
+}
+
+[HttpGet("export-excel/preview")]
+public async Task&lt;IActionResult&gt; PreviewExport(
+    Guid offeringId,
+    [FromQuery(Name = "template_id")] Guid? templateId,
+    CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(
+        new PreviewGradebookExportQuery(offeringId, CurrentUserId, templateId), ct));</code></pre>
+
+<p class="meta">Hợp đồng giữ nguyên: <code>GET /api/offerings/{id}/export-excel?template_id=…</code> trả file
+<code>.xlsx</code> kèm header <code>X-Export-Warnings</code>, còn
+<code>/export-excel/preview?template_id=…</code> trả
+<code>{ headers: [...], sample_row: [...], warnings: [...] }</code>.</p>
+
+<div class="hint">
+<code>[Produces("application/json")]</code> ở cấp class <strong>không</strong> phá phản hồi file: nó chỉ can thiệp
+vào <code>ObjectResult</code>, mà <code>File(...)</code> trả <code>FileContentResult</code>. Điều <em>không</em> được
+làm là gắn thêm <code>[Produces("application/json")]</code> lên chính action xuất file — lúc đó bạn đang khai báo
+với OpenAPI một kiểu nội dung mà endpoint không bao giờ trả, và người sinh client sẽ dựng ra hàm trả JSON cho một
+endpoint trả nhị phân.
+<br>Tham số <code>template_id</code> bắt buộc có <code>[FromQuery(Name = ...)]</code>: query string không đi theo
+quy ước <code>snake_case</code> của JSON, thiếu attribute thì mọi lần xuất đều rơi về mẫu mặc định và các test
+"đổi tiêu đề cột" hỏng theo cách rất khó lần ra.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task File_xuat_ra_mo_duoc_va_dung_so_dong()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 40);
+
+    var bytes = await gv.GetByteArrayAsync($"/api/offerings/{offeringId}/export-excel");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    wb.Worksheet(1).LastRowUsed()!.RowNumber().ShouldBe(41);      // 1 tiêu đề + 40 sinh viên
+}
+
+[Fact]
+public async Task Mssv_giu_nguyen_dang_chuoi_khong_bi_excel_doi_thanh_so()
+{
+    // MSSV bắt đầu bằng 0 hoặc dài 10 chữ số sẽ bị Excel biến thành số khoa học.
+    // Bảng điểm nộp cho phòng đào tạo mà MSSV thành "2.25101E+09" là hỏng việc.
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 3);
+
+    var bytes = await gv.GetByteArrayAsync($"/api/offerings/{offeringId}/export-excel");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    var o = wb.Worksheet(1).Cell(2, 1);
+    o.DataType.ShouldBe(XLDataType.Text);
+    o.GetString().ShouldBe("2251012001");
+}
+
+[Fact]
+public async Task Ten_tieng_viet_co_dau_hien_thi_dung()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 3);
+
+    var bytes = await gv.GetByteArrayAsync($"/api/offerings/{offeringId}/export-excel");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    wb.Worksheet(1).Cell(2, 2).GetString().ShouldBe("Nguyễn Văn Ánh");
+}
+
+[Fact]
+public async Task Diem_xuat_ra_dung_so_chu_so_thap_phan_da_cau_hinh()
+{
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 3);
+    var mau = await gv.CreateExportTemplateAsync(
+        ("StudentCode", "MSSV", 0), ("FinalScore", "Điểm tổng kết", 2));
+
+    var bytes = await gv.GetByteArrayAsync(
+        $"/api/offerings/{offeringId}/export-excel?template_id={mau}");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    wb.Worksheet(1).Cell(2, 2).Style.NumberFormat.Format.ShouldBe("0.00");
+}
+
+[Fact]
+public async Task Doi_tieu_de_cot_phan_anh_vao_file()
+{
+    // Phòng đào tạo yêu cầu đúng chữ "Điểm quá trình", trong khi trong lớp bạn gọi là "Thường kỳ".
+    // Không đổi được tiêu đề thì mỗi lần nộp lại phải sửa tay trong Excel.
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 3);
+    var mau = await gv.CreateExportTemplateAsync(
+        ("StudentCode", "MSSV", 0), ("GradeColumn:thuong_ky", "Điểm quá trình", 1));
+
+    var bytes = await gv.GetByteArrayAsync(
+        $"/api/offerings/{offeringId}/export-excel?template_id={mau}");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    wb.Worksheet(1).Cell(1, 2).GetString().ShouldBe("Điểm quá trình");
+}
+
+[Fact]
+public async Task Mau_xuat_dung_lai_duoc_cho_lop_khac_cung_bo_key()
+{
+    // Lý do tồn tại của việc nối bằng key. Lớp B là lớp khác, cột có id khác hoàn toàn.
+    var gv = await factory.LoginAsInstructorAsync();
+    var lopA = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 3);
+    var lopB = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 5);
+    var mau = await gv.CreateExportTemplateAsync(
+        ("StudentCode", "MSSV", 0), ("GradeColumn:thuong_ky", "Điểm quá trình", 1));
+
+    var bytes = await gv.GetByteArrayAsync(
+        $"/api/offerings/{lopB}/export-excel?template_id={mau}");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    wb.Worksheet(1).Cell(1, 2).GetString().ShouldBe("Điểm quá trình");
+    wb.Worksheet(1).LastRowUsed()!.RowNumber().ShouldBe(6);
+    lopA.ShouldNotBe(lopB);
+}
+
+[Fact]
+public async Task Cot_co_trong_lop_ma_khong_co_trong_mau_xuat_thi_phai_canh_bao()
+{
+    // KHÔNG được bỏ qua im lặng. Nộp bảng điểm thiếu một cột cho phòng đào tạo là lỗi
+    // chỉ phát hiện được sau khi đã nộp, và lúc đó sửa rất phiền.
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedThreeColumnOfferingAsync(gv);
+    var mau = await gv.CreateExportTemplateAsync(
+        ("StudentCode", "MSSV", 0), ("GradeColumn:cuoi_mon", "Cuối môn", 1));
+
+    var xemTruoc = await gv.GetFromJsonAsync&lt;JsonElement&gt;(
+        $"/api/offerings/{offeringId}/export-excel/preview?template_id={mau}");
+
+    var canhBao = xemTruoc.GetProperty("warnings").EnumerateArray()
+        .Select(w =&gt; w.GetString()!).ToList();
+    canhBao.ShouldContain(w =&gt; w.Contains("trac_nghiem", StringComparison.Ordinal));
+    canhBao.ShouldContain(w =&gt; w.Contains("bai_tap", StringComparison.Ordinal));
+}
+
+[Fact]
+public async Task Mau_xuat_tro_toi_key_khong_con_ton_tai_thi_cot_do_de_trong_va_canh_bao()
+{
+    // Chiều ngược lại: mẫu có "trac_nghiem" nhưng lớp 2 cột thì không có cột đó.
+    // Vẫn xuất được file — bảng điểm dở dang còn hơn không xuất được gì lúc 11 giờ đêm.
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedGradedOfferingAsync(gv, soSinhVien: 3);   // 2 cột
+    var mau = await gv.CreateExportTemplateAsync(
+        ("StudentCode", "MSSV", 0), ("GradeColumn:trac_nghiem", "Trắc nghiệm", 1));
+
+    var res = await gv.GetAsync($"/api/offerings/{offeringId}/export-excel?template_id={mau}");
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+    res.Headers.GetValues("X-Export-Warnings").Single().ShouldContain("trac_nghiem");
+}
+
+[Fact]
+public async Task Diem_cong_vao_cot_khong_bi_dem_hai_lan()
+{
+    // Điểm cộng gắn vào cột đã nằm trong giá trị của chính cột đó. Cộng thêm lần nữa ở cột
+    // "Điểm cộng" thì bảng điểm nộp trường vênh với sổ điểm trên hệ thống, và không ai biết bên nào đúng.
+    var gv = await factory.LoginAsInstructorAsync();
+    var offeringId = await factory.SeedOfferingWithColumnBonusAsync(gv);   // +0.5 vào thuong_ky
+
+    var bytes = await gv.GetByteArrayAsync($"/api/offerings/{offeringId}/export-excel");
+
+    using var wb = new XLWorkbook(new MemoryStream(bytes));
+    var ws = wb.Worksheet(1);
+    ws.Cell(2, ws.CotTheoTieuDe("Thường kỳ")).GetValue&lt;decimal&gt;().ShouldBe(8.5m);
+    ws.Cell(2, ws.CotTheoTieuDe("Điểm cộng")).GetValue&lt;decimal&gt;().ShouldBe(0m);
+}</code></pre>
+
+<div class="danger">
+<strong>Không có cột điểm chữ.</strong> Thang điểm là số 0–10 (ADR-008 và bảng quyết định của Phase 4a).
+Nếu bạn thấy mình đang gõ bảng ngưỡng A / B+ / C thì bạn đang làm việc đã bị loại khỏi phạm vi.
+<br><br>
+Ba lỗi biên dịch của bản test cũ, đừng lặp lại: dùng biến <code>gv</code>, <code>offeringId</code>,
+<code>bytes</code> mà chưa khai báo trong chính test đó; và để <code>async Task</code> mà trong thân hàm không có
+<code>await</code> nào (CS1998 — cảnh báo, mà dự án bật <code>TreatWarningsAsErrors</code> nên nó là lỗi build).
+Mỗi test tự đăng nhập, tự seed, tự lấy dữ liệu của mình.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Viết exporter</label>
+<pre><code>// MSSV BẮT BUỘC ép kiểu chuỗi, nếu không Excel đọc thành số.
+ws.Cell(row, col).SetValue(e.StudentCode).Style.NumberFormat.Format = "@";
+
+// Số chữ số thập phân lấy từ item của mẫu xuất, không phải hằng số.
+ws.Cell(row, col).SetValue(score).Style.NumberFormat.Format =
+    item.DecimalPlaces == 0 ? "0" : "0." + new string('0', item.DecimalPlaces);</code></pre>
+
+<p>Dòng đầu file ghi tên lớp, học kỳ, ngày xuất; hàng tiêu đề được đóng băng. Cột dựng <strong>theo đúng thứ tự
+<code>order_index</code> của mẫu</strong>, không theo thứ tự cột trong lớp — người dùng sắp mẫu để khớp bảng của
+phòng đào tạo, đảo lại là mất công sắp.</p>
+
+<div class="hint">Hai loại điểm cộng hiện ở hai chỗ khác nhau, nếu không bảng điểm sẽ không cộng ra được bằng tay:
+điểm cộng gắn vào cột đã nằm sẵn trong giá trị của chính cột đó (đừng cộng lần thứ hai ở cột "Điểm cộng"),
+còn điểm cộng đích <em>điểm tổng</em> mới đứng riêng một cột. Thêm chú thích ô trên tiêu đề mỗi cột điểm
+để người đọc biết cột đó đã bao gồm điểm cộng.</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Mở file bằng Microsoft Excel thật, kiểm tra bằng mắt</label>
+<p class="meta">Test tự động không bắt được lỗi định dạng nhìn thấy được. Mở bằng Microsoft Excel
+(không phải Numbers hay LibreOffice) vì đó là thứ phòng đào tạo dùng.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(grading): configurable Excel export templates"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 4b.10 — Màn hình 6.8 (sổ điểm), 6.7b (thư viện lý do) và trình cấu hình cột</h3>
+<div class="files">
+<b>Tạo:</b> <code>frontend/src/app/(instructor)/offerings/[id]/gradebook/page.tsx</code><br>
+<b>Tạo:</b> <code>frontend/src/components/grading/GradeColumnDesigner.tsx</code>,
+<code>ExportTemplateEditor.tsx</code><br>
+<b>Sửa:</b> <code>frontend/src/components/grading/BonusPointPopover.tsx</code> (liệt kê cột động)
+</div>
+
+<h4>Màn hình 6.8 — sổ điểm</h4>
+<pre><code>┌──────────┬────────────────┬──────┬──────┬──────┬────────┬───────┐
+│ MSSV     │ Họ tên         │ Trắc │ Bài  │ Cuối │ Điểm   │ Tổng  │
+│ (ghim)   │ (ghim)         │ ngh. │ tập  │ môn  │ cộng   │       │
+│          │                │ 20%  │ 30%  │ 50%  │ →tổng  │       │
+├──────────┼────────────────┼──────┼──────┼──────┼────────┼───────┤
+│2251012001│ Nguyễn Văn Ánh │ 8.0  │ 7.5* │ 9.0  │ +0.5   │  8.9  │
+│2251012002│ Trần Thị Bình  │ 9.0  │ 8.0• │ 3.5  │  —     │  3.9⚠ │
+└──────────┴────────────────┴──────┴──────┴──────┴────────┴───────┘
+  * = sửa tay (hover: ai sửa, lúc nào, từ mấy sang mấy)
+  • = có điểm cộng gắn vào cột (hover: từng lần cấp kèm lý do)
+  ⚠ = bị chặn bởi điều kiện điểm sàn "Cuối môn &lt; 4 → tối đa 3.9"
+
+[ ] Xem điểm tạm tính (bỏ qua bài chưa chấm)     [Cấu hình cột] [Xuất Excel]</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Ghim cột MSSV và Họ tên khi cuộn ngang</label>
+<p class="meta">Lớp 40 sinh viên với 6 cột điểm tràn màn hình ngay. Không biết mình đang sửa điểm của ai
+là cách nhanh nhất để nhập nhầm — và nhập nhầm điểm thì phát hiện rất muộn.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Công tắc "Xem điểm tạm tính (bỏ qua bài chưa chấm)"</label>
+<div class="danger">
+Công tắc này <strong>chỉ đổi cách xem, không đổi dữ liệu lưu</strong>. Nó dựng lại sổ điểm với
+<code>TreatMissingAsZero = false</code> cho lần đọc đó và <em>không</em> ghi gì xuống cấu hình cột.
+Giữa học kỳ, <code>TreatMissingAsZero = true</code> (mặc định, và đúng về mặt cuối kỳ) khiến cả lớp trông như
+sắp rớt — nhìn bảng đó mỗi tuần thì bạn sẽ tự tay đổi cấu hình cột cho "đỡ sợ", rồi tới cuối kỳ quên đổi lại
+và điểm của cả lớp bị tính sai theo hướng nới tay. Một công tắc xem tạm giải quyết trọn vấn đề đó.
+<br>Khi bật, hàng tiêu đề đổi màu và hiện chữ "ĐANG XEM TẠM TÍNH" — để không ai chụp màn hình bảng này gửi cho
+sinh viên rồi tưởng là điểm chính thức.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Sửa điểm tại chỗ; ô đã sửa tay có dấu riêng + tooltip lịch sử</label>
+<label class="ck"><input type="checkbox"> Bước 4 — Ô có điểm cộng gắn vào cột hiện dấu nhỏ, hover ra từng lần cấp kèm lý do</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Ô bị điều kiện điểm sàn chặn hiện cảnh báo kèm tên điều kiện</label>
+<p class="meta">Không giải thích vì sao điểm tổng là 3.9 trong khi các cột đều đẹp thì người dùng sẽ báo lỗi tính sai,
+và bạn sẽ mất một buổi tối để chứng minh hệ thống đúng.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Popover điểm cộng: liệt kê ĐỘNG mọi cột của lớp làm đích</label>
+<pre><code>┌─ Điểm cộng cho Nguyễn Văn Ánh (2251012001) ────────────┐
+│ [Thuyết trình tự tin +0.5] [Trả lời đúng câu khó +0.5] │
+│ [Phát biểu xây dựng bài +0.25]                         │
+│                                                        │
+│ Lý do khác... [_______________________________]        │
+│ Điểm: [0.5]                                            │
+│ Cộng vào: (○) Điểm tổng                                │
+│           (○) Trắc nghiệm 20%                          │
+│           (●) Bài tập 30%                              │
+│           (○) Cuối môn 50%                             │
+│                                                        │
+│ → Điểm tổng: +0.15  (Bài tập có trọng số 30%)          │
+│                                    [Hủy]  [Cấp điểm]   │
+└────────────────────────────────────────────────────────┘</code></pre>
+
+<div class="danger">
+Danh sách đích dựng <strong>từ cột thật của lớp đang mở</strong>, không phải từ một danh sách cứng trong code frontend.
+Lớp 3 cột phải thấy đủ 3 lựa chọn; lớp 5 cột thấy 5. Đây chính là câu "cho giảng viên có thể cộng vào bất kỳ điểm nào"
+trong yêu cầu gốc — hard-code hai lựa chọn là làm hỏng đúng tính năng mà phase này sinh ra để làm.
+<br>Dòng "→ Điểm tổng: +0.15" tính theo <strong>trọng số thật</strong> của cột đang chọn, cập nhật ngay khi đổi điểm
+hoặc đổi đích. Đây là phần bắt buộc của tính năng, không phải chi tiết trang trí.
+</div>
+
+<p class="meta">Task này là nơi <code>BonusPointPopover</code> được viết — <strong>một lần, một bản</strong> — rồi cắm vào
+đúng chỗ trống mà Task 4a.3 đã chừa sẵn ở màn hình chấm bài 6.7, đồng thời dùng lại nguyên vẹn ở sổ điểm 6.8.
+Nếu bạn thấy mình viết bản thứ hai, dừng lại và tách ra: hai bản sẽ lệch nhau ngay ở dòng tính tác động lên điểm tổng,
+và bản người dùng tin là bản họ đang nhìn.</p>
+
+<h4>Trình cấu hình cột điểm</h4>
+<pre><code>┌─ Cấu hình sổ điểm — Lập trình Web (2026-1, L01) ───────────────────┐
+│ [Áp mẫu có sẵn ▾]  2 cột chuẩn · 3 cột có trắc nghiệm · + Tạo mẫu  │
+├───────────────────────────────────────────────────────────────────┤
+│ ⠿ Trắc nghiệm   key: trac_nghiem  [20]%  Gộp: [Trung bình      ▾] │
+│ ⠿ Bài tập       key: bai_tap      [30]%  Gộp: [Bỏ N thấp nhất  ▾] │
+│                                          N = [1]  ☑ bài chưa chấm │
+│                                                     tính là 0     │
+│ ⠿ Cuối môn      key: cuoi_mon     [50]%  Gộp: [Nhập tay        ▾] │
+├───────────────────────────────────────────────────────────────────┤
+│ Tổng: 100%  ✓                                     [+ Thêm cột]    │
+│                                                                   │
+│ Điều kiện: [Cuối môn ▾] [&lt; ▾] [4.0]  → điểm tổng tối đa [3.9]     │
+│ Điểm cộng mặc định vào: [Bài tập ▾]   Trần mỗi SV: [không giới hạn]│
+│                                              [Hủy]  [Lưu cấu hình]│
+└───────────────────────────────────────────────────────────────────┘</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Kéo-thả đổi thứ tự cột, ghi vào <code>order_index</code></label>
+<label class="ck"><input type="checkbox"> Bước 8 — Tổng ≠ 100% thì hiện đỏ ngay lúc gõ và khóa nút Lưu</label>
+<p class="meta">Chặn ở client để người dùng thấy ngay, chặn lại ở server vì client không phải nguồn sự thật
+(test tương ứng ở Task 4b.8).</p>
+<label class="ck"><input type="checkbox"> Bước 9 — Chọn quy tắc gộp bằng dropdown; chọn "Bỏ N thấp nhất" hoặc "Lấy N tốt nhất" thì hiện ô N</label>
+<label class="ck"><input type="checkbox"> Bước 10 — Nút "Áp mẫu có sẵn": xem trước thay đổi rồi mới xác nhận</label>
+<div class="hint">Xem trước phải nói rõ ba nhóm: cột <em>giữ nguyên</em> (trùng key), cột <em>thêm mới</em>,
+cột <em>sẽ mất</em> — và với nhóm thứ ba, nếu cột đang có điểm thì chặn hẳn kèm câu "cột Thường kỳ đang có điểm của
+12 sinh viên". Áp mẫu là thao tác một cú bấm mà hậu quả là xóa điểm, nên nó phải nói trước.</div>
+
+<label class="ck"><input type="checkbox"> Bước 11 — Ô <code>key</code> tự sinh từ tên (bỏ dấu, thay khoảng trắng bằng <code>_</code>) nhưng sửa được</label>
+<p class="meta">"Thường kỳ" → <code>thuong_ky</code>. Tự sinh để người dùng không phải nghĩ; sửa được để khớp key của
+mẫu xuất đang dùng. Cột đã có điểm thì ô key khóa lại, kèm giải thích vì sao.</p>
+
+<h4>Màn hình 6.7b — thư viện lý do điểm cộng</h4>
+<pre><code>┌──────────────────────────────┬──────────┬─────────────────┬───────────┐
+│ Lý do                        │ Điểm mặc │ Đích mặc định   │ Trạng thái│
+├──────────────────────────────┼──────────┼─────────────────┼───────────┤
+│ ⠿ Thuyết trình tự tin        │   0.5    │ Điểm tổng       │ Đang dùng │
+│ ⠿ Trả lời đúng câu khó       │   0.5    │ thuong_ky       │ Đang dùng │
+│ ⠿ Phát biểu xây dựng bài     │   0.25   │ thuong_ky       │ Đang dùng │
+│ ⠿ Nộp bài sớm hơn hạn        │   0.25   │ thuong_ky       │ Đã ẩn     │
+└──────────────────────────────┴──────────┴─────────────────┴───────────┘
+    ☐ Hiện cả lý do đã ẩn                              [ + Thêm lý do ]</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 12 — Bảng sửa tại chỗ, kéo-thả đổi thứ tự (thứ tự này là thứ tự nút bấm nhanh)</label>
+<label class="ck"><input type="checkbox"> Bước 13 — Nút ẩn + bộ lọc "Hiện cả lý do đã ẩn" + nút bỏ ẩn; KHÔNG có nút xóa vĩnh viễn</label>
+<p class="meta">Cột "Đích mặc định" hiện <code>key</code> chứ không hiện tên cột của một lớp cụ thể — vì thư viện
+dùng chung cho mọi lớp, mà mỗi lớp đặt tên cột một kiểu. Lớp nào không có key đó thì popover chỉ bỏ chọn sẵn,
+vẫn cấp điểm được bình thường.</p>
+
+<h4>Trình sửa mẫu xuất Excel</h4>
+<label class="ck"><input type="checkbox"> Bước 14 — Hai cột: nguồn còn lại bên trái, mẫu đang dựng bên phải, kéo-thả qua lại</label>
+<label class="ck"><input type="checkbox"> Bước 15 — Mỗi dòng sửa được tiêu đề và số chữ số thập phân</label>
+<label class="ck"><input type="checkbox"> Bước 16 — Xem trước một hàng dữ liệu thật + dải cảnh báo cột bị bỏ sót</label>
+<div class="hint">Xem trước dùng đúng endpoint <code>/export-excel/preview</code>, không dựng lại logic ở frontend.
+Hai bản dựng cột sẽ lệch nhau, và bản người dùng tin là bản hiển thị — trong khi bản nộp cho trường là bản của server.</div>
+
+<label class="ck"><input type="checkbox"> Bước 17 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(web): dynamic gradebook, column designer and export template editor"</code></pre>
+</div>
+
+<hr>
+
+<h2>Nghiệm thu Phase 4b — kịch bản thao tác tay</h2>
+<p>Làm tuần tự, không bỏ bước. Mỗi bước dưới đây kiểm chứng đúng một câu trong yêu cầu gốc của người dùng:</p>
+<ol>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Vào thư viện mẫu, xác nhận có sẵn
+"2 cột chuẩn" (40/60) và "3 cột có trắc nghiệm" (20/30/50). Sửa mẫu 3 cột thành 25/25/50 rồi trả lại — tổng ≠ 100
+phải bị chặn ngay lúc gõ.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Ghim mẫu "2 cột chuẩn" vào một
+<code>SubjectVersion</code>, mở một lớp mới <strong>không chọn mẫu</strong> → lớp có đúng 2 cột Thường kỳ 40 /
+Cuối môn 60.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <strong>Đổi từ mẫu 2 cột sang 3 cột:</strong>
+mở "Cấu hình cột" của lớp vừa tạo (chưa có điểm), bấm "Áp mẫu có sẵn" → chọn "3 cột có trắc nghiệm" → xem trước liệt kê
+đủ cột thêm/mất → xác nhận. Sổ điểm hiện 3 cột Trắc nghiệm / Bài tập / Cuối môn.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đổi quy tắc cột "Bài tập" sang
+"Bỏ N thấp nhất" với N = 1. Chấm 4 bài cho một sinh viên: 8, 6, 10, 4 → cột Bài tập hiện <strong>8.0</strong>.
+Nếu hiện 7.0 thì quy tắc chưa có hiệu lực.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Gắn vào cột "Bài tập" một bài có rubric
+tổng 20 điểm, chấm 16 → cột nhận <strong>8.0</strong>, không phải 10.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <strong>Cộng điểm vào từng cột khác nhau:</strong>
+cấp +0.25 vào Trắc nghiệm, +0.25 vào Bài tập, +0.25 vào Cuối môn cho cùng một sinh viên. Cả ba cột đều hiện được chọn
+trong popover. Điểm tổng tăng đúng 0.25×0.2 + 0.25×0.3 + 0.25×0.5 = <strong>0.25</strong>.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Cấp +0.5 <strong>vào điểm tổng</strong>
+cho sinh viên khác → điểm tổng tăng đúng 0.5. Đối chiếu với bước trên để thấy rõ hai đích khác nhau thế nào.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <strong>Bỏ trống lý do → bị chặn:</strong>
+mở popover, gõ điểm, xóa sạch ô lý do, bấm "Cấp điểm" → bị từ chối kèm thông báo rõ ràng. Làm lại với ô lý do chỉ
+gồm dấu cách → cũng bị từ chối. Bấm một nút từ thư viện rồi xóa chữ trong ô lý do → vẫn bị từ chối.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Thử cấp điểm cộng <strong>âm</strong>
+(-0.5) → bị từ chối kèm câu hướng dẫn sửa điểm cột thay vì dùng điểm cộng.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đặt trần điểm cộng mỗi sinh viên = 1.0,
+cấp 0.8 rồi 0.7 → sổ điểm hiện đúng 1.0. Tải lại trang ba lần: vẫn 1.0, và phần bị cắt vẫn là lần cấp sau.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đặt điều kiện "Cuối môn &lt; 4 → tổng
+tối đa 3.9". Cho một sinh viên Thường kỳ 9, Cuối môn 3.5 → tổng hiện <strong>3.9</strong> kèm dấu cảnh báo giải thích
+vì sao. Cấp thêm +1.0 vào điểm tổng cho chính sinh viên đó → vẫn <strong>3.9</strong>.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Sửa tay một ô điểm → ô có dấu riêng,
+tooltip hiện đủ ai sửa, lúc nào, từ mấy sang mấy. Chấm lại bài thuộc cột đó → điểm sửa tay <strong>không đổi</strong>.
+Bấm "bỏ sửa tay" → cột quay lại tự tính.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Bật công tắc "Xem điểm tạm tính" →
+sinh viên còn bài chưa chấm có điểm cao hơn hẳn, hàng tiêu đề đổi màu. Tắt đi → số cũ trở lại. Tải lại trang →
+công tắc về mặc định tắt, và <strong>cấu hình cột không bị đổi</strong>.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Vào 6.7b: thêm 3 lý do, kéo đổi thứ tự,
+ẩn một cái rồi <strong>bỏ ẩn</strong>. Sửa nhãn một lý do đã dùng để cấp điểm → mở lại lịch sử điểm cộng của sinh viên,
+<strong>chữ cũ còn nguyên</strong>.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <strong>Đổi tiêu đề cột rồi xuất Excel:</strong>
+dựng mẫu xuất gồm MSSV / Họ tên / "Điểm quá trình" (từ cột <code>thuong_ky</code>) / "Điểm thi" (từ <code>cuoi_mon</code>) /
+Điểm tổng. Bỏ cột <code>trac_nghiem</code> ra khỏi mẫu → xem trước hiện cảnh báo "cột Trắc nghiệm sẽ không được xuất".
+Xuất file, mở bằng Microsoft Excel: đúng thứ tự, đúng tiêu đề đã đổi, MSSV còn nguyên dạng chuỗi, tên có dấu đúng,
+điểm đúng số chữ số thập phân.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Dùng lại chính mẫu xuất đó cho một
+<strong>lớp khác</strong> có cùng bộ key → chạy ngay, không phải soạn lại. Đây là phép thử cuối cùng cho việc nối bằng
+<code>key</code>: nếu phải soạn lại thì ở đâu đó trong code đang nối bằng <code>id</code>.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đóng lớp (<code>status = closed</code>) →
+có một <code>GradeSnapshot</code>. Mở lại lớp, đổi trọng số, đóng lần nữa → bản chốt cũ <strong>không đổi</strong>,
+có thêm bản thứ hai.</li>
+
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đăng nhập bằng tài khoản sinh viên →
+thấy điểm từng cột và điểm tổng của mình theo đúng cấu hình cột của lớp, <strong>không thấy của ai khác</strong>.</li>
+</ol>
+
+<div class="done">
+<h3 style="margin-top:.4rem;color:var(--ok)">🎓 Hết Phase 4b: sổ điểm hết cứng</h3>
+<p>Từ đây, việc "môn này 3 cột, môn kia 2 cột, cột này bỏ bài thấp nhất, bảng điểm nộp trường đặt tên cột kiểu khác"
+là <strong>cấu hình</strong>, không còn là yêu cầu sửa code. Đó là toàn bộ mục đích của phase.</p>
+<p class="meta">Trước khi mở tính năng mới: dùng thật một học kỳ trọn vẹn với một lớp 3 cột và một lớp 2 cột,
+xuất bảng điểm nộp phòng đào tạo ít nhất một lần, và ghi lại mọi chỗ phải thao tác tay quá ba lần.</p>
+</div>
+
+<h2>Rủi ro đã biết của phase này</h2>
+<table>
+<thead><tr><th>Rủi ro</th><th>Dấu hiệu</th><th>Xử lý</th></tr></thead>
+<tbody>
+<tr><td><strong>Sửa mẫu làm đổi điểm lớp đã dạy xong</strong></td><td>Bảng điểm học kỳ trước đổi số mà không ai bấm gì</td><td>Mở lớp là SAO CHÉP cột, kể cả đối tượng <code>Aggregation</code>. Test "sửa mẫu sau khi mở lớp không làm đổi cột" là test quan trọng nhất của Task 4b.2.</td></tr>
+<tr><td><strong>Ô sổ điểm lệch với điểm tổng</strong></td><td>Cột hiện 8.8 nhưng tổng tính như thể cột là 8.5</td><td><code>BonusLedger</code> chốt sổ một lần, mọi hàm nhận ledger. Không hàm nào nhận danh sách bonus thô.</td></tr>
+<tr><td><strong>Hai lần đọc sổ điểm ra hai kết quả</strong></td><td>F5 xong điểm cộng đổi</td><td>Sắp xếp theo <code>(GrantedAt, Id)</code> trước khi áp trần. Có test build ledger trên danh sách xáo trộn.</td></tr>
+<tr><td>Nguồn có thang điểm riêng không được chuẩn hóa</td><td>Bài rubric thang 20 làm cột luôn đầy 10</td><td><code>normalized = raw / sourceMax * 10</code> trong <code>GradeAggregator</code>. Có test cho rubric thang 20.</td></tr>
+<tr><td>Chia cho 0 khi mọi bài đều chưa chấm</td><td>Sổ điểm nổ lỗi 500, cả lớp không xem được</td><td><code>TreatMissingAsZero = false</code> mà không còn nguồn nào thì trả 0. <code>DropLowestN</code> luôn giữ lại ít nhất 1.</td></tr>
+<tr><td>Giảng viên đổi cấu hình cột cho "đỡ sợ" giữa kỳ</td><td>Cuối kỳ phát hiện <code>TreatMissingAsZero</code> đang tắt</td><td>Công tắc "Xem điểm tạm tính" chỉ đổi cách xem, kèm dải nhắc trên hàng tiêu đề.</td></tr>
+<tr><td>Mẫu xuất nối bằng <code>id</code></td><td>Sang lớp khác mẫu xuất trống trơn, người dùng soạn lại từng lớp</td><td>Nối bằng <code>key</code>. Có test dùng lại mẫu cho lớp thứ hai.</td></tr>
+<tr><td>Bảng điểm nộp trường thiếu cột</td><td>Phòng đào tạo trả lại file</td><td>Cột có trong lớp mà không có trong mẫu xuất → cảnh báo ở cả <code>preview</code> lẫn header của file. Không bao giờ bỏ qua im lặng.</td></tr>
+<tr><td>CHECK constraint viết sai giá trị enum</td><td>Migration chạy được nhưng mọi lần cấp điểm cộng đều lỗi</td><td><code>.HasConversion&lt;string&gt;()</code> + giá trị trong CHECK đúng tên enum C# (<code>'GradeColumn'</code>).</td></tr>
+<tr><td>Xóa cột làm mất điểm cả lớp</td><td>Một cú kéo-thả nhầm, 40 dòng điểm biến mất</td><td>Xóa cột đang có <code>GradeRecord</code> trả 409 kèm số sinh viên bị ảnh hưởng; áp mẫu chế độ <code>replace</code> cũng bị chặn.</td></tr>
+<tr><td>Điều kiện điểm sàn mất hiệu lực trong im lặng</td><td>Đổi key cột xong, sinh viên thi 3.5 vẫn qua môn</td><td><code>GradeConditionEvaluator</code> trả <code>UnknownColumnKeys</code>; sổ điểm và màn hình cấu hình đều hiện cảnh báo.</td></tr>
+<tr><td>Trừ điểm qua cơ chế điểm cộng</td><td>Danh sách điểm cộng có dòng "+(-0.5) · Đi trễ"</td><td><code>points &gt; 0</code> ở cả validator (400) lẫn CHECK constraint. Muốn trừ thì sửa điểm cột.</td></tr>
+<tr><td>Tham số query nhiều chữ không bind</td><td><code>?include_hidden=true</code> không có tác dụng, <code>?template_id=</code> luôn rơi về mẫu mặc định — và không có lỗi nào báo ra</td><td>Model binder query string không đi theo <code>snake_case</code> của JSON. <code>[FromQuery(Name = "…")]</code> tường minh cho mọi tham số nhiều chữ.</td></tr>
+<tr><td>Bỏ CHECK constraint vì "đã có FluentValidation"</td><td>Một script sửa tay hoặc một migration dữ liệu ghi được <code>points = -1</code> xuống bảng</td><td>Validator chỉ chặn đường đi qua MediatR. Ba constraint ở Task 4b.6 giữ nguyên — trùng lặp có chủ ý.</td></tr>
+<tr><td>Truy vấn xuất Excel bị bọc trong transaction</td><td>Cạn connection pool vào tuần cuối kỳ khi cả trường cùng xuất bảng điểm</td><td><code>ExportGradebookQuery</code> là <code>IQuery</code>, không mang marker <code>IBaseCommand</code> nên <code>TransactionBehavior</code> bỏ qua. Đừng khai nó thành <code>ICommand</code> cho "tiện".</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">Quay lại <a href="2026-08-13-phase-4-grading-gradebook.html">Phase 4a — Chấm điểm &amp; Làm việc nhóm</a> ·
+<a href="2026-08-13-teachhub-roadmap.html">Roadmap tổng thể</a> ·
+Tiếp theo (chỉ sau khi đã dùng thật một học kỳ): <a href="2026-08-13-phases-5-9-backlog.html">Backlog P1/P2 — Phase 5 đến 9</a></p>
+
+</main>
+</body>
+</html>

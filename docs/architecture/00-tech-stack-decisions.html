@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TeachHub — Kiến trúc kỹ thuật &amp; Quyết định (.NET 10)</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.6rem;font-size:1.45rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:1.9rem;font-size:1.14rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:1rem}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:1rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.82rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.5rem .65rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.3rem 0}
+.tag{display:inline-block;padding:.08rem .5rem;border-radius:999px;font-size:.74rem;font-weight:700;border:1px solid currentColor;vertical-align:middle}
+.t-new{color:var(--ok)}.t-chg{color:var(--warn)}.t-del{color:var(--err)}.t-keep{color:var(--muted)}
+.meta{color:var(--muted);font-size:.9rem}
+.adr{border:1px solid var(--bd);border-left:4px solid var(--acc);border-radius:0 8px 8px 0;padding:.2rem 1rem 1rem;margin:1.2rem 0;background:var(--cbg)}
+.adr h3{margin-top:1rem}
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.card{border:1px solid var(--bd);border-radius:10px;padding:.9rem 1rem;background:var(--cbg)}
+.card h4{margin-top:0}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>TeachHub — Kiến trúc kỹ thuật &amp; Quyết định thiết kế</h1>
+<p class="meta">
+Phiên bản 1.0 · 13/08/2026 · Bổ sung cho <code>docs/requirements/SRS-LMS-GiangVien.md</code> v1.0<br>
+<strong>Thay đổi lớn so với SRS:</strong> nền tảng backend chuyển từ <strong>.NET 8 → .NET 10 (LTS)</strong>, kèm các điều chỉnh kiến trúc đi theo.
+</p>
+
+<blockquote>
+<strong>Tài liệu này là nguồn chân lý về kỹ thuật.</strong> SRS mô tả <em>nghiệp vụ</em> (giữ nguyên hiệu lực);
+tài liệu này mô tả <em>cách hiện thực</em>, và khi hai bên mâu thuẫn về mặt kỹ thuật thì lấy tài liệu này.
+Mọi quyết định đều ghi rõ lý do (ADR) để sau này đọc lại còn hiểu tại sao.
+</blockquote>
+
+<h2>1. Tóm tắt điều chỉnh .NET 8 → .NET 10</h2>
+
+<table>
+<thead><tr><th>Hạng mục</th><th>SRS (.NET 8)</th><th>Bản .NET 10</th><th>Lý do</th></tr></thead>
+<tbody>
+<tr><td>Runtime</td><td>.NET 8 (LTS)</td><td><strong>.NET 10 (LTS)</strong>, C# 14</td><td>.NET 8 hết hạn hỗ trợ 11/2026 — dự án dạy học chạy nhiều năm, chọn LTS mới nhất để không phải nâng cấp giữa học kỳ. Máy dev đã có SDK <code>10.0.203</code>.</td></tr>
+<tr><td>Kiểu API</td><td>Controllers</td><td><span class="tag t-keep">GIỮ</span> Controllers + <strong>MediatR 12.5 (CQRS)</strong></td><td>Hợp đồng API ở SRS mục 7 <em>không đổi</em> — cùng đường dẫn, cùng payload, cùng mã lỗi; chỉ đổi cách hiện thực. Controllers + MediatR cho <strong>một chỗ duy nhất</strong> đặt các mối quan tâm xuyên suốt (validation, log, transaction) là pipeline behavior, thay vì rải endpoint filter lên từng nhóm route rồi trông chờ không ai quên nhóm nào. Và <code>[ApiController]</code> + fallback policy giữ nguyên tính chất "quên bảo vệ endpoint là chuyện không thể xảy ra": mặc định mọi endpoint đòi đăng nhập, muốn mở công khai phải gắn <code>[AllowAnonymous]</code> tường minh. Xem ADR-001.</td></tr>
+<tr><td>Điều phối (mediator)</td><td>không nêu</td><td><span class="tag t-new">THÊM</span> <strong>MediatR 12.5.0</strong> — <code>ICommand</code>/<code>IQuery</code> + pipeline behavior</td><td><strong>CẢNH BÁO GIẤY PHÉP — ghim đúng 12.5.0, tuyệt đối không nâng lên 13.x/14.x.</strong> Từ v13 MediatR chuyển sang RPL-1.5 hoặc giấy phép thương mại của Lucky Penny Software (<code>requireLicenseAcceptance = true</code>); RPL-1.5 buộc <em>công khai mã nguồn phần mềm đã triển khai</em>, kể cả khi chỉ dùng nội bộ. 12.5.0 là bản <strong>Apache-2.0 cuối cùng</strong>, target <code>netstandard2.0</code>/<code>net6.0</code> nên chạy tốt trên .NET 10. Khác biệt API phải nhớ (đã kiểm chứng bằng build thật, không chép từ trí nhớ): trong 12.5.0, <code>RequestHandlerDelegate&lt;TResponse&gt;</code> có <strong>một tham số <code>CancellationToken</code> tùy chọn</strong> — <code>public delegate Task&lt;TResponse&gt; RequestHandlerDelegate&lt;TResponse&gt;(CancellationToken t = default)</code>. Tham số này chỉ xuất hiện <em>từ đúng 12.5.0</em>; các bản 12.0–12.4 hoàn toàn không có tham số. Hệ quả: trong behavior <strong>viết <code>await next()</code></strong> — <code>await next(ct)</code> cũng biên dịch được trên 12.5.0, nhưng <code>next()</code> là dạng chạy đúng trên mọi bản 12.x và vẫn chuyển token gốc xuống handler. Cạm bẫy thật nằm ở chỗ tự khai lambda trong test: <code>RequestHandlerDelegate&lt;Unit&gt; h = () =&gt; …</code> là lỗi <code>CS1593: Delegate does not take 0 arguments</code>, phải viết <code>h = _ =&gt; …</code>. Chi tiết ở Phase 0 Task 0.6.</td></tr>
+<tr><td>Validation</td><td>FluentValidation (ngầm định)</td><td><span class="tag t-keep">GIỮ</span> <strong>FluentValidation 12.1</strong>, chạy qua <code>ValidationBehavior</code> của MediatR</td><td>Bản .NET 10 trước đây định dùng hàm <code>AddValidation</code> built-in, nhưng đó là <strong>API validation dành riêng cho Minimal API</strong> — gắn vào endpoint metadata, không có tác dụng gì với Controllers. Nên bỏ hẳn. FluentValidation quay lại làm câu chuyện validation <em>duy nhất</em>: validator nằm cùng thư mục với Command, behavior chạy nó trước handler, sai thì ném <code>ValidationException</code> → <code>IExceptionHandler</code> toàn cục đổi thành 400 <code>ValidationProblemDetails</code>. Ranh giới chia theo <em>luật đó có phải đọc database không</em>, chứ không theo cảm giác "nghiệp vụ hay không nghiệp vụ". Luật <strong>thuần hình dạng trên payload</strong> nằm trong validator — kể cả "tổng trọng số các cột = 100%", vì cả bộ cột được gửi trong <em>một</em> request nên tự nó đủ dữ liệu để phán, không phải đọc bảng nào (Phase 4b làm đúng như vậy). Luật <strong>phụ thuộc dữ liệu đang có</strong> mới thuộc về handler và trả <code>Result</code>: cột nguồn phải thuộc đúng lớp của sinh viên đó, không cho xóa cột đã có điểm (409), áp mẫu chế độ <code>replace</code> khi đã có điểm (409). Xem ADR-011.</td></tr>
+<tr><td>Lỗi trả về</td><td>không nêu</td><td><strong>RFC 9457 ProblemDetails</strong> qua <code>AddProblemDetails()</code> + <code>IProblemDetailsService</code></td><td>Frontend chỉ cần xử lý một dạng lỗi duy nhất.</td></tr>
+<tr><td>OpenAPI</td><td>không nêu</td><td><strong>OpenAPI 3.1</strong> (<code>Microsoft.AspNetCore.OpenApi</code> 10) + Scalar UI</td><td>.NET 10 sinh doc 3.1 mặc định → dùng <code>openapi-typescript</code> sinh thẳng TS client cho Next.js, không viết tay tầng gọi API.</td></tr>
+<tr><td>ORM</td><td>EF Core (v8)</td><td><strong>EF Core 10</strong> + Npgsql 10.0.3</td><td>Cần 2 tính năng mới: <em>named query filters</em> (nhiều filter/entity — soft-delete + scope theo giảng viên) và <code>LeftJoin</code>/<code>RightJoin</code> LINQ operator (báo cáo sổ điểm có SV chưa nộp).</td></tr>
+<tr><td>Cột <code>jsonb</code></td><td>ghi chú "jsonb"</td><td><strong>EF Core <code>ToJson()</code></strong> map sang complex type có kiểu (không dùng <code>string</code>/<code>JsonDocument</code> trần)</td><td><code>config_json</code>, <code>group_config_json</code>, <code>required_structure_json</code>… trở thành class C# có compile-time safety thay vì magic string.</td></tr>
+<tr><td>Khóa chính</td><td>UUID</td><td><strong>UUIDv7</strong> (<code>Guid.CreateVersion7()</code>)</td><td>UUID ngẫu nhiên làm phân mảnh B-tree index nặng khi bảng <code>Submission</code>/<code>SubmissionFile</code> lớn dần qua các học kỳ. v7 tăng dần theo thời gian → locality tốt, vẫn giữ nguyên kiểu <code>uuid</code> trong SRS.</td></tr>
+<tr><td>Thời gian</td><td>timestamp</td><td><code>timestamptz</code> UTC + <strong><code>TimeProvider</code></strong> DI ở mọi chỗ tính hạn nộp</td><td>Toàn bộ nghiệp vụ (<code>is_late</code>, late penalty, streak, lịch ôn tập) phụ thuộc thời gian — không có <code>TimeProvider</code> thì không viết test được, phải <code>Thread.Sleep</code>.</td></tr>
+<tr><td>Cache</td><td>không nêu</td><td><strong><code>HybridCache</code></strong> cho gradebook/dashboard</td><td>Sổ điểm là truy vấn tổng hợp nặng nhất, đọc nhiều ghi ít.</td></tr>
+<tr><td>Job nền</td><td>Hangfire</td><td><span class="tag t-keep">GIỮ</span> Hangfire 1.8.24 + Hangfire.PostgreSql 1.21.1</td><td>Cần bền vững qua restart, retry, dashboard xem job lỗi — <code>BackgroundService</code> thuần không có. Dùng Postgres làm store, không phát sinh thêm Redis.</td></tr>
+<tr><td>Auth</td><td>JWT + refresh token tự làm</td><td><strong>ASP.NET Core Identity</strong> (EF store) + JWT bearer + refresh token xoay vòng</td><td>Không tự viết password hashing/lockout/reset. .NET 10 Identity còn hỗ trợ passkey — để dành P2.</td></tr>
+<tr><td>Test</td><td>không nêu</td><td><strong>xUnit + Testcontainers.PostgreSql 4.13 + Shouldly + FakeTimeProvider</strong></td><td>Test tích hợp chạy trên Postgres thật (jsonb, CHECK constraint, partial index) thay vì InMemory provider vốn không mô phỏng đúng. Dùng template <code>dotnet new xunit</code> mặc định (xUnit 2.9.3) để không tốn công cấu hình; nâng lên xunit.v3 được bất cứ lúc nào, không ảnh hưởng code test.</td></tr>
+<tr><td>Excel</td><td>ClosedXML</td><td><span class="tag t-keep">GIỮ</span> ClosedXML 0.105.1 (cả import lẫn export)</td><td>Một dependency cho cả 2 chiều.</td></tr>
+<tr><td>Frontend</td><td>Next.js + TS + Tailwind + shadcn/ui</td><td><span class="tag t-keep">GIỮ</span> — Next.js 15 App Router, React 19, Tailwind v4</td><td>SRS đã chọn đúng. Không đổi sang Blazor: hệ sinh thái xem PPT/PDF/code-highlight/kéo-thả trên JS trưởng thành hơn nhiều.</td></tr>
+</tbody>
+</table>
+
+<h2>2. Sơ đồ kiến trúc (bản .NET 10)</h2>
+
+<pre><code>┌──────────────────────────────────────┐         ┌────────────────────────────────────────────┐
+│  frontend/  Next.js 15 (App Router)  │  HTTPS  │  backend/  .NET 10 Web API                 │
+│  React 19 · TS · Tailwind v4         │────────▶│  ┌──────────────────────────────────────┐  │
+│  shadcn/ui · TanStack Query          │  JWT    │  │ TeachHub.Api (Controllers → MediatR) │  │
+│  openapi-fetch (client sinh tự động) │◀────────│  │  auth · subjects · offerings ·       │  │
+└──────────────────────────────────────┘  RFC    │  │  assignments · submissions · grades  │  │
+        │  BFF route handler                9457 │  └───────────────┬──────────────────────┘  │
+        │  (đặt JWT vào httpOnly cookie)         │  ┌───────────────▼──────────────────────┐  │
+        └────────────────────────────────────────│  │ TeachHub.Application (use cases)     │  │
+                                                 │  │  Command/Query + Handler + Behavior  │  │
+                                                 │  └───────────────┬──────────────────────┘  │
+                                                 │  ┌───────────────▼──────────────────────┐  │
+                                                 │  │ TeachHub.Domain (entity, rule)       │  │
+                                                 │  └──────────────────────────────────────┘  │
+                                                 │  ┌──────────────────────────────────────┐  │
+                                                 │  │ TeachHub.Infrastructure (adapter)    │  │
+                                                 │  │  EF Core · TransactionBehavior       │  │
+                                                 │  └───┬────────────┬─────────────┬───────┘  │
+                                                 └──────┼────────────┼─────────────┼──────────┘
+                                                         ▼            ▼             ▼
+                                              ┌────────────────┐ ┌──────────┐ ┌──────────────┐
+                                              │ PostgreSQL 17  │ │ MinIO/S3 │ │ Hangfire     │
+                                              │ EF Core 10     │ │ file gốc │ │ (queue riêng │
+                                              │ nghiệp vụ +    │ │ zip/ppt/ │ │  cho unzip)  │
+                                              │ hangfire schema│ │ ảnh/video│ │              │
+                                              └────────────────┘ └──────────┘ └──────────────┘</code></pre>
+
+<h3>Cấu trúc thư mục monorepo</h3>
+<pre><code>TeachHub/
+├─ backend/
+│  ├─ TeachHub.sln
+│  ├─ Directory.Build.props          # net10.0, nullable, TreatWarningsAsErrors
+│  ├─ Directory.Packages.props       # Central Package Management (1 nơi khai version)
+│  ├─ src/
+│  │  ├─ TeachHub.Domain/            # entity + enum + rule thuần, KHÔNG tham chiếu ai
+│  │  ├─ TeachHub.Application/       # use case (Command/Query + Handler), → Domain
+│  │  │  ├─ Common/Messaging/        #   ICommand.cs, IQuery.cs — marker trên IRequest
+│  │  │  ├─ Common/Behaviors/        #   LoggingBehavior.cs, ValidationBehavior.cs
+│  │  │  ├─ Common/*.cs              #   Result, ICurrentUser, IAppDbContext, IFileStorage… (port)
+│  │  │  ├─ Features/Subjects/
+│  │  │  │  ├─ Commands/CreateSubject/     # Command + Handler + Validator (1 thư mục / use case)
+│  │  │  │  ├─ Commands/PublishVersion/
+│  │  │  │  └─ Queries/GetSubjects/        # Query + Handler
+│  │  │  ├─ Features/Content/ Offerings/ Enrollments/ Assignments/ Submissions/ Grading/ …
+│  │  │  └─ DependencyInjection.cs   #   AddMediatR + AddValidatorsFromAssembly
+│  │  ├─ TeachHub.Infrastructure/    # EF Core, storage, Hangfire, Excel, → Application
+│  │  │  └─ Behaviors/               #   TransactionBehavior.cs (cần AppDbContext — ADR-010)
+│  │  └─ TeachHub.Api/               # Controllers mỏng + DI + Program.cs, → tất cả
+│  │     └─ Controllers/             #   ApiControllerBase + 1 controller / nhóm endpoint SRS §7
+│  └─ tests/
+│     ├─ TeachHub.Domain.Tests/      # unit, nhanh, không I/O
+│     ├─ TeachHub.Application.Tests/ # handler + behavior, fake port, KHÔNG dựng HTTP
+│     └─ TeachHub.Api.Tests/         # integration: WebApplicationFactory + Testcontainers
+├─ frontend/                         # Next.js 15
+│  ├─ src/app/(instructor)/ …
+│  ├─ src/app/(student)/ …
+│  ├─ src/lib/api/                   # client sinh từ OpenAPI
+│  └─ src/components/
+├─ infra/
+│  ├─ docker-compose.yml             # postgres:17 + minio
+│  └─ seed/
+├─ docs/
+│  ├─ requirements/SRS-LMS-GiangVien.md
+│  ├─ architecture/                  # ← tài liệu này
+│  └─ superpowers/plans/             # plan thực thi từng phase
+└─ .github/workflows/ci.yml</code></pre>
+
+<blockquote>
+<strong>Vì sao Clean Architecture 4 tầng mà không phải 1 project duy nhất?</strong>
+Ranh giới quan trọng nhất ở đây là <em>Domain không biết gì về EF Core</em> — vì luật nghiệp vụ nặng nhất
+(clone version, validate trọng số cột điểm, tính điểm cuối kỳ có điểm cộng, tính late penalty) phải test được
+trong mili-giây, không cần database. Ba tầng còn lại chỉ là hệ quả. Nếu gộp hết, mỗi lần chạy test luật tính điểm
+sẽ phải dựng Postgres — và bạn sẽ ngừng viết test.
+</blockquote>
+
+<h2>3. Architecture Decision Records</h2>
+
+<div class="adr">
+<h3>ADR-001 · Controllers + MediatR CQRS thay cho Minimal API</h3>
+<p><strong>Bối cảnh:</strong> SRS mục 7 liệt kê <strong>54 endpoint</strong>, gom sẵn thành <strong>11 nhóm</strong> (Auth, Subjects &amp; Versioning, Chapters &amp; Lessons, Offerings, Groups, Assignments &amp; Submissions, Quizzes, Final Assessments, Grades, Review Queue, Dashboard). Bản trước của ADR này chọn <em>Minimal API theo vertical slice</em>. Ngày <strong>13/08/2026</strong> người dùng chốt lại: giữ Clean Architecture 4 tầng, dùng <strong>MediatR</strong> làm xương sống CQRS, và <strong>không viết Minimal API</strong>. Quyết định dưới đây thay thế hoàn toàn bản trước; <strong>hợp đồng API không đổi một ký tự nào</strong> — cùng đường dẫn, cùng payload, cùng mã lỗi.</p>
+
+<p><strong>Quyết định:</strong> mỗi nhóm endpoint = 1 file <code>*Controller.cs</code> trong <code>TeachHub.Api/Controllers/</code>, kế thừa <code>ApiControllerBase</code>, gắn <code>[ApiController]</code> + <code>[Route("api/…")]</code> + <code>[Authorize(Policy = …)]</code> ở cấp class. Mỗi use case là một <code>ICommand&lt;T&gt;</code> hoặc <code>IQuery&lt;T&gt;</code> trong <code>Application/Features/&lt;Nhóm&gt;/</code>, đi kèm handler và validator trong <em>cùng một thư mục</em>.</p>
+
+<p><strong>Controller phải mỏng</strong> — đây là ranh giới cứng, không phải lời khuyên: controller chỉ định tuyến, lấy <code>userId</code> từ claim, gọi <code>sender.Send(...)</code>, và quy đổi <code>Result</code> sang <code>IActionResult</code>. Không có <code>if</code> nghiệp vụ, không truy vấn <code>DbContext</code>, không <code>try/catch</code>. Một dòng logic lọt vào controller là một dòng không test được nếu không dựng HTTP.</p>
+
+<pre><code>[ApiController]
+[Route("api/subjects")]
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class SubjectsController(ISender sender) : ApiControllerBase
+{
+    [HttpGet]
+    [ProducesResponseType&lt;IReadOnlyList&lt;SubjectDto&gt;&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; GetAll(CancellationToken ct)
+        =&gt; Ok(await sender.Send(new GetSubjectsQuery(CurrentUserId), ct));
+
+    [HttpPost]
+    [ProducesResponseType&lt;SubjectDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task&lt;IActionResult&gt; Create(CreateSubjectCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command with { InstructorId = CurrentUserId }, ct));
+}</code></pre>
+
+<p><strong>Hợp đồng messaging</strong> (<code>Application/Common/Messaging/</code>) — tách Command và Query <em>không phải hình thức</em>: nó là thứ để <code>TransactionBehavior</code> biết cái nào cần bọc transaction. Bọc query trong transaction là phí và giữ connection lâu hơn cần thiết.</p>
+<pre><code>using MediatR;
+
+namespace TeachHub.Application.Common.Messaging;
+
+/// Marker không generic để TransactionBehavior nhận diện được command.
+public interface IBaseCommand;
+
+public interface ICommand&lt;out TResponse&gt; : IRequest&lt;TResponse&gt;, IBaseCommand;
+public interface IQuery&lt;out TResponse&gt; : IRequest&lt;TResponse&gt;;
+
+public interface ICommandHandler&lt;in TCommand, TResponse&gt; : IRequestHandler&lt;TCommand, TResponse&gt;
+    where TCommand : ICommand&lt;TResponse&gt;;
+
+public interface IQueryHandler&lt;in TQuery, TResponse&gt; : IRequestHandler&lt;TQuery, TResponse&gt;
+    where TQuery : IQuery&lt;TResponse&gt;;</code></pre>
+
+<p><strong>Bảo vệ mặc định</strong> không còn dựa vào việc nhớ gắn policy cho từng nhóm route, mà dựa vào <em>fallback policy</em>: endpoint nào không khai gì thì vẫn đòi đăng nhập, muốn mở công khai (login, register, join code) phải viết <code>[AllowAnonymous]</code> tường minh.</p>
+<pre><code>services.AddAuthorizationBuilder()
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+    .AddPolicy(Policies.Instructor,      p =&gt; p.RequireRole(Roles.Instructor))
+    .AddPolicy(Policies.Student,         p =&gt; p.RequireRole(Roles.Student));</code></pre>
+
+<p><strong>Hệ quả:</strong></p>
+<ul>
+<li>✅ <strong>Mọi mối quan tâm xuyên suốt gom vào pipeline behavior, không thể sót endpoint.</strong> Log, validation, transaction chạy cho <em>mọi</em> request đi qua MediatR — không còn chuyện thêm endpoint mới rồi quên gắn filter. Chi tiết ở ADR-010.</li>
+<li>✅ <strong>Handler test được mà không cần dựng HTTP.</strong> Use case là một class nhận Command và trả Result; test nó bằng cách <code>new</code> ra rồi gọi <code>Handle</code>, không cần <code>WebApplicationFactory</code>. Integration test vẫn giữ nguyên cho tầng HTTP.</li>
+<li>✅ <strong><code>[ProducesResponseType]</code> mô tả OpenAPI rõ hơn</strong> chuỗi <code>.Produces&lt;T&gt;()</code> nối đuôi: khai ngay trên action, đọc được cùng chỗ với route, và <code>.NET 10 AddOpenApi()</code> vẫn sinh OpenAPI 3.1 đầy đủ cho Controllers nên <code>openapi-typescript</code> ở frontend không đổi gì.</li>
+<li>❌ <strong>Thêm một lớp gián tiếp và thêm file cho mỗi use case</strong> — trước là 2 file (endpoint + handler), giờ là 3–4 (Command, Handler, Validator, DTO). Với 54 endpoint đây là chi phí thật, không nên giả vờ là không có.</li>
+<li>❌ <strong>Stack trace dài hơn khi debug</strong>: giữa controller và handler có <code>ISender</code> + ba behavior, nên exception nhìn xa nguồn hơn. Bù lại LoggingBehavior in ra tên request và thời gian chạy nên định vị vẫn nhanh.</li>
+</ul>
+
+<p><strong>Đã cân nhắc:</strong></p>
+<ul>
+<li><strong>Giữ Minimal API + route group</strong> như bản trước. Bỏ theo yêu cầu trực tiếp của người dùng ngày 13/08/2026.</li>
+<li><strong>MediatR 14 (bản mới nhất)</strong>. Bỏ vì giấy phép: từ v13 MediatR là RPL-1.5 hoặc giấy phép thương mại, mà RPL-1.5 buộc công khai mã nguồn phần mềm đã triển khai. Ghim <strong>12.5.0</strong> — bản Apache-2.0 cuối cùng. Đổi lại phải viết đúng API 12.x: <code>RequestHandlerDelegate&lt;TResponse&gt;</code> có một tham số <code>CancellationToken</code> <em>tùy chọn</em> (thêm từ 12.5.0), nên quy ước của dự án là gọi <code>await next()</code> — dạng chạy được trên mọi bản 12.x; còn khi tự khai lambda trong test thì phải viết <code>_ =&gt; …</code> chứ không phải <code>() =&gt; …</code>. Xem Phase 0 Task 0.6.</li>
+<li><strong>Bỏ MediatR, controller gọi thẳng handler class</strong>. Bỏ vì mất luôn pipeline behavior — thứ giá trị nhất của quyết định này. Không có pipeline thì transaction và validation lại phải nhớ gọi tay ở từng handler, và sẽ có handler quên.</li>
+</ul>
+</div>
+
+<div class="adr">
+<h3>ADR-002 · Không dùng Repository generic, MediatR handler dùng <code>DbContext</code> trực tiếp</h3>
+<p><strong>Bối cảnh:</strong> SRS ghi "Controllers/Services/Repositories".</p>
+<p><strong>Quyết định:</strong> <code>Application</code> khai báo interface <code>IAppDbContext</code> (chỉ lộ <code>DbSet&lt;T&gt;</code> + <code>SaveChangesAsync</code>); <code>Infrastructure</code> hiện thực bằng <code>AppDbContext : DbContext</code>. <strong>MediatR handler viết LINQ trực tiếp trên <code>IAppDbContext</code></strong>. <em>Không</em> có <code>IRepository&lt;T&gt;</code>.</p>
+<p><strong>Lý do:</strong> Repository generic bọc trên EF Core là lớp trừu tượng rỗng — nó chặn đúng những thứ ta cần (projection, <code>Include</code> có chọn lọc, <code>ExecuteUpdate</code>, split query) mà không cho lại gì. Testability đã được giải quyết bằng Testcontainers chứ không bằng mock repository (mock repository chỉ test được rằng ta gọi mock, không test được câu SQL sinh ra có đúng không).</p>
+<p><strong>MediatR KHÔNG phải lý do để thêm Repository trở lại.</strong> Chỗ này rất dễ trượt: thấy có <code>CommandHandler</code> rồi thì phản xạ quen tay là "handler thì phải gọi repository". Không. Việc chuyển từ endpoint sang <code>ICommandHandler</code> chỉ đổi <em>chỗ đặt</em> code truy vấn, không đổi <em>lập luận</em> ở trên: mỗi handler phục vụ đúng một use case nên nó biết chính xác mình cần cột nào, join gì, có <code>AsNoTracking</code> hay không — đúng thứ mà một interface generic buộc phải quên đi. Thêm <code>IRepository&lt;T&gt;</code> vào giữa handler và <code>IAppDbContext</code> chỉ tạo ra một tầng chuyển tiếp phải bảo trì, và sớm muộn sẽ mọc ra các hàm kiểu <code>GetAllWithChaptersAndLessonsAndComponents()</code> — tức là LINQ cũ, chỉ khó đọc hơn.</p>
+<p><strong>Ngoại lệ:</strong> nghiệp vụ phức tạp có thuật toán riêng (clone SubjectVersion, tính similarity, tổng hợp gradebook) vẫn tách thành service có interface, vì chúng cần được test độc lập và có thể thay implementation. Handler gọi service đó, không tự nhồi thuật toán vào <code>Handle</code>.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-003 · Polymorphic FK <code>owner_type/owner_id</code> → 2 cột FK nullable + CHECK constraint</h3>
+<p><strong>Bối cảnh:</strong> SRS dùng <code>owner_type ∈ {assignment, final_assessment}</code> + <code>owner_id</code> cho <code>SubmissionSlot</code> và <code>Submission</code>. Postgres không thể tạo FK cho cột đa hình → dữ liệu mồ côi là chuyện sớm muộn.</p>
+<p><strong>Quyết định:</strong> giữ nguyên <code>owner_type</code> (để code đọc/lọc thuận tiện, và giữ đúng hợp đồng API trong SRS), nhưng lưu bằng <strong>2 cột FK thật</strong>:</p>
+<pre><code>assignment_id        uuid NULL REFERENCES assignments(id)        ON DELETE CASCADE,
+final_assessment_id  uuid NULL REFERENCES final_assessments(id)  ON DELETE CASCADE,
+owner_type           text NOT NULL,
+CONSTRAINT ck_slot_owner CHECK (
+  (owner_type = 'assignment'       AND assignment_id IS NOT NULL AND final_assessment_id IS NULL) OR
+  (owner_type = 'final_assessment' AND final_assessment_id IS NOT NULL AND assignment_id IS NULL)
+)</code></pre>
+<p><strong>Hệ quả:</strong> DB tự bảo vệ toàn vẹn, xóa Assignment tự dọn slot/submission. API vẫn nhận/trả <code>owner_type</code> + <code>owner_id</code> đúng như SRS mục 7 — quy đổi ở tầng mapping.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-004 · Nội dung dạy học version-hóa bằng <em>deep clone</em>, không phải copy-on-write</h3>
+<p><strong>Bối cảnh:</strong> SRS mục 5.2 — "Tạo phiên bản mới" clone toàn bộ Chapter/Lesson/Component/Assignment/Quiz.</p>
+<p><strong>Quyết định:</strong> clone thật (INSERT bản ghi mới, id mới) trong <strong>một transaction</strong>, chạy qua <code>SubjectVersionCloner</code> — không dùng cơ chế chia sẻ bản ghi + copy-on-write.</p>
+<p><strong>Lý do:</strong> Copy-on-write tiết kiệm dung lượng nhưng biến mọi câu truy vấn nội dung thành "lấy bản ghi của version này, nếu không có thì tra ngược lên version cha" — độ phức tạp đó lan ra toàn bộ codebase, đổi lấy vài trăm KB. Nội dung một môn học chỉ cỡ vài nghìn dòng; clone thẳng là đúng đắn.</p>
+<p><strong>Bắt buộc kèm theo:</strong> <code>Assignment</code> và <code>Quiz</code> dùng trong bài giảng <strong>phải có <code>subject_version_id</code></strong> (SRS thiếu — xem Gap #3), nếu không thì clone xong hai version sẽ dùng chung một Assignment và sửa version mới làm hỏng version cũ — đúng thứ mà versioning sinh ra để tránh.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-005 · Xử lý ZIP trong Hangfire queue riêng, có giới hạn cứng</h3>
+<p><strong>Bối cảnh:</strong> Rủi ro #1 trong SRS mục 11 — SV upload ZIP chứa mã độc / zip bomb.</p>
+<p><strong>Quyết định:</strong> upload chỉ <em>lưu file gốc</em> rồi trả về ngay. Một job trên queue <code>zip</code> (worker riêng, <code>WorkerCount = 2</code>) mới giải nén, với các chốt chặn:</p>
+<ul>
+<li><strong>Zip-slip:</strong> chuẩn hóa đường dẫn entry, từ chối nếu thoát khỏi thư mục đích.</li>
+<li><strong>Zip bomb:</strong> chặn cứng tổng dung lượng sau giải nén (mặc định 200 MB), số entry (5.000), tỉ lệ nén tối đa (100:1) — vượt là hủy job, gắn cờ cho giảng viên xem.</li>
+<li><strong>Magic bytes:</strong> kiểm tra chữ ký file thật (<code>PK\x03\x04</code> cho zip, v.v.) chứ không tin phần mở rộng — đúng yêu cầu NFR "validate loại file thực tế".</li>
+<li><strong>Không bao giờ thực thi</strong> nội dung giải nén; chỉ đọc để dựng <code>file_tree_json</code> và hiển thị text.</li>
+</ul>
+<p><strong>Nâng cấp về sau (P2):</strong> đẩy hẳn worker unzip sang container riêng có <code>--read-only</code>, giới hạn CPU/RAM, không có network.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-006 · Điểm cuối môn tính động (view/query), không lưu cứng</h3>
+<p><strong>Bối cảnh:</strong> điểm cuối = Σ(điểm cột × trọng số) + điểm cộng, mà điểm cột lại có loại tự động từ assignment/quiz.</p>
+<p><strong>Quyết định:</strong> <code>GradeRecord</code> chỉ lưu điểm <em>từng cột</em>. Điểm tổng luôn tính lúc đọc qua <code>GradebookCalculator</code> (thuần Domain, không I/O), kết quả bọc trong <code>HybridCache</code> key theo <code>offering_id</code> và bị vô hiệu khi có bất kỳ thay đổi điểm nào.</p>
+<p><strong>Lý do:</strong> lưu cứng điểm tổng sẽ sinh trạng thái lệch mỗi khi giảng viên sửa trọng số giữa kỳ — lỗi kiểu này rất khó phát hiện và hậu quả nghiêm trọng (SV bị sai điểm). Tính động thì không có gì để lệch.</p>
+<p><strong>Ngoại lệ:</strong> khi <code>CourseOffering.status = closed</code>, chốt một bản <code>GradeSnapshot</code> bất biến để lưu trữ và đối chiếu về sau.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-007 · Frontend gọi API qua BFF route handler, JWT nằm trong httpOnly cookie</h3>
+<p><strong>Quyết định:</strong> Next.js Route Handler (<code>src/app/api/[...path]/route.ts</code>) proxy tới .NET API; access token + refresh token lưu trong cookie <code>httpOnly; secure; sameSite=lax</code>, không bao giờ chạm tới JavaScript phía client.</p>
+<p><strong>Lý do:</strong> lưu JWT trong <code>localStorage</code> là con đường ngắn nhất từ một lỗ XSS tới việc lộ toàn bộ điểm số lớp. Đổi lại phải thêm một hop mạng — chấp nhận được với quy mô một giảng viên.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-008 · Sổ điểm cấu hình động: bộ cột mẫu, quy tắc tổng hợp, điểm cộng có đích</h3>
+<p><strong>Bối cảnh:</strong> SRS chỉ mô tả <code>GradeColumn</code> phẳng gắn một <code>source_type</code>, như thể mọi lớp đều dùng chung một bộ cột. Thực tế không phải vậy. Một môn mặc định hai cột "Thường kỳ" + "Cuối môn"; môn khác lại ba cột "Trắc nghiệm" + "Bài tập" + "Cuối môn". Tỷ lệ giữa các cột thay đổi theo đề cương từng năm, và <em>cách gộp điểm bên trong một cột</em> cũng khác nhau: cột "Bài tập" ở môn này là trung bình 8 bài, ở môn kia là bỏ 2 bài thấp nhất rồi mới lấy trung bình. Người dùng chốt ngày 13/08/2026: phải "config động" được bộ cột, công thức, tỷ lệ và cấu hình xuất điểm, kèm khả năng cộng điểm vào <em>bất kỳ</em> cột nào. Hard-code hai cột vào schema là tự chặn đường ngay từ lớp đầu tiên.</p>
+
+<p><strong>Quyết định:</strong> tách thành bốn phần rời nhau, mỗi phần chịu trách nhiệm đúng một việc.</p>
+<ul>
+<li><strong>Thư viện bộ cột mẫu, cấp giảng viên</strong> — <code>GradeSchemeTemplate(instructor_id, name, is_default, order_index)</code> kèm <code>GradeSchemeTemplateItem(key, name, weight_percent, order_index, aggregation)</code>. Soạn một lần ("2 cột chuẩn", "3 cột có trắc nghiệm"), dùng lại cho mọi môn, mọi học kỳ.</li>
+<li><strong>Ghim mẫu mặc định ở <code>SubjectVersion</code></strong> — <code>SubjectVersion.grade_scheme_template_id</code> (uuid nullable, FK). Đặt ở <code>SubjectVersion</code> chứ không phải <code>Subject</code>, vì tỷ lệ điểm thuộc về <em>đề cương</em> và được phép đổi theo năm học. <strong><code>SubjectVersionCloner</code> (Phase 1) chỉ copy FK này, không deep clone mẫu</strong> — mẫu thuộc về giảng viên chứ không thuộc nội dung môn học, khác hẳn Chapter/Lesson/Assignment ở ADR-004. Deep clone mẫu sẽ sinh ra hàng chục bản sao rác trong thư viện sau vài học kỳ.</li>
+<li><strong>Mở lớp thì SAO CHÉP cột vào offering</strong> — <code>GradeColumn(offering_id, key, name, order_index, weight_percent, aggregation)</code> + <code>GradeColumnSource[]</code>, unique index <code>(offering_id, key)</code>. Chép xong, cột của lớp độc lập hoàn toàn với mẫu. <code>CourseOffering.grade_scheme_template_id</code> chỉ ghi nhận nguồn gốc để hiển thị, <strong>không tham gia tính điểm</strong>.</li>
+<li><strong>Quy tắc gộp điểm khai báo, không phải biểu thức</strong> — <code>GradeAggregation</code> lưu jsonb trong cột, chọn từ một danh sách đóng 8 kiểu. Không có ô nhập công thức tự do ở bất kỳ đâu.</li>
+</ul>
+
+<pre><code>public enum AggregationKind
+{
+    Manual,            // nhập tay hoàn toàn, không tự tổng hợp
+    Average,           // trung bình cộng các nguồn
+    WeightedAverage,   // dùng GradeColumnSource.WeightWithinColumn
+    Sum,               // cộng dồn rồi kẹp [0,10]
+    Max, Min,
+    DropLowestN,       // bỏ N điểm thấp nhất rồi trung bình
+    BestNOfM,          // lấy N bài tốt nhất rồi trung bình
+}
+
+public sealed class GradeAggregation
+{
+    public AggregationKind Kind { get; set; } = AggregationKind.Average;
+    public int N { get; set; }
+    public bool TreatMissingAsZero { get; set; } = true;
+}</code></pre>
+
+<p>Kèm theo là <strong><code>GradeCondition</code></strong> (jsonb, cấp offering) cho điều kiện điểm sàn — <code>ColumnKey</code>, <code>Op ∈ {LessThan, LessOrEqual}</code>, <code>Threshold</code>, <code>Action = CapFinalAt</code>, <code>ActionValue</code> — đủ để diễn đạt quy định phổ biến ở đại học Việt Nam: "Cuối môn &lt; 4.0 thì điểm tổng tối đa 3.9". Và <strong>điểm cộng có đích</strong>: <code>BonusPoint.target ∈ {FinalTotal, GradeColumn}</code> + <code>target_column_id</code> (CHECK constraint ràng hai trường với nhau), <code>points</code> bắt buộc <code>&gt; 0</code>, <code>reason</code> NOT NULL độ dài <code>&gt; 0</code>, <code>template_id</code> nullable trỏ tới <code>BonusPointReasonTemplate</code>. Offering giữ ba mặc định (<code>bonus_default_target</code>, <code>bonus_default_column_id</code>, <code>bonus_max_points_per_student</code>) để giảng viên không phải chọn lại mỗi lần.</p>
+
+<p>Thứ tự tính điểm trong <code>GradebookCalculator</code> (thuần Domain, không I/O) là <strong>bản chốt, thay thế mọi mô tả cũ</strong>:</p>
+<pre><code>1. rawColumn[c] = IsManualOverride ? GradeRecord.Score
+                                   : c.Aggregation.Apply(normalizedSourceScores)
+   -- normalizedSourceScores: MỌI nguồn quy về thang 10 TRƯỚC khi gộp
+      normalized = raw / sourceMaxScore * 10
+2. ledger = BonusLedger.Build(bonuses, settings)   -- xem ADR-009
+3. columnScore[c] = clamp(rawColumn[c] + ledger.ByColumnId[c], 0, 10)
+4. total = Σ(columnScore[c] × weight/100) + ledger.ToFinalTotal
+5. total = ApplyConditions(total, columnScore, conditions)   -- cap điểm sàn
+6. total = clamp(round(total, 1, AwayFromZero), 0, 10)</code></pre>
+
+<p><strong>Hệ quả:</strong></p>
+<ul>
+<li>✅ Mỗi môn khai được đúng bộ cột của nó mà không đụng tới schema; thêm cột "Trắc nghiệm" là thêm một dòng trong mẫu, không phải một migration.</li>
+<li>✅ <strong><code>key</code> (slug) là thứ khiến mẫu di chuyển được giữa các lớp.</strong> Mẫu bộ cột và mẫu xuất Excel đều thuộc về <em>giảng viên</em>, còn cột điểm thuộc về <em>lớp</em> — hai bên nối với nhau bằng <code>key</code> (<code>thuong_ky</code>, <code>cuoi_mon</code>, <code>trac_nghiem</code>, <code>bai_tap</code>), tuyệt đối không nối bằng id. Nối bằng id thì mỗi mẫu chỉ dùng được cho đúng một lớp, tức là mất sạch lý do tồn tại của mẫu. Đổi lại, <code>key</code> phải ổn định: đổi tên hiển thị của cột thì được, đổi <code>key</code> thì làm gãy mẫu xuất.</li>
+<li>⚠️ <strong>Cộng vào cột khác hẳn cộng vào tổng, và đây là chỗ giảng viên hầu như luôn hiểu nhầm:</strong> bonus vào cột phải đi qua trọng số ở bước 4, nên <strong>+0.5 vào cột "Thường kỳ" trọng số 20% chỉ làm điểm tổng tăng 0.1</strong>. Nếu UI không nói ra, giảng viên tưởng mình vừa cộng nửa điểm rồi cộng tiếp cho "đủ" — sai lệch tích lũy trên cả lớp. Vì vậy popover cấp điểm cộng <strong>bắt buộc</strong> hiện dòng tác động thật kiểu "→ Điểm tổng: +0.1" ngay khi chọn đích, tính theo trọng số thật của cột và cập nhật lại khi đổi đích hoặc đổi số điểm.</li>
+<li>⚠️ Điều kiện điểm sàn áp ở bước 5, tức là <strong>sau</strong> khi đã cộng mọi điểm cộng. Điểm cộng không được phép kéo sinh viên qua ngưỡng chặn — nếu áp ngược lại thì quy định "cuối môn dưới 4 là rớt" trở thành vô nghĩa.</li>
+<li>⚠️ <code>TreatMissingAsZero</code> mặc định <code>true</code> — đúng về mặt cuối kỳ, nhưng giữa học kỳ nó khiến cả lớp trông như sắp rớt. Giải bằng <em>một quy tắc dữ liệu + một tùy chọn hiển thị</em>: sổ điểm có công tắc "Xem điểm tạm tính (bỏ qua bài chưa chấm)" chỉ đổi cách xem, không đổi dữ liệu lưu. Tuyệt đối không giải bằng cách đổi mặc định theo trạng thái lớp — như vậy cùng một dữ liệu sẽ ra hai điểm khác nhau tùy thời điểm đọc.</li>
+<li>❌ Nhiều bảng hơn, nhiều màn hình cấu hình hơn, và một luồng "sao chép mẫu lúc mở lớp" phải test riêng. Chấp nhận: đây là chi phí một lần, còn hard-code bộ cột là chi phí trả mãi.</li>
+</ul>
+
+<p><strong>Đã cân nhắc:</strong></p>
+<ul>
+<li><strong>Parser biểu thức tự do</strong> (cho giảng viên gõ <code>0.2*TK + 0.8*CM</code>). Bỏ. Gõ sai một dấu là sai điểm cả lớp, và không ai phát hiện cho tới lúc công bố điểm. Ngoài ra không thể test hết không gian biểu thức, phải tự viết lexer/parser, phải chống chia cho 0 và tham chiếu vòng, phải quyết định chuyện gì xảy ra khi cột bị xóa mà biểu thức vẫn nhắc tên nó. Danh sách 8 quy tắc đóng phủ hết mọi ca người dùng nêu ra, và mỗi quy tắc test được bằng vài dòng.</li>
+<li><strong>Cột của lớp tham chiếu thẳng tới mẫu</strong> thay vì sao chép. Bỏ. Sửa mẫu ở học kỳ sau sẽ đổi luôn điểm của lớp đã dạy xong — hồi tố điểm số là hậu quả nặng nhất mà một quyết định schema có thể gây ra. Cùng nguyên tắc với việc <code>CourseOffering</code> ghim <code>SubjectVersion</code> ở ADR-004: cái gì đã dùng để chấm thì phải đóng băng.</li>
+<li><strong>Chỉ cho cộng điểm vào <em>điểm tổng</em></strong>. Đơn giản hơn hẳn: một trường <code>points</code>, không cần <code>target_column_id</code>, không cần CHECK constraint, không phải giải thích chuyện trọng số. Bỏ vì nó không phản ánh được điểm cộng phát sinh trong giờ học — thứ vốn thuộc về điểm thường kỳ. Ép loại điểm này vào tổng kết vừa sai bản chất đánh giá, vừa khiến cột thường kỳ trông như chưa từng ghi nhận đóng góp của sinh viên khi đối chiếu từng cột.</li>
+</ul>
+</div>
+
+<div class="adr">
+<h3>ADR-009 · <code>BonusLedger</code>: chốt sổ điểm cộng một lần trước khi tính</h3>
+<p><strong>Bối cảnh:</strong> bản thiết kế trước để mỗi hàm tính điểm tự xử lý danh sách <code>bonuses</code> thô. Hàm tính điểm cột lọc ra bonus có <code>target = GradeColumn</code> rồi áp trần <code>bonus_max_points_per_student</code> trên tập đó; hàm tính điểm tổng lại áp trần trên một tập khác. Hai hàm áp trần trên hai tập khác nhau nghĩa là <strong>ô sổ điểm hiển thị lệch với chính giá trị đã dùng để tính tổng</strong>. Tệ hơn, hàm cắt trần duyệt danh sách theo thứ tự phần tử, mà thứ tự đó do EF trả về không xác định — nên <strong>hai lần đọc cùng một dữ liệu cho ra hai kết quả khác nhau</strong>. Đây là loại lỗi không ai phát hiện cho tới khi sinh viên in bảng điểm ra đối chiếu và thấy con số hôm nay khác hôm qua.</p>
+<p><strong>Quyết định:</strong> đưa ra một kiểu bất biến đã "chốt sổ" điểm cộng, chỉ tạo được qua <code>Build</code>. Mọi hàm tính điểm nhận <code>BonusLedger</code>, <strong>không hàm nào được nhận danh sách bonus thô</strong>.</p>
+<pre><code>/// Kết quả đã áp trần và sắp xếp tất định. Chỉ tạo qua BonusLedger.Build.
+/// Mọi hàm tính điểm nhận Ledger này, không nhận danh sách bonus thô — nhờ đó
+/// ô sổ điểm và điểm tổng không thể lệch nhau.
+public sealed record BonusLedger
+{
+    public required IReadOnlyDictionary&lt;Guid, decimal&gt; ByColumnId { get; init; }
+    public required decimal ToFinalTotal { get; init; }
+
+    /// Sắp xếp theo (GrantedAt, Id) để tất định, rồi áp trần
+    /// MaxBonusPerStudent MỘT LẦN trên toàn bộ tập bonus.
+    public static BonusLedger Build(
+        IEnumerable&lt;BonusPoint&gt; bonuses,
+        GradebookSettings settings);
+}</code></pre>
+<p><strong>Hệ quả:</strong> ✅ Sổ điểm và điểm tổng không thể lệch nhau nữa, vì chỉ còn một nguồn duy nhất cho con số điểm cộng. ✅ Kết quả tất định: <code>BonusPoint</code> bắt buộc có <code>GrantedAt</code> và <code>Id</code> để sắp xếp, nên xáo trộn thứ tự đầu vào không đổi đầu ra. Phải có test khẳng định đúng điều này — Build hai lần trên cùng tập bonus đã xáo trộn, so sánh ledger phải giống hệt. ❌ Mọi lời gọi tính điểm đều phải <code>Build</code> trước; quên là không biên dịch được, vì chữ ký hàm không còn nhận <code>IEnumerable&lt;BonusPoint&gt;</code>. Đó chính là mục đích: biến một lỗi im lặng thành lỗi biên dịch.</p>
+<p><strong>Đã cân nhắc:</strong> chỉ sửa cho hai hàm cùng lọc trên một tập bonus, giữ nguyên chữ ký cũ. Bỏ vì nó dựa vào kỷ luật của người viết code — hàm thứ ba thêm vào sáu tháng sau sẽ lại tự lọc theo cách riêng, và lỗi quay lại y hệt. Kiểu dữ liệu chặn được, quy ước thì không.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-010 · Pipeline behavior là nơi <em>duy nhất</em> đặt mối quan tâm xuyên suốt</h3>
+<p><strong>Bối cảnh:</strong> ba việc lặp lại ở mọi use case — ghi log request, kiểm tra dữ liệu đầu vào, bọc transaction cho thao tác ghi. Cách cũ là mỗi handler tự lo, hoặc gắn filter cho từng nhóm endpoint. Cả hai đều thất bại theo cùng một kiểu: người viết use case thứ 46 quên mất một trong ba thứ đó, và <em>không có gì báo lỗi</em> — code vẫn biên dịch, test vẫn xanh, chỉ có một thao tác ghi không còn nguyên tử.</p>
+
+<p><strong>Quyết định:</strong> ba behavior, thứ tự đăng ký chính là thứ tự chạy từ ngoài vào trong — <strong>Logging → Validation → Transaction → Handler</strong>.</p>
+<pre><code>// TeachHub.Application/DependencyInjection.cs
+services.AddMediatR(cfg =&gt;
+{
+    cfg.RegisterServicesFromAssembly(assembly);
+    cfg.AddOpenBehavior(typeof(LoggingBehavior&lt;,&gt;));      // 1. tên request + thời gian + userId
+    cfg.AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;));   // 2. FluentValidation
+});
+services.AddValidatorsFromAssembly(assembly);
+
+// TeachHub.Infrastructure/DependencyInjection.cs — đăng ký SAU hai cái trên
+services.AddTransient(typeof(IPipelineBehavior&lt;,&gt;), typeof(TransactionBehavior&lt;,&gt;));  // 3.</code></pre>
+
+<p><strong>Vì sao Validation phải chạy TRƯỚC Transaction:</strong> nếu đảo lại, mỗi request có dữ liệu sai vẫn mở một transaction trên Postgres, chạy validator, ném exception, rồi rollback một transaction chưa làm gì cả. Với một form nhập điểm mà người dùng gõ sai liên tục, đó là hàng loạt connection bị giữ vô ích chỉ để rollback. Thứ tự đúng thì request sai bị chặn khi chưa hề chạm tới database.</p>
+
+<pre><code>public sealed class TransactionBehavior&lt;TRequest, TResponse&gt;(AppDbContext db)
+    : IPipelineBehavior&lt;TRequest, TResponse&gt;
+    where TRequest : notnull
+{
+    public async Task&lt;TResponse&gt; Handle(
+        TRequest request, RequestHandlerDelegate&lt;TResponse&gt; next, CancellationToken ct)
+    {
+        if (request is not IBaseCommand) return await next();            // query: không bọc
+        if (db.Database.CurrentTransaction is not null) return await next();
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var response = await next();
+        await tx.CommitAsync(ct);
+        return response;
+    }
+}</code></pre>
+<p class="meta">Lưu ý MediatR 12.5.0: <code>RequestHandlerDelegate&lt;TResponse&gt;</code> có <strong>một tham số <code>CancellationToken</code> tùy chọn</strong>, nên cả <code>await next()</code> lẫn <code>await next(ct)</code> đều biên dịch được. Quy ước dự án là <strong><code>await next()</code></strong>: nó chạy đúng trên mọi bản 12.x (12.0–12.4 delegate không có tham số nào) và vẫn chuyển token gốc xuống handler. Chỗ dễ vấp là <em>khai</em> lambda trong test — <code>() =&gt; …</code> ném <code>CS1593</code>, phải viết <code>_ =&gt; …</code>; xem Phase 0 Task 0.6.</p>
+
+<p><strong>Vì sao <code>TransactionBehavior</code> nằm ở Infrastructure chứ không phải Application:</strong> nó cần <code>DbContext.Database.BeginTransactionAsync</code>. Đặt ở Application sẽ buộc Application tham chiếu EF Core — phá đúng ranh giới tầng mà Clean Architecture sinh ra để giữ. Behavior của MediatR <em>không</em> bắt buộc nằm cùng tầng với handler: đăng ký ở đâu cũng chạy, vì nó chỉ là một <code>IPipelineBehavior&lt;,&gt;</code> trong DI container. Cách né duy nhất còn lại là dựng một interface <code>IUnitOfWork</code> giả trong Application chỉ để giữ hình thức — thêm một lớp trừu tượng không ai dùng ngoài chính nó, đúng thứ ADR-002 đã từ chối.</p>
+
+<p><strong>Hệ quả cụ thể — <code>SubjectVersionCloner</code> ở Phase 1 không còn phải tự mở transaction.</strong> ADR-004 yêu cầu deep clone chạy trong một transaction; bản plan cũ vì thế phải thêm <code>BeginTransactionAsync</code> vào <code>IAppDbContext</code> (làm interface lộ chi tiết EF) rồi tự mở/commit/rollback trong cloner. Giờ <code>CloneSubjectVersionCommand</code> là <code>ICommand</code>, nên behavior đã bọc sẵn: cloner chỉ còn việc clone. Yêu cầu nguyên tử vẫn y nguyên, chỉ là không còn viết tay ở từng chỗ. Điều tương tự áp cho mọi command đụng nhiều bảng: mở lớp (sao chép <code>GradeColumn</code> từ mẫu), import Excel danh sách sinh viên, chấm hàng loạt.</p>
+
+<p><strong>Hệ quả:</strong> ✅ Thêm use case mới không phải nhớ gì cả — chọn đúng <code>ICommand</code> hay <code>IQuery</code> là ba behavior tự áp dụng. ✅ Muốn thêm mối quan tâm mới (audit, cache, retry) thì thêm một behavior, không sửa 54 chỗ. ❌ Behavior chạy ngầm nên người mới đọc code sẽ không thấy transaction ở đâu — bù bằng chính ADR này và một dòng comment ở <code>DependencyInjection</code>. ❌ Behavior sai một chỗ là sai toàn hệ thống, nên bản thân behavior phải có test riêng.</p>
+
+<p><strong>Đã cân nhắc:</strong> để mỗi handler tự <code>BeginTransaction</code> khi cần. Bỏ vì đó chính là kỷ luật-thay-cho-kiểu-dữ-liệu mà ADR-009 đã bác: sẽ có handler quên, và triệu chứng là dữ liệu ghi dở dang — loại lỗi chỉ lộ ra khi đã hỏng.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-011 · Hai mô hình lỗi: exception cho validation, <code>Result</code> cho kết quả nghiệp vụ</h3>
+<p><strong>Bối cảnh:</strong> một use case hỏng theo hai kiểu rất khác nhau, và trộn chúng vào một cơ chế là nguồn gốc của phần lớn code xử lý lỗi rối rắm. Kiểu thứ nhất: <em>dữ liệu gửi lên không hợp lệ</em> — thiếu tên môn, trọng số âm, email sai định dạng. Kiểu thứ hai: <em>nghiệp vụ trả về một kết quả không phải thành công</em> — không tìm thấy môn, version đã publish rồi nên không sửa được nữa, giảng viên A đụng vào lớp của giảng viên B.</p>
+
+<p><strong>Quyết định:</strong></p>
+<ul>
+<li><strong>Lỗi dữ liệu đầu vào → exception.</strong> FluentValidator ném <code>ValidationException</code> trong <code>ValidationBehavior</code>, một <code>IExceptionHandler</code> toàn cục bắt và đổi thành <code>400</code> + <code>ValidationProblemDetails</code>. Lý do: loại lỗi này <strong>không bao giờ</strong> cần xử lý riêng theo từng use case — không có chỗ nào trong hệ thống muốn "bắt lỗi email sai định dạng rồi làm việc khác". Đã vậy thì gom về một chỗ là đúng, và handler sạch hẳn.</li>
+<li><strong>Kết quả nghiệp vụ mong đợi → <code>Result</code>.</strong> Không tìm thấy, xung đột trạng thái, không có quyền — giữ nguyên kiểu <code>Result</code> đã dùng ở các plan Phase 1–4b. Lý do: chúng là <em>một phần hợp đồng của use case</em>, phải hiện ra trong chữ ký hàm để người gọi buộc phải xử lý, không được giấu vào exception. "Publish một version đã publish" là một nhánh nghiệp vụ có thật, không phải sự cố.</li>
+</ul>
+<p><code>ApiControllerBase</code> có <strong>hai overload</strong> <code>ToActionResult</code>: bản <code>Result</code> (không mang giá trị) trả <code>NoContent()</code> khi thành công, bản <code>Result&lt;T&gt;</code> trả <code>Ok(result.Value)</code>. <strong>Mọi nhánh lỗi đi qua <code>Problem(...)</code></strong> — cố ý <em>không</em> dùng <code>NotFound()</code> / <code>Forbid()</code>, vì <code>Problem</code> luôn trả <code>application/problem+json</code> theo RFC 9457 kèm <code>detail</code> đọc được, còn <code>Forbid()</code> trả 403 với thân rỗng và frontend không có gì để hiển thị cho người dùng. Nhờ vậy controller không cần biết gì thêm và vẫn giữ được yêu cầu "không <code>try/catch</code> trong controller" ở ADR-001. Hiện thực đầy đủ ở Phase 0 Task 0.7.</p>
+
+<p><strong>Rủi ro nếu trộn lẫn</strong> — đây là lý do phải viết ADR riêng cho một chuyện tưởng là vặt: khi cùng một loại lỗi lúc thì ném exception, lúc thì trả <code>Result</code>, lập trình viên không còn cách nào biết <em>khi nào phải <code>try/catch</code>, khi nào phải kiểm <code>Result</code></em>. Kết cục quen thuộc là làm cả hai cho chắc — <code>try/catch</code> bọc quanh một lời gọi vốn đã trả <code>Result</code>, rồi bên trong lại quên kiểm <code>IsFailure</code>. Lúc đó lỗi "không tìm thấy" âm thầm đi tiếp như thể thành công, và thứ nổ ra là một <code>NullReferenceException</code> cách đó ba tầng gọi hàm — không ai lần ngược được về nguyên nhân. Ranh giới phải rạch ròi: <strong>đầu vào sai thì ném, nghiệp vụ không thành thì trả.</strong></p>
+
+<p><strong>Đã cân nhắc:</strong> dùng exception cho cả hai (<code>NotFoundException</code>, <code>ConflictException</code>, <code>ForbiddenException</code> đều ném, handler toàn cục đổi mã HTTP). Ngắn hơn thật, nhưng khi đó chữ ký handler nói dối: nhìn <code>Task&lt;SubjectDto&gt;</code> tưởng luôn có kết quả, trong khi nó có ba đường thoát ngầm. Ba lớp exception đó <strong>chưa được tạo</strong> và không task nào trong Phase 0–4b tạo chúng — cố ý: mọi nhánh "không tìm thấy / xung đột / không có quyền" đã có <code>Result</code> lo, nên tạo sẵn một thư mục <code>Common/Exceptions/</code> rỗng chỉ là lời mời quay lại ném exception cho nhánh nghiệp vụ. Khi nào gặp ca <em>thực sự bất thường</em> đầu tiên — dữ liệu vi phạm bất biến của chính hệ thống, tức là bug chứ không phải người dùng nhập sai — thì mới thêm lớp exception cho đúng ca đó, kèm một dòng trong <code>IExceptionHandler</code>.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-012 · Nhiều giảng viên độc lập, cách ly bằng quyền sở hữu tài nguyên</h3>
+<p><strong>Bối cảnh:</strong> SRS mục 2 viết cho <em>một</em> giảng viên là chủ hệ thống. Người dùng xác nhận
+muốn nhiều giảng viên nhưng <strong>độc lập</strong> — không cộng tác, không đồng sở hữu môn, không chia sẻ
+thư viện (13/08/2026).</p>
+<p><strong>Quyết định:</strong> mọi tài nguyên gắn <code>instructor_id</code> trực tiếp hoặc gián tiếp qua
+<code>Subject</code>/<code>CourseOffering</code>; mọi truy vấn lọc theo chủ sở hữu <em>ngay trong câu truy vấn</em>.
+Tài khoản sinh ra bằng <strong>lời mời</strong> (<code>InstructorInvite</code>), không mở đăng ký công khai;
+người đầu tiên qua <code>POST /api/auth/bootstrap</code> chạy đúng một lần rồi khoá vĩnh viễn.
+Tài nguyên không thuộc người gọi <strong>luôn trả 404, không bao giờ 403</strong>.</p>
+<p><strong>Hệ quả:</strong> ✅ không cần vai trò Admin — mời người khác vào không cấp thêm quyền cho ai;
+✅ thêm giảng viên không ảnh hưởng dữ liệu của ai; ❌ không chia sẻ được rubric hay thư viện giữa các giảng viên,
+chấp nhận vì đó chính là mức cộng tác đã bị loại bỏ; ❌ mỗi handler phải tự lọc, nên
+<strong>bắt buộc</strong> phải có ma trận <code>CrossInstructorIsolationTests</code> (Phase 0 Task 0.8c) —
+một endpoint quên lọc là lộ điểm số và bài nộp của lớp người khác, mà loại lỗi này không có triệu chứng nào.</p>
+<p><strong>Đã cân nhắc:</strong> (a) <code>OfferingStaff</code> cho trợ giảng/đồng giảng — hoãn sang P2 theo
+lựa chọn của người dùng; (b) mở đăng ký công khai — bỏ vì bất kỳ ai trên internet cũng tạo được tài khoản
+giảng viên rồi tiêu dung lượng máy chủ; (c) thêm vai trò Admin — bỏ vì ở quy mô vài đồng nghiệp,
+một vai trò và mấy màn hình quản trị chỉ để mời người là không đáng.</p>
+</div>
+
+<div class="adr">
+<h3>ADR-013 · Vai trò trợ giảng khai báo sẵn nhưng tắt hoàn toàn ở MVP</h3>
+<p><strong>Bối cảnh:</strong> SRS mục 2 có vai trò Teaching Assistant. Bản plan trước đã khai
+<code>Roles.TeachingAssistant</code> và <code>Policies.InstructorOrTa</code> — nhưng <strong>không có bảng nào
+gắn trợ giảng vào một lớp cụ thể</strong>, trong khi mọi kiểm quyền viết dạng
+<code>subject.InstructorId == currentUserId</code>.</p>
+<p><strong>Vấn đề thật:</strong> hai kết cục, không có mức trung gian. Hoặc trợ giảng không làm được gì
+(vì không sở hữu môn nào), hoặc — nếu nới điều kiện cho họ chấm được — họ chấm được ở <em>mọi</em> lớp của
+<em>mọi</em> giảng viên. Một policy đang cấp quyền cho vai trò chưa có cách giới hạn theo lớp là lỗ hổng nằm chờ.</p>
+<p><strong>Quyết định:</strong> giữ hằng số <code>Roles.TeachingAssistant</code> (để bật lại không phải migrate),
+<strong>xoá <code>Policies.InstructorOrTa</code></strong> khỏi phần đăng ký và khỏi mọi endpoint, và thêm một
+<em>test canh gác</em>: tài khoản chỉ mang vai trò trợ giảng phải bị từ chối ở mọi endpoint nghiệp vụ.</p>
+<p><strong>Hệ quả:</strong> test canh gác đỏ ngay nếu ai đó về sau vô tình thêm lại policy — rẻ hơn nhiều
+so với phát hiện lúc một trợ giảng đã xem được sổ điểm lớp khác. Bật lại cần
+<code>OfferingStaff(offering_id, user_id, role)</code> và chuyển toàn bộ kiểm quyền sang resource-based; phần đắt
+không phải bảng quan hệ mà là sửa lại mọi handler đã có test. Xếp ở P2.</p>
+</div>
+
+<h2>4. Phân tích lỗ hổng trong SRS &amp; cách xử lý</h2>
+<p class="meta">Đây là những chỗ SRS chưa đủ để code thẳng. Mỗi mục nêu vấn đề và quyết định <strong>đã chốt</strong> — không còn mục nào chờ xác nhận. Những mục ảnh hưởng trực tiếp tới nghiệp vụ (điểm cộng, thang điểm) đã được người dùng trả lời dứt khoát ngày 13/08/2026; phần còn lại quyết theo hướng an toàn nhất cho dữ liệu điểm.</p>
+
+<table>
+<thead><tr><th>#</th><th>Lỗ hổng</th><th>Quyết định</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Không có bảng <code>User</code>/<code>Instructor</code> — nhưng <code>Subject.instructor_id</code>, <code>BonusPointReasonTemplate.instructor_id</code> đều tham chiếu tới nó.</td><td><span class="tag t-new">THÊM</span> <code>AppUser</code> (ASP.NET Identity) + <code>AppRole</code> ∈ {<code>Instructor</code>, <code>TeachingAssistant</code>, <code>Student</code>}. Mọi <code>instructor_id</code> → FK tới <code>AppUser.Id</code>.</td></tr>
+<tr><td>2</td><td>SRS lẫn lộn <code>student_id</code> và <code>enrollment_id</code> (<code>Submission.student_id</code>, <code>ReviewQueueItem.student_id</code> vs <code>BonusPoint.enrollment_id</code>).</td><td><strong>Quy ước cứng:</strong> cái gì thuộc <em>một lớp học phần</em> → dùng <code>enrollment_id</code> (submission, bonus point, grade record, progress). Cái gì <em>xuyên lớp/theo con người</em> → dùng <code>user_id</code> (review queue, streak, XP tổng). <code>Enrollment</code> có thêm <code>user_id</code> nullable (SV import từ Excel chưa có tài khoản → null, tới khi kích hoạt bằng join code thì gắn).</td></tr>
+<tr><td>3</td><td><code>Assignment</code> và <code>Quiz</code> không gắn với <code>SubjectVersion</code> ⇒ clone version sẽ dùng chung, phá vỡ toàn bộ cơ chế versioning.</td><td><span class="tag t-new">THÊM</span> <code>Assignment.subject_version_id</code> (nullable) và <code>Quiz.subject_version_id</code> (nullable) + <code>Quiz.offering_id</code> (nullable) với CHECK "đúng một trong hai không null". Assignment/Quiz thuộc bài giảng → gắn version; thuộc đợt cuối môn → gắn offering.</td></tr>
+<tr><td>4</td><td><b>Không có bảng theo dõi tiến độ học</b>, nhưng <code>Chapter.unlock_rule</code> + <code>Lesson.is_required_to_unlock_next</code> + "% hoàn thành chương" + XP + streak đều cần nó.</td><td><span class="tag t-new">THÊM</span> <code>LessonProgress(enrollment_id, lesson_id, status, completed_at, seconds_spent)</code> và <code>ComponentProgress(enrollment_id, lesson_component_id, status, completed_at)</code>. Đây là bảng bị thiếu nghiêm trọng nhất — không có nó thì mục 6.3 và toàn bộ 5.9 không làm được.</td></tr>
+<tr><td>5</td><td>"SV có thể nộp lại (ghi đè, <b>giữ lịch sử</b>)" nhưng <code>Submission</code> không có cơ chế lịch sử.</td><td><span class="tag t-new">THÊM</span> <code>Submission.attempt_no</code> (int) + <code>is_current</code> (bool). Nộp lại = tạo hàng mới <code>attempt_no + 1</code>, hàng cũ <code>is_current = false</code>. Unique index một phần: <code>(owner, submitter) WHERE is_current</code>.</td></tr>
+<tr><td>6</td><td><code>GradeColumn.source_type = auto_from_assignment</code> nhưng không nói <em>assignment nào</em>.</td><td><span class="tag t-new">THÊM</span> bảng <code>GradeColumnSource(grade_column_id, source_type, source_id, weight_within_column)</code> — một cột "Bài tập" gom nhiều assignment, mỗi cái có trọng số con. Đây là cách duy nhất để cột tự động có nghĩa.</td></tr>
+<tr><td>7</td><td><code>FinalAssessment.weight_percent</code> "liên kết tới GradeColumn" nhưng không có FK.</td><td><span class="tag t-chg">SỬA</span> bỏ <code>weight_percent</code> khỏi <code>FinalAssessment</code>; thay bằng <code>grade_column_id</code> (FK). Trọng số chỉ tồn tại ở một nơi duy nhất là <code>GradeColumn.weight_percent</code> — tránh hai nguồn sự thật lệch nhau.</td></tr>
+<tr><td>24</td><td>SRS không có luồng tạo tài khoản giảng viên — chỉ giả định đã có sẵn một người.</td><td><span class="tag t-new">THÊM</span> <code>InstructorInvite</code> (token lưu SHA-256, hạn 7 ngày, hiện đúng một lần) + <code>POST /api/auth/bootstrap</code> chạy một lần duy nhất cho người đầu tiên. Không mở đăng ký công khai. Xem ADR-012.</td></tr>
+<tr><td>25</td><td>SRS khai vai trò Teaching Assistant nhưng không có cách giới hạn theo lớp.</td><td><span class="tag t-del">TẮT Ở MVP</span> giữ hằng số để sau này không phải migrate, xoá <code>Policies.InstructorOrTa</code>, thêm test canh gác. Xem ADR-013.</td></tr>
+<tr><td>26</td><td>SRS nói SV chỉ thấy dữ liệu lớp mình, nhưng không nói cách ly <em>giữa các giảng viên</em> được kiểm chứng ra sao.</td><td><span class="tag t-new">THÊM</span> ma trận <code>CrossInstructorIsolationTests</code> phủ mọi loại tài nguyên, cộng một mục bắt buộc trong Definition of Done: phase nào thêm tài nguyên mới thì thêm dòng vào ma trận.</td></tr>
+<tr><td>8</td><td>"ghi log ai sửa" điểm nhưng không có bảng log.</td><td><span class="tag t-new">THÊM</span> <code>GradeAuditLog(offering_id, enrollment_id, target_type, target_id, old_value, new_value, changed_by, changed_at, reason)</code>. Bắt buộc cho MVP — đây là thứ bảo vệ giảng viên khi SV khiếu nại điểm.</td></tr>
+<tr><td>9</td><td>Điểm cộng cộng vào đâu, có trần không, có bắt buộc ghi lý do không, có được cộng số âm không? SRS chỉ nói "cộng trực tiếp vào tổng điểm cuối hoặc vào 1 cột riêng (tùy cấu hình)" — chưa đủ để code.</td><td><span class="tag t-new">THÊM</span> ba trường cấu hình cấp offering: <code>bonus_default_target ∈ {FinalTotal, GradeColumn}</code> (mặc định <code>GradeColumn</code>), <code>bonus_default_column_id</code> (thường trỏ tới cột "Thường kỳ"), <code>bonus_max_points_per_student</code> (null = không có trần riêng, vẫn kẹp <code>[0, 10]</code>). <code>BonusPoint</code> có <code>target</code> chọn lại được từng lần cấp + <code>target_column_id</code>, đích là <strong>bất kỳ cột nào</strong> của lớp chứ không riêng cột thường kỳ, kèm CHECK constraint: <code>target = 'GradeColumn'</code> thì <code>target_column_id</code> phải khác null, <code>target = 'FinalTotal'</code> thì phải null. <code>BonusPoint.reason</code> <strong>NOT NULL và độ dài &gt; 0</strong> — cấp điểm cộng không có lý do là 400, kể cả khi đã chọn từ thư viện. <code>points</code> bắt buộc <strong><code>&gt; 0</code></strong>, API trả 400 nếu <code>&lt;= 0</code>: muốn trừ điểm thì sửa thẳng điểm cột, vì trừ điểm qua cơ chế "điểm cộng" làm hỏng cả thống kê lẫn cách đọc lịch sử. Việc áp trần và sắp xếp do <code>BonusLedger.Build</code> làm <strong>một lần duy nhất</strong> trước khi tính (ADR-009), không hàm tính điểm nào được tự áp trần. Đây là <strong>yêu cầu trực tiếp của người dùng ngày 13/08/2026</strong>, không phải suy diễn kỹ thuật.</td></tr>
+<tr><td>10</td><td>Không có quy tắc làm tròn và thang điểm chữ, trong khi màn hình 6.8 của SRS có nhắc "điểm chữ quy đổi".</td><td><span class="tag t-del">BỎ</span> thang điểm chữ khỏi MVP — người dùng đã xác nhận ngày 13/08/2026 <em>chỉ cần thang số 0–10</em>. Sổ điểm trên màn hình và file Excel xuất ra chỉ hiện số, không có cột điểm chữ, không có bảng <code>GradeScale</code>. Quy tắc làm tròn vẫn giữ: 1 chữ số thập phân, <code>Math.Round(x, 1, MidpointRounding.AwayFromZero)</code> (8.25 → 8.3). Giữ chỗ ở P2: nếu sau này phòng đào tạo bắt nộp điểm chữ thì thêm một bảng quy đổi đọc từ điểm số, không đụng tới cách lưu điểm.</td></tr>
+<tr><td>11</td><td><code>Assignment.hints</code> khai là <code>jsonb[]</code> — không truy vấn được "SV này đã mở hint nào".</td><td><span class="tag t-chg">SỬA</span> thành bảng <code>AssignmentHint(assignment_id, order_index, content, penalty_point)</code> + <code>HintUnlock(submission_id, hint_id, unlocked_at)</code>. <code>Submission.hints_used</code> trở thành giá trị dẫn xuất.</td></tr>
+<tr><td>12</td><td>Câu <code>fill_blank</code> chấm tự động thế nào (hoa/thường, nhiều đáp án đúng, khoảng trắng)?</td><td><span class="tag t-new">THÊM</span> <code>QuizQuestion.answer_config</code> (jsonb): <code>accepted_answers: string[]</code>, <code>case_sensitive: bool</code>, <code>trim_whitespace: bool</code>, <code>normalize_unicode: bool</code>. Mặc định: không phân biệt hoa thường, cắt khoảng trắng, chuẩn hóa NFC (quan trọng với tiếng Việt).</td></tr>
+<tr><td>13</td><td><code>Attendance</code> có trong sơ đồ ER nhưng không có đặc tả bảng, không có use case, chỉ xuất hiện ở P2/S11.</td><td><span class="tag t-del">HOÃN</span> ra khỏi MVP. Giữ chỗ ở Phase 9. <code>BonusPoint.context_type = attendance</code> vẫn hợp lệ (điểm cộng chuyên cần nhập tay).</td></tr>
+<tr><td>14</td><td>Similarity check cần lưu fingerprint để so sánh, chưa có bảng.</td><td><span class="tag t-new">THÊM</span> <code>SourceFingerprint(submission_file_id, hash bigint, position int)</code> + index trên <code>hash</code>. Thuật toán Winnowing như SRS đã chọn.</td></tr>
+<tr><td>15</td><td>Không nói xóa mềm hay xóa cứng. Xóa một Chapter đang có bài SV đã nộp sẽ mất dữ liệu điểm.</td><td><span class="tag t-new">THÊM</span> <code>is_deleted</code> + <code>deleted_at</code> cho nội dung dạy học (Subject, Chapter, Lesson, Component, Assignment, Quiz), dùng EF Core 10 <em>named query filter</em>. Dữ liệu SV (Submission, GradeRecord) <strong>không bao giờ xóa</strong>.</td></tr>
+<tr><td>16</td><td>Múi giờ không nêu — hạn nộp 23:59 là giờ nào?</td><td>Lưu <code>timestamptz</code> UTC. Hiển thị và nhập liệu theo <code>Asia/Ho_Chi_Minh</code>. Offering có <code>time_zone</code> (mặc định <code>Asia/Ho_Chi_Minh</code>) để về sau đổi được.</td></tr>
+<tr><td>17</td><td><code>join_code</code> không nêu ràng buộc.</td><td>6 ký tự alphanumeric viết hoa, loại bỏ ký tự dễ nhầm (0/O, 1/I/l), unique toàn hệ thống, có <code>join_code_expires_at</code>.</td></tr>
+<tr><td>18</td><td>Rubric không có chủ sở hữu ⇒ không tái sử dụng được giữa các môn.</td><td><span class="tag t-new">THÊM</span> <code>Rubric.instructor_id</code> + <code>is_template</code>. <code>rubric_scores_json</code> lưu <code>{criterion_id: điểm}</code> có kiểu, không phải mảng vị trí.</td></tr>
+<tr><td>19</td><td>SRS có <code>BonusPointReasonTemplate</code> (mục 3.2, UC-17b) nhưng roadmap ban đầu xếp nó vào P1 — nghĩa là MVP sẽ bắt giảng viên gõ tay lý do cho từng lần cấp điểm cộng.</td><td><span class="tag t-chg">CHUYỂN</span> vào MVP (<strong>Phase 4</strong>). Người dùng yêu cầu bắt buộc phải có bộ lý do soạn sẵn: <code>BonusPointReasonTemplate(instructor_id, label, default_points, default_target, order_index, is_active)</code> — thuộc về giảng viên nên dùng lại cho mọi lớp, mọi học kỳ, và hiện thành dãy nút bấm nhanh ngay trong popover cấp điểm. Lý do không có trong thư viện thì gõ tự do, <code>template_id = null</code>, vẫn hợp lệ. <strong>Quan trọng:</strong> khi chọn từ thư viện, hệ thống <em>copy</em> <code>label</code> vào cột <code>reason</code> chứ không chỉ lưu <code>template_id</code> — <code>reason</code> là snapshot text. Nếu chỉ giữ FK thì sửa hoặc ẩn template sau này sẽ làm đổi nghĩa mọi điểm cộng đã cấp trước đó; sáu tháng sau sinh viên khiếu nại điểm, bạn cần thấy đúng lý do <em>tại thời điểm cấp</em>. <code>template_id</code> chỉ giữ để thống kê lý do nào hay dùng, và ẩn template (<code>is_active = false</code>) không được làm mất hay đổi bất kỳ <code>BonusPoint</code> cũ nào.</td></tr>
+<tr><td>20</td><td>SRS không có cơ chế cấu hình bộ cột điểm theo môn — <code>GradeColumn</code> nằm phẳng dưới offering, ngầm hiểu mọi lớp cùng một bộ cột. Thực tế môn này 2 cột (thường kỳ, cuối môn), môn kia 3 cột (trắc nghiệm, bài tập, cuối môn), và tỷ lệ đổi theo đề cương từng năm.</td><td><span class="tag t-new">THÊM</span> <code>GradeSchemeTemplate(instructor_id, name, is_default, order_index)</code> + <code>GradeSchemeTemplateItem(key, name, weight_percent, order_index, aggregation)</code> — thư viện mẫu <em>cấp giảng viên</em>, dùng lại cho mọi môn. <span class="tag t-new">THÊM</span> <code>SubjectVersion.grade_scheme_template_id</code> (uuid nullable, FK) để ghim mẫu mặc định của môn; đặt ở <code>SubjectVersion</code> vì tỷ lệ điểm thuộc về đề cương và đổi theo năm học. <strong><code>SubjectVersionCloner</code> chỉ copy FK, KHÔNG deep clone mẫu</strong> (khác Chapter/Lesson/Assignment ở ADR-004). Mở lớp thì <strong>SAO CHÉP</strong> item của mẫu thành <code>GradeColumn</code> của offering, unique <code>(offering_id, key)</code>, sau đó độc lập hoàn toàn — sửa mẫu học kỳ sau không được đổi điểm lớp đã dạy xong. <code>CourseOffering.grade_scheme_template_id</code> chỉ ghi nhận nguồn gốc, <strong>không dùng để tính</strong>. Chi tiết ở ADR-008.</td></tr>
+<tr><td>21</td><td>SRS không nói cột tự động gộp điểm nhiều bài theo quy tắc nào (trung bình? cao nhất? bỏ bài thấp nhất?), và không hề nhắc chuyện chuẩn hóa thang điểm khi các nguồn có <code>max_score</code> khác nhau.</td><td><span class="tag t-new">THÊM</span> <code>GradeAggregation</code> (jsonb trong <code>GradeColumn</code> và trong item của mẫu): <code>Kind ∈ {Manual, Average, WeightedAverage, Sum, Max, Min, DropLowestN, BestNOfM}</code> + <code>N</code> + <code>TreatMissingAsZero</code>. Danh sách <strong>đóng</strong>, chọn từ dropdown — không có parser biểu thức tự do (lý do ở ADR-008). <strong>Bắt buộc chuẩn hóa mọi nguồn về thang 10 TRƯỚC khi gộp:</strong> <code>normalized = raw / sourceMaxScore * 10</code>. Bỏ bước này là sai điểm thật: bài rubric thang 20, sinh viên được 16 → phải thành <strong>8.0</strong>, chứ không phải gộp thẳng rồi bị <code>clamp</code> xuống 10. Phải có test riêng cho đúng ca này.</td></tr>
+<tr><td>22</td><td>SRS không có điều kiện điểm sàn — trong khi hầu hết quy chế đại học Việt Nam đều có dạng "thi cuối môn dưới ngưỡng là rớt bất kể điểm quá trình".</td><td><span class="tag t-new">THÊM</span> <code>CourseOffering.grade_conditions</code> (jsonb, mảng <code>GradeCondition</code>): <code>ColumnKey</code>, <code>Op ∈ {LessThan, LessOrEqual}</code>, <code>Threshold</code>, <code>Action = CapFinalAt</code>, <code>ActionValue</code>. Ví dụ thực tế: "Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9". Điều kiện áp ở <strong>bước 5</strong>, tức là SAU khi đã cộng mọi điểm cộng — điểm cộng không được phép kéo sinh viên qua ngưỡng chặn, nếu không quy định điểm sàn thành vô nghĩa.</td></tr>
+<tr><td>23</td><td>SRS nói xuất Excel "theo template tùy chỉnh" nhưng không đặc tả gì thêm: template gồm những gì, thuộc về ai, dùng lại giữa các lớp thế nào.</td><td><span class="tag t-new">THÊM</span> <code>GradeExportTemplate(instructor_id, name, is_default)</code> + <code>GradeExportItem(source, column_key, header, order_index, decimal_places)</code> với <code>source ∈ {StudentCode, FullName, Email, ClassName, GradeColumn, Bonus, FinalScore, Blank}</code> — chọn cột, đổi thứ tự, sửa tiêu đề cho khớp mẫu của phòng đào tạo, lưu lại dùng lần sau. <strong>Điểm mấu chốt:</strong> mẫu xuất thuộc về <em>giảng viên</em> còn cột điểm thuộc về <em>lớp</em>, nên nối hai bên bằng <code>key</code> (slug), <strong>không bằng id</strong> — nối bằng id thì mỗi mẫu chỉ dùng được cho đúng một lớp. Cột của lớp không có mục tương ứng trong mẫu xuất phải <strong>hiện cảnh báo</strong> "cột X sẽ không được xuất", không bỏ qua im lặng.</td></tr>
+</tbody>
+</table>
+
+<h2>5. Quy ước bắt buộc khi code</h2>
+
+<div class="grid">
+<div class="card">
+<h4>Đặt tên</h4>
+<ul>
+<li>DB: <code>snake_case</code>, bảng số nhiều (<code>subject_versions</code>).</li>
+<li>C#: <code>PascalCase</code>, entity số ít (<code>SubjectVersion</code>).</li>
+<li>Ánh xạ tự động bằng <code>UseSnakeCaseNamingConvention()</code> của Npgsql — không viết tay từng <code>HasColumnName</code>.</li>
+<li>JSON API: <code>snake_case</code> (khớp SRS mục 7), cấu hình một lần bằng <code>JsonNamingPolicy.SnakeCaseLower</code> — với Controllers thì đặt trong <code>AddControllers().AddJsonOptions(...)</code>. Đặt nhầm chỗ là API trả camelCase và frontend hỏng toàn bộ mà không có lỗi nào rõ ràng.</li>
+</ul>
+</div>
+<div class="card">
+<h4>Command / Query &amp; controller</h4>
+<ul>
+<li>Đặt tên: <code>&lt;Động từ&gt;&lt;Danh từ&gt;Command</code> (<code>CreateSubjectCommand</code>, <code>PublishVersionCommand</code>, <code>ImportEnrollmentsCommand</code>) và <code>Get&lt;Danh từ&gt;Query</code> (<code>GetSubjectsQuery</code>, <code>GetGradebookQuery</code>). Handler là <code>&lt;Tên&gt;Handler</code>, validator là <code>&lt;Tên&gt;Validator</code>.</li>
+<li><strong>Mỗi use case một thư mục</strong> chứa đủ Command + Handler + Validator (+ DTO nếu riêng), dưới <code>Features/&lt;Nhóm&gt;/Commands/&lt;TênUseCase&gt;/</code> hoặc <code>.../Queries/&lt;TênUseCase&gt;/</code>. Sửa một chức năng = mở đúng một thư mục.</li>
+<li>Thao tác <strong>ghi</strong> phải khai <code>ICommand&lt;T&gt;</code>, thao tác <strong>đọc</strong> khai <code>IQuery&lt;T&gt;</code> — không phải hình thức: <code>TransactionBehavior</code> dựa vào đó để quyết định có bọc transaction hay không (ADR-010). Khai nhầm query thành command là giữ connection vô ích; khai nhầm command thành query là mất tính nguyên tử.</li>
+<li><strong>Controller không được chứa logic nghiệp vụ.</strong> Chỉ định tuyến, lấy <code>userId</code> từ claim, <code>sender.Send(...)</code>, quy đổi <code>Result</code> bằng <code>ToActionResult</code>. Không <code>if</code> nghiệp vụ, không đụng <code>DbContext</code>, không <code>try/catch</code>. Review thấy vi phạm là trả lại, không du di.</li>
+</ul>
+</div>
+<div class="card">
+<h4>Kiểu dữ liệu</h4>
+<ul>
+<li>Điểm: <code>decimal(5,2)</code> — <strong>không dùng <code>double</code></strong> ở bất cứ đâu liên quan tới điểm.</li>
+<li>Thang điểm duy nhất là <strong>số 0–10</strong>: mọi điểm (điểm cột, điểm tổng, điểm sau khi cộng bonus) đều kẹp trong <code>[0, 10]</code> bằng <code>clamp</code>, hiển thị 1 chữ số thập phân. <strong>Không có thang điểm chữ</strong> ở bất kỳ đâu — API, sổ điểm, file Excel đều chỉ trả về số.</li>
+<li>Trọng số: <code>decimal(5,2)</code>, đơn vị phần trăm.</li>
+<li>Id: <code>Guid</code> tạo bằng <code>Guid.CreateVersion7()</code>, không để DB tự sinh.</li>
+<li>Thời gian: <code>DateTimeOffset</code> (không dùng <code>DateTime</code>).</li>
+<li><strong>Enum lưu xuống DB:</strong> mọi enum đều khai <code>.HasConversion&lt;string&gt;().HasMaxLength(32)</code>; giá trị chuỗi trong CHECK constraint phải khớp <strong>đúng tên enum C#</strong> (<code>'GradeColumn'</code>), <strong>không dùng snake_case</strong> (<code>'grade_column'</code>). EF mặc định map enum ra <code>integer</code>, nên viết CHECK bằng chuỗi mà quên khai <code>HasConversion</code> là migration chết ngay lúc apply. Quy ước này áp cho toàn bộ enum của dự án, nhất quán với các enum đã có ở Phase 1–3 và cho <code>BonusTarget</code>, <code>AggregationKind</code>, <code>ConditionOperator</code>, <code>CapAction</code>, <code>GradeExportSource</code>.</li>
+</ul>
+</div>
+<div class="card">
+<h4>Test</h4>
+<ul>
+<li>Luật nghiệp vụ (tính điểm, unlock, late penalty, clone) → unit test ở <code>Domain.Tests</code>, chạy &lt; 1 ms.</li>
+<li>Use case (handler + validator) → unit test ở <code>Application.Tests</code>: <code>new</code> handler rồi gọi <code>Handle</code>, không dựng HTTP. Pipeline behavior cũng phải có test riêng — sai một behavior là sai toàn hệ thống.</li>
+<li>Endpoint (controller + auth policy + serialization) → integration test thật với Postgres container.</li>
+<li>Mỗi task trong plan bắt đầu bằng test đỏ. Không có ngoại lệ cho code tính điểm.</li>
+</ul>
+</div>
+<div class="card">
+<h4>Bảo mật</h4>
+<ul>
+<li>Mọi endpoint mặc định đòi đăng nhập nhờ <em>fallback policy</em> (<code>SetFallbackPolicy</code> + <code>RequireAuthenticatedUser</code>); mở public phải gắn <code>[AllowAnonymous]</code> tường minh.</li>
+<li>Truy cập dữ liệu lớp luôn qua policy resource-based (SV chỉ thấy offering mình học, giảng viên chỉ thấy môn mình tạo).</li>
+<li>Upload: rate limit + giới hạn dung lượng + kiểm tra magic bytes phía server.</li>
+</ul>
+</div>
+</div>
+
+<h3>Ngân sách chất lượng (đo được, kiểm tra trong CI)</h3>
+<table>
+<thead><tr><th>Chỉ số</th><th>Ngưỡng</th><th>Nguồn</th></tr></thead>
+<tbody>
+<tr><td>Toàn bộ unit test</td><td>&lt; 10 giây</td><td>giữ vòng lặp TDD đủ nhanh để thật sự dùng</td></tr>
+<tr><td>Cảnh báo build</td><td>0 (<code>TreatWarningsAsErrors</code>)</td><td>—</td></tr>
+<tr><td>Trang học của SV (LCP)</td><td>&lt; 3 s</td><td>SRS mục 9</td></tr>
+<tr><td>API đọc (p95)</td><td>&lt; 300 ms</td><td>hệ quả của mục trên</td></tr>
+<tr><td>Upload không chặn</td><td>trả về &lt; 2 s, xử lý ZIP chạy nền</td><td>SRS mục 9</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">
+Đọc tiếp: <a href="../superpowers/plans/2026-08-13-teachhub-roadmap.html">Roadmap tổng thể &amp; thứ tự thực thi</a><br>
+Tài liệu gốc: <a href="../requirements/SRS-LMS-GiangVien.md">SRS-LMS-GiangVien.md</a>
+</p>
+
+</main>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backlog P1/P2 — Phase 5 đến 9 · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:3rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.phase{border:1px solid var(--bd);border-left:5px solid var(--warn);border-radius:0 10px 10px 0;padding:.2rem 1.1rem 1.1rem;margin:1.8rem 0;background:var(--cbg)}
+.phase.p2{border-left-color:var(--muted)}
+.phase h3{margin-top:1rem}
+label.ck{display:block;margin:.5rem 0;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.1)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--bg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Backlog P1/P2 — Phase 5 đến 9</h1>
+
+<blockquote>
+<strong>Không bắt đầu bất kỳ phase nào ở đây trước khi MVP (Phase 0–4) đã chạy thật trọn một học kỳ.</strong>
+Đó là Rủi ro #4 trong SRS mục 11, và nó là rủi ro có thật nhất: một người vừa dạy vừa code sẽ bị cám dỗ
+làm tính năng mới thú vị thay vì đánh bóng thứ mình dùng hằng ngày.
+</blockquote>
+
+<p class="meta">
+Các phase ở đây được đặc tả ở mức <strong>nhiệm vụ + tiêu chí nghiệm thu</strong>, chưa chi tiết tới từng bước TDD như Phase 0–4.
+Lý do có chủ ý: một học kỳ dùng thật sẽ đổi thứ tự ưu tiên và cả nội dung của chúng. Khi tới lúc làm một phase,
+hãy mở rộng nó thành plan chi tiết riêng bằng <code>superpowers:writing-plans</code>, dựa trên những gì bạn học được từ học kỳ đó.
+</p>
+
+<h2>Thứ tự đề xuất sau MVP</h2>
+<pre><code>Sau MVP, quyết định dựa trên nỗi đau thực tế của học kỳ đầu:
+
+  "Chấm bài quá tốn thời gian"        → Phase 5 (Quiz tự chấm)
+  "Nghi ngờ sinh viên chép bài"       → Phase 6 (Similarity)
+  "Sinh viên không chịu học đều"      → Phase 7 (Gamification) + Phase 8 (Ôn tập)
+  "Không biết ai sắp rớt môn"         → Phase 9 (Dashboard nâng cao) — kéo lên sớm
+
+Phase 7 độc lập hoàn toàn, chạy song song với 5 hoặc 6 được.
+Phase 8 BẮT BUỘC cần Phase 5 xong trước (ôn tập lấy câu hỏi từ quiz).</code></pre>
+
+<hr>
+
+<div class="phase" id="phase-5">
+<h3>Phase 5 — Trắc nghiệm (Quiz engine)</h3>
+<p class="meta"><strong>Ước lượng:</strong> 6–8 ngày · <strong>UC:</strong> 11, 12, 21 (loại quiz) · <strong>SRS:</strong> mục 5.6, 5.7</p>
+
+<h4>Phạm vi</h4>
+<label class="ck"><input type="checkbox"> Ngân hàng câu hỏi cấp giảng viên, gắn <code>foundation_tag</code>, tái sử dụng qua nhiều môn</label>
+<label class="ck"><input type="checkbox"> 4 loại câu hỏi: <code>single_choice</code>, <code>multiple_choice</code>, <code>true_false</code>, <code>fill_blank</code></label>
+<label class="ck"><input type="checkbox"> <code>Quiz</code> có <code>subject_version_id</code> <em>hoặc</em> <code>offering_id</code> + CHECK "đúng một trong hai" (Gap #3)</label>
+<label class="ck"><input type="checkbox"> Checkpoint quiz: không tính điểm, hiện giải thích ngay sau khi trả lời</label>
+<label class="ck"><input type="checkbox"> Graded quiz: giới hạn thời gian, số lần làm, xáo trộn câu hỏi và đáp án</label>
+<label class="ck"><input type="checkbox"> Chấm tự động + <code>QuizAttempt</code> lưu <code>answers_json</code> và <code>wrong_question_ids</code></label>
+<label class="ck"><input type="checkbox"> Component <code>quiz</code> và <code>checkpoint_quiz</code> hoạt động trong bài học</label>
+<label class="ck"><input type="checkbox"> <code>FinalAssessment</code> loại <code>quiz</code> (mở khóa nhánh đã chặn ở <strong>Phase 4a, task <code>FinalAssessment</code></strong>)</label>
+<label class="ck"><input type="checkbox"> Điểm quiz tự động chảy vào sổ điểm — thêm loại nguồn <code>Quiz</code> cho <code>GradeColumnSource</code>, không dựng một loại cột <code>auto_from_quiz</code> riêng</label>
+
+<div class="hint">
+<strong>Phase 5 không dựng lại cơ chế tổng hợp điểm.</strong> <code>GradeColumnSource</code> (một cột gom điểm từ
+nhiều nguồn) và <code>GradeAggregation</code> (trung bình / trung bình có trọng số / cao nhất / bỏ N thấp nhất /
+lấy N tốt nhất…) <strong>đã có sẵn từ Phase 4b</strong>. Phần việc của Phase 5 chỉ gồm hai thứ:
+thêm giá trị <code>Quiz</code> vào <code>GradeSourceType</code> để một cột điểm trỏ được tới quiz, và
+<strong>chuẩn hóa điểm quiz về thang 10 trước khi gộp</strong> — quiz 20 câu chấm theo số câu đúng có thang tự nhiên
+là 20; đưa thẳng con số đó vào cột rồi kẹp ở 10 thì mọi sinh viên đúng từ 10 câu trở lên đều thành 10 điểm.
+Dùng đúng quy tắc Phase 4b đã chốt cho nguồn Assignment: <code>normalized = raw / maxScore * 10</code>.
+</div>
+
+<h4>Những chỗ khó, cần test kỹ</h4>
+<table>
+<thead><tr><th>Vấn đề</th><th>Cách xử lý</th></tr></thead>
+<tbody>
+<tr><td><strong>Chấm <code>fill_blank</code> tiếng Việt</strong> (Gap #12)</td><td><code>QuizQuestion.answer_config</code> jsonb: <code>accepted_answers[]</code>, <code>case_sensitive</code>, <code>trim_whitespace</code>, <code>normalize_unicode</code>. <strong>Chuẩn hóa NFC bắt buộc</strong> — "tiếng Việt" gõ bằng Telex và gõ bằng bàn phím macOS ra hai chuỗi Unicode khác nhau nhưng nhìn giống hệt. Không chuẩn hóa thì sinh viên trả lời đúng vẫn bị chấm sai, và bạn sẽ không hiểu tại sao.</td></tr>
+<tr><td>Hết giờ giữa chừng</td><td>Server là nguồn chân lý về thời gian, không tin đồng hồ client. Lưu <code>started_at</code> lúc bắt đầu; khi nộp, nếu <code>now &gt; started_at + time_limit + 30s ân hạn</code> thì chỉ chấm phần đã lưu tự động.</td></tr>
+<tr><td>Mất mạng giữa bài làm</td><td>Tự lưu đáp án sau mỗi câu (<code>PATCH /api/attempts/{id}/answers</code>), không đợi tới lúc nộp. Sinh viên mất bài vì rớt wifi sẽ đòi làm lại, và bạn không có cách nào kiểm chứng.</td></tr>
+<tr><td>Xáo trộn nhưng vẫn chấm đúng</td><td>Xáo trộn chỉ ở tầng hiển thị; đáp án luôn gửi kèm <code>question_id</code> và <code>option_id</code> thật, không dùng chỉ số vị trí.</td></tr>
+<tr><td><code>multiple_choice</code> chấm một phần hay tất-cả-hoặc-không</td><td><strong>Cần bạn quyết.</strong> Mặc định đề xuất: tất-cả-hoặc-không (đơn giản, dễ giải thích cho sinh viên). Nếu muốn chấm một phần, phải định nghĩa rõ công thức trừ điểm cho đáp án chọn sai.</td></tr>
+</tbody>
+</table>
+
+<h4>Nghiệm thu</h4>
+<p>Tạo quiz 10 câu đủ 4 loại, giới hạn 15 phút, cho làm 2 lần, xáo trộn. Sinh viên làm, tắt trình duyệt giữa chừng rồi vào lại — đáp án đã trả lời vẫn còn. Hết giờ tự nộp. Điểm chạy đúng vào cột sổ điểm. Câu <code>fill_blank</code> "Hà Nội" chấm đúng cả khi sinh viên gõ "hà nội" và "Hà  Nội".</p>
+</div>
+
+<div class="phase" id="phase-6">
+<h3>Phase 6 — Liêm chính học thuật &amp; Chấm nâng cao</h3>
+<p class="meta"><strong>Ước lượng:</strong> 4–6 ngày · <strong>UC:</strong> 09 (similarity), 10b · <strong>SRS:</strong> mục 5.4, 5.5, 5.8, 8</p>
+
+<h4>6a — Phát hiện trùng lặp mã nguồn</h4>
+<label class="ck"><input type="checkbox"> Bảng <code>SourceFingerprint(submission_file_id, hash bigint, position int)</code> + index trên <code>hash</code> (Gap #14)</label>
+<label class="ck"><input type="checkbox"> Thuật toán Winnowing: chuẩn hóa token → k-gram (k=5) → rolling hash → chọn cửa sổ (w=4)</label>
+<label class="ck"><input type="checkbox"> Job nền tính fingerprint sau khi giải nén xong; so sánh trong phạm vi <em>cùng bài tập, cùng lớp</em></label>
+<label class="ck"><input type="checkbox"> Màn hình so sánh cạnh nhau, tô sáng đoạn trùng</label>
+<label class="ck"><input type="checkbox"> Cảnh báo khi vượt ngưỡng — <strong>không bao giờ tự trừ điểm</strong> (Rủi ro #3 trong SRS mục 11)</label>
+
+<div class="hint">
+<strong>Chuẩn hóa trước khi băm là toàn bộ giá trị của thuật toán này.</strong> Bỏ chú thích, bỏ khoảng trắng,
+đổi mọi tên biến/hàm thành một token chung, chuẩn hóa chuỗi ký tự. Không làm bước này thì chỉ cần đổi tên biến
+là qua mặt được, và bạn có một tính năng tạo cảm giác an toàn giả.
+</div>
+<div class="hint">
+<strong>Ngưỡng cảnh báo phải hiệu chỉnh bằng dữ liệu thật.</strong> Bài tập nhập môn dùng chung starter code
+sẽ trùng 70–90% một cách hoàn toàn chính đáng. Chạy thử trên bài của học kỳ trước, xem phân bố, rồi mới chọn ngưỡng.
+Đặt ngưỡng bằng trực giác sẽ cho ra một danh sách cảnh báo dài tới mức bạn ngừng đọc nó.
+</div>
+
+<h4>6b — Chấm nâng cao</h4>
+<label class="ck"><input type="checkbox"> <code>AssignmentHint</code> + <code>HintUnlock</code>: mở hint trừ điểm theo <code>penalty_point</code>, ghi log (Gap #11)</label>
+<label class="ck"><input type="checkbox"> Phạt nộp trễ theo <code>late_penalty_percent_per_day</code>, tính bằng <code>TimeProvider</code></label>
+<label class="ck"><input type="checkbox"> <code>SubmissionMemberScore</code>: điểm riêng từng thành viên nhóm, để trống thì nhận điểm chung (UC-10b)</label>
+
+<p class="meta">Thư viện lý do điểm cộng (<code>BonusPointReasonTemplate</code>, màn hình 6.7b, dãy nút bấm nhanh) <strong>đã được làm ở Phase 4</strong> — người dùng chốt ngày 13/08/2026 rằng cấp điểm cộng bắt buộc phải có lý do và phải chọn được từ bộ lý do soạn sẵn, nên đây là yêu cầu MVP chứ không còn là phần nâng cao của Phase 6.</p>
+
+<h4>Ca biên cần test</h4>
+<ul>
+<li>Phạt trễ không được đẩy điểm xuống âm.</li>
+<li>Nộp trễ đúng 1 phút tính là 1 ngày hay 0 ngày? <em>(mặc định: làm tròn lên — trễ là trễ)</em></li>
+<li>Điểm riêng thành viên phải thắng thế điểm chung, và phải xuất hiện trong sổ điểm lẫn file Excel.</li>
+</ul>
+
+<h4>Nghiệm thu</h4>
+<p>Nộp 2 bài giống nhau chỉ khác tên biến → hệ thống cảnh báo trùng cao, mở được màn hình so sánh. Nộp 2 bài khác hẳn → không cảnh báo. Chấm một bài nhóm 4 người, cho 1 người điểm riêng thấp hơn kèm lý do → sổ điểm và Excel đều phản ánh đúng.</p>
+</div>
+
+<div class="phase" id="phase-7">
+<h3>Phase 7 — Động lực học tập (Gamification)</h3>
+<p class="meta"><strong>Ước lượng:</strong> 4–6 ngày · <strong>UC:</strong> 19 · <strong>SRS:</strong> mục 5.9 · <strong>Chạy song song được với Phase 5/6</strong></p>
+
+<label class="ck"><input type="checkbox"> XP theo sự kiện: hoàn thành bài học, nộp đúng hạn, quiz điểm cao — bảng quy tắc cấu hình được</label>
+<label class="ck"><input type="checkbox"> Huy hiệu có điều kiện khai báo dạng dữ liệu, không hard-code</label>
+<label class="ck"><input type="checkbox"> Streak: số ngày liên tiếp có hoạt động, tính theo múi giờ của lớp</label>
+<label class="ck"><input type="checkbox"> Bảng xếp hạng ẩn danh mặc định; bật/tắt hiện tên thật theo từng lớp</label>
+<label class="ck"><input type="checkbox"> Trang tiến độ cá nhân của sinh viên</label>
+
+<div class="hint">
+<strong>Streak là chỗ dễ sai nhất.</strong> "Ngày" là ngày nào — UTC hay giờ Việt Nam? Sinh viên học lúc 23:50 rồi 00:10
+hôm sau có tính 2 ngày liên tiếp không? Dùng <code>TimeZoneInfo</code> của offering để quy đổi sang ngày địa phương
+<em>trước khi</em> so sánh, và test hẳn ca vượt qua nửa đêm. Streak tính sai sẽ bị sinh viên phát hiện ngay lập tức
+và làm mất hết niềm tin vào toàn bộ cơ chế.
+</div>
+<div class="hint">
+<strong>Cân nhắc thật kỹ trước khi bật bảng xếp hạng công khai tên thật.</strong> Nó tạo động lực cho nhóm dẫn đầu
+và làm nản lòng nhóm cuối — vốn là nhóm cần động lực nhất. Mặc định ẩn danh là lựa chọn đúng; hãy giữ nguyên
+trừ khi bạn có lý do cụ thể cho một lớp cụ thể.
+</div>
+
+<h4>Nghiệm thu</h4>
+<p>Sinh viên hoàn thành một bài → XP tăng đúng quy tắc. Học 3 ngày liên tiếp → streak = 3; bỏ một ngày → streak về 1. Đạt điều kiện huy hiệu → huy hiệu xuất hiện. Bảng xếp hạng hiển thị ẩn danh, sinh viên biết vị trí mình mà không biết tên người khác.</p>
+</div>
+
+<div class="phase" id="phase-8">
+<h3>Phase 8 — Ôn tập ngắt quãng</h3>
+<p class="meta"><strong>Ước lượng:</strong> 3–5 ngày · <strong>UC:</strong> 13, 14 · <strong>SRS:</strong> mục 5.10 · <strong>Cần Phase 5 xong trước</strong></p>
+
+<label class="ck"><input type="checkbox"> <code>ReviewQueueItem</code> sinh tự động từ câu trả lời sai ở graded quiz</label>
+<label class="ck"><input type="checkbox"> Hangfire recurring job quét hằng ngày các mục <code>next_review_at &lt;= now</code> và <code>status = pending</code></label>
+<label class="ck"><input type="checkbox"> Mục "Ôn tập hôm nay" trên trang chủ sinh viên (chỗ đã giữ sẵn từ Phase 2)</label>
+<label class="ck"><input type="checkbox"> Thang ôn tập: 3 ngày → 1 tuần → 2 tuần → <code>mastered</code>; trả lời sai thì quay về đầu chu kỳ</label>
+<label class="ck"><input type="checkbox"> Component <code>recap</code> tự chọn 3–5 câu từ chương trước theo <code>foundation_tags</code></label>
+
+<div class="hint">
+<code>ReviewQueueItem</code> gắn với <code>user_id</code> chứ không phải <code>enrollment_id</code> (Gap #2) — kiến thức nền tảng
+thuộc về con người, không thuộc về một lớp học phần. Sinh viên học môn tiếp theo vẫn nên được ôn lại
+khái niệm đã sai ở môn trước.
+</div>
+
+<h4>Nghiệm thu</h4>
+<p>Sinh viên làm quiz sai 3 câu → 3 mục vào hàng đợi với <code>next_review_at = +3 ngày</code>. Dùng <code>FakeTimeProvider</code> đẩy thời gian 3 ngày → cả 3 xuất hiện ở "Ôn tập hôm nay". Trả lời đúng → lịch sau là 1 tuần. Trả lời sai → quay lại 3 ngày.</p>
+</div>
+
+<div class="phase p2" id="phase-9">
+<h3>Phase 9+ — P2, chỉ lập kế hoạch chi tiết khi đã tới lúc</h3>
+<p class="meta"><strong>SRS:</strong> mục 10 (S9–S12)</p>
+
+<table>
+<thead><tr><th>Hạng mục</th><th>Ghi chú thực tế</th></tr></thead>
+<tbody>
+<tr><td><strong>Dashboard nâng cao</strong> — sinh viên nguy cơ, thống kê chuẩn đầu ra</td><td>Giá trị cao nhất trong nhóm P2, và rẻ nhất. Cân nhắc kéo lên ngay sau MVP nếu học kỳ đầu cho thấy bạn không nắm được ai đang tụt lại.</td></tr>
+<tr><td><strong>Chấm code tự động bằng test case</strong></td><td>Đắt nhất và rủi ro nhất: cần sandbox thực thi code không tin cậy (container cách ly, giới hạn CPU/RAM/thời gian, không network). Chỉ làm khi bạn có nhiều bài tập có input/output rõ ràng và đã chán chấm tay chúng. <strong>Đừng tự dựng sandbox từ đầu</strong> — cân nhắc Judge0 hoặc chạy trong Docker dùng một lần.</td></tr>
+<tr><td><strong>Email nhắc hạn nộp</strong></td><td>Rẻ, dễ, tác động lớn tới tỉ lệ nộp đúng hạn. Hangfire recurring job + một dịch vụ gửi mail. Nhớ giới hạn tần suất để không thành spam.</td></tr>
+<tr><td><strong>Điểm danh QR</strong> (<code>Attendance</code>)</td><td>Bảng này có trong sơ đồ ER của SRS nhưng chưa bao giờ được đặc tả (Gap #13). Cần định nghĩa nghiệp vụ trước khi code: điểm danh vào hay ra, đi trễ tính thế nào, chống điểm danh hộ ra sao (mã QR xoay theo thời gian).</td></tr>
+<tr><td><strong>Tối ưu mobile + PWA</strong></td><td>Trang học đã responsive từ Phase 2. PWA chỉ đáng làm nếu sinh viên thật sự muốn có biểu tượng trên màn hình chính — hãy hỏi họ trước.</td></tr>
+<tr><td><strong>So sánh diff giữa 2 SubjectVersion</strong></td><td>SRS mục 5.2 đánh dấu tùy chọn. Hữu ích khi môn học đã có 3–4 phiên bản; trước đó thì <code>changelog</code> viết tay là đủ.</td></tr>
+<tr><td><strong>Đưa học kỳ cũ ra lưu trữ nguội</strong></td><td>Rủi ro #2 trong SRS mục 11. Sẽ trở nên cấp thiết sau khoảng 3–4 học kỳ, khi dung lượng ZIP tích lũy đủ lớn. Theo dõi dung lượng từ MVP để biết lúc nào cần.</td></tr>
+<tr><td><strong>Passkey / đăng nhập không mật khẩu</strong></td><td>ASP.NET Core Identity trong .NET 10 hỗ trợ sẵn. Đáng làm nếu việc quên mật khẩu của sinh viên trở thành gánh nặng hỗ trợ.</td></tr>
+<tr><td><strong>Quy đổi điểm chữ (A/B+/B/C...)</strong></td><td>Người dùng chốt ngày 13/08/2026: hiện chỉ cần thang số 0–10, nên toàn bộ phần điểm chữ đã bị bỏ khỏi MVP. Chỉ làm nếu phòng đào tạo yêu cầu nộp điểm chữ. Khi đó thêm bảng <code>GradeScale</code> cấu hình theo lớp, <strong>không hard-code ngưỡng</strong> — mỗi trường quy định một khác, thậm chí cùng trường mà khác hệ đào tạo cũng khác nhau; hard-code xong là phải sửa code mỗi lần đổi quy chế.</td></tr>
+<tr><td><strong>Công thức tính điểm dạng biểu thức tự do</strong></td><td>Người dùng đã chọn phương án <em>quy tắc chọn từ danh sách</em> ở Phase 4b (chốt 13/08/2026) vì an toàn hơn hẳn: không gõ sai cú pháp được, không tạo được tham chiếu vòng giữa các cột, và mỗi quy tắc đều giải thích cho sinh viên được bằng một câu. Chỉ làm parser biểu thức nếu gặp quy định tính điểm mà 8 quy tắc <code>AggregationKind</code> có sẵn không diễn đạt nổi. Khi đó bắt buộc phải có <strong>trình kiểm cú pháp</strong> và <strong>bảng xem trước kết quả trên dữ liệu thật</strong> trước khi áp dụng — một công thức sai sẽ đổi điểm cả lớp cùng lúc, và bạn chỉ biết khi sinh viên khiếu nại.</td></tr>
+<tr><td><strong>Đổ điểm vào file mẫu <code>.xlsx</code> có sẵn của trường</strong></td><td>Phase 4b đã làm mẫu xuất tự cấu hình (chọn cột, đổi thứ tự, sửa tiêu đề), đủ khớp phần lớn biểu mẫu. Đổ vào đúng file mẫu có sẵn phức tạp hơn nhiều: phải giữ nguyên định dạng, ô gộp, công thức và vùng in của workbook gốc, dò đúng dòng bắt đầu danh sách, rồi khớp sinh viên theo MSSV chứ không theo thứ tự. Chỉ làm nếu phòng đào tạo bắt buộc nộp đúng file của họ.</td></tr>
+</tbody>
+</table>
+</div>
+
+<hr>
+
+<h2>Nợ kỹ thuật cần trả trong lúc làm P1</h2>
+<p>Những việc không phải tính năng nhưng nên xen kẽ vào giữa các phase, mỗi lần một ít:</p>
+<table>
+<thead><tr><th>Việc</th><th>Vì sao</th></tr></thead>
+<tbody>
+<tr><td>Sao lưu database tự động hằng ngày + <strong>thử khôi phục ít nhất một lần</strong></td><td>NFR trong SRS mục 9. Bản sao lưu chưa từng được khôi phục thử thì chưa phải là bản sao lưu.</td></tr>
+<tr><td>Theo dõi dung lượng lưu trữ theo lớp</td><td>Rủi ro #2. Biết trước còn kịp xử lý, biết lúc đĩa đầy là quá muộn.</td></tr>
+<tr><td>Tách worker unzip sang container cách ly</td><td>Nâng cấp của ADR-005 — hạ tầng đã có, chỉ thêm một lớp cách ly.</td></tr>
+<tr><td>Rà lại toàn bộ endpoint xem có sót chỗ nào chưa kiểm quyền theo tài nguyên</td><td>Số lượng endpoint tăng nhanh; một chỗ sót là lộ dữ liệu của lớp khác.</td></tr>
+<tr><td>Giữ thời gian chạy unit test dưới 10 giây</td><td>Vượt ngưỡng đó là bạn bắt đầu chạy test thưa dần, rồi ngừng hẳn.</td></tr>
+<tr><td>Rà lại các mẫu bộ cột (<code>GradeSchemeTemplate</code>) và mẫu xuất (<code>GradeExportTemplate</code>) sau học kỳ đầu</td><td>Bộ mẫu soạn trước khi dùng thật hầu như luôn cần chỉnh: tên cột không khớp cách phòng đào tạo gọi, tỷ lệ đổi theo đề cương mới, mẫu xuất thiếu đúng một cột nên vẫn phải sửa tay. Rà một lượt sau học kỳ đầu rẻ hơn nhiều so với chỉnh vá mỗi lần mở lớp.</td></tr>
+<tr><td>Nâng version .NET/EF Core theo bản vá</td><td>.NET 10 là LTS nên chỉ cần theo bản vá; đừng nhảy sang bản STS giữa học kỳ.</td></tr>
+<tr><td><strong>Theo dõi giấy phép MediatR</strong></td><td>Dự án <strong>ghim <code>MediatR 12.5.0</code></strong> — bản cuối còn phát hành theo <strong>Apache-2.0</strong>. Từ <strong>v13</strong> trở đi MediatR chuyển sang <strong>RPL-1.5 hoặc giấy phép thương mại</strong> của Lucky Penny Software (gói bật <code>requireLicenseAcceptance</code>), mà RPL-1.5 buộc <em>công khai mã nguồn phần mềm đã triển khai</em> — kể cả khi chỉ dùng nội bộ cho một lớp học. <strong>Đừng để <code>dotnet outdated</code> hay Dependabot tự kéo lên 13.x</strong>: đây là thay đổi pháp lý, không phải thay đổi kỹ thuật, và CI sẽ vẫn xanh sau khi nâng. Nếu về sau thật sự cần tính năng của bản mới, phải quyết một cách có ý thức: mua giấy phép thương mại, chấp nhận RPL-1.5, hay đổi sang thư viện khác. Phương án thoát rẻ nhất là <strong>tự viết <code>ISender</code> + pipeline behavior</strong> — toàn bộ phần dự án dùng chỉ là <code>ISender.Send</code>, <code>IRequest&lt;T&gt;</code>, <code>IRequestHandler&lt;,&gt;</code> và <code>IPipelineBehavior&lt;,&gt;</code>, khoảng trăm dòng nếu phải thay. Giữ nguyên hợp đồng <code>ICommand</code>/<code>IQuery</code> ở <code>Application/Common/Messaging</code> chính là để giữ sẵn lối thoát đó.</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">
+Quay lại <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a> ·
+<a href="../../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a> ·
+<a href="../../requirements/SRS-LMS-GiangVien.md">SRS v1.0</a>
+</p>
+
+</main>
+</body>
+</html>

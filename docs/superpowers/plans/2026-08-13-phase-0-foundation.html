@@ -1,0 +1,2662 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 0 — Nền móng · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.8rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.task{border:1px solid var(--bd);border-radius:10px;padding:.2rem 1.1rem 1.1rem;margin:1.6rem 0}
+.task>h3{margin-top:1rem}
+.files{background:var(--cbg);border-radius:8px;padding:.6rem .9rem;font-size:.86rem;margin:.8rem 0}
+.files b{color:var(--acc2)}
+label.ck{display:block;margin:1rem 0 .4rem;font-weight:600;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.15)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 0 — Nền móng</h1>
+
+<blockquote>
+<strong>Dành cho agentic worker — BẮT BUỘC:</strong> thực thi bằng <code>superpowers:subagent-driven-development</code>
+(nếu có subagent) hoặc <code>superpowers:executing-plans</code>. Các bước dùng checkbox để theo dõi.
+Khi bắt đầu, sinh kèm bản <code>.md</code> của file này để tick tiến độ.
+</blockquote>
+
+<p><strong>Mục tiêu:</strong> dựng bộ khung chạy được — API .NET 10 có xác thực, Postgres có migration, hạ tầng test thật, và một frontend Next.js gọi được API có bảo vệ.</p>
+
+<p><strong>Kiến trúc:</strong> Clean Architecture 4 tầng (Domain ← Application ← Infrastructure ← Api) với <strong>Controllers</strong> ở tầng Api và <strong>MediatR</strong> làm xương sống CQRS giữa Api và Application. Controller chỉ định tuyến rồi <code>sender.Send(...)</code>; toàn bộ nghiệp vụ nằm trong Command/Query handler theo vertical slice. Domain thuần C#, không biết EF Core, để luật nghiệp vụ test được trong mili-giây. Toàn bộ phụ thuộc hạ tầng (DB, storage, job, thời gian) đi qua interface do Application định nghĩa.</p>
+
+<p><strong>Tech stack:</strong> .NET 10 (LTS) · C# 14 · ASP.NET Core Controllers · <strong>MediatR 12.5 (CQRS)</strong> + <strong>FluentValidation 12.1</strong> · EF Core 10 + Npgsql 10 · PostgreSQL 17 · ASP.NET Core Identity + JWT · Hangfire 1.8 (Postgres storage) · MinIO/S3 · xUnit + Testcontainers + Shouldly · Next.js 15 + React 19 + Tailwind v4 + shadcn/ui.</p>
+
+<p class="meta"><strong>Vì sao Controllers chứ không Minimal API:</strong> hợp đồng API trong SRS mục 7 không đổi, nhưng với ~18 nhóm endpoint thì attribute routing trên class cho phép gắn policy, rate limit và giới hạn kích thước request một lần cho cả nhóm, và <code>ApiControllerBase</code> gom được phần quy đổi <code>Result</code> → HTTP về đúng một chỗ. MediatR gánh phần còn lại: mỗi use case là một Command/Query, các mối lo cắt ngang (log, validate, transaction) nằm trong pipeline behavior thay vì lặp lại trong từng handler.</p>
+
+<p class="meta"><strong>Ước lượng:</strong> 6–8 ngày · <strong>Phụ thuộc:</strong> không · <strong>Tài liệu nền:</strong> <a href="../../architecture/00-tech-stack-decisions.html">Kiến trúc &amp; Quyết định</a>, <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a></p>
+
+<h2>Bản đồ file sẽ tạo</h2>
+<table>
+<thead><tr><th>File</th><th>Trách nhiệm</th></tr></thead>
+<tbody>
+<tr><td><code>global.json</code>, <code>Directory.Build.props</code>, <code>Directory.Packages.props</code></td><td>Ghim SDK, bật nullable + warnings-as-errors, quản lý version package tập trung</td></tr>
+<tr><td><code>infra/docker-compose.yml</code></td><td>Postgres 17 + MinIO cho môi trường dev</td></tr>
+<tr><td><code>src/TeachHub.Domain/Common/Entity.cs</code></td><td>Base entity, sinh Id UUIDv7, interface soft-delete &amp; auditable</td></tr>
+<tr><td><code>src/TeachHub.Domain/Identity/AppUser.cs</code>, <code>AppRole.cs</code>, <code>RefreshToken.cs</code></td><td>Người dùng, vai trò, refresh token có xoay vòng</td></tr>
+<tr><td><code>src/TeachHub.Application/Common/IAppDbContext.cs</code></td><td>Cổng truy cập dữ liệu (Application không thấy EF Core cụ thể)</td></tr>
+<tr><td><code>src/TeachHub.Application/Common/IFileStorage.cs</code>, <code>ITokenService.cs</code>, <code>ICurrentUser.cs</code></td><td>Cổng lưu trữ file, phát hành token, danh tính người gọi</td></tr>
+<tr><td><code>src/TeachHub.Application/Common/Result.cs</code></td><td>Kết quả nghiệp vụ mong đợi: <code>Ok</code> / <code>NotFound</code> / <code>Conflict</code> / <code>Forbidden</code></td></tr>
+<tr><td><code>src/TeachHub.Application/Common/Messaging/ICommand.cs</code>, <code>IQuery.cs</code></td><td>Hợp đồng CQRS trên MediatR: <code>IBaseCommand</code>, <code>ICommand&lt;T&gt;</code>, <code>IQuery&lt;T&gt;</code> và hai interface handler</td></tr>
+<tr><td><code>src/TeachHub.Application/Common/Behaviors/LoggingBehavior.cs</code>, <code>ValidationBehavior.cs</code></td><td>Mối lo cắt ngang chạy quanh mọi handler: đo thời gian, chặn dữ liệu sai</td></tr>
+<tr><td><code>src/TeachHub.Application/Features/Auth/Commands|Queries/*.cs</code></td><td><code>LoginCommand</code>, <code>RefreshTokenCommand</code>, <code>GetMeQuery</code> + handler + validator</td></tr>
+<tr><td><code>src/TeachHub.Application/DependencyInjection.cs</code></td><td><code>AddApplication()</code>: đăng ký MediatR, behavior mở, validator</td></tr>
+<tr><td><code>src/TeachHub.Infrastructure/Persistence/AppDbContext.cs</code></td><td>DbContext + Identity store + apply configuration</td></tr>
+<tr><td><code>src/TeachHub.Infrastructure/Behaviors/TransactionBehavior.cs</code></td><td>Bọc mỗi command trong một transaction — đặt ở Infrastructure vì cần <code>AppDbContext</code></td></tr>
+<tr><td><code>src/TeachHub.Infrastructure/Auth/TokenService.cs</code></td><td>Phát hành &amp; xác thực JWT, xoay vòng refresh token</td></tr>
+<tr><td><code>src/TeachHub.Infrastructure/Storage/LocalFileStorage.cs</code>, <code>S3FileStorage.cs</code></td><td>Hai adapter lưu file, chọn qua cấu hình</td></tr>
+<tr><td><code>src/TeachHub.Infrastructure/DependencyInjection.cs</code></td><td>Một nơi duy nhất đăng ký toàn bộ hạ tầng</td></tr>
+<tr><td><code>src/TeachHub.Api/Program.cs</code></td><td>Bootstrap: controllers + JSON snake_case, Serilog, ProblemDetails, OpenAPI, auth, health, Hangfire</td></tr>
+<tr><td><code>src/TeachHub.Api/Controllers/ApiControllerBase.cs</code></td><td>Lớp cha mọi controller: <code>CurrentUserId</code> và <code>ToActionResult(Result)</code></td></tr>
+<tr><td><code>src/TeachHub.Api/Controllers/AuthController.cs</code></td><td><code>[Route("api/auth")]</code> — login / refresh / me</td></tr>
+<tr><td><code>src/TeachHub.Api/Common/ValidationExceptionHandler.cs</code>, <code>CurrentUser.cs</code></td><td>Quy đổi <code>ValidationException</code> → 400 <code>ValidationProblemDetails</code>; đọc userId từ claim</td></tr>
+<tr><td><code>tests/TeachHub.Api.Tests/TeachHubApiFactory.cs</code></td><td>Host test + Postgres container + migrate tự động</td></tr>
+<tr><td><code>frontend/</code></td><td>Next.js 15, BFF route handler, client TS sinh từ OpenAPI, trang đăng nhập</td></tr>
+<tr><td><code>.github/workflows/ci.yml</code></td><td>Build + test backend, build frontend</td></tr>
+</tbody>
+</table>
+
+<hr>
+
+<h2>Chunk 1 — Bộ khung solution &amp; hạ tầng local</h2>
+
+<div class="task">
+<h3>Task 0.1 — Khởi tạo repo, solution, quy ước build</h3>
+<div class="files"><b>Tạo:</b> <code>global.json</code> · <code>.gitignore</code> · <code>.editorconfig</code> · <code>backend/Directory.Build.props</code> · <code>backend/Directory.Packages.props</code> · <code>backend/TeachHub.sln</code> + 4 project src + 3 project test</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Tạo file cấu hình gốc</label>
+
+<p>Chạy tại thư mục gốc repo:</p>
+<pre><code>dotnet new gitignore
+dotnet new editorconfig
+dotnet new globaljson --sdk-version 10.0.203 --roll-forward latestFeature</code></pre>
+
+<p>Bổ sung vào cuối <code>.gitignore</code>:</p>
+<pre><code># TeachHub
+node_modules/
+.next/
+frontend/src/lib/api/schema.d.ts
+infra/data/
+uploads/
+*.user
+.env.local</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — <code>backend/Directory.Build.props</code></label>
+<pre><code>&lt;Project&gt;
+  &lt;PropertyGroup&gt;
+    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
+    &lt;LangVersion&gt;latest&lt;/LangVersion&gt;
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;TreatWarningsAsErrors&gt;true&lt;/TreatWarningsAsErrors&gt;
+    &lt;EnforceCodeStyleInBuild&gt;true&lt;/EnforceCodeStyleInBuild&gt;
+    &lt;!-- BẮT BUỘC false: hệ thống xử lý tên tiếng Việt có dấu,
+         InvariantGlobalization=true sẽ làm ToUpper/so sánh chuỗi sai. --&gt;
+    &lt;InvariantGlobalization&gt;false&lt;/InvariantGlobalization&gt;
+  &lt;/PropertyGroup&gt;
+&lt;/Project&gt;</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — <code>backend/Directory.Packages.props</code> (Central Package Management)</label>
+<pre><code>&lt;Project&gt;
+  &lt;PropertyGroup&gt;
+    &lt;ManagePackageVersionsCentrally&gt;true&lt;/ManagePackageVersionsCentrally&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;ItemGroup Label="Data"&gt;
+    &lt;PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.11" /&gt;
+    &lt;PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" /&gt;
+    &lt;PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" /&gt;
+    &lt;PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup Label="Web"&gt;
+    &lt;PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.11" /&gt;
+    &lt;PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" /&gt;
+    &lt;PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" /&gt;
+    &lt;PackageVersion Include="Scalar.AspNetCore" Version="2.16.19" /&gt;
+    &lt;PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.9.0" /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup Label="Cqrs"&gt;
+    &lt;!-- 12.5.0 là bản MediatR cuối cùng còn Apache-2.0 — ĐỪNG nâng lên 13.x/14.x, xem ghi chú bên dưới. --&gt;
+    &lt;PackageVersion Include="MediatR" Version="12.5.0" /&gt;
+    &lt;PackageVersion Include="FluentValidation" Version="12.1.1" /&gt;
+    &lt;PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup Label="Infra"&gt;
+    &lt;PackageVersion Include="Hangfire.AspNetCore" Version="1.8.24" /&gt;
+    &lt;PackageVersion Include="Hangfire.PostgreSql" Version="1.21.1" /&gt;
+    &lt;!-- Không dùng trực tiếp: nâng Newtonsoft.Json mà Hangfire kéo theo, xem Task 0.9. --&gt;
+    &lt;PackageVersion Include="Newtonsoft.Json" Version="13.0.4" /&gt;
+    &lt;PackageVersion Include="AWSSDK.S3" Version="4.0.102.1" /&gt;
+    &lt;PackageVersion Include="ClosedXML" Version="0.105.1" /&gt;
+    &lt;PackageVersion Include="SixLabors.ImageSharp" Version="4.1.0" /&gt;
+    &lt;PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" /&gt;
+    &lt;PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" /&gt;
+  &lt;/ItemGroup&gt;
+  &lt;ItemGroup Label="Test"&gt;
+    &lt;PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" /&gt;
+    &lt;PackageVersion Include="xunit" Version="2.9.3" /&gt;
+    &lt;PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" /&gt;
+    &lt;PackageVersion Include="Shouldly" Version="4.3.0" /&gt;
+    &lt;PackageVersion Include="NSubstitute" Version="6.2.0" /&gt;
+    &lt;PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" /&gt;
+    &lt;PackageVersion Include="Testcontainers.Minio" Version="4.13.0" /&gt;
+    &lt;PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.11" /&gt;
+    &lt;PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.10.0" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;</code></pre>
+
+<div class="hint"><strong>Nếu <code>AspNetCore.HealthChecks.NpgSql</code> chưa có bản 9.0.0 tương thích:</strong> bỏ package này và tự viết health check gọi <code>dbContext.Database.CanConnectAsync()</code> — 5 dòng code, không đáng để chờ package.</div>
+
+<div class="hint">
+<strong>Vì sao ghim MediatR ở đúng 12.5.0 chứ không lấy bản mới nhất.</strong>
+Từ v13 MediatR chuyển sang RPL-1.5 hoặc giấy phép thương mại của Lucky Penny Software, và gói NuGet
+đặt <code>requireLicenseAcceptance = true</code>. RPL-1.5 (Reciprocal Public License) buộc công khai mã nguồn
+của phần mềm <em>đã triển khai</em> — kể cả khi chỉ chạy nội bộ trong trường, vì chỉ cần "sử dụng công khai"
+là đã kích hoạt nghĩa vụ đó. Đây là hệ thống chứa điểm số và bài nộp của sinh viên; công khai mã nguồn
+không phải một lựa chọn. 12.5.0 vẫn là Apache-2.0 (kiểm chứng: <code>~/.nuget/packages/mediatr/12.5.0/mediatr.nuspec</code>
+ghi <code>&lt;license type="expression"&gt;Apache-2.0&lt;/license&gt;</code>), target <code>netstandard2.0</code>/<code>net6.0</code>
+nên chạy tốt trên .NET 10 và không thiếu tính năng nào phase này cần.
+<br><br>
+Hệ quả thực tế: <strong>không bao giờ chạy <code>dotnet outdated</code> rồi nâng MediatR theo quán tính.</strong>
+Central Package Management giữ version ở đúng một dòng trong <code>Directory.Packages.props</code> — hãy để
+comment cạnh nó làm rào chắn. Nếu một ngày cần rời MediatR, hai interface <code>ICommand</code>/<code>IQuery</code>
+ở Task 0.6 chính là lớp cách ly để thay bằng dispatcher tự viết mà không phải sửa handler nào.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Tạo solution &amp; các project</label>
+<pre><code>cd backend
+dotnet new sln -n TeachHub
+
+dotnet new classlib -o src/TeachHub.Domain
+dotnet new classlib -o src/TeachHub.Application
+dotnet new classlib -o src/TeachHub.Infrastructure
+dotnet new web     -o src/TeachHub.Api
+
+dotnet new xunit -o tests/TeachHub.Domain.Tests
+dotnet new xunit -o tests/TeachHub.Application.Tests
+dotnet new xunit -o tests/TeachHub.Api.Tests
+
+dotnet sln add src/**/*.csproj tests/**/*.csproj
+
+# Chiều phụ thuộc — KHÔNG BAO GIỜ được đảo ngược
+dotnet add src/TeachHub.Application  reference src/TeachHub.Domain
+dotnet add src/TeachHub.Infrastructure reference src/TeachHub.Application
+dotnet add src/TeachHub.Api          reference src/TeachHub.Infrastructure
+
+dotnet add tests/TeachHub.Domain.Tests      reference src/TeachHub.Domain
+dotnet add tests/TeachHub.Application.Tests reference src/TeachHub.Application
+dotnet add tests/TeachHub.Api.Tests         reference src/TeachHub.Api
+
+# Xóa file mẫu do template sinh
+rm src/TeachHub.Domain/Class1.cs src/TeachHub.Application/Class1.cs src/TeachHub.Infrastructure/Class1.cs</code></pre>
+
+<div class="hint"><strong>Template <code>xunit</code> ghim version package trong csproj</strong>, xung đột với Central Package Management. Mở từng <code>tests/*/*.csproj</code>, xóa toàn bộ thuộc tính <code>Version="..."</code> trong <code>&lt;PackageReference&gt;</code> và xóa <code>&lt;PackageReference Include="coverlet.collector" ...&gt;</code>. Thêm <code>&lt;PackageReference Include="Shouldly" /&gt;</code>.</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy build để xác nhận khung đứng vững</label>
+<pre><code>dotnet build</code></pre>
+<p>Kỳ vọng: <code>Build succeeded</code>, <strong>0 Warning(s)</strong>, 0 Error(s).</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Kiểm chứng ranh giới kiến trúc bằng một test</label>
+<p>Đây là test quan trọng nhất của Phase 0: nó ngăn ai đó (kể cả bạn, lúc 11 giờ đêm) tham chiếu EF Core vào Domain và làm sụp toàn bộ tính test-được của luật nghiệp vụ.</p>
+<p><code>tests/TeachHub.Domain.Tests/ArchitectureTests.cs</code>:</p>
+<pre><code>using System.Reflection;
+using Shouldly;
+
+namespace TeachHub.Domain.Tests;
+
+public class ArchitectureTests
+{
+    [Fact]
+    public void Domain_khong_duoc_phu_thuoc_vao_ha_tang()
+    {
+        // MediatR và FluentValidation nằm trong danh sách cấm cùng lý do với EF Core:
+        // ICommand/IQuery là hợp đồng của tầng Application, Domain không được biết chúng tồn tại.
+        // Không chặn ở đây thì cám dỗ "cho Domain phát INotification làm domain event" sẽ thắng,
+        // và luật nghiệp vụ mất khả năng test trong mili-giây — thứ đắt nhất mà kiến trúc này mua được.
+        string[] cam = ["Microsoft.EntityFrameworkCore", "Npgsql", "Hangfire",
+                        "MediatR", "FluentValidation",
+                        "Microsoft.AspNetCore", "AWSSDK"];
+
+        var thamChieu = typeof(TeachHub.Domain.Common.Entity).Assembly
+            .GetReferencedAssemblies()
+            .Select(a =&gt; a.Name!)
+            .ToList();
+
+        foreach (var c in cam)
+            thamChieu.ShouldNotContain(n =&gt; n.StartsWith(c, StringComparison.Ordinal),
+                $"Domain đang tham chiếu {c} — vi phạm ADR-002.");
+    }
+}</code></pre>
+<p>Test này sẽ <strong>không compile</strong> lúc này vì <code>Entity</code> chưa tồn tại — đó là trạng thái đỏ mong đợi, Task 0.2 sẽ làm nó xanh.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A
+git commit -m "chore: scaffold .NET 10 solution with clean architecture layout"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.2 — Base entity Domain + Id UUIDv7</h3>
+<div class="files"><b>Tạo:</b> <code>src/TeachHub.Domain/Common/Entity.cs</code> · <b>Test:</b> <code>tests/TeachHub.Domain.Tests/EntityTests.cs</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Viết test đỏ</label>
+<p><code>tests/TeachHub.Domain.Tests/EntityTests.cs</code>:</p>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Tests;
+
+public class EntityTests
+{
+    private sealed class Sample : Entity;
+
+    [Fact]
+    public void Id_moi_tao_la_uuid_v7()
+    {
+        // Nibble version của UUID nằm ở byte thứ 7 (little-endian .NET), giá trị 7.
+        var id = new Sample().Id;
+        id.Version.ShouldBe(7);
+    }
+
+    [Fact]
+    public void Id_tang_dan_theo_thoi_gian_o_thu_tu_byte_cua_postgres()
+    {
+        // Postgres sắp xếp uuid theo byte big-endian. Nếu Id không tăng dần theo
+        // thứ tự đó thì index B-tree sẽ phân mảnh khi bảng submissions lớn dần.
+        var t0 = new DateTimeOffset(2026, 8, 13, 0, 0, 0, TimeSpan.Zero);
+        var truoc = Guid.CreateVersion7(t0);
+        var sau   = Guid.CreateVersion7(t0.AddMinutes(1));
+
+        string Hex(Guid g) =&gt; Convert.ToHexString(g.ToByteArray(bigEndian: true));
+
+        string.CompareOrdinal(Hex(truoc), Hex(sau)).ShouldBeLessThan(0);
+    }
+
+    [Fact]
+    public void Hai_entity_khong_bao_gio_trung_id()
+    {
+        var ids = Enumerable.Range(0, 10_000).Select(_ =&gt; new Sample().Id).ToHashSet();
+        ids.Count.ShouldBe(10_000);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy test, xác nhận đỏ</label>
+<pre><code>dotnet test tests/TeachHub.Domain.Tests</code></pre>
+<p>Kỳ vọng: lỗi biên dịch <code>CS0246: The type or namespace name 'Entity' could not be found</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết implementation tối thiểu</label>
+<p><code>src/TeachHub.Domain/Common/Entity.cs</code>:</p>
+<pre><code>namespace TeachHub.Domain.Common;
+
+/// &lt;summary&gt;
+/// Base của mọi entity. Id sinh ở tầng ứng dụng (không để DB sinh) bằng UUIDv7
+/// để vừa có tính duy nhất toàn cục vừa tăng dần theo thời gian — xem ADR trong
+/// docs/architecture/00-tech-stack-decisions.html §1.
+/// &lt;/summary&gt;
+public abstract class Entity
+{
+    public Guid Id { get; protected init; } = Guid.CreateVersion7();
+
+    public override bool Equals(object? obj) =&gt;
+        obj is Entity other &amp;&amp; GetType() == other.GetType() &amp;&amp; Id == other.Id;
+
+    public override int GetHashCode() =&gt; HashCode.Combine(GetType(), Id);
+}
+
+/// &lt;summary&gt;Nội dung dạy học dùng xóa mềm để không phá dữ liệu bài nộp cũ.&lt;/summary&gt;
+public interface ISoftDeletable
+{
+    bool IsDeleted { get; set; }
+    DateTimeOffset? DeletedAt { get; set; }
+}
+
+public interface IAuditable
+{
+    DateTimeOffset CreatedAt { get; set; }
+    DateTimeOffset? UpdatedAt { get; set; }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy lại, xác nhận xanh (cả <code>ArchitectureTests</code>)</label>
+<pre><code>dotnet test tests/TeachHub.Domain.Tests</code></pre>
+<p>Kỳ vọng: <code>Passed! - Failed: 0, Passed: 4</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(domain): add Entity base with UUIDv7 ids and audit interfaces"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.3 — Hạ tầng local: Postgres 17 + MinIO</h3>
+<div class="files"><b>Tạo:</b> <code>infra/docker-compose.yml</code> · <code>infra/.env.example</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — <code>infra/docker-compose.yml</code></label>
+<pre><code>services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: teachhub-db
+    environment:
+      POSTGRES_DB: teachhub
+      POSTGRES_USER: teachhub
+      POSTGRES_PASSWORD: teachhub_dev
+      # Collation tiếng Việt để ORDER BY họ tên ra đúng thứ tự
+      LANG: vi_VN.utf8
+    ports: ["5433:5432"]
+    volumes: ["./data/pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teachhub -d teachhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: teachhub-storage
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: teachhub
+      MINIO_ROOT_PASSWORD: teachhub_dev_secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["./data/minio:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10</code></pre>
+<div class="hint">Cổng Postgres map ra <strong>5433</strong> chứ không phải 5432, để không đụng Postgres cài sẵn trên máy.</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Khởi động và xác nhận</label>
+<pre><code>cd infra &amp;&amp; docker compose up -d
+docker compose ps</code></pre>
+<p>Kỳ vọng: cả hai service ở trạng thái <code>healthy</code>. Console MinIO mở được tại <code>http://localhost:9001</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "chore(infra): add postgres 17 and minio for local dev"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 2 — Dữ liệu, xác thực, và host API</h2>
+
+<div class="task">
+<h3>Task 0.4 — Entity Identity &amp; DbContext</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Identity/AppUser.cs</code>, <code>AppRole.cs</code>, <code>RefreshToken.cs</code>, <code>Roles.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Common/IAppDbContext.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Infrastructure/Persistence/AppDbContext.cs</code>, <code>Configurations/RefreshTokenConfiguration.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Thêm package</label>
+<pre><code>dotnet add src/TeachHub.Domain          package Microsoft.Extensions.Identity.Stores
+dotnet add src/TeachHub.Application     package Microsoft.EntityFrameworkCore
+dotnet add src/TeachHub.Infrastructure  package Microsoft.EntityFrameworkCore
+dotnet add src/TeachHub.Infrastructure  package Microsoft.EntityFrameworkCore.Design
+dotnet add src/TeachHub.Infrastructure  package Npgsql.EntityFrameworkCore.PostgreSQL
+dotnet add src/TeachHub.Infrastructure  package EFCore.NamingConventions
+dotnet add src/TeachHub.Infrastructure  package Microsoft.AspNetCore.Identity.EntityFrameworkCore</code></pre>
+
+<div class="hint"><strong>Chờ đã — Domain tham chiếu <code>Microsoft.Extensions.Identity.Stores</code> có vi phạm <code>ArchitectureTests</code> không?</strong> Không: danh sách cấm là EF Core / Npgsql / Hangfire / AspNetCore / AWSSDK. <code>Identity.Stores</code> chỉ chứa <code>IdentityUser&lt;TKey&gt;</code> là POCO thuần, không kéo theo hạ tầng. Nếu bạn muốn Domain sạch tuyệt đối, thay bằng cách để <code>AppUser</code> nằm ở Infrastructure và Domain chỉ giữ <code>UserId</code> — nhưng đánh đổi đó không đáng cho quy mô này.</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Viết entity</label>
+<p><code>src/TeachHub.Domain/Identity/Roles.cs</code>:</p>
+<pre><code>namespace TeachHub.Domain.Identity;
+
+public static class Roles
+{
+    public const string Instructor       = "Instructor";
+    public const string TeachingAssistant = "TeachingAssistant";
+    public const string Student           = "Student";
+
+    public static readonly string[] All = [Instructor, TeachingAssistant, Student];
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Identity/AppUser.cs</code>:</p>
+<pre><code>using Microsoft.AspNetCore.Identity;
+using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Identity;
+
+public class AppUser : IdentityUser&lt;Guid&gt;, IAuditable
+{
+    public AppUser() =&gt; Id = Guid.CreateVersion7();
+
+    public required string FullName { get; set; }
+
+    /// &lt;summary&gt;MSSV — chỉ có với sinh viên, null với giảng viên/trợ giảng.&lt;/summary&gt;
+    public string? StudentCode { get; set; }
+
+    /// &lt;summary&gt;SV import từ Excel phải đổi mật khẩu ở lần đăng nhập đầu (SRS mục 8).&lt;/summary&gt;
+    public bool MustChangePassword { get; set; }
+
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+}
+
+public class AppRole : IdentityRole&lt;Guid&gt;
+{
+    public AppRole() =&gt; Id = Guid.CreateVersion7();
+    public AppRole(string name) : this() =&gt; Name = name;
+}</code></pre>
+
+<p><code>src/TeachHub.Domain/Identity/RefreshToken.cs</code>:</p>
+<pre><code>using TeachHub.Domain.Common;
+
+namespace TeachHub.Domain.Identity;
+
+/// &lt;summary&gt;
+/// Refresh token xoay vòng: mỗi lần dùng sẽ bị thu hồi và phát hành token mới.
+/// Lưu SHA-256 chứ không lưu token thật — rò rỉ DB không cho phép mạo danh.
+/// &lt;/summary&gt;
+public class RefreshToken : Entity
+{
+    public required Guid UserId { get; set; }
+    public required string TokenHash { get; set; }
+    public required DateTimeOffset ExpiresAt { get; set; }
+    public required DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+    public Guid? ReplacedByTokenId { get; set; }
+
+    public bool IsActive(DateTimeOffset now) =&gt; RevokedAt is null &amp;&amp; now &lt; ExpiresAt;
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Cổng dữ liệu ở Application</label>
+<p><code>src/TeachHub.Application/Common/IAppDbContext.cs</code>:</p>
+<pre><code>using Microsoft.EntityFrameworkCore;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Application.Common;
+
+/// &lt;summary&gt;
+/// Cổng truy cập dữ liệu. Handler viết LINQ trực tiếp trên các DbSet này (ADR-002:
+/// không dùng Repository generic). Mỗi phase sau sẽ bổ sung thêm DbSet vào đây.
+/// &lt;/summary&gt;
+public interface IAppDbContext
+{
+    DbSet&lt;AppUser&gt; Users { get; }
+    DbSet&lt;RefreshToken&gt; RefreshTokens { get; }
+
+    Task&lt;int&gt; SaveChangesAsync(CancellationToken ct = default);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — DbContext</label>
+<p><code>src/TeachHub.Infrastructure/Persistence/AppDbContext.cs</code>:</p>
+<pre><code>using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using TeachHub.Application.Common;
+using TeachHub.Domain.Common;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Infrastructure.Persistence;
+
+public sealed class AppDbContext(DbContextOptions&lt;AppDbContext&gt; options, TimeProvider clock)
+    : IdentityDbContext&lt;AppUser, AppRole, Guid&gt;(options), IAppDbContext
+{
+    public DbSet&lt;RefreshToken&gt; RefreshTokens =&gt; Set&lt;RefreshToken&gt;();
+
+    DbSet&lt;AppUser&gt; IAppDbContext.Users =&gt; Users;
+
+    protected override void OnModelCreating(ModelBuilder b)
+    {
+        base.OnModelCreating(b);
+        b.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
+
+    public override Task&lt;int&gt; SaveChangesAsync(CancellationToken ct = default)
+    {
+        var now = clock.GetUtcNow();
+        foreach (var e in ChangeTracker.Entries&lt;IAuditable&gt;())
+        {
+            if (e.State == EntityState.Added)    e.Entity.CreatedAt = now;
+            if (e.State == EntityState.Modified) e.Entity.UpdatedAt = now;
+        }
+        foreach (var e in ChangeTracker.Entries&lt;ISoftDeletable&gt;().Where(x =&gt; x.State == EntityState.Deleted))
+        {
+            e.State = EntityState.Modified;      // xóa mềm — không bao giờ DELETE nội dung dạy học
+            e.Entity.IsDeleted = true;
+            e.Entity.DeletedAt = now;
+        }
+        return base.SaveChangesAsync(ct);
+    }
+}</code></pre>
+
+<p><code>src/TeachHub.Infrastructure/Persistence/Configurations/RefreshTokenConfiguration.cs</code>:</p>
+<pre><code>using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Infrastructure.Persistence.Configurations;
+
+public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration&lt;RefreshToken&gt;
+{
+    public void Configure(EntityTypeBuilder&lt;RefreshToken&gt; b)
+    {
+        b.HasKey(x =&gt; x.Id);
+        b.Property(x =&gt; x.TokenHash).HasMaxLength(64).IsRequired();
+        b.HasIndex(x =&gt; x.TokenHash).IsUnique();
+        b.HasIndex(x =&gt; new { x.UserId, x.RevokedAt });
+        b.HasOne&lt;AppUser&gt;().WithMany().HasForeignKey(x =&gt; x.UserId).OnDelete(DeleteBehavior.Cascade);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Đăng ký DI + migration đầu tiên</label>
+<p><code>src/TeachHub.Infrastructure/DependencyInjection.cs</code>:</p>
+<pre><code>using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using TeachHub.Application.Common;
+using TeachHub.Infrastructure.Persistence;
+
+namespace TeachHub.Infrastructure;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration config)
+    {
+        services.AddDbContext&lt;AppDbContext&gt;(o =&gt; o
+            .UseNpgsql(config.GetConnectionString("Default"),
+                npg =&gt; npg.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
+            .UseSnakeCaseNamingConvention());
+
+        services.AddScoped&lt;IAppDbContext&gt;(sp =&gt; sp.GetRequiredService&lt;AppDbContext&gt;());
+        return services;
+    }
+}</code></pre>
+
+<p>Sinh migration (cần <code>ConnectionStrings:Default</code> trong <code>appsettings.Development.json</code> của Api trước):</p>
+<pre><code>dotnet tool install --global dotnet-ef --version 10.0.11   # nếu chưa có
+dotnet ef migrations add Initial \
+  -p src/TeachHub.Infrastructure -s src/TeachHub.Api -o Persistence/Migrations
+dotnet ef database update -p src/TeachHub.Infrastructure -s src/TeachHub.Api</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Xác minh tên bảng đã đúng <code>snake_case</code></label>
+<pre><code>docker exec -it teachhub-db psql -U teachhub -d teachhub -c '\dt'</code></pre>
+<p>Kỳ vọng: thấy <code>asp_net_users</code>, <code>asp_net_roles</code>, <code>refresh_tokens</code> — <strong>không phải</strong> <code>AspNetUsers</code>. Nếu vẫn PascalCase thì <code>UseSnakeCaseNamingConvention()</code> chưa được gọi.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(data): add identity entities, AppDbContext with snake_case and initial migration"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.5 — Host API: Serilog, ProblemDetails, OpenAPI, health check</h3>
+<div class="files"><b>Sửa:</b> <code>src/TeachHub.Api/Program.cs</code> · <b>Tạo:</b> <code>appsettings.json</code>, <code>appsettings.Development.json</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ: health check phải trả 200 và OpenAPI doc phải sinh được</label>
+<p>Trước hết tạo host test dùng chung — <code>tests/TeachHub.Api.Tests/TeachHubApiFactory.cs</code>:</p>
+<pre><code>using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using TeachHub.Infrastructure.Persistence;
+using Testcontainers.PostgreSql;
+
+namespace TeachHub.Api.Tests;
+
+/// &lt;summary&gt;
+/// Dựng API thật trên một Postgres thật trong container. Không dùng InMemory provider:
+/// hệ thống này phụ thuộc nặng vào jsonb, CHECK constraint và partial index — những thứ
+/// InMemory không mô phỏng, nên test qua nó sẽ xanh giả.
+/// &lt;/summary&gt;
+public sealed class TeachHubApiFactory : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _db = new PostgreSqlBuilder()
+        .WithImage("postgres:17-alpine")
+        .Build();
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration((_, cfg) =&gt; cfg.AddInMemoryCollection(
+            new Dictionary&lt;string, string?&gt;
+            {
+                ["ConnectionStrings:Default"] = _db.GetConnectionString(),
+                ["Hangfire:Enabled"] = "false",
+                ["Jwt:Key"] = "test-key-chi-dung-trong-test-va-du-dai-32-bytes!!",
+                ["Jwt:Issuer"] = "teachhub-test",
+                ["Jwt:Audience"] = "teachhub-test",
+            }));
+    }
+
+    public async Task InitializeAsync()
+    {
+        await _db.StartAsync();
+        using var scope = Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;().Database.MigrateAsync();
+    }
+
+    public new async Task DisposeAsync()
+    {
+        await _db.DisposeAsync();
+        await base.DisposeAsync();
+    }
+}</code></pre>
+
+<p><code>tests/TeachHub.Api.Tests/HostSmokeTests.cs</code>:</p>
+<pre><code>using System.Net;
+using Shouldly;
+
+namespace TeachHub.Api.Tests;
+
+public class HostSmokeTests(TeachHubApiFactory factory) : IClassFixture&lt;TeachHubApiFactory&gt;
+{
+    [Fact]
+    public async Task Health_tra_ve_200_khi_db_song()
+    {
+        var res = await factory.CreateClient().GetAsync("/health");
+        res.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task OpenApi_doc_sinh_duoc_va_la_ban_3_1()
+    {
+        var doc = await factory.CreateClient().GetStringAsync("/openapi/v1.json");
+        doc.ShouldContain("\"openapi\": \"3.1");
+    }
+
+    [Fact]
+    public async Task OpenApi_khai_bao_snake_case_giong_het_phan_hoi_that()
+    {
+        // Runtime dùng AddJsonOptions, còn OpenAPI dùng ConfigureHttpJsonOptions — hai IOptions
+        // khác nhau. Thiếu cái thứ hai thì API trả access_token nhưng tài liệu khai accessToken,
+        // và client TypeScript sinh từ tài liệu đó sẽ gõ sai khóa mà vẫn biên dịch được.
+        var doc = await factory.CreateClient().GetStringAsync("/openapi/v1.json");
+
+        doc.ShouldContain("access_token");
+        doc.ShouldNotContain("accessToken");
+    }
+
+    [Fact]
+    public async Task Loi_tra_ve_dung_dinh_dang_problem_details()
+    {
+        // Phải gọi bằng client ĐÃ đăng nhập: fallback policy ở Task 0.7 bắt buộc xác thực cho
+        // cả request không khớp endpoint nào, nên client ẩn danh sẽ nhận 401 chứ không phải 404.
+        // Test này muốn kiểm định dạng problem+json của 404, nên phải vượt qua tầng xác thực trước.
+        var client = await factory.LoginAsInstructorAsync();
+
+        var res = await client.GetAsync("/api/khong-ton-tai");
+
+        res.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        res.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests</code></pre>
+<p>Kỳ vọng: lỗi biên dịch (chưa có <code>Program</code> public) hoặc 404 ở <code>/health</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Thêm package cho Api</label>
+<pre><code>dotnet add src/TeachHub.Api package Microsoft.AspNetCore.OpenApi
+dotnet add src/TeachHub.Api package Scalar.AspNetCore
+dotnet add src/TeachHub.Api package Serilog.AspNetCore
+dotnet add tests/TeachHub.Api.Tests package Microsoft.AspNetCore.Mvc.Testing
+dotnet add tests/TeachHub.Api.Tests package Testcontainers.PostgreSql</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Viết <code>Program.cs</code></label>
+<pre><code>using System.Text.Json;
+using System.Text.Json.Serialization;
+using Serilog;
+using Scalar.AspNetCore;
+using TeachHub.Infrastructure;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, cfg) =&gt; cfg.ReadFrom.Configuration(ctx.Configuration));
+
+// TimeProvider tiêm khắp nơi: mọi logic phụ thuộc thời gian (hạn nộp, phạt trễ,
+// streak, lịch ôn tập) phải test được mà không cần Thread.Sleep.
+builder.Services.AddSingleton(TimeProvider.System);
+
+// PHẢI CẤU HÌNH CẢ HAI CHỖ — mỗi cái lo một nửa, thiếu cái nào cũng hỏng một nửa:
+//  · AddJsonOptions      → cách MVC serialize phản hồi THẬT lúc chạy
+//  · ConfigureHttpJsonOptions → cách Microsoft.AspNetCore.OpenApi sinh SCHEMA trong /openapi/v1.json
+// Chúng đọc hai IOptions khác nhau và KHÔNG kế thừa nhau.
+builder.Services.AddControllers()
+    .AddJsonOptions(o =&gt;
+    {
+        // snake_case để khớp đúng hợp đồng API trong SRS mục 7
+        o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
+
+builder.Services.ConfigureHttpJsonOptions(o =&gt;
+{
+    o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+    o.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
+});
+
+builder.Services.AddProblemDetails();          // RFC 9457
+builder.Services.AddOpenApi();                 // sinh OpenAPI 3.1, .NET 10 đọc được cả Controllers
+
+// Đăng ký NGAY TỪ PHASE 0, dù mãi Phase 3 mới nộp bài: Phase 1 đã gắn
+// [EnableRateLimiting("upload")] lên endpoint upload bài giảng. Attribute không có
+// bộ đăng ký tương ứng là metadata trơ — không chặn gì, và cũng không báo lỗi gì.
+builder.Services.AddRateLimiter(o =&gt; o.AddFixedWindowLimiter("upload", w =&gt;
+{
+    w.PermitLimit = 30;
+    w.Window = TimeSpan.FromMinutes(1);
+    w.QueueLimit = 0;
+}));
+
+builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddHealthChecks();
+
+var app = builder.Build();
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+app.UseSerilogRequestLogging();
+app.UseRateLimiter();
+
+app.MapControllers();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();   // UI duyệt API tại /scalar/v1
+}
+else
+{
+    app.MapOpenApi();              // vẫn cần cho việc sinh client TS trong CI
+}
+
+app.MapHealthChecks("/health");
+
+app.Run();
+
+// Cho phép WebApplicationFactory&lt;Program&gt; nhìn thấy host này.
+public partial class Program;</code></pre>
+
+<div class="hint danger">
+<strong>Cạm bẫy đắt nhất của cả file này: phải cấu hình JSON ở <em>cả hai</em> chỗ, mỗi chỗ lo một nửa.</strong>
+Hai hàm cùng nhận một <code>JsonSerializerOptions</code> nên nhìn giống hệt nhau, nhưng chúng đọc hai
+<code>IOptions</code> khác nhau và không kế thừa nhau:
+<ul>
+<li><code>AddControllers().AddJsonOptions(...)</code> → quyết định MVC serialize <strong>phản hồi thật</strong> lúc chạy.</li>
+<li><code>ConfigureHttpJsonOptions(...)</code> → quyết định <code>Microsoft.AspNetCore.OpenApi</code> sinh
+<strong>schema</strong> trong <code>/openapi/v1.json</code>, vì nó đọc
+<code>IOptions&lt;Microsoft.AspNetCore.Http.Json.JsonOptions&gt;</code>, không đọc options của MVC.</li>
+</ul>
+Thiếu cái nào cũng hỏng một nửa, và <strong>cả hai kiểu hỏng đều không có lỗi nào cả</strong> — build xanh,
+test unit xanh, API trả 200:
+<br><br>
+<strong>Thiếu <code>AddJsonOptions</code>:</strong> API trả <code>accessToken</code> thay vì
+<code>access_token</code>. Frontend đọc <code>access_token</code> nhận <code>undefined</code>, cookie
+<code>th_at</code> rỗng, mọi request sau đó 401 — và bạn đi tìm lỗi ở tầng auth trong nhiều giờ.
+<br><br>
+<strong>Thiếu <code>ConfigureHttpJsonOptions</code>:</strong> runtime đúng <code>snake_case</code> nhưng
+tài liệu OpenAPI khai <code>camelCase</code>. Task 0.11 sinh client TypeScript từ chính file đó bằng
+<code>pnpm gen:api</code>, nên client sẽ gõ <code>res.accessToken</code> trong khi server trả
+<code>access_token</code> — TypeScript vẫn biên dịch, và bạn nhận <code>undefined</code> lúc chạy.
+Đây là kiểu hỏng âm thầm khó chịu hơn hẳn, vì cả backend lẫn frontend đều "đúng" khi xét riêng.
+<br><br>
+Hai test khoá chuyện này lại: <code>AuthTests</code> ở Task 0.7 đọc khóa <code>access_token</code> bằng
+<code>JsonElement</code> (bắt lỗi vế thứ nhất), và <code>HostSmokeTests</code> assert
+<code>/openapi/v1.json</code> có chứa chuỗi <code>"access_token"</code> (bắt lỗi vế thứ hai).
+</div>
+
+<div class="hint">
+<strong>Không có <code>builder.Services.AddValidation()</code> ở đây.</strong> Đó là API validation built-in
+của .NET 10 dành riêng cho Minimal API (<code>Microsoft.AspNetCore.Http.Validation</code>), không tác dụng với
+Controllers. Toàn bộ chuyện validate do FluentValidation gánh, chạy trong pipeline MediatR — xem Task 0.6.
+Cũng vì thế đừng bật <code>SuppressModelStateInvalidFilter</code> hay tự validate trong controller:
+một câu chuyện validation duy nhất, ở đúng một chỗ.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — <code>appsettings.json</code></label>
+<pre><code>{
+  "Serilog": {
+    "MinimumLevel": { "Default": "Information",
+      "Override": { "Microsoft.AspNetCore": "Warning", "Microsoft.EntityFrameworkCore": "Warning" } },
+    "WriteTo": [ { "Name": "Console" } ]
+  },
+  "ConnectionStrings": {
+    "Default": "Host=localhost;Port=5433;Database=teachhub;Username=teachhub;Password=teachhub_dev"
+  },
+  "Jwt": {
+    "Issuer": "teachhub",
+    "Audience": "teachhub",
+    "Key": "DAT-QUA-BIEN-MOI-TRUONG-O-PRODUCTION-toi-thieu-32-ky-tu",
+    "AccessTokenMinutes": 30,
+    "RefreshTokenDays": 14
+  },
+  "Storage": { "Provider": "Local", "LocalRoot": "./uploads" },
+  "Hangfire": { "Enabled": true },
+  "AllowedHosts": "*"
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Chạy test, xác nhận xanh</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests</code></pre>
+<p>Kỳ vọng: 3 test xanh. Lần chạy đầu chậm (~30–60 s) vì phải kéo image <code>postgres:17-alpine</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(api): bootstrap host with serilog, problem details, openapi 3.1 and health checks"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.6 — MediatR + pipeline behaviors</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Application/Common/Messaging/ICommand.cs</code>, <code>IQuery.cs</code> · <code>Common/Result.cs</code> · <code>Common/ICurrentUser.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Common/Behaviors/LoggingBehavior.cs</code>, <code>ValidationBehavior.cs</code> · <code>DependencyInjection.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Infrastructure/Behaviors/TransactionBehavior.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Common/ValidationExceptionHandler.cs</code>, <code>CurrentUser.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/BehaviorPipelineTests.cs</code>, <code>ValidationProblemTests.cs</code>
+</div>
+
+<p>Task này đặt xương sống cho <strong>mọi phase sau</strong>. Từ đây trở đi không handler nào tự log, tự
+validate hay tự mở transaction nữa — ba việc đó chạy trong pipeline, một lần, cho tất cả. Làm sai thứ tự ở
+đây thì 200+ use case phía sau đều thừa hưởng cái sai đó.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Thêm package, rồi viết test đỏ khóa thứ tự pipeline</label>
+<pre><code>dotnet add src/TeachHub.Application    package MediatR
+dotnet add src/TeachHub.Application    package FluentValidation
+dotnet add src/TeachHub.Application    package FluentValidation.DependencyInjectionExtensions
+dotnet add src/TeachHub.Infrastructure package MediatR</code></pre>
+<p class="meta">Không cần thêm <code>Microsoft.Extensions.Logging.Abstractions</code>: Application đã tham chiếu
+<code>Microsoft.EntityFrameworkCore</code> (Task 0.4) và gói đó kéo theo <code>ILogger&lt;T&gt;</code>.</p>
+
+<p><code>tests/TeachHub.Api.Tests/BehaviorPipelineTests.cs</code>:</p>
+<pre><code>using System.Data;
+using FluentValidation;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
+using TeachHub.Application;
+using TeachHub.Application.Common.Behaviors;
+using TeachHub.Application.Common.Messaging;
+using TeachHub.Infrastructure.Behaviors;
+using TeachHub.Infrastructure.Persistence;
+
+namespace TeachHub.Api.Tests;
+
+/// &lt;summary&gt;Command chỉ dùng để dò pipeline — không thuộc nghiệp vụ nào.&lt;/summary&gt;
+public sealed record ProbeCommand(string Code) : ICommand&lt;Unit&gt;;
+
+public sealed class ProbeValidator : AbstractValidator&lt;ProbeCommand&gt;
+{
+    public ProbeValidator() =&gt; RuleFor(x =&gt; x.Code).NotEmpty();
+}
+
+public class BehaviorPipelineTests(TeachHubApiFactory factory) : IClassFixture&lt;TeachHubApiFactory&gt;
+{
+    [Fact]
+    public void Thu_tu_chay_la_logging_roi_validation_roi_transaction()
+    {
+        // Thứ tự ĐĂNG KÝ chính là thứ tự CHẠY, từ ngoài vào trong. Test này khóa nó lại:
+        // đảo hai dòng AddOpenBehavior trong DependencyInjection là test đỏ ngay lập tức.
+        //
+        // ĐỌC TỪ CONTAINER THẬT của ứng dụng (factory.Services), KHÔNG dựng lại một
+        // ServiceCollection mới rồi tự tay AddTransient(TransactionBehavior). Dựng lại thì thứ tự
+        // là do chính test tạo ra, nên nó xanh kể cả khi Program.cs đăng ký sai thứ tự —
+        // một test cho cảm giác an toàn mà không kiểm gì cả.
+        var thuTu = factory.Services
+            .GetServices&lt;IPipelineBehavior&lt;ProbeCommand, Unit&gt;&gt;()
+            .Select(b =&gt; b.GetType().GetGenericTypeDefinition())
+            .ToList();
+
+        thuTu.ShouldBe([
+            typeof(LoggingBehavior&lt;,&gt;),
+            typeof(ValidationBehavior&lt;,&gt;),
+            typeof(TransactionBehavior&lt;,&gt;),
+        ]);
+    }
+
+    [Fact]
+    public async Task Command_sai_du_lieu_bi_chan_truoc_khi_mo_transaction()
+    {
+        // Nếu Transaction bọc ngoài Validation thì mỗi request sai dữ liệu vẫn mở một
+        // transaction rồi rollback: thừa một round-trip và giữ connection lâu hơn cần thiết.
+        // Với endpoint nộp bài lúc sát hạn — nơi request sai dữ liệu nhiều nhất — đó là
+        // đúng thời điểm pool connection không được phép cạn.
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+
+        var validation  = new ValidationBehavior&lt;ProbeCommand, Unit&gt;([new ProbeValidator()]);
+        var transaction = new TransactionBehavior&lt;ProbeCommand, Unit&gt;(db);
+        var command     = new ProbeCommand("");        // rỗng ⇒ validator đỏ
+
+        var handlerDaChay = false;
+        RequestHandlerDelegate&lt;Unit&gt; handler = _ =&gt;
+        {
+            handlerDaChay = true;
+            return Task.FromResult(Unit.Value);
+        };
+
+        // Xếp đúng thứ tự sản xuất: Validation bọc ngoài Transaction.
+        await Should.ThrowAsync&lt;ValidationException&gt;(() =&gt; validation.Handle(
+            command,
+            ct =&gt; transaction.Handle(command, handler, ct),
+            CancellationToken.None));
+
+        handlerDaChay.ShouldBeFalse();
+        db.Database.CurrentTransaction.ShouldBeNull();
+
+        // Bằng chứng cứng nhất: BeginTransactionAsync bắt buộc phải mở connection.
+        // Connection còn đóng nghĩa là không ai chạm tới DB.
+        db.Database.GetDbConnection().State.ShouldBe(ConnectionState.Closed);
+    }
+}</code></pre>
+<pre><code>dotnet test tests/TeachHub.Api.Tests --filter BehaviorPipelineTests</code></pre>
+<p>Kỳ vọng: lỗi biên dịch <code>CS0246</code> hàng loạt — chưa có <code>ICommand</code>, <code>LoggingBehavior</code>,
+<code>ValidationBehavior</code>, <code>TransactionBehavior</code>, <code>AddApplication</code>.</p>
+
+<div class="hint">
+<strong>Chi tiết <code>RequestHandlerDelegate</code> — đã kiểm chứng bằng cách build thật với MediatR 12.5.0.</strong>
+Định nghĩa trong 12.5.0 là:
+<pre><code>public delegate Task&lt;TResponse&gt; RequestHandlerDelegate&lt;TResponse&gt;(CancellationToken t = default);</code></pre>
+Tham số <code>CancellationToken</code> <strong>có, nhưng là tùy chọn</strong> (thêm từ 12.4.0). Hệ quả cụ thể:
+<ul>
+<li>Trong behavior: <code>await next()</code> và <code>await next(ct)</code> <em>đều</em> biên dịch được, và
+<code>next()</code> vẫn chuyển đúng token gốc xuống handler (MediatR lấy token đã truyền vào <code>Send</code>).
+<strong>Viết <code>await next()</code></strong> — đó là dạng duy nhất chạy được trên cả 12.0–12.3 (nơi delegate
+hoàn toàn không có tham số) lẫn 12.4+, nên đọc plan này ở bất kỳ bản 12.x nào cũng đúng.</li>
+<li>Trong <em>test</em>, khi tự tạo một delegate: <code>RequestHandlerDelegate&lt;Unit&gt; h = () =&gt; ...</code>
+là <strong>lỗi biên dịch <code>CS1593: Delegate does not take 0 arguments</code></strong>. Phải viết
+<code>h = _ =&gt; ...</code>. Tham số tùy chọn cho phép <em>gọi</em> không đối số, không cho phép
+<em>khai báo</em> lambda không tham số.</li>
+<li>Từ v13 tham số này thành bắt buộc. Nhưng ta ghim 12.5.0 vì lý do giấy phép (xem Task 0.1 Bước 3),
+nên chuyện đó chỉ đáng nhớ để đừng chép nhầm code MediatR 13 trên mạng vào đây.</li>
+</ul>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Hợp đồng messaging và kiểu <code>Result</code></label>
+<p><code>src/TeachHub.Application/Common/Messaging/ICommand.cs</code> (để cả <code>IQuery</code> cùng thư mục):</p>
+<pre><code>using MediatR;
+
+namespace TeachHub.Application.Common.Messaging;
+
+/// &lt;summary&gt;Marker không generic để TransactionBehavior nhận diện được command.&lt;/summary&gt;
+public interface IBaseCommand;
+
+public interface ICommand&lt;out TResponse&gt; : IRequest&lt;TResponse&gt;, IBaseCommand;
+
+public interface IQuery&lt;out TResponse&gt; : IRequest&lt;TResponse&gt;;
+
+public interface ICommandHandler&lt;in TCommand, TResponse&gt; : IRequestHandler&lt;TCommand, TResponse&gt;
+    where TCommand : ICommand&lt;TResponse&gt;;
+
+public interface IQueryHandler&lt;in TQuery, TResponse&gt; : IRequestHandler&lt;TQuery, TResponse&gt;
+    where TQuery : IQuery&lt;TResponse&gt;;</code></pre>
+
+<p><strong>Tách Command khỏi Query không phải hình thức.</strong> <code>IBaseCommand</code> là thứ duy nhất cho
+<code>TransactionBehavior</code> biết request nào cần bọc transaction. Nếu gộp làm một, mọi truy vấn danh sách
+môn học cũng mở transaction: phí một round-trip và giữ connection lâu hơn cần thiết, đúng lúc 300 sinh viên
+cùng mở bảng điểm. Marker phải <em>không generic</em> vì behavior chỉ có <code>TRequest</code> chưa biết
+<code>TResponse</code> — <code>request is not IBaseCommand</code> là phép kiểm tra rẻ nhất có thể.</p>
+
+<p><code>src/TeachHub.Application/Common/Result.cs</code>:</p>
+<pre><code>using System.Diagnostics.CodeAnalysis;
+
+namespace TeachHub.Application.Common;
+
+// Invalid → 400 và PayloadTooLarge → 413 là hai trạng thái các phase sau BẮT BUỘC phải có:
+// Phase 3 dùng Invalid khi thiếu slot bắt buộc, PayloadTooLarge khi file vượt dung lượng slot.
+// Thiếu chúng ở đây thì Phase 3 và 4b không biên dịch được.
+public enum ResultStatus { Ok, Invalid, NotFound, Conflict, Forbidden, Unauthorized, PayloadTooLarge }
+
+public sealed class Result
+{
+    private Result(ResultStatus status, string? error) =&gt; (Status, Error) = (status, error);
+
+    public ResultStatus Status { get; }
+    public string? Error { get; }
+    public bool IsSuccess =&gt; Status == ResultStatus.Ok;
+
+    public static Result Ok()                                  =&gt; new(ResultStatus.Ok, null);
+    public static Result Invalid(string error)                 =&gt; new(ResultStatus.Invalid, error);
+    public static Result NotFound(string? error = null)        =&gt; new(ResultStatus.NotFound, error);
+    public static Result Conflict(string error)                =&gt; new(ResultStatus.Conflict, error);
+    public static Result Forbidden(string? error = null)       =&gt; new(ResultStatus.Forbidden, error);
+    public static Result Unauthorized(string? error = null)    =&gt; new(ResultStatus.Unauthorized, error);
+    public static Result PayloadTooLarge(string error)         =&gt; new(ResultStatus.PayloadTooLarge, error);
+}
+
+public sealed class Result&lt;T&gt;
+{
+    private Result(ResultStatus status, T? value, string? error) =&gt;
+        (Status, Value, Error) = (status, value, error);
+
+    public ResultStatus Status { get; }
+    public T? Value { get; }
+    public string? Error { get; }
+
+    // [MemberNotNullWhen] là BẮT BUỘC, không phải trang trí. Value khai là T? nên nếu thiếu
+    // attribute này, mọi chỗ viết theo khuôn
+    //     if (!kq.IsSuccess) return ToActionResult(kq);
+    //     return File(kq.Value.Content, ...);
+    // đều đứt build với CS8602 vì TreatWarningsAsErrors đang bật.
+    [MemberNotNullWhen(true, nameof(Value))]
+    public bool IsSuccess =&gt; Status == ResultStatus.Ok;
+
+    public static Result&lt;T&gt; Ok(T value)                           =&gt; new(ResultStatus.Ok, value, null);
+    public static Result&lt;T&gt; Invalid(string error)                 =&gt; new(ResultStatus.Invalid, default, error);
+    public static Result&lt;T&gt; NotFound(string? error = null)        =&gt; new(ResultStatus.NotFound, default, error);
+    public static Result&lt;T&gt; Conflict(string error)                =&gt; new(ResultStatus.Conflict, default, error);
+    public static Result&lt;T&gt; Forbidden(string? error = null)       =&gt; new(ResultStatus.Forbidden, default, error);
+    public static Result&lt;T&gt; Unauthorized(string? error = null)    =&gt; new(ResultStatus.Unauthorized, default, error);
+    public static Result&lt;T&gt; PayloadTooLarge(string error)         =&gt; new(ResultStatus.PayloadTooLarge, default, error);
+}</code></pre>
+
+<div class="hint">
+<strong>Hai mô hình lỗi, cố ý khác nhau — đây là quyết định thiết kế, không phải sự thiếu nhất quán.</strong>
+<ul>
+<li><strong>Lỗi dữ liệu đầu vào</strong> (email sai định dạng, điểm âm, tên rỗng) → FluentValidation ném
+<code>ValidationException</code> → <code>IExceptionHandler</code> toàn cục quy đổi thành 400. Loại lỗi này
+<em>không bao giờ</em> cần xử lý riêng ở từng use case, nên gom về một chỗ là đúng; bắt nó ở từng handler chỉ
+tạo ra 200 khối <code>if</code> giống hệt nhau.</li>
+<li><strong>Kết quả nghiệp vụ mong đợi</strong> (không tìm thấy, xung đột trạng thái, không có quyền) →
+trả <code>Result</code>. Những thứ này là <em>một phần hợp đồng</em> của use case: "xuất bản một phiên bản đã
+xuất bản rồi" là kết quả có thể đoán trước, không phải sự cố. Nó phải hiện ra trong chữ ký hàm để người gọi
+buộc phải xử lý, chứ không giấu vào exception rồi hy vọng ai đó nhớ bắt.</li>
+</ul>
+Ranh giới thực dụng: <em>nếu đọc chữ ký hàm mà không đoán được nó hỏng kiểu gì thì đó phải là <code>Result</code>.</em>
+</div>
+
+<p><code>src/TeachHub.Application/Common/ICurrentUser.cs</code>:</p>
+<pre><code>namespace TeachHub.Application.Common;
+
+/// &lt;summary&gt;Danh tính người gọi, để behavior ghi log biết ai gây ra request.&lt;/summary&gt;
+public interface ICurrentUser
+{
+    Guid? UserId { get; }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — <code>LoggingBehavior</code> và <code>ValidationBehavior</code></label>
+<p><code>src/TeachHub.Application/Common/Behaviors/LoggingBehavior.cs</code>:</p>
+<pre><code>using System.Diagnostics;
+using MediatR;
+using Microsoft.Extensions.Logging;
+
+namespace TeachHub.Application.Common.Behaviors;
+
+public sealed class LoggingBehavior&lt;TRequest, TResponse&gt;(
+    ILogger&lt;LoggingBehavior&lt;TRequest, TResponse&gt;&gt; logger,
+    ICurrentUser currentUser) : IPipelineBehavior&lt;TRequest, TResponse&gt;
+    where TRequest : notnull
+{
+    private const int NguongChamMs = 500;
+
+    public async Task&lt;TResponse&gt; Handle(
+        TRequest request, RequestHandlerDelegate&lt;TResponse&gt; next, CancellationToken ct)
+    {
+        var ten = typeof(TRequest).Name;
+        var moc = Stopwatch.GetTimestamp();
+
+        try
+        {
+            var response = await next();
+            var ms = Stopwatch.GetElapsedTime(moc).TotalMilliseconds;
+
+            if (ms &gt; NguongChamMs)
+                logger.LogWarning("{Request} chạy {Elapsed:F0} ms (user {UserId}) — vượt ngưỡng {Nguong} ms",
+                    ten, ms, currentUser.UserId, NguongChamMs);
+            else
+                logger.LogInformation("{Request} xong trong {Elapsed:F0} ms (user {UserId})",
+                    ten, ms, currentUser.UserId);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{Request} lỗi sau {Elapsed:F0} ms (user {UserId})",
+                ten, Stopwatch.GetElapsedTime(moc).TotalMilliseconds, currentUser.UserId);
+            throw;
+        }
+    }
+}</code></pre>
+<p class="meta">Dùng <code>ILogger&lt;T&gt;</code> chứ không gọi thẳng Serilog: Serilog đã là provider phía dưới
+(<code>UseSerilog</code> ở <code>Program.cs</code>), nên các placeholder <code>{Request}</code>,
+<code>{Elapsed}</code>, <code>{UserId}</code> vẫn vào log dưới dạng thuộc tính có cấu trúc, tìm kiếm được — mà
+Application không phải tham chiếu Serilog. Ngưỡng 500 ms là ranh giới để một truy vấn chậm nổi lên trước khi
+sinh viên kịp phàn nàn, đừng đặt cao hơn.</p>
+
+<p><code>src/TeachHub.Application/Common/Behaviors/ValidationBehavior.cs</code>:</p>
+<pre><code>using FluentValidation;
+using MediatR;
+
+namespace TeachHub.Application.Common.Behaviors;
+
+public sealed class ValidationBehavior&lt;TRequest, TResponse&gt;(IEnumerable&lt;IValidator&lt;TRequest&gt;&gt; validators)
+    : IPipelineBehavior&lt;TRequest, TResponse&gt;
+    where TRequest : notnull
+{
+    public async Task&lt;TResponse&gt; Handle(
+        TRequest request, RequestHandlerDelegate&lt;TResponse&gt; next, CancellationToken ct)
+    {
+        if (!validators.Any()) return await next();
+
+        var context = new ValidationContext&lt;TRequest&gt;(request);
+        var results = await Task.WhenAll(validators.Select(v =&gt; v.ValidateAsync(context, ct)));
+        var failures = results.SelectMany(r =&gt; r.Errors).Where(f =&gt; f is not null).ToList();
+
+        if (failures.Count != 0) throw new ValidationException(failures);
+
+        return await next();
+    }
+}</code></pre>
+<p class="meta">Gom <em>toàn bộ</em> lỗi rồi mới ném một lần, không dừng ở lỗi đầu tiên: form nhập điểm có 12 ô,
+bắt người dùng sửa từng ô một qua 12 lần round-trip là cách chắc chắn để họ ghét hệ thống.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — <code>TransactionBehavior</code>, đặt ở Infrastructure</label>
+<p><code>src/TeachHub.Infrastructure/Behaviors/TransactionBehavior.cs</code>:</p>
+<pre><code>using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TeachHub.Application.Common.Messaging;
+using TeachHub.Infrastructure.Persistence;
+
+namespace TeachHub.Infrastructure.Behaviors;
+
+public sealed class TransactionBehavior&lt;TRequest, TResponse&gt;(AppDbContext db)
+    : IPipelineBehavior&lt;TRequest, TResponse&gt;
+    where TRequest : notnull
+{
+    public async Task&lt;TResponse&gt; Handle(
+        TRequest request, RequestHandlerDelegate&lt;TResponse&gt; next, CancellationToken ct)
+    {
+        // Query không cần transaction — xem giải thích ở Bước 2.
+        if (request is not IBaseCommand) return await next();
+
+        // Đã có transaction bên ngoài (job nền, hoặc command lồng command) thì đi nhờ,
+        // không mở transaction lồng nhau.
+        if (db.Database.CurrentTransaction is not null) return await next();
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var response = await next();
+        await tx.CommitAsync(ct);
+        return response;
+    }
+}</code></pre>
+
+<div class="hint">
+<strong>Vì sao behavior này nằm ở Infrastructure chứ không phải Application, cạnh hai behavior kia.</strong>
+Nó cần <code>db.Database.BeginTransactionAsync</code>. Đặt ở Application sẽ buộc Application tham chiếu
+EF Core Relational để dùng <code>DatabaseFacade</code> — tức là kéo chi tiết hạ tầng vào tầng lẽ ra chỉ biết
+interface, phá đúng ranh giới mà <code>ArchitectureTests</code> ở Task 0.1 dựng lên để bảo vệ.
+<br><br>
+Lối thoát sai kinh điển ở đây là dựng một interface <code>IUnitOfWork</code> chỉ có
+<code>BeginTransactionAsync</code>/<code>CommitAsync</code> rồi đặt ở Application để "giữ hình thức". Đừng.
+Nó là <code>DbTransaction</code> khoác áo khác, không tăng khả năng test, không cho phép thay implementation
+nào có thật, chỉ thêm một lớp gián tiếp phải đọc qua.
+<br><br>
+Behavior của MediatR <strong>không bắt buộc</strong> nằm cùng tầng với handler: MediatR chỉ đọc các đăng ký
+<code>IPipelineBehavior&lt;,&gt;</code> trong container, đăng ký từ assembly nào cũng chạy. Đây là chỗ ranh giới
+kiến trúc và cơ chế framework tình cờ khớp nhau — dùng nó.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Đăng ký DI, đúng thứ tự</label>
+<p><code>src/TeachHub.Application/DependencyInjection.cs</code>:</p>
+<pre><code>using FluentValidation;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
+using TeachHub.Application.Common.Behaviors;
+
+namespace TeachHub.Application;
+
+public static class DependencyInjection
+{
+    public static IServiceCollection AddApplication(this IServiceCollection services)
+    {
+        var assembly = typeof(DependencyInjection).Assembly;
+
+        services.AddMediatR(cfg =&gt;
+        {
+            cfg.RegisterServicesFromAssembly(assembly);
+
+            // Thứ tự khai báo = thứ tự chạy, từ ngoài vào trong.
+            cfg.AddOpenBehavior(typeof(LoggingBehavior&lt;,&gt;));
+            cfg.AddOpenBehavior(typeof(ValidationBehavior&lt;,&gt;));
+        });
+
+        services.AddValidatorsFromAssembly(assembly);
+        return services;
+    }
+}</code></pre>
+
+<p>Trong <code>src/TeachHub.Infrastructure/DependencyInjection.cs</code>, thêm vào cuối
+<code>AddPersistence</code> — <strong>sau</strong> hai behavior trên:</p>
+<pre><code>services.AddTransient(typeof(IPipelineBehavior&lt;,&gt;), typeof(TransactionBehavior&lt;,&gt;));</code></pre>
+
+<p>Trong <code>src/TeachHub.Api/Program.cs</code>, thêm sau <code>AddProblemDetails()</code>:</p>
+<pre><code>builder.Services.AddExceptionHandler&lt;ValidationExceptionHandler&gt;();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped&lt;ICurrentUser, CurrentUser&gt;();
+builder.Services.AddApplication();</code></pre>
+
+<p><strong>Thứ tự cuối cùng: Logging → Validation → Transaction → Handler.</strong></p>
+<ul>
+<li><strong>Logging ngoài cùng</strong> để con số thời gian nó đo được là thời gian người dùng thật sự chờ,
+gồm cả phần validate và phần commit. Đặt trong cùng thì log báo 8 ms trong khi request mất 900 ms.</li>
+<li><strong>Validation trước Transaction</strong>: request sai dữ liệu không được phép chạm tới DB. Đảo lại thì
+mỗi lần ai đó gõ nhầm email là một transaction mở ra rồi rollback. Test thứ hai ở Bước 1 khóa đúng điều này.</li>
+<li><strong>Transaction trong cùng</strong>, sát handler nhất, để transaction sống ngắn nhất có thể — mỗi
+mili-giây thừa là một mili-giây giữ khoá hàng trong <code>submissions</code>.</li>
+</ul>
+
+<label class="ck"><input type="checkbox"> Bước 6 — <code>ValidationExceptionHandler</code> → 400 <code>ValidationProblemDetails</code></label>
+<p><code>src/TeachHub.Api/Common/ValidationExceptionHandler.cs</code>:</p>
+<pre><code>using FluentValidation;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+
+namespace TeachHub.Api.Common;
+
+public sealed class ValidationExceptionHandler(IProblemDetailsService problemDetails) : IExceptionHandler
+{
+    public async ValueTask&lt;bool&gt; TryHandleAsync(HttpContext ctx, Exception exception, CancellationToken ct)
+    {
+        // Trả false cho mọi exception khác: handler này chỉ nhận đúng phần việc của nó,
+        // phần còn lại để pipeline xử lý lỗi mặc định lo (và trả 500).
+        if (exception is not ValidationException ex) return false;
+
+        var errors = ex.Errors
+            .GroupBy(e =&gt; e.PropertyName, StringComparer.Ordinal)
+            .ToDictionary(g =&gt; g.Key, g =&gt; g.Select(e =&gt; e.ErrorMessage).ToArray(), StringComparer.Ordinal);
+
+        ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+
+        return await problemDetails.TryWriteAsync(new ProblemDetailsContext
+        {
+            HttpContext    = ctx,
+            Exception      = exception,
+            ProblemDetails = new ValidationProblemDetails(errors)
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title  = "Dữ liệu gửi lên không hợp lệ",
+            },
+        });
+    }
+}</code></pre>
+
+<p><code>src/TeachHub.Api/Common/CurrentUser.cs</code>:</p>
+<pre><code>using System.Security.Claims;
+using TeachHub.Application.Common;
+
+namespace TeachHub.Api.Common;
+
+public sealed class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
+{
+    public Guid? UserId =&gt;
+        Guid.TryParse(accessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+            ? id
+            : null;
+}</code></pre>
+
+<p><code>tests/TeachHub.Api.Tests/ValidationProblemTests.cs</code>:</p>
+<pre><code>using FluentValidation;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
+using TeachHub.Api.Common;
+
+namespace TeachHub.Api.Tests;
+
+public class ValidationProblemTests
+{
+    private static ServiceProvider BuildServices()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddProblemDetails();
+        return services.BuildServiceProvider();
+    }
+
+    [Fact]
+    public async Task Validation_exception_thanh_400_kem_danh_sach_loi_theo_tung_truong()
+    {
+        var sp = BuildServices();
+        var ctx = new DefaultHttpContext { RequestServices = sp };
+        ctx.Response.Body = new MemoryStream();
+
+        var handler = new ValidationExceptionHandler(sp.GetRequiredService&lt;IProblemDetailsService&gt;());
+        var ex = new ValidationException([new ValidationFailure("Email", "Email không hợp lệ")]);
+
+        (await handler.TryHandleAsync(ctx, ex, CancellationToken.None)).ShouldBeTrue();
+
+        ctx.Response.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
+        ctx.Response.ContentType.ShouldBe("application/problem+json");
+
+        ctx.Response.Body.Position = 0;
+        var body = await new StreamReader(ctx.Response.Body).ReadToEndAsync();
+        body.ShouldContain("\"errors\"");
+        body.ShouldContain("Email không hợp lệ");
+    }
+
+    [Fact]
+    public async Task Exception_khac_khong_bi_nuot_thanh_400()
+    {
+        // Nếu handler trả true cho mọi exception thì một NullReferenceException cũng
+        // biến thành 400 và lỗi thật sẽ không bao giờ lộ ra trong log giám sát.
+        var sp = BuildServices();
+        var handler = new ValidationExceptionHandler(sp.GetRequiredService&lt;IProblemDetailsService&gt;());
+
+        var xuLy = await handler.TryHandleAsync(
+            new DefaultHttpContext { RequestServices = sp },
+            new InvalidOperationException("lỗi thật"),
+            CancellationToken.None);
+
+        xuLy.ShouldBeFalse();
+    }
+}</code></pre>
+<p class="meta">Trong <code>Program.cs</code> phải có <code>app.UseExceptionHandler()</code> (đã có từ Task 0.5)
+thì <code>IExceptionHandler</code> mới được gọi. Thiếu dòng đó thì handler đăng ký xong vẫn nằm im và mọi lỗi
+validate trả 500.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Chạy test, xác nhận xanh, commit</label>
+<pre><code>dotnet build
+dotnet test tests/TeachHub.Api.Tests --filter "BehaviorPipelineTests|ValidationProblemTests"</code></pre>
+<p>Kỳ vọng: <code>Build succeeded</code>, <strong>0 Warning(s)</strong>; 4 test xanh.</p>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(app): add mediatr cqrs contracts and logging/validation/transaction behaviors"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.7 — Đăng nhập &amp; phát hành JWT</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Application/Common/ITokenService.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Auth/Commands/Login/LoginCommand.cs</code> (+ Handler + Validator),
+<code>Commands/RefreshToken/RefreshTokenCommand.cs</code>, <code>Queries/GetMe/GetMeQuery.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Infrastructure/Auth/TokenService.cs</code>, <code>AuthDependencyInjection.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/ApiControllerBase.cs</code>, <code>AuthController.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/AuthTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho toàn bộ luồng đăng nhập</label>
+<p><code>tests/TeachHub.Api.Tests/AuthTests.cs</code>:</p>
+<pre><code>using System.Net;
+using System.Net.Http.Json;
+using Shouldly;
+
+namespace TeachHub.Api.Tests;
+
+public class AuthTests(TeachHubApiFactory factory) : IClassFixture&lt;TeachHubApiFactory&gt;
+{
+    private HttpClient Client =&gt; factory.CreateClient();
+
+    [Fact]
+    public async Task Dang_nhap_dung_thi_tra_ve_access_va_refresh_token()
+    {
+        var res = await Client.PostAsJsonAsync("/api/auth/login",
+            new { email = "instructor@teachhub.local", password = "Teach@123" });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await res.Content.ReadFromJsonAsync&lt;LoginResponseDto&gt;();
+        body!.AccessToken.ShouldNotBeNullOrWhiteSpace();
+        body.RefreshToken.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Sai_mat_khau_tra_ve_401_dang_problem_details_va_khong_lo_email_co_ton_tai_hay_khong()
+    {
+        var res = await Client.PostAsJsonAsync("/api/auth/login",
+            new { email = "instructor@teachhub.local", password = "sai-mat-khau" });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var text = await res.Content.ReadAsStringAsync();
+        // Thông báo phải chung chung — không được tiết lộ email nào tồn tại
+        text.ShouldNotContain("không tìm thấy", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Endpoint_can_xac_thuc_tu_choi_request_khong_co_token()
+    {
+        var res = await Client.GetAsync("/api/auth/me");
+        res.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Endpoint_can_xac_thuc_tra_ve_ho_so_khi_co_token()
+    {
+        var client = await factory.LoginAsInstructorAsync();
+        var me = await client.GetFromJsonAsync&lt;MeDto&gt;("/api/auth/me");
+
+        me!.Email.ShouldBe("instructor@teachhub.local");
+        me.Roles.ShouldContain("Instructor");
+    }
+
+    private sealed record LoginResponseDto(string AccessToken, string RefreshToken, int ExpiresIn);
+    private sealed record MeDto(Guid Id, string Email, string FullName, string[] Roles);
+}</code></pre>
+
+<p>Thêm helper vào <code>TeachHubApiFactory</code>:</p>
+<pre><code>public async Task&lt;HttpClient&gt; LoginAsInstructorAsync()
+{
+    var client = CreateClient();
+    var res = await client.PostAsJsonAsync("/api/auth/login",
+        new { email = "instructor@teachhub.local", password = "Teach@123" });
+    res.EnsureSuccessStatusCode();
+    var json = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+    client.DefaultRequestHeaders.Authorization =
+        new AuthenticationHeaderValue("Bearer", json.GetProperty("access_token").GetString());
+    return client;
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests --filter AuthTests</code></pre>
+<p>Kỳ vọng: 4 test đỏ, lý do 404 (chưa có endpoint).</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Cổng phát hành token (Application)</label>
+<p><code>src/TeachHub.Application/Common/ITokenService.cs</code>:</p>
+<pre><code>namespace TeachHub.Application.Common;
+
+public sealed record TokenPair(string AccessToken, string RefreshToken, int ExpiresIn);
+
+public interface ITokenService
+{
+    Task&lt;TokenPair&gt; IssueAsync(Guid userId, CancellationToken ct = default);
+
+    /// &lt;summary&gt;Xoay vòng: thu hồi token cũ, phát hành cặp mới. Null nếu token không hợp lệ.&lt;/summary&gt;
+    Task&lt;TokenPair?&gt; RotateAsync(string refreshToken, CancellationToken ct = default);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Hiện thực <code>TokenService</code> (Infrastructure)</label>
+<pre><code>using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using TeachHub.Application.Common;
+using TeachHub.Domain.Identity;
+using TeachHub.Infrastructure.Persistence;
+
+namespace TeachHub.Infrastructure.Auth;
+
+public sealed class JwtOptions
+{
+    public required string Issuer { get; init; }
+    public required string Audience { get; init; }
+    public required string Key { get; init; }
+    public int AccessTokenMinutes { get; init; } = 30;
+    public int RefreshTokenDays { get; init; } = 14;
+}
+
+public sealed class TokenService(
+    AppDbContext db,
+    UserManager&lt;AppUser&gt; users,
+    IOptions&lt;JwtOptions&gt; options,
+    TimeProvider clock) : ITokenService
+{
+    private readonly JwtOptions _opt = options.Value;
+
+    public async Task&lt;TokenPair&gt; IssueAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await users.FindByIdAsync(userId.ToString())
+                   ?? throw new InvalidOperationException($"Không có user {userId}");
+        var roles = await users.GetRolesAsync(user);
+        var now = clock.GetUtcNow();
+
+        var claims = new List&lt;Claim&gt;
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email!),
+            new(JwtRegisteredClaimNames.Jti, Guid.CreateVersion7().ToString()),
+            new("full_name", user.FullName),
+        };
+        claims.AddRange(roles.Select(r =&gt; new Claim(ClaimTypes.Role, r)));
+
+        var creds = new SigningCredentials(
+            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opt.Key)),
+            SecurityAlgorithms.HmacSha256);
+
+        var jwt = new JwtSecurityToken(
+            issuer: _opt.Issuer, audience: _opt.Audience, claims: claims,
+            notBefore: now.UtcDateTime,
+            expires: now.AddMinutes(_opt.AccessTokenMinutes).UtcDateTime,
+            signingCredentials: creds);
+
+        var refresh = GenerateRefreshToken();
+        db.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = Hash(refresh),
+            CreatedAt = now,
+            ExpiresAt = now.AddDays(_opt.RefreshTokenDays),
+        });
+        await db.SaveChangesAsync(ct);
+
+        return new TokenPair(
+            new JwtSecurityTokenHandler().WriteToken(jwt),
+            refresh,
+            _opt.AccessTokenMinutes * 60);
+    }
+
+    public async Task&lt;TokenPair?&gt; RotateAsync(string refreshToken, CancellationToken ct = default)
+    {
+        var now = clock.GetUtcNow();
+        var hash = Hash(refreshToken);
+        var stored = await db.RefreshTokens.SingleOrDefaultAsync(t =&gt; t.TokenHash == hash, ct);
+
+        if (stored is null) return null;
+
+        // Phát hiện tái sử dụng: token đã bị thu hồi mà vẫn được dùng ⇒ nhiều khả năng
+        // đã rò rỉ. Thu hồi toàn bộ token của user đó và bắt đăng nhập lại.
+        if (!stored.IsActive(now))
+        {
+            await db.RefreshTokens
+                .Where(t =&gt; t.UserId == stored.UserId &amp;&amp; t.RevokedAt == null)
+                .ExecuteUpdateAsync(s =&gt; s.SetProperty(t =&gt; t.RevokedAt, now), ct);
+            return null;
+        }
+
+        stored.RevokedAt = now;
+        var pair = await IssueAsync(stored.UserId, ct);
+        return pair;
+    }
+
+    private static string GenerateRefreshToken() =&gt;
+        Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+    private static string Hash(string token) =&gt;
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Đăng ký Identity + JWT bearer</label>
+<p><code>src/TeachHub.Infrastructure/AuthDependencyInjection.cs</code>:</p>
+<pre><code>using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using TeachHub.Application.Common;
+using TeachHub.Domain.Identity;
+using TeachHub.Infrastructure.Auth;
+using TeachHub.Infrastructure.Persistence;
+
+namespace TeachHub.Infrastructure;
+
+public static class AuthDependencyInjection
+{
+    public static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration config)
+    {
+        services.Configure&lt;JwtOptions&gt;(config.GetSection("Jwt"));
+
+        services.AddIdentityCore&lt;AppUser&gt;(o =&gt;
+            {
+                o.Password.RequiredLength = 8;
+                o.Password.RequireNonAlphanumeric = false;
+                o.User.RequireUniqueEmail = true;
+                o.Lockout.MaxFailedAccessAttempts = 10;
+            })
+            .AddRoles&lt;AppRole&gt;()
+            .AddEntityFrameworkStores&lt;AppDbContext&gt;();
+
+        var key = config["Jwt:Key"]!;
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(o =&gt;
+            {
+                o.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,   ValidIssuer   = config["Jwt:Issuer"],
+                    ValidateAudience = true, ValidAudience = config["Jwt:Audience"],
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromSeconds(30),
+                };
+            });
+
+        services.AddAuthorizationBuilder()
+            // Bảo vệ mặc định: endpoint nào KHÔNG khai báo gì về authorization thì vẫn
+            // đòi đăng nhập. Muốn mở công khai phải gắn [AllowAnonymous] tường minh —
+            // nhờ vậy "quên bảo vệ endpoint" là lỗi không thể xảy ra do đãng trí,
+            // chỉ có thể xảy ra do ai đó cố ý gõ thêm một dòng.
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPolicy(Policies.Instructor,      p =&gt; p.RequireRole(Roles.Instructor))
+            .AddPolicy(Policies.Student,         p =&gt; p.RequireRole(Roles.Student));
+
+        services.AddScoped&lt;ITokenService, TokenService&gt;();
+        return services;
+    }
+}
+
+public static class Policies
+{
+    public const string Instructor     = nameof(Instructor);
+    // KHÔNG có InstructorOrTa. Vai trò TeachingAssistant vẫn tồn tại trong Roles.All để sau này
+    // bật lại không phải migrate, nhưng CHƯA CÓ POLICY NÀO cấp quyền cho nó — xem ADR-013.
+    // Lý do: không có bảng gắn trợ giảng vào một lớp cụ thể, mà mọi kiểm quyền viết dạng
+    // subject.InstructorId == currentUserId. Nên hoặc trợ giảng không làm được gì, hoặc
+    // — nếu nới điều kiện — làm được ở MỌI lớp của MỌI giảng viên. Không có mức trung gian.
+    public const string Student        = nameof(Student);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Command / Query cho Auth (Application)</label>
+<p><code>src/TeachHub.Application/Features/Auth/Commands/Login/LoginCommand.cs</code>:</p>
+<pre><code>using FluentValidation;
+using Microsoft.AspNetCore.Identity;
+using TeachHub.Application.Common;
+using TeachHub.Application.Common.Messaging;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Application.Features.Auth.Commands.Login;
+
+public sealed record LoginCommand(string Email, string Password) : ICommand&lt;Result&lt;TokenPair&gt;&gt;;
+
+public sealed class LoginValidator : AbstractValidator&lt;LoginCommand&gt;
+{
+    public LoginValidator()
+    {
+        RuleFor(x =&gt; x.Email).NotEmpty().EmailAddress();
+        RuleFor(x =&gt; x.Password).NotEmpty();
+    }
+}
+
+public sealed class LoginHandler(UserManager&lt;AppUser&gt; users, ITokenService tokens)
+    : ICommandHandler&lt;LoginCommand, Result&lt;TokenPair&gt;&gt;
+{
+    public async Task&lt;Result&lt;TokenPair&gt;&gt; Handle(LoginCommand request, CancellationToken ct)
+    {
+        var user = await users.FindByEmailAsync(request.Email);
+
+        // Một thông báo duy nhất cho cả hai trường hợp. Tách ra thành "email không tồn tại"
+        // và "sai mật khẩu" là biếu không cho kẻ tấn công một công cụ dò danh sách email.
+        if (user is null || !await users.CheckPasswordAsync(user, request.Password))
+            return Result&lt;TokenPair&gt;.Unauthorized("Email hoặc mật khẩu không đúng.");
+
+        return Result&lt;TokenPair&gt;.Ok(await tokens.IssueAsync(user.Id, ct));
+    }
+}</code></pre>
+
+<p><code>src/TeachHub.Application/Features/Auth/Commands/RefreshToken/RefreshTokenCommand.cs</code>:</p>
+<pre><code>using FluentValidation;
+using TeachHub.Application.Common;
+using TeachHub.Application.Common.Messaging;
+
+namespace TeachHub.Application.Features.Auth.Commands.RefreshToken;
+
+public sealed record RefreshTokenCommand(string RefreshToken) : ICommand&lt;Result&lt;TokenPair&gt;&gt;;
+
+public sealed class RefreshTokenValidator : AbstractValidator&lt;RefreshTokenCommand&gt;
+{
+    public RefreshTokenValidator() =&gt; RuleFor(x =&gt; x.RefreshToken).NotEmpty();
+}
+
+public sealed class RefreshTokenHandler(ITokenService tokens)
+    : ICommandHandler&lt;RefreshTokenCommand, Result&lt;TokenPair&gt;&gt;
+{
+    public async Task&lt;Result&lt;TokenPair&gt;&gt; Handle(RefreshTokenCommand request, CancellationToken ct)
+    {
+        var pair = await tokens.RotateAsync(request.RefreshToken, ct);
+
+        return pair is null
+            ? Result&lt;TokenPair&gt;.Unauthorized("Refresh token không hợp lệ, vui lòng đăng nhập lại.")
+            : Result&lt;TokenPair&gt;.Ok(pair);
+    }
+}</code></pre>
+
+<p><code>src/TeachHub.Application/Features/Auth/Queries/GetMe/GetMeQuery.cs</code>:</p>
+<pre><code>using Microsoft.AspNetCore.Identity;
+using TeachHub.Application.Common.Messaging;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Application.Features.Auth.Queries.GetMe;
+
+public sealed record MeDto(Guid Id, string Email, string FullName, string[] Roles);
+
+public sealed record GetMeQuery(Guid UserId) : IQuery&lt;MeDto?&gt;;
+
+public sealed class GetMeHandler(UserManager&lt;AppUser&gt; users) : IQueryHandler&lt;GetMeQuery, MeDto?&gt;
+{
+    public async Task&lt;MeDto?&gt; Handle(GetMeQuery request, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(request.UserId.ToString());
+        if (user is null) return null;
+
+        var roles = await users.GetRolesAsync(user);
+        return new MeDto(user.Id, user.Email!, user.FullName, [.. roles]);
+    }
+}</code></pre>
+
+<div class="hint">
+<strong>Vì sao <code>GetMeQuery</code> đọc lại DB thay vì bóc thẳng từ claim.</strong> Claim là ảnh chụp lúc
+phát hành token, sống tới 30 phút. Giảng viên vừa cấp quyền trợ giảng cho một sinh viên mà
+<code>/api/auth/me</code> vẫn trả vai trò cũ nửa tiếng thì màn hình frontend hiện sai menu, và người dùng sẽ
+báo lỗi "hệ thống không cho tôi vào" trong khi quyền đã có. Một truy vấn theo khoá chính là cái giá rẻ để
+tránh chuyện đó. Ngược lại, phần <em>xác thực</em> (được vào hay không) vẫn dựa trên claim — đúng như thiết kế
+của JWT.
+</div>
+
+<div class="hint"><code>JwtSecurityTokenHandler</code> ánh xạ <code>sub</code> sang <code>ClaimTypes.NameIdentifier</code>.
+Nếu bạn tắt ánh xạ mặc định (<code>JwtSecurityTokenHandler.DefaultMapInboundClaims = false</code>) thì
+<code>CurrentUserId</code> ở Bước 7 phải đọc claim <code>"sub"</code> trực tiếp. Test ở Bước 1 sẽ bắt được nếu sai.</div>
+
+<label class="ck"><input type="checkbox"> Bước 7 — <code>ApiControllerBase</code> và <code>AuthController</code></label>
+<p><code>src/TeachHub.Api/Controllers/ApiControllerBase.cs</code> — lớp cha của <strong>mọi</strong> controller
+trong dự án, viết một lần ở đây rồi dùng lại suốt Phase 1–9:</p>
+<pre><code>using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+using TeachHub.Application.Common;
+
+namespace TeachHub.Api.Controllers;
+
+[ApiController]
+[Produces("application/json")]
+public abstract class ApiControllerBase : ControllerBase
+{
+    /// &lt;summary&gt;
+    /// Id người gọi, lấy từ claim. Fallback policy bảo đảm mọi request tới được đây đều đã
+    /// qua xác thực, nên thiếu claim là lỗi cấu hình của ta chứ không phải lỗi người dùng —
+    /// ném ra để thành 500 và lộ ngay, đừng âm thầm trả Guid.Empty rồi truy vấn nhầm dữ liệu.
+    /// &lt;/summary&gt;
+    protected Guid CurrentUserId =&gt;
+        Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
+            ? id
+            : throw new InvalidOperationException("Request đã xác thực nhưng thiếu claim sub hợp lệ.");
+
+    // Thành công LUÔN trả 200, kể cả overload không generic. Trước đây chỗ này trả NoContent() (204)
+    // trong khi mọi [ProducesResponseType] và mọi test ở Phase 1–4b đều khẳng định 200 —
+    // hợp đồng OpenAPI sai và một loạt test đỏ. Một mã thành công duy nhất cho cả hai overload
+    // là quy tắc rẻ nhất để không bao giờ lệch lại.
+    protected IActionResult ToActionResult(Result result) =&gt; result.Status switch
+    {
+        ResultStatus.Ok              =&gt; Ok(),
+        ResultStatus.Invalid         =&gt; Problem(statusCode: StatusCodes.Status400BadRequest,
+                                                title: "Dữ liệu không hợp lệ", detail: result.Error),
+        ResultStatus.NotFound        =&gt; Problem(statusCode: StatusCodes.Status404NotFound,
+                                                title: "Không tìm thấy", detail: result.Error),
+        ResultStatus.Conflict        =&gt; Problem(statusCode: StatusCodes.Status409Conflict,
+                                                title: "Xung đột trạng thái", detail: result.Error),
+        ResultStatus.Forbidden       =&gt; Problem(statusCode: StatusCodes.Status403Forbidden,
+                                                title: "Không có quyền", detail: result.Error),
+        ResultStatus.Unauthorized    =&gt; Problem(statusCode: StatusCodes.Status401Unauthorized,
+                                                title: "Chưa xác thực", detail: result.Error),
+        ResultStatus.PayloadTooLarge =&gt; Problem(statusCode: StatusCodes.Status413PayloadTooLarge,
+                                                title: "Tệp vượt dung lượng cho phép", detail: result.Error),
+        _ =&gt; throw new InvalidOperationException($"Trạng thái chưa xử lý: {result.Status}"),
+    };
+
+    protected IActionResult ToActionResult&lt;T&gt;(Result&lt;T&gt; result) =&gt; result.Status switch
+    {
+        ResultStatus.Ok              =&gt; Ok(result.Value),
+        ResultStatus.Invalid         =&gt; Problem(statusCode: StatusCodes.Status400BadRequest,
+                                                title: "Dữ liệu không hợp lệ", detail: result.Error),
+        ResultStatus.NotFound        =&gt; Problem(statusCode: StatusCodes.Status404NotFound,
+                                                title: "Không tìm thấy", detail: result.Error),
+        ResultStatus.Conflict        =&gt; Problem(statusCode: StatusCodes.Status409Conflict,
+                                                title: "Xung đột trạng thái", detail: result.Error),
+        ResultStatus.Forbidden       =&gt; Problem(statusCode: StatusCodes.Status403Forbidden,
+                                                title: "Không có quyền", detail: result.Error),
+        ResultStatus.Unauthorized    =&gt; Problem(statusCode: StatusCodes.Status401Unauthorized,
+                                                title: "Chưa xác thực", detail: result.Error),
+        ResultStatus.PayloadTooLarge =&gt; Problem(statusCode: StatusCodes.Status413PayloadTooLarge,
+                                                title: "Tệp vượt dung lượng cho phép", detail: result.Error),
+        _ =&gt; throw new InvalidOperationException($"Trạng thái chưa xử lý: {result.Status}"),
+    };
+}</code></pre>
+<p class="meta">Mọi nhánh lỗi đi qua <code>Problem(...)</code> chứ không phải <code>NotFound()</code> /
+<code>Forbid()</code>: <code>Problem</code> luôn trả <code>application/problem+json</code> theo RFC 9457, còn
+<code>Forbid()</code> trả 403 với body rỗng và frontend không có gì để hiển thị cho người dùng.</p>
+
+<p><code>src/TeachHub.Api/Controllers/AuthController.cs</code>:</p>
+<pre><code>using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TeachHub.Application.Common;
+using TeachHub.Application.Features.Auth.Commands.Login;
+using TeachHub.Application.Features.Auth.Commands.RefreshToken;
+using TeachHub.Application.Features.Auth.Queries.GetMe;
+
+namespace TeachHub.Api.Controllers;
+
+[Route("api/auth")]
+[Tags("Auth")]
+public sealed class AuthController(ISender sender) : ApiControllerBase
+{
+    [HttpPost("login")]
+    [AllowAnonymous]
+    [ProducesResponseType&lt;TokenPair&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task&lt;IActionResult&gt; Login(LoginCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command, ct));
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    [ProducesResponseType&lt;TokenPair&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task&lt;IActionResult&gt; Refresh(RefreshTokenCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(command, ct));
+
+    [HttpGet("me")]
+    [ProducesResponseType&lt;MeDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task&lt;IActionResult&gt; Me(CancellationToken ct)
+        =&gt; await sender.Send(new GetMeQuery(CurrentUserId), ct) is { } me
+            ? Ok(me)
+            : NotFound();
+}</code></pre>
+
+<div class="hint">
+<strong>Khuôn này áp dụng cho mọi controller còn lại của dự án.</strong> Controller chỉ được làm bốn việc:
+định tuyến, lấy <code>CurrentUserId</code> từ claim, gọi <code>sender.Send</code>, quy đổi <code>Result</code>.
+<strong>Không</strong> <code>if</code> nghiệp vụ, <strong>không</strong> chạm <code>DbContext</code>,
+<strong>không</strong> <code>try/catch</code>. Lý do rất thực dụng: mọi thứ nằm trong controller đều chỉ test
+được qua HTTP — tức là phải dựng cả host, cả Postgres container, mất vài giây cho mỗi trường hợp. Cũng logic
+đó nằm trong handler thì test bằng một lời gọi hàm. Mỗi khối <code>if</code> lọt vào controller là một luật
+nghiệp vụ mất chỗ đứng trong test suite.
+<br><br>
+Chú ý <code>/api/auth/me</code> không dùng <code>ToActionResult</code> vì <code>GetMeQuery</code> trả
+<code>MeDto?</code> chứ không phải <code>Result</code> — query "không tìm thấy" không phải một kết quả nghiệp
+vụ cần diễn giải, chỉ là null.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 8 — Nối vào <code>Program.cs</code>, mở công khai đúng chỗ, seed dữ liệu</label>
+<p>Thêm vào <code>Program.cs</code>, sau <code>AddPersistence</code>:</p>
+<pre><code>builder.Services.AddAuth(builder.Configuration);</code></pre>
+<p>Trước <code>app.MapControllers()</code>:</p>
+<pre><code>app.UseAuthentication();
+app.UseAuthorization();</code></pre>
+<p>Và mở công khai đúng ba endpoint hạ tầng, cho khớp với fallback policy vừa bật ở Bước 5 — sửa tại chỗ
+những dòng đã viết ở Task 0.5:</p>
+<pre><code>if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi().AllowAnonymous();
+    app.MapScalarApiReference().AllowAnonymous();
+}
+else
+{
+    app.MapOpenApi().AllowAnonymous();
+}
+
+app.MapHealthChecks("/health").AllowAnonymous();
+
+if (!app.Environment.IsProduction())
+    // CHỈ seed ở Development/Testing. Ở Production dùng POST /api/auth/bootstrap để tạo
+    // giảng viên đầu tiên — seed tài khoản có mật khẩu công khai lên máy chủ thật là
+    // cách nhanh nhất để mất toàn bộ điểm số của mọi lớp.
+    if (!app.Environment.IsProduction())
+        await app.Services.SeedAsync();</code></pre>
+
+<div class="hint danger">
+<strong>Bật <code>SetFallbackPolicy</code> mà quên <code>.AllowAnonymous()</code> cho <code>/health</code>
+là hỏng ngay lập tức.</strong> Fallback policy áp cho <em>mọi</em> endpoint không khai báo gì về authorization,
+kể cả <code>MapHealthChecks</code> và <code>MapOpenApi</code>. Hậu quả: <code>/health</code> trả 401 —
+test <code>Health_tra_ve_200_khi_db_song</code> ở Task 0.5 đỏ, và tệ hơn, trên môi trường thật thì load
+balancer đọc 401 là "service chết" và rút container ra khỏi vòng phục vụ. Đây là cái giá phải trả cho việc
+"đóng mặc định", và nó xứng đáng: quên mở một endpoint hạ tầng thì hỏng ầm ĩ và sửa trong một phút, còn quên
+đóng một endpoint điểm số thì im lặng và không ai biết cho tới lúc dữ liệu đã ra ngoài.</div>
+
+<p class="meta">Không còn dòng <code>app.MapGroup("/api").RequireAuthorization()</code> nào cả:
+với Controllers, việc "đóng mặc định" do <code>SetFallbackPolicy</code> ở Bước 5 lo, và nó chặt hơn — bao phủ
+cả những endpoint nằm ngoài tiền tố <code>/api</code>.</p>
+
+<p><code>src/TeachHub.Infrastructure/Persistence/DbSeeder.cs</code>:</p>
+<pre><code>using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Infrastructure.Persistence;
+
+public static class DbSeeder
+{
+    public static async Task SeedAsync(this IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var sp = scope.ServiceProvider;
+
+        await sp.GetRequiredService&lt;AppDbContext&gt;().Database.MigrateAsync();
+
+        var roles = sp.GetRequiredService&lt;RoleManager&lt;AppRole&gt;&gt;();
+        foreach (var r in Roles.All)
+            if (!await roles.RoleExistsAsync(r))
+                await roles.CreateAsync(new AppRole(r));
+
+        var users = sp.GetRequiredService&lt;UserManager&lt;AppUser&gt;&gt;();
+        const string email = "instructor@teachhub.local";
+        if (await users.FindByEmailAsync(email) is null)
+        {
+            var user = new AppUser
+            {
+                UserName = email, Email = email,
+                FullName = "Giảng viên", EmailConfirmed = true,
+            };
+            await users.CreateAsync(user, "Teach@123");
+            await users.AddToRoleAsync(user, Roles.Instructor);
+        }
+    }
+}</code></pre>
+<div class="hint"><strong>Đừng bỏ <code>if (!app.Environment.IsProduction())</code> ở Bước 8.</strong> Seed chỉ được chạy ở
+Development và Testing. Thiếu điều kiện đó thì lần deploy đầu tiên sẽ tự tạo một tài khoản giảng viên có mật khẩu
+<code>Teach@123</code> — thứ đang nằm công khai trong chính file plan này — trên máy chủ thật.</div>
+
+<label class="ck"><input type="checkbox"> Bước 9 — Chạy test, xác nhận xanh</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests --filter AuthTests</code></pre>
+<p>Kỳ vọng: <code>Passed: 4</code>. Nếu <code>Dang_nhap_dung...</code> đỏ vì <code>access_token</code> là
+<code>null</code>, quay lại đọc khối cảnh báo về <code>AddJsonOptions</code> ở Task 0.5 — đó là triệu chứng
+kinh điển của việc cấu hình nhầm bộ serializer.</p>
+
+<label class="ck"><input type="checkbox"> Bước 10 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(auth): add identity, jwt login controller and role policies"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.8 — Refresh token xoay vòng &amp; phát hiện tái sử dụng</h3>
+<div class="files"><b>Test:</b> <code>tests/TeachHub.Api.Tests/RefreshTokenTests.cs</code> · <b>Sửa:</b> <code>TokenService.cs</code> nếu test đỏ</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Shouldly;
+
+namespace TeachHub.Api.Tests;
+
+public class RefreshTokenTests(TeachHubApiFactory factory) : IClassFixture&lt;TeachHubApiFactory&gt;
+{
+    private async Task&lt;(string access, string refresh)&gt; LoginAsync()
+    {
+        var res = await factory.CreateClient().PostAsJsonAsync("/api/auth/login",
+            new { email = "instructor@teachhub.local", password = "Teach@123" });
+        var j = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+        return (j.GetProperty("access_token").GetString()!, j.GetProperty("refresh_token").GetString()!);
+    }
+
+    [Fact]
+    public async Task Refresh_hop_le_tra_ve_cap_token_moi_khac_cap_cu()
+    {
+        var (_, refresh) = await LoginAsync();
+        var res = await factory.CreateClient().PostAsJsonAsync("/api/auth/refresh",
+            new { refresh_token = refresh });
+
+        res.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var j = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+        j.GetProperty("refresh_token").GetString().ShouldNotBe(refresh);
+    }
+
+    [Fact]
+    public async Task Dung_lai_refresh_token_cu_bi_tu_choi()
+    {
+        var (_, refresh) = await LoginAsync();
+        await factory.CreateClient().PostAsJsonAsync("/api/auth/refresh", new { refresh_token = refresh });
+
+        var lanHai = await factory.CreateClient().PostAsJsonAsync("/api/auth/refresh",
+            new { refresh_token = refresh });
+
+        lanHai.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Dung_lai_token_cu_thu_hoi_luon_ca_token_moi_nhat()
+    {
+        // Kịch bản: token bị đánh cắp. Kẻ tấn công dùng token cũ ⇒ hệ thống phải
+        // coi cả phiên đó là đã lộ và buộc đăng nhập lại, không chỉ từ chối một request.
+        var (_, refresh1) = await LoginAsync();
+        var r2 = await factory.CreateClient().PostAsJsonAsync("/api/auth/refresh", new { refresh_token = refresh1 });
+        var refresh2 = (await r2.Content.ReadFromJsonAsync&lt;JsonElement&gt;()).GetProperty("refresh_token").GetString()!;
+
+        await factory.CreateClient().PostAsJsonAsync("/api/auth/refresh", new { refresh_token = refresh1 }); // tái sử dụng
+
+        var r3 = await factory.CreateClient().PostAsJsonAsync("/api/auth/refresh", new { refresh_token = refresh2 });
+        r3.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Refresh_token_het_han_bi_tu_choi()
+    {
+        // Dùng FakeTimeProvider trong Application.Tests cho ca này thay vì chờ 14 ngày —
+        // xem tests/TeachHub.Application.Tests/TokenExpiryTests.cs
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ ở test thứ 3 (phát hiện tái sử dụng)</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests --filter RefreshTokenTests</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Sửa <code>RotateAsync</code> cho tới khi cả 3 test xanh</label>
+<p>Đoạn <code>ExecuteUpdateAsync</code> trong Task 0.7 đã xử lý ca này. Nếu đỏ, kiểm tra: token mới có thật sự được <code>SaveChanges</code> sau khi thu hồi token cũ không, và <code>stored.RevokedAt</code> đã được ghi trước khi gọi <code>IssueAsync</code> chưa.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Test hết hạn bằng <code>FakeTimeProvider</code></label>
+<p><code>tests/TeachHub.Application.Tests/TokenExpiryTests.cs</code>:</p>
+<pre><code>using Microsoft.Extensions.Time.Testing;
+using Shouldly;
+using TeachHub.Domain.Identity;
+
+namespace TeachHub.Application.Tests;
+
+public class TokenExpiryTests
+{
+    [Fact]
+    public void Token_het_han_thi_khong_con_active()
+    {
+        var clock = new FakeTimeProvider(new DateTimeOffset(2026, 8, 13, 0, 0, 0, TimeSpan.Zero));
+        var token = new RefreshToken
+        {
+            UserId = Guid.CreateVersion7(),
+            TokenHash = "x",
+            CreatedAt = clock.GetUtcNow(),
+            ExpiresAt = clock.GetUtcNow().AddDays(14),
+        };
+
+        token.IsActive(clock.GetUtcNow()).ShouldBeTrue();
+
+        clock.Advance(TimeSpan.FromDays(14) + TimeSpan.FromSeconds(1));
+        token.IsActive(clock.GetUtcNow()).ShouldBeFalse();
+    }
+}</code></pre>
+<pre><code>dotnet add tests/TeachHub.Application.Tests package Microsoft.Extensions.TimeProvider.Testing
+dotnet test tests/TeachHub.Application.Tests</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(auth): rotate refresh tokens with reuse detection"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.8b — Mời &amp; tạo tài khoản giảng viên</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Identity/InstructorInvite.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Instructors/Commands/</code> (InviteInstructor, AcceptInvite, Bootstrap)<br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/InstructorInvitesController.cs</code> · <b>Sửa:</b> <code>AuthController.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/InstructorAccountTests.cs</code>
+</div>
+
+<p>Hệ thống phục vụ <strong>nhiều giảng viên độc lập</strong> (chốt 13/08/2026): mỗi người một khoang riêng,
+dữ liệu cách ly tuyệt đối, không cộng tác, không đồng sở hữu môn. Task này lo phần tạo tài khoản.</p>
+
+<div class="danger">
+<strong>Không mở đăng ký công khai.</strong> Một LMS cho ai cũng tự đăng ký làm giảng viên nghĩa là bất kỳ ai
+trên internet cũng tạo được tài khoản trên máy chủ của bạn rồi upload file — vừa là lỗ hổng vừa là hoá đơn lưu trữ.
+Tài khoản chỉ sinh ra qua <strong>lời mời</strong>, trừ đúng một ngoại lệ là người đầu tiên.
+<br><br>
+<strong>Cũng không thêm vai trò Admin.</strong> Ở quy mô vài đồng nghiệp, dựng thêm một vai trò và mấy màn hình
+quản trị chỉ để mời người là không đáng. Giảng viên nào cũng mời được — mời người khác vào hệ thống
+không cấp thêm quyền gì cho ai, vì họ vẫn không thấy dữ liệu của nhau.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ, phủ đủ 10 ca</label>
+<pre><code>public class InstructorAccountTests(TeachHubApiFactory factory) : IClassFixture&lt;TeachHubApiFactory&gt;
+{
+    [Fact] public async Task Bootstrap_tao_duoc_giang_vien_dau_tien_khi_he_thong_trong() { }
+
+    [Fact] public async Task Bootstrap_lan_hai_luon_tra_409() { }
+    // Kể cả khi giảng viên đầu tiên đã bị vô hiệu hoá. Nếu không, ai biết đường dẫn này
+    // cũng tự tạo được tài khoản giảng viên — đúng thứ mà việc bỏ đăng ký công khai muốn tránh.
+
+    [Fact] public async Task Moi_bang_tai_khoan_giang_vien_tra_ve_token_dung_MOT_lan() { }
+    [Fact] public async Task Moi_khi_chua_dang_nhap_tra_401() { }
+    [Fact] public async Task Dang_ky_bang_token_hop_le_tao_duoc_tai_khoan_va_danh_dau_token_da_dung() { }
+    [Fact] public async Task Dung_lai_token_da_dung_tra_400() { }
+    [Fact] public async Task Token_het_han_tra_400() { }
+
+    [Fact] public async Task Token_sai_va_token_het_han_tra_ve_THONG_BAO_GIONG_HET_NHAU() { }
+    // Khác nhau một chữ là kẻ tấn công phân biệt được "token này từng tồn tại" với "token bịa",
+    // tức dò được không gian token bằng cách thử.
+
+    [Fact] public async Task Moi_email_da_co_tai_khoan_tra_409() { }
+    // Ở đây nói thẳng lý do được: người mời là giảng viên đã đăng nhập, đã được tin tưởng.
+    // Khác hẳn luồng quên-mật-khẩu, nơi phải mơ hồ để không lộ email nào tồn tại.
+
+    [Fact] public async Task Giang_vien_vua_duoc_tao_KHONG_thay_du_lieu_cua_nguoi_moi_minh() { }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Entity <code>InstructorInvite</code></label>
+<pre><code>public class InstructorInvite : Entity
+{
+    public required string Email { get; set; }
+
+    /// &lt;summary&gt;
+    /// SHA-256 của token, KHÔNG lưu token thật — cùng lý do với RefreshToken:
+    /// rò rỉ database không được phép cho ai chiếm tài khoản.
+    /// &lt;/summary&gt;
+    public required string TokenHash { get; set; }
+
+    public required Guid InvitedBy { get; set; }
+    public required DateTimeOffset CreatedAt { get; set; }
+    public required DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? AcceptedAt { get; set; }
+    public Guid? AcceptedUserId { get; set; }
+
+    public bool IsUsable(DateTimeOffset now) =&gt; AcceptedAt is null &amp;&amp; now &lt; ExpiresAt;
+}</code></pre>
+<p class="meta">Token: 32 byte từ <code>RandomNumberGenerator.GetBytes(32)</code>, mã hoá base64url, hiển thị
+đúng một lần lúc tạo. Hạn mặc định 7 ngày. Unique index trên <code>token_hash</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Command/Handler/Validator + controller</label>
+<table>
+<thead><tr><th>Method</th><th>Route</th><th>Quyền</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td><code>/api/instructor/invites</code></td><td>Instructor</td></tr>
+<tr><td>GET</td><td><code>/api/instructor/invites</code></td><td>Instructor — chỉ lời mời mình tạo</td></tr>
+<tr><td>DELETE</td><td><code>/api/instructor/invites/{id}</code></td><td>Instructor — thu hồi</td></tr>
+<tr><td>GET</td><td><code>/api/auth/invites/{token}</code></td><td><code>[AllowAnonymous]</code> — token còn dùng được không</td></tr>
+<tr><td>POST</td><td><code>/api/auth/register</code></td><td><code>[AllowAnonymous]</code></td></tr>
+<tr><td>POST</td><td><code>/api/auth/bootstrap</code></td><td><code>[AllowAnonymous]</code></td></tr>
+</tbody>
+</table>
+<p class="meta">Đây là nhóm endpoint <strong>mới</strong> so với SRS mục 7 — đã bổ sung vào SRS, không phải sai lệch hợp đồng.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Rate limit cho <code>register</code> và <code>bootstrap</code></label>
+<p class="meta">Hai endpoint ẩn danh duy nhất ghi vào bảng người dùng. Dùng lại bộ <code>"upload"</code> hay tạo
+bộ <code>"auth"</code> riêng đều được, miễn là có.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy test, xác nhận xanh · Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(auth): invite-based instructor accounts with one-time bootstrap"</code></pre>
+</div>
+
+<div class="task crown">
+<h3>Task 0.8c — Ma trận test cách ly dữ liệu giữa các giảng viên ⭐</h3>
+<div class="files">
+<b>Tạo:</b> <code>tests/TeachHub.Api.Tests/Security/IsolationFixture.cs</code>, <code>CrossInstructorIsolationTests.cs</code>
+</div>
+
+<blockquote>
+Với nhiều giảng viên thật, "GV A không thấy dữ liệu GV B" không còn là một test lẻ ở Phase 1 mà phải phủ
+<strong>mọi loại tài nguyên</strong>. Một endpoint sót là lộ điểm số và bài nộp của lớp người khác — và loại lỗi này
+không có triệu chứng nào cho tới lúc ai đó phát hiện.
+</blockquote>
+
+<label class="ck"><input type="checkbox"> Bước 1 — <code>IsolationFixture</code>: seed "thế giới của GV A" + client GV B</label>
+<p>Seed đầy đủ chuỗi: Subject → SubjectVersion → Chapter → Lesson → LessonComponent → Assignment → Rubric →
+SubmissionSlot → CourseOffering → Enrollment → StudentGroup → Submission → FinalAssessment → GradeColumn →
+GradeRecord → BonusPoint → BonusPointReasonTemplate → GradeSchemeTemplate → GradeExportTemplate → InstructorInvite.
+Kèm một <code>HttpClient</code> đã đăng nhập bằng GV B.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Ma trận</label>
+<pre><code>public sealed class CrossInstructorIsolationTests(IsolationFixture fx) : IClassFixture&lt;IsolationFixture&gt;
+{
+    /// &lt;summary&gt;
+    /// Mỗi dòng là một tài nguyên THUỘC VỀ giảng viên A; client bắn vào là của giảng viên B.
+    /// Phase nào thêm loại tài nguyên mới thì thêm dòng vào đây — đó là điều kiện của
+    /// Definition of Done, không phải việc tuỳ tâm.
+    /// &lt;/summary&gt;
+    public static TheoryData&lt;string, string&gt; TaiNguyenCuaGiangVienA() =&gt; new()
+    {
+        { "GET",    "/api/subjects/{subjectId}" },
+        { "GET",    "/api/subjects/{subjectId}/versions" },
+        { "PUT",    "/api/subject-versions/{versionId}" },
+        { "POST",   "/api/subject-versions/{versionId}/publish" },
+        { "DELETE", "/api/instructor/invites/{inviteId}" },
+        // Phase 1 bổ sung: chapters, lessons, lesson-components
+        // Phase 2 bổ sung: offerings, enrollments, my-progress
+        // Phase 3 bổ sung: assignments, submission-slots, submissions, file-tree, entry
+        // Phase 4a bổ sung: groups, grade, final-assessments, dashboard
+        // Phase 4b bổ sung: grade-columns, gradebook, bonus-points, export-excel, các *-templates
+    };
+
+    [Theory]
+    [MemberData(nameof(TaiNguyenCuaGiangVienA))]
+    public async Task Giang_vien_khac_luon_nhan_404(string method, string template)
+    {
+        var url = fx.Resolve(template);            // thay {…} bằng id thật của GV A
+
+        var res = await fx.GvB.SendAsync(new HttpRequestMessage(new HttpMethod(method), url));
+
+        res.StatusCode.ShouldBe(HttpStatusCode.NotFound,
+            $"{method} {url}: phải trả 404 cho giảng viên khác. Trả 403 là xác nhận id này CÓ TỒN TẠI, " +
+            "đủ để dò ra cấu trúc dữ liệu của người khác chỉ bằng cách thử id.");
+    }
+
+    [Theory]
+    [MemberData(nameof(EndpointDanhSach))]
+    public async Task Danh_sach_khong_lot_du_lieu_giang_vien_khac(string url)
+    {
+        var json = await fx.GvB.GetFromJsonAsync&lt;JsonElement&gt;(url);
+        json.GetArrayLength().ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Tai_khoan_chi_co_vai_tro_tro_giang_bi_tu_choi_o_moi_endpoint_nghiep_vu()
+    {
+        // Canh gác cho ADR-013: vai trò TeachingAssistant tồn tại nhưng KHÔNG được cấp quyền gì.
+        // Test này đỏ ngay nếu ai đó về sau vô tình thêm lại một policy cho nó.
+        foreach (var (method, template) in TaiNguyenCuaGiangVienA().Select(r =&gt; ((string)r[0], (string)r[1])))
+        {
+            var res = await fx.TroGiang.SendAsync(
+                new HttpRequestMessage(new HttpMethod(method), fx.Resolve(template)));
+
+            res.StatusCode.ShouldBeOneOf(HttpStatusCode.Forbidden, HttpStatusCode.NotFound);
+        }
+    }
+}</code></pre>
+
+<div class="danger">
+<strong>Quy tắc bất di bất dịch: trả 404, KHÔNG trả 403.</strong> <code>403 Forbidden</code> nghĩa là
+"tài nguyên này có thật, nhưng bạn không được vào" — nó xác nhận sự tồn tại. Với id tuần tự hay đoán được,
+đó là đường dò ra toàn bộ cấu trúc dữ liệu của giảng viên khác. Cùng lý do với việc đăng nhập sai trả
+"email hoặc mật khẩu không đúng" thay vì "không có email này".
+<br><br>
+Kèm theo: mọi truy vấn danh sách phải lọc <code>instructor_id</code> <strong>ngay trong câu truy vấn</strong>,
+không nạp rồi lọc trong bộ nhớ — lọc sau khi nạp là một dòng <code>.Where()</code> bị quên là lộ hết.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Chạy test, xác nhận xanh · Bước 4 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "test(security): add cross-instructor data isolation matrix"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 3 — Job nền, lưu trữ file, frontend, CI</h2>
+
+<div class="task">
+<h3>Task 0.9 — Hangfire</h3>
+<div class="files"><b>Tạo:</b> <code>src/TeachHub.Infrastructure/Jobs/JobsDependencyInjection.cs</code> · <b>Test:</b> <code>tests/TeachHub.Api.Tests/JobDashboardTests.cs</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ: dashboard job không được để lộ công khai</label>
+<pre><code>[Fact]
+public async Task Dashboard_hangfire_tu_choi_nguoi_chua_dang_nhap()
+{
+    var res = await factory.CreateClient().GetAsync("/jobs");
+    res.StatusCode.ShouldBeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.NotFound);
+}</code></pre>
+<p class="meta">Chấp nhận <code>NotFound</code> vì trong môi trường Testing ta tắt Hangfire — điều quan trọng là <strong>không bao giờ trả 200</strong>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Cài package và đăng ký</label>
+<pre><code>dotnet add src/TeachHub.Infrastructure package Hangfire.AspNetCore
+dotnet add src/TeachHub.Infrastructure package Hangfire.PostgreSql
+dotnet add src/TeachHub.Infrastructure package Newtonsoft.Json   # xem ghi chú ngay dưới</code></pre>
+
+<div class="hint">
+<strong>Không bỏ qua dòng <code>Newtonsoft.Json</code>: thiếu nó thì restore đứt hẳn.</strong>
+<code>Hangfire.AspNetCore</code> 1.8.24 kéo theo <code>Newtonsoft.Json</code> 11.0.1, mà bản đó dính lỗ hổng
+mức <em>high</em> (GHSA-5crp-9r3c-p9vr). NuGet audit của .NET 10 bật sẵn nên nó báo <code>NU1903</code>, và
+<code>TreatWarningsAsErrors=true</code> ở Task 0.1 biến cảnh báo đó thành lỗi:
+<pre><code>error NU1903: Warning As Error: Package 'Newtonsoft.Json' 11.0.1 has a known high severity vulnerability</code></pre>
+Khai báo trực tiếp <code>Newtonsoft.Json</code> 13.0.4 sẽ nâng phiên bản được giải quyết lên và restore chạy lại
+bình thường. <strong>Đừng</strong> "sửa" bằng cách tắt <code>NuGetAudit</code> hay nới
+<code>TreatWarningsAsErrors</code> — đó là gỡ chuông báo cháy thay vì dập lửa, và lần sau sẽ không ai biết khi
+một package khác dính lỗ hổng thật.
+</div>
+<pre><code>using Hangfire;
+using Hangfire.PostgreSql;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace TeachHub.Infrastructure.Jobs;
+
+public static class JobsDependencyInjection
+{
+    /// &lt;summary&gt;Hàng đợi riêng cho việc giải nén ZIP — xem ADR-005.&lt;/summary&gt;
+    public const string ZipQueue = "zip";
+
+    public static IServiceCollection AddJobs(this IServiceCollection services, IConfiguration config)
+    {
+        if (!config.GetValue("Hangfire:Enabled", true)) return services;
+
+        services.AddHangfire(c =&gt; c
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(o =&gt; o.UseNpgsqlConnection(config.GetConnectionString("Default"))));
+
+        services.AddHangfireServer(o =&gt;
+        {
+            // Worker unzip ít và tách riêng: một ZIP độc hại không được phép
+            // chiếm hết worker và làm treo mọi job khác.
+            o.Queues = ["default", ZipQueue];
+            o.WorkerCount = Math.Min(Environment.ProcessorCount * 2, 8);
+        });
+
+        return services;
+    }
+}</code></pre>
+<p>Trong <code>Program.cs</code>:</p>
+<pre><code>builder.Services.AddJobs(builder.Configuration);
+// ...
+if (builder.Configuration.GetValue("Hangfire:Enabled", true))
+    app.MapHangfireDashboard("/jobs").RequireAuthorization(Policies.Instructor);</code></pre>
+
+<p class="meta">Dòng <code>MapHangfireDashboard(...).RequireAuthorization(...)</code> giữ nguyên khi chuyển sang
+Controllers: đây là <em>endpoint routing</em> của ASP.NET Core, dùng chung cho cả controller lẫn middleware gắn
+vào route — không phải cú pháp riêng của Minimal API. Dashboard Hangfire là một middleware chứ không phải một
+action nên nó không có class để gắn <code>[Authorize]</code>; <code>RequireAuthorization</code> là cách duy nhất
+đúng ở đây. Chỉ cần <code>app.UseAuthentication()</code>/<code>UseAuthorization()</code> đã chạy trước đó
+(Task 0.7 Bước 8).</p>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Chạy API thật, xác nhận dashboard sống</label>
+<pre><code>dotnet run --project src/TeachHub.Api</code></pre>
+<p>Mở <code>http://localhost:5080/jobs</code> — kỳ vọng bị chặn khi chưa đăng nhập, thấy dashboard khi đã có cookie/token giảng viên.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(jobs): add hangfire with postgres storage and dedicated zip queue"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.10 — Trừu tượng lưu trữ file (local + S3/MinIO)</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Application/Common/IFileStorage.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Infrastructure/Storage/LocalFileStorage.cs</code>, <code>S3FileStorage.cs</code>, <code>StorageDependencyInjection.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/Storage/FileStorageContractTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test hợp đồng dùng chung cho mọi implementation</label>
+<p>Cả hai adapter phải qua <em>cùng một bộ test</em>; nếu không, đổi <code>Local</code> → <code>S3</code> lúc lên production sẽ vỡ theo những cách không ai lường trước.</p>
+<pre><code>using Shouldly;
+using TeachHub.Application.Common;
+
+namespace TeachHub.Api.Tests.Storage;
+
+public abstract class FileStorageContractTests
+{
+    protected abstract IFileStorage Storage { get; }
+
+    [Fact]
+    public async Task Luu_roi_doc_lai_ra_dung_noi_dung()
+    {
+        var noiDung = "xin chào cả nhà"u8.ToArray();
+        var saved = await Storage.SaveAsync("test", "a.txt",
+            new MemoryStream(noiDung), "text/plain", CancellationToken.None);
+
+        await using var stream = await Storage.OpenReadAsync(saved.Path, CancellationToken.None);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.ToArray().ShouldBe(noiDung);
+    }
+
+    [Fact]
+    public async Task Ten_file_trung_khong_ghi_de_len_nhau()
+    {
+        var a = await Storage.SaveAsync("test", "same.txt", new MemoryStream([1]), "text/plain", default);
+        var b = await Storage.SaveAsync("test", "same.txt", new MemoryStream([2]), "text/plain", default);
+        b.Path.ShouldNotBe(a.Path);
+    }
+
+    [Theory]
+    [InlineData("../../../etc/passwd")]
+    [InlineData("..\\..\\windows\\system32\\x")]
+    [InlineData("/etc/shadow")]
+    public async Task Ten_file_doc_hai_khong_thoat_duoc_ra_ngoai_thu_muc(string tenAc)
+    {
+        var saved = await Storage.SaveAsync("test", tenAc, new MemoryStream([1]), "text/plain", default);
+        saved.Path.ShouldNotContain("..");
+        saved.Path.ShouldStartWith("test/");
+    }
+
+    [Fact]
+    public async Task Xoa_roi_thi_doc_lai_bao_loi()
+    {
+        var saved = await Storage.SaveAsync("test", "b.txt", new MemoryStream([1]), "text/plain", default);
+        await Storage.DeleteAsync(saved.Path, default);
+        await Should.ThrowAsync&lt;FileNotFoundException&gt;(() =&gt; Storage.OpenReadAsync(saved.Path, default));
+    }
+}
+
+public sealed class LocalFileStorageTests : FileStorageContractTests, IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), Guid.CreateVersion7().ToString());
+    protected override IFileStorage Storage =&gt; new LocalFileStorage(Options.Create(
+        new StorageOptions { Provider = "Local", LocalRoot = _root }));
+    public void Dispose() =&gt; Directory.Delete(_root, recursive: true);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests --filter FileStorage</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Interface</label>
+<pre><code>namespace TeachHub.Application.Common;
+
+public sealed record StoredFile(string Path, long SizeBytes, string ContentType);
+
+public interface IFileStorage
+{
+    Task&lt;StoredFile&gt; SaveAsync(string container, string fileName, Stream content,
+                               string contentType, CancellationToken ct);
+    Task&lt;Stream&gt; OpenReadAsync(string path, CancellationToken ct);
+    Task DeleteAsync(string path, CancellationToken ct);
+
+    /// &lt;summary&gt;URL tạm để trình duyệt tải trực tiếp, không đi qua API.&lt;/summary&gt;
+    Task&lt;Uri&gt; GetPresignedUrlAsync(string path, TimeSpan lifetime, CancellationToken ct);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — <code>LocalFileStorage</code></label>
+<pre><code>using Microsoft.Extensions.Options;
+using TeachHub.Application.Common;
+
+namespace TeachHub.Infrastructure.Storage;
+
+public sealed class StorageOptions
+{
+    public string Provider { get; init; } = "Local";
+    public string LocalRoot { get; init; } = "./uploads";
+    public string? Bucket { get; init; }
+    public string? ServiceUrl { get; init; }
+}
+
+public sealed class LocalFileStorage(IOptions&lt;StorageOptions&gt; options) : IFileStorage
+{
+    private readonly string _root = Path.GetFullPath(options.Value.LocalRoot);
+
+    public async Task&lt;StoredFile&gt; SaveAsync(string container, string fileName, Stream content,
+                                            string contentType, CancellationToken ct)
+    {
+        // Không bao giờ tin tên file do người dùng gửi lên. Chỉ giữ phần mở rộng,
+        // tên thật thay bằng UUIDv7 — chặn cả path traversal lẫn trùng tên.
+        var ext = Path.GetExtension(fileName);
+        if (ext.Length &gt; 16 || ext.Any(c =&gt; Path.GetInvalidFileNameChars().Contains(c))) ext = "";
+
+        var relative = $"{Sanitize(container)}/{Guid.CreateVersion7()}{ext}";
+        var full = Path.Combine(_root, relative.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+
+        await using var fs = File.Create(full);
+        await content.CopyToAsync(fs, ct);
+
+        return new StoredFile(relative, fs.Length, contentType);
+    }
+
+    public Task&lt;Stream&gt; OpenReadAsync(string path, CancellationToken ct)
+    {
+        var full = Resolve(path);
+        if (!File.Exists(full)) throw new FileNotFoundException(path);
+        return Task.FromResult&lt;Stream&gt;(File.OpenRead(full));
+    }
+
+    public Task DeleteAsync(string path, CancellationToken ct)
+    {
+        File.Delete(Resolve(path));
+        return Task.CompletedTask;
+    }
+
+    public Task&lt;Uri&gt; GetPresignedUrlAsync(string path, TimeSpan lifetime, CancellationToken ct) =&gt;
+        // Chế độ Local không có presigned URL: API sẽ stream file qua endpoint có kiểm quyền.
+        Task.FromResult(new Uri($"/api/files/{Uri.EscapeDataString(path)}", UriKind.Relative));
+
+    private string Resolve(string relative)
+    {
+        var full = Path.GetFullPath(Path.Combine(_root, relative));
+        // Chốt chặn cuối: đường dẫn kết quả BẮT BUỘC nằm trong _root.
+        if (!full.StartsWith(_root, StringComparison.Ordinal))
+            throw new UnauthorizedAccessException($"Đường dẫn thoát khỏi thư mục lưu trữ: {relative}");
+        return full;
+    }
+
+    private static string Sanitize(string s) =&gt;
+        string.Concat(s.Where(c =&gt; char.IsLetterOrDigit(c) || c is '-' or '_'));
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — <code>S3FileStorage</code> + chọn provider bằng keyed DI</label>
+<pre><code>services.Configure&lt;StorageOptions&gt;(config.GetSection("Storage"));
+services.AddKeyedScoped&lt;IFileStorage, LocalFileStorage&gt;("Local");
+services.AddKeyedScoped&lt;IFileStorage, S3FileStorage&gt;("S3");
+services.AddScoped&lt;IFileStorage&gt;(sp =&gt;
+    sp.GetRequiredKeyedService&lt;IFileStorage&gt;(
+        sp.GetRequiredService&lt;IOptions&lt;StorageOptions&gt;&gt;().Value.Provider));</code></pre>
+<p class="meta"><code>S3FileStorage</code> dùng <code>AWSSDK.S3</code> với <code>ForcePathStyle = true</code> để trỏ được vào MinIO. Cho <code>S3FileStorageTests</code> kế thừa <code>FileStorageContractTests</code> và dùng <code>Testcontainers.Minio</code>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Chạy test, xác nhận cả hai adapter cùng xanh</label>
+<pre><code>dotnet test tests/TeachHub.Api.Tests --filter FileStorage</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(storage): add file storage abstraction with local and s3 adapters"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.11 — Frontend Next.js 15 + client sinh từ OpenAPI</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/</code> · <code>frontend/src/lib/api/client.ts</code> · <code>frontend/src/app/api/[...path]/route.ts</code> · <code>frontend/src/app/login/page.tsx</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Khởi tạo dự án</label>
+<pre><code>pnpm create next-app@latest frontend --ts --tailwind --app --src-dir --eslint --import-alias "@/*" --no-turbopack
+cd frontend
+pnpm dlx shadcn@latest init
+pnpm dlx shadcn@latest add button input label card form sonner table dialog dropdown-menu
+pnpm add @tanstack/react-query openapi-fetch react-hook-form @hookform/resolvers zod
+pnpm add -D openapi-typescript</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Script sinh client TS từ OpenAPI của .NET</label>
+<p>Thêm vào <code>frontend/package.json</code>:</p>
+<pre><code>"scripts": {
+  "gen:api": "openapi-typescript http://localhost:5080/openapi/v1.json -o src/lib/api/schema.d.ts"
+}</code></pre>
+<pre><code># API phải đang chạy
+pnpm gen:api</code></pre>
+<p>Kỳ vọng: sinh ra <code>src/lib/api/schema.d.ts</code> có type cho <code>/api/auth/login</code>.</p>
+<div class="hint"><strong>Đây là lợi ích trực tiếp của việc nâng lên .NET 10:</strong> OpenAPI 3.1 sinh sẵn nên tầng gọi API của frontend không phải viết tay và không bao giờ lệch với backend. Mỗi lần đổi DTO ở C#, chạy lại <code>pnpm gen:api</code> là TypeScript báo lỗi ngay chỗ dùng sai.</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — BFF route handler đặt JWT vào httpOnly cookie</label>
+<p><code>frontend/src/app/api/auth/login/route.ts</code>:</p>
+<pre><code>import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
+
+const API = process.env.API_BASE_URL ?? "http://localhost:5080";
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const res = await fetch(`${API}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) return NextResponse.json(await res.json(), { status: res.status });
+
+  const { access_token, refresh_token, expires_in } = await res.json();
+  const jar = await cookies();
+
+  // httpOnly: JavaScript phía client không đọc được token. Một lỗ XSS
+  // vì thế không kéo theo việc lộ toàn bộ điểm số của lớp (ADR-007).
+  jar.set("th_at", access_token, {
+    httpOnly: true, secure: process.env.NODE_ENV === "production",
+    sameSite: "lax", path: "/", maxAge: expires_in,
+  });
+  jar.set("th_rt", refresh_token, {
+    httpOnly: true, secure: process.env.NODE_ENV === "production",
+    sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 14,
+  });
+
+  return NextResponse.json({ ok: true });
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Proxy chung cho các endpoint còn lại</label>
+<p><code>frontend/src/app/api/[...path]/route.ts</code> — đọc cookie <code>th_at</code>, gắn header <code>Authorization</code>, chuyển tiếp tới .NET API; nếu nhận 401 thì tự gọi <code>/api/auth/refresh</code> một lần rồi thử lại.</p>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Trang đăng nhập + trang được bảo vệ</label>
+<p><code>src/app/login/page.tsx</code> (form shadcn + react-hook-form + zod) và <code>src/app/(instructor)/dashboard/page.tsx</code> (server component gọi <code>/api/auth/me</code>, chưa đăng nhập thì <code>redirect("/login")</code>).</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Xác nhận luồng chạy thật</label>
+<pre><code>pnpm dev</code></pre>
+<p>Mở <code>http://localhost:3000/login</code> → đăng nhập bằng <code>instructor@teachhub.local</code> / <code>Teach@123</code> → được chuyển tới dashboard hiện đúng "Giảng viên". Mở DevTools → Application → Cookies: <code>th_at</code> phải có cờ <strong>HttpOnly</strong>.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(web): scaffold next.js app with bff auth proxy and generated api client"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 0.12 — CI trên GitHub Actions</h3>
+<div class="files"><b>Tạo:</b> <code>.github/workflows/ci.yml</code></div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Viết workflow</label>
+<pre><code>name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest        # đã có sẵn Docker daemon cho Testcontainers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - run: dotnet restore backend/TeachHub.sln
+      - run: dotnet build backend/TeachHub.sln --no-restore -warnaserror
+      - run: dotnet test  backend/TeachHub.sln --no-build --verbosity normal
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'pnpm', cache-dependency-path: frontend/pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - run: pnpm lint &amp;&amp; pnpm build
+        working-directory: frontend</code></pre>
+<div class="hint"><code>schema.d.ts</code> nằm trong <code>.gitignore</code> nên CI sẽ không có nó và <code>pnpm build</code> sẽ đứt. Hai lựa chọn: (a) commit <code>schema.d.ts</code> vào repo — đơn giản nhất và cho phép review được thay đổi hợp đồng API; (b) trong CI, chạy API rồi sinh lại. <strong>Chọn (a)</strong>, và bỏ dòng đó khỏi <code>.gitignore</code>.</div>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Đẩy lên và xác nhận CI xanh</label>
+<pre><code>git add -A &amp;&amp; git commit -m "ci: add build and test workflow"
+git push -u origin main</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Sửa cho tới khi cả hai job xanh</label>
+</div>
+
+<hr>
+
+<h2>Nghiệm thu Phase 0</h2>
+<p>Làm tay, theo đúng thứ tự, trên máy sạch:</p>
+<ol>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>cd infra &amp;&amp; docker compose up -d</code> → cả 2 container <code>healthy</code>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>dotnet run --project backend/src/TeachHub.Api</code> → API sống, migration tự chạy, tài khoản seed được tạo.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Mở <code>http://localhost:5080/scalar/v1</code> → duyệt được toàn bộ endpoint sinh từ Controllers.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>GET /health</code> trả <code>Healthy</code> — <strong>200 chứ không phải 401</strong>, tức <code>.AllowAnonymous()</code> đã gắn đúng chỗ dù fallback policy đang bật.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>POST /api/auth/login</code> với body đúng → trả JSON có khóa <code>access_token</code> (<strong>snake_case</strong>, không phải <code>accessToken</code>).</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>POST /api/auth/login</code> với <code>email</code> sai định dạng → 400, <code>content-type: application/problem+json</code>, body có khóa <code>errors</code>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Log của một request bất kỳ có dòng của <code>LoggingBehavior</code> kèm tên command và số mili-giây.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đăng nhập ở <code>http://localhost:3000/login</code> → vào được dashboard; cookie <code>th_at</code> có cờ HttpOnly.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>dotnet test backend/TeachHub.sln</code> → toàn bộ xanh, 0 cảnh báo.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> <code>grep -r "MediatR" backend/Directory.Packages.props</code> → vẫn đúng <code>12.5.0</code>.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> CI trên GitHub xanh cả 2 job.</li>
+</ol>
+
+<h2>Rủi ro đã biết của phase này</h2>
+<table>
+<thead><tr><th>Rủi ro</th><th>Dấu hiệu</th><th>Xử lý</th></tr></thead>
+<tbody>
+<tr><td>Cấu hình JSON chỉ đặt ở một trong hai chỗ (<code>AddJsonOptions</code> / <code>ConfigureHttpJsonOptions</code>)</td><td><strong>Không có dấu hiệu nào cả</strong> — build xanh, test unit xanh, API trả 200. Thiếu cái đầu: frontend nhận <code>access_token</code> là <code>undefined</code>, mọi request sau đó 401. Thiếu cái sau: runtime đúng nhưng tài liệu OpenAPI khai <code>camelCase</code>, client TS sinh ra gõ sai khóa mà vẫn biên dịch</td><td>Đặt <strong>cả hai</strong> ở Task 0.5 — mỗi cái lo một nửa. Hai test khoá lại: <code>AuthTests</code> đọc <code>access_token</code> bằng <code>JsonElement</code>, và <code>OpenApi_khai_bao_snake_case_giong_het_phan_hoi_that</code> assert tài liệu chứa <code>access_token</code> và không chứa <code>accessToken</code>.</td></tr>
+<tr><td>Ai đó nâng MediatR lên 13.x/14.x (chạy <code>dotnet outdated</code>, Dependabot, hoặc chép code mẫu trên mạng)</td><td>NuGet hỏi chấp nhận giấy phép lúc restore; <code>next()</code> trong behavior không còn biên dịch</td><td>Ghim <code>12.5.0</code> trong <code>Directory.Packages.props</code> kèm comment. Từ v13 là RPL-1.5 — buộc công khai mã nguồn phần mềm đã triển khai, không chấp nhận được với hệ thống chứa điểm sinh viên. Nếu bắt buộc phải rời, thay bằng dispatcher tự viết sau <code>ICommand</code>/<code>IQuery</code>.</td></tr>
+<tr><td>Đăng ký behavior sai thứ tự (Transaction trước Validation)</td><td>Không có lỗi; chỉ là mỗi request sai dữ liệu vẫn mở một transaction rồi rollback, connection pool cạn dần lúc cao tải</td><td><code>BehaviorPipelineTests</code> ở Task 0.6 khóa thứ tự lại. Đừng xóa test đó vì nó "chỉ kiểm tra cấu hình".</td></tr>
+<tr><td>Bật <code>SetFallbackPolicy</code> nhưng quên <code>.AllowAnonymous()</code> cho <code>/health</code></td><td><code>/health</code> trả 401; test smoke Task 0.5 đỏ; trên môi trường thật load balancer coi service là chết</td><td>Gắn <code>.AllowAnonymous()</code> cho <code>/health</code> và <code>/openapi</code> (Task 0.7 Bước 8). Chấp nhận đánh đổi này: hỏng ầm ĩ vẫn hơn hở âm thầm.</td></tr>
+<tr><td>Nghiệp vụ rò rỉ vào controller (<code>if</code>, truy vấn <code>DbContext</code>, <code>try/catch</code>)</td><td>Test của luật đó chỉ chạy được qua HTTP; suite tích hợp phình dần</td><td>Xem lại khuôn ở Task 0.7 Bước 7. Bất kỳ <code>if</code> nào trong controller phải chuyển xuống handler trước khi merge.</td></tr>
+<tr><td>Testcontainers không chạy được (Docker chưa bật / Colima)</td><td>Test treo rồi timeout</td><td>Bật Docker Desktop, hoặc đặt <code>DOCKER_HOST</code> cho Colima. <strong>Đừng</strong> chuyển sang InMemory provider để né — sẽ mất toàn bộ giá trị của test.</td></tr>
+<tr><td>Warnings-as-errors gây khó chịu lúc thử nghiệm</td><td>Build đứt vì biến chưa dùng</td><td>Chịu đựng. Nới ra một lần là không bao giờ siết lại được.</td></tr>
+<tr><td>Test tích hợp chậm dần</td><td>Suite &gt; 60 s</td><td>Dùng <code>ICollectionFixture</code> chia sẻ một container cho toàn assembly thay vì mỗi class một container.</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">Tiếp theo: <a href="2026-08-13-phase-1-content-versioning.html">Phase 1 — Nội dung dạy học &amp; Versioning</a> · Quay lại <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a></p>
+
+</main>
+</body>
+</html>

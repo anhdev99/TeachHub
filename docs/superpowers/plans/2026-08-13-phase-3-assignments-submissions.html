@@ -1,0 +1,1390 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 3 — Bài tập &amp; Nộp bài · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.8rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:2rem;font-size:1.1rem;color:var(--acc)}
+h4{margin-top:1.3rem;font-size:.98rem;color:var(--acc2)}
+a{color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.79rem;line-height:1.5}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.88rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.25rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.task{border:1px solid var(--bd);border-radius:10px;padding:.2rem 1.1rem 1.1rem;margin:1.6rem 0}
+.task.crown{border-color:var(--err);border-width:2px}
+.task>h3{margin-top:1rem}
+.files{background:var(--cbg);border-radius:8px;padding:.6rem .9rem;font-size:.86rem;margin:.8rem 0}
+.files b{color:var(--acc2)}
+label.ck{display:block;margin:1rem 0 .4rem;font-weight:600;cursor:pointer}
+label.ck input{margin-right:.5rem;transform:scale(1.15)}
+.hint{border-left:3px solid var(--warn);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+.danger{border-left:3px solid var(--err);padding:.4rem .8rem;margin:.7rem 0;font-size:.9rem;background:var(--cbg)}
+hr{border:0;border-top:1px solid var(--bd);margin:2.5rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 3 — Bài tập &amp; Nộp bài đa định dạng</h1>
+
+<blockquote>
+<strong>Dành cho agentic worker — BẮT BUỘC:</strong> thực thi bằng <code>superpowers:subagent-driven-development</code>
+hoặc <code>superpowers:executing-plans</code>. Sinh kèm bản <code>.md</code> để tick checkbox.
+</blockquote>
+
+<p><strong>Mục tiêu:</strong> giảng viên cấu hình bài tập với danh sách slot nộp tùy ý (source code / hình ảnh / video / báo cáo); sinh viên nộp theo từng slot; file ZIP được giải nén an toàn ở nền và xem được cây thư mục ngay trên trình duyệt.</p>
+
+<p><strong>Kiến trúc:</strong> <code>SubmissionSlot</code> là cơ chế dùng chung cho cả bài tập trong chương lẫn bài tập lớn cuối môn (SRS mục 5.4/5.7) — chỉ khác <code>owner_type</code>. Upload chỉ lưu file gốc rồi trả về ngay; mọi xử lý nặng (giải nén, dựng cây thư mục, kiểm cấu trúc, thumbnail) chạy trên Hangfire queue riêng (ADR-005).</p>
+
+<p><strong>Tầng API:</strong> Controllers + MediatR. Controller chỉ định tuyến, lấy user id từ claim, gọi <code>sender.Send</code> và quy đổi <code>Result</code>; toàn bộ nghiệp vụ nằm trong command/query handler ở tầng Application. Riêng phase này có thêm một việc chỉ controller được làm: mở <code>IFormFile</code> thành <code>Stream</code> trước khi đưa xuống handler.</p>
+
+<p class="meta"><strong>Ước lượng:</strong> 7–10 ngày — <strong>phase nặng nhất</strong> · <strong>Phụ thuộc:</strong> Phase 2 · <strong>UC:</strong> 07, 08, 09 (kiểm cấu trúc) · <strong>Màn hình:</strong> 6.4, 6.6</p>
+
+<div class="danger">
+<strong>Phase này nhận file tùy ý từ người ngoài và giải nén chúng trên máy chủ của bạn.</strong>
+Đây là bề mặt tấn công lớn nhất trong toàn hệ thống. Task 3.3 (bộ giải nén an toàn) có nhiều test hơn code — đó là chủ ý.
+Nếu quỹ thời gian eo hẹp, hãy cắt tính năng khác; <strong>tuyệt đối không cắt Task 3.3</strong>.
+</div>
+
+<h2>Mô hình dữ liệu của phase này</h2>
+<pre><code>Assignment ──1:N── SubmissionSlot ──┐        (owner_type = 'assignment')
+    │                                │
+    ├──1:N── AssignmentHint          │        Gap #11: hints từ jsonb[] → bảng riêng
+    └──N:1── Rubric ──1:N── RubricCriterion
+                                     │
+Submission ──1:N── SubmissionFile ───┘ slot_id
+    │  owner_type + assignment_id / final_assessment_id  (ADR-003: 2 FK + CHECK)
+    │  attempt_no, is_current                            (Gap #5: giữ lịch sử nộp lại)
+    └──1:N── (Phase 6) SourceFingerprint</code></pre>
+
+<hr>
+
+<h2>Chunk 1 — Bài tập &amp; cấu hình format nộp</h2>
+
+<div class="task">
+<h3>Task 3.1 — <code>Assignment</code>, <code>Rubric</code>, <code>AssignmentHint</code></h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Assignments/Assignment.cs</code>, <code>Rubric.cs</code>, <code>RubricCriterion.cs</code>, <code>AssignmentHint.cs</code>, <code>GroupConfig.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/RubricTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho Rubric</label>
+<pre><code>using Shouldly;
+using TeachHub.Domain.Assignments;
+
+namespace TeachHub.Domain.Tests;
+
+public class RubricTests
+{
+    private static Rubric Mau() =&gt; new()
+    {
+        Name = "Rubric bài tập lập trình",
+        InstructorId = Guid.CreateVersion7(),
+        Criteria =
+        [
+            new RubricCriterion { Description = "Chạy đúng yêu cầu",  MaxPoints = 5m, OrderIndex = 0 },
+            new RubricCriterion { Description = "Xử lý lỗi hợp lý",   MaxPoints = 3m, OrderIndex = 1 },
+            new RubricCriterion { Description = "Code sạch, có chú thích", MaxPoints = 2m, OrderIndex = 2 },
+        ],
+    };
+
+    [Fact]
+    public void Tong_diem_toi_da_bang_tong_cac_tieu_chi()
+    {
+        Mau().MaxPoints.ShouldBe(10m);
+    }
+
+    [Fact]
+    public void Cham_diem_cong_don_theo_tung_tieu_chi()
+    {
+        var r = Mau();
+        var diem = r.Score(new Dictionary&lt;Guid, decimal&gt;
+        {
+            [r.Criteria[0].Id] = 4.5m,
+            [r.Criteria[1].Id] = 2m,
+            [r.Criteria[2].Id] = 1.5m,
+        });
+
+        diem.ShouldBe(8m);
+    }
+
+    [Fact]
+    public void Cham_vuot_qua_max_cua_tieu_chi_la_loi()
+    {
+        var r = Mau();
+        Should.Throw&lt;ArgumentOutOfRangeException&gt;(() =&gt;
+            r.Score(new Dictionary&lt;Guid, decimal&gt; { [r.Criteria[0].Id] = 99m }));
+    }
+
+    [Fact]
+    public void Cham_diem_am_la_loi()
+    {
+        var r = Mau();
+        Should.Throw&lt;ArgumentOutOfRangeException&gt;(() =&gt;
+            r.Score(new Dictionary&lt;Guid, decimal&gt; { [r.Criteria[0].Id] = -1m }));
+    }
+
+    [Fact]
+    public void Tieu_chi_khong_cham_duoc_tinh_la_0_chu_khong_bao_loi()
+    {
+        // Giảng viên chấm dở dang rồi lưu nháp — không được ném lỗi.
+        var r = Mau();
+        r.Score(new Dictionary&lt;Guid, decimal&gt; { [r.Criteria[0].Id] = 5m }).ShouldBe(5m);
+    }
+
+    [Fact]
+    public void Diem_luon_lam_tron_2_chu_so_thap_phan()
+    {
+        // decimal chứ không phải double — điểm số không bao giờ được dùng số thực dấu phẩy động.
+        var r = new Rubric { Name = "x", InstructorId = Guid.CreateVersion7(),
+            Criteria = [new RubricCriterion { Description = "a", MaxPoints = 10m, OrderIndex = 0 }] };
+
+        r.Score(new Dictionary&lt;Guid, decimal&gt; { [r.Criteria[0].Id] = 3.333m }).ShouldBe(3.33m);
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Viết entity</label>
+<pre><code>namespace TeachHub.Domain.Assignments;
+
+public class Rubric : Entity
+{
+    public required string Name { get; set; }
+    public required Guid InstructorId { get; set; }      // Gap #18: rubric tái sử dụng giữa các môn
+    public bool IsTemplate { get; set; }
+    public List&lt;RubricCriterion&gt; Criteria { get; set; } = [];
+
+    public decimal MaxPoints =&gt; Criteria.Sum(c =&gt; c.MaxPoints);
+
+    /// &lt;summary&gt;
+    /// scores: criterion_id → điểm. Tiêu chí thiếu được tính 0 (chấm dở dang là hợp lệ).
+    /// Toàn bộ tính toán dùng decimal — điểm số không bao giờ được đi qua double.
+    /// &lt;/summary&gt;
+    public decimal Score(IReadOnlyDictionary&lt;Guid, decimal&gt; scores)
+    {
+        decimal tong = 0;
+        foreach (var c in Criteria)
+        {
+            if (!scores.TryGetValue(c.Id, out var d)) continue;
+
+            if (d &lt; 0 || d &gt; c.MaxPoints)
+                throw new ArgumentOutOfRangeException(nameof(scores),
+                    $"Điểm tiêu chí '{c.Description}' phải nằm trong [0, {c.MaxPoints}], nhận được {d}.");
+
+            tong += d;
+        }
+        return Math.Round(tong, 2, MidpointRounding.AwayFromZero);
+    }
+}
+
+public class RubricCriterion : Entity
+{
+    public Guid RubricId { get; set; }
+    public required string Description { get; set; }
+    public required decimal MaxPoints { get; set; }
+    public int OrderIndex { get; set; }
+    public List&lt;CriterionLevel&gt; Levels { get; set; } = [];   // jsonb: Xuất sắc/Khá/TB/Yếu
+}
+
+public class CriterionLevel
+{
+    public required string Label { get; set; }
+    public required decimal Points { get; set; }
+    public string? Description { get; set; }
+}</code></pre>
+
+<p><code>Assignment</code> theo SRS mục 3.2, bỏ <code>submission_type</code> khóa cứng:</p>
+<pre><code>public class Assignment : Entity, ISoftDeletable
+{
+    /// &lt;summary&gt;Gap #3 — BẮT BUỘC có để clone version hoạt động đúng.&lt;/summary&gt;
+    public Guid? SubjectVersionId { get; set; }
+
+    public required string Title { get; set; }
+    public string? Description { get; set; }
+    public SubmissionMode SubmissionMode { get; set; } = SubmissionMode.Individual;
+    public GroupConfig? GroupConfig { get; set; }          // jsonb, chỉ khi mode = Group
+    public DateTimeOffset? DueAt { get; set; }
+    public bool AllowLateSubmission { get; set; }
+    public decimal LatePenaltyPercentPerDay { get; set; }
+    public Guid? RubricId { get; set; }
+    public decimal MaxScore { get; set; } = 10m;
+
+    public List&lt;SubmissionSlot&gt; Slots { get; set; } = [];
+    public List&lt;AssignmentHint&gt; Hints { get; set; } = [];   // Gap #11
+
+    public bool IsDeleted { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    /// &lt;summary&gt;Dùng cho clone version — xem Phase 1 Task 1.6.&lt;/summary&gt;
+    public Assignment CloneTo(Guid targetVersionId) =&gt; new()
+    {
+        SubjectVersionId = targetVersionId,
+        Title = Title, Description = Description,
+        SubmissionMode = SubmissionMode,
+        GroupConfig = GroupConfig?.DeepCopy(),
+        DueAt = null,                    // hạn nộp KHÔNG clone: năm sau có lịch khác
+        AllowLateSubmission = AllowLateSubmission,
+        LatePenaltyPercentPerDay = LatePenaltyPercentPerDay,
+        RubricId = RubricId,             // rubric dùng chung được, không cần nhân bản
+        MaxScore = MaxScore,
+        Slots = [.. Slots.Select(s =&gt; s.CloneForNewOwner())],
+        Hints = [.. Hints.Select(h =&gt; h.Clone())],
+    };
+}</code></pre>
+<div class="hint"><strong><code>DueAt = null</code> khi clone là cố ý.</strong> Sao chép hạn nộp của năm ngoái sang năm nay tạo ra một bài tập đã quá hạn ngay lúc tạo — sinh viên sẽ thấy "quá hạn" và nhắn tin hỏi ngay ngày đầu tiên.</div>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 3.2 — <code>SubmissionSlot</code> động + mẫu gợi ý</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Assignments/SubmissionSlot.cs</code>, <code>SlotTemplates.cs</code>, <code>RequiredStructure.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/SubmissionSlotTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>[Fact]
+public void Slot_chi_nhan_dung_dinh_dang_da_khai_bao()
+{
+    var slot = new SubmissionSlot
+    {
+        SlotKey = "source_code", Label = "Source code (nén ZIP)",
+        AcceptedFileTypes = [".zip"], MaxFiles = 1, MaxFileSizeMb = 50, IsRequired = true,
+    };
+
+    slot.Accepts("bai1.zip").ShouldBeTrue();
+    slot.Accepts("bai1.rar").ShouldBeFalse();
+    slot.Accepts("bai1.ZIP").ShouldBeTrue();      // không phân biệt hoa thường
+    slot.Accepts("bai1.zip.exe").ShouldBeFalse(); // đuôi kép
+}
+
+[Fact]
+public void Mau_goi_y_tao_dung_3_slot_pho_bien()
+{
+    // SRS mục 5.4: nút "Dùng mẫu gợi ý" điền nhanh Source code / Hình ảnh / Video.
+    var slots = SlotTemplates.Suggested().ToList();
+
+    slots.Select(s =&gt; s.SlotKey).ShouldBe(["source_code", "images", "video_demo"]);
+    slots[0].IsRequired.ShouldBeTrue();
+    slots[1].IsRequired.ShouldBeFalse();
+    slots[2].AllowLinkInsteadOfFile.ShouldBeTrue();   // video thường nộp bằng link
+}
+
+[Fact]
+public void Bai_tap_chi_can_source_thi_xoa_bot_slot_la_xong()
+{
+    // Kịch bản trong SRS mục 3.2: "bài này cần source+ảnh+video, bài kia chỉ cần source".
+    var a = new Assignment { Title = "Bài 1" };
+    a.Slots = [.. SlotTemplates.Suggested()];
+    a.Slots.RemoveAll(s =&gt; s.SlotKey != "source_code");
+
+    a.Slots.Count.ShouldBe(1);
+    a.CanBeSubmittedWith([("source_code", 1)]).ShouldBeTrue();
+}
+
+[Fact]
+public void Chua_nop_du_slot_bat_buoc_thi_chua_duoc_nop_chinh_thuc()
+{
+    var a = new Assignment { Title = "Bài 1", Slots = [.. SlotTemplates.Suggested()] };
+
+    a.CanBeSubmittedWith([("images", 2)]).ShouldBeFalse();          // thiếu source_code
+    a.CanBeSubmittedWith([("source_code", 1)]).ShouldBeTrue();      // ảnh/video tùy chọn
+}
+
+[Fact]
+public void Slot_khong_cho_vuot_qua_so_file_toi_da()
+{
+    var slot = new SubmissionSlot { SlotKey = "images", AcceptedFileTypes = [".png"], MaxFiles = 3 };
+
+    slot.HasRoomFor(currentCount: 2).ShouldBeTrue();
+    slot.HasRoomFor(currentCount: 3).ShouldBeFalse();
+}
+
+[Fact]
+public void Bai_tap_khong_co_slot_nao_thi_khong_cho_nop()
+{
+    // Bảo vệ khỏi lỗi cấu hình: giảng viên xóa hết slot rồi quên thêm lại.
+    var a = new Assignment { Title = "Bài trống", Slots = [] };
+    a.CanBeSubmittedWith([]).ShouldBeFalse();
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Viết <code>SubmissionSlot</code> + <code>SlotTemplates</code></label>
+<pre><code>namespace TeachHub.Domain.Assignments;
+
+public enum SlotOwnerType { Assignment, FinalAssessment }
+
+public class SubmissionSlot : Entity
+{
+    public SlotOwnerType OwnerType { get; set; } = SlotOwnerType.Assignment;
+
+    // ADR-003: hai FK thật thay cho owner_id đa hình, có CHECK constraint ở DB.
+    public Guid? AssignmentId { get; set; }
+    public Guid? FinalAssessmentId { get; set; }
+
+    public int OrderIndex { get; set; }
+    public required string SlotKey { get; set; }        // tự đặt: source_code, images, report...
+    public required string Label { get; set; }
+    public List&lt;string&gt; AcceptedFileTypes { get; set; } = [];
+    public bool AllowLinkInsteadOfFile { get; set; }
+    public int MaxFiles { get; set; } = 1;
+    public int MaxFileSizeMb { get; set; } = 50;
+    public bool IsRequired { get; set; }
+    public RequiredStructure? RequiredStructure { get; set; }   // jsonb, chỉ với slot .zip
+
+    public bool Accepts(string fileName)
+    {
+        var ext = Path.GetExtension(fileName);
+        return AcceptedFileTypes.Any(t =&gt; string.Equals(t, ext, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public bool HasRoomFor(int currentCount) =&gt; currentCount &lt; MaxFiles;
+
+    public bool AcceptsZip =&gt;
+        AcceptedFileTypes.Any(t =&gt; string.Equals(t, ".zip", StringComparison.OrdinalIgnoreCase));
+
+    public SubmissionSlot CloneForNewOwner() =&gt; new()
+    {
+        OwnerType = OwnerType, OrderIndex = OrderIndex,
+        SlotKey = SlotKey, Label = Label,
+        AcceptedFileTypes = [.. AcceptedFileTypes],
+        AllowLinkInsteadOfFile = AllowLinkInsteadOfFile,
+        MaxFiles = MaxFiles, MaxFileSizeMb = MaxFileSizeMb, IsRequired = IsRequired,
+        RequiredStructure = RequiredStructure?.DeepCopy(),
+    };
+}
+
+/// &lt;summary&gt;
+/// Mẫu gợi ý, KHÔNG phải ràng buộc. Giảng viên xóa/sửa/thêm thoải mái sau khi bấm —
+/// đây chính là điểm khác biệt so với thiết kế cũ khóa cứng vào ZIP (SRS mục 5.4).
+/// &lt;/summary&gt;
+public static class SlotTemplates
+{
+    public static IEnumerable&lt;SubmissionSlot&gt; Suggested() =&gt;
+    [
+        new() { OrderIndex = 0, SlotKey = "source_code", Label = "Source code (nén ZIP)",
+                AcceptedFileTypes = [".zip"], MaxFiles = 1, MaxFileSizeMb = 50, IsRequired = true,
+                RequiredStructure = new RequiredStructure
+                    { RequiredFiles = ["README.md"], RequiredFolders = ["src"] } },
+
+        new() { OrderIndex = 1, SlotKey = "images", Label = "Hình ảnh minh chứng",
+                AcceptedFileTypes = [".jpg", ".jpeg", ".png"], MaxFiles = 10,
+                MaxFileSizeMb = 10, IsRequired = false },
+
+        new() { OrderIndex = 2, SlotKey = "video_demo", Label = "Video minh chứng",
+                AcceptedFileTypes = [".mp4"], MaxFiles = 1, MaxFileSizeMb = 200,
+                IsRequired = false, AllowLinkInsteadOfFile = true },
+    ];
+}</code></pre>
+
+<p>Và trên <code>Assignment</code>:</p>
+<pre><code>/// &lt;summary&gt;
+/// Kiểm tra đã đủ điều kiện bấm "Nộp chính thức" chưa (SRS UC-08 bước 6).
+/// filled: (slot_key, số file/link đã có).
+/// &lt;/summary&gt;
+public bool CanBeSubmittedWith(IReadOnlyCollection&lt;(string SlotKey, int Count)&gt; filled)
+{
+    if (Slots.Count == 0) return false;
+
+    var map = filled.ToDictionary(f =&gt; f.SlotKey, f =&gt; f.Count, StringComparer.OrdinalIgnoreCase);
+    return Slots.Where(s =&gt; s.IsRequired)
+                .All(s =&gt; map.TryGetValue(s.SlotKey, out var n) &amp;&amp; n &gt; 0);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Migration + CHECK constraint cho owner đa hình</label>
+<pre><code>b.ToTable(t =&gt; t.HasCheckConstraint("ck_submission_slots_owner", """
+    (owner_type = 'Assignment'      AND assignment_id IS NOT NULL AND final_assessment_id IS NULL) OR
+    (owner_type = 'FinalAssessment' AND final_assessment_id IS NOT NULL AND assignment_id IS NULL)
+"""));</code></pre>
+<p>Test bắt buộc: cố tình chèn một hàng vi phạm bằng SQL thô và khẳng định database từ chối.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Controller cấu hình bài tập &amp; slot (phần giảng viên)</label>
+<p>Bốn endpoint của SRS mục 7 chưa có chỗ thi công nếu bỏ bước này. Chúng thuộc <em>giảng viên</em>, khác hẳn
+phần nộp bài của sinh viên ở Task 3.4:</p>
+<table>
+<thead><tr><th>Method</th><th>Route (đúng SRS mục 7)</th><th>Controller</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td><code>/api/assignments</code></td><td><code>AssignmentsController.Create</code></td></tr>
+<tr><td>POST</td><td><code>/api/assignments/{id}/slots</code></td><td><code>SubmissionSlotsController.Add</code></td></tr>
+<tr><td>PUT</td><td><code>/api/submission-slots/{id}</code></td><td><code>SubmissionSlotsController.Update</code></td></tr>
+<tr><td>DELETE</td><td><code>/api/submission-slots/{id}</code></td><td><code>SubmissionSlotsController.Delete</code></td></tr>
+</tbody>
+</table>
+<pre><code>[ApiController]
+[Route("api")]                    // hai tiền tố khác nhau nên đặt Route ở mức "api"
+[Authorize(Policy = Policies.Instructor)]
+[Produces("application/json")]
+public sealed class SubmissionSlotsController(ISender sender) : ApiControllerBase
+{
+    [HttpPost("assignments/{assignmentId:guid}/slots")]
+    [ProducesResponseType&lt;SubmissionSlotDto&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; Add(Guid assignmentId, AddSubmissionSlotCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { AssignmentId = assignmentId, InstructorId = CurrentUserId }, ct));
+
+    [HttpPut("submission-slots/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Update(Guid id, UpdateSubmissionSlotCommand command, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            command with { SlotId = id, InstructorId = CurrentUserId }, ct));
+
+    [HttpDelete("submission-slots/{id:guid}")]
+    public async Task&lt;IActionResult&gt; Delete(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(
+            new DeleteSubmissionSlotCommand { SlotId = id, InstructorId = CurrentUserId }, ct));
+}</code></pre>
+<div class="hint">
+<code>InstructorId = CurrentUserId</code> ở mọi command là bắt buộc, không phải trang trí: <code>slotId</code> đến thẳng
+từ URL nên handler <strong>phải join ngược</strong> <code>SubmissionSlot → Assignment → SubjectVersion → Subject.InstructorId</code>
+để chắc slot đó thuộc môn của người gọi. Thiếu bước join này thì bất kỳ giảng viên nào đoán được id là sửa được
+cấu hình nộp bài của lớp người khác. Không tìm thấy hoặc không thuộc sở hữu đều trả <strong>404</strong>, không phải 403.
+</div>
+<p class="meta">Xoá một slot đang có <code>SubmissionFile</code> tham chiếu → trả <code>Result.Conflict</code> (409) kèm số
+bài đã nộp, không xoá xếp tầng. Sinh viên đã nộp rồi mà slot biến mất là mất bằng chứng chấm điểm.</p>
+
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(assignments): add dynamic submission slots with suggested templates"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 2 — Nộp bài &amp; xử lý file</h2>
+
+<div class="task crown">
+<h3>Task 3.3 — Bộ giải nén ZIP an toàn 🔒 <em>không được cắt</em></h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Files/SafeZipReader.cs</code>, <code>ZipLimits.cs</code>, <code>FileTree.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Domain.Tests/SafeZipReaderTests.cs</code>
+</div>
+
+<div class="danger">
+Sinh viên upload ZIP, máy chủ giải nén — đây là kịch bản kinh điển của zip-slip và zip bomb.
+Rủi ro #1 trong SRS mục 11. Bộ đọc dưới đây phải <strong>đọc mà không bao giờ ghi ra đĩa theo đường dẫn trong file zip</strong>,
+và phải bỏ cuộc khi vượt hạn mức.
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ, mỗi ca tấn công một test</label>
+<pre><code>using System.IO.Compression;
+using Shouldly;
+using TeachHub.Domain.Files;
+
+namespace TeachHub.Domain.Tests;
+
+public class SafeZipReaderTests
+{
+    private static MemoryStream TaoZip(params (string Path, byte[] Content)[] entries)
+    {
+        var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+            foreach (var (path, content) in entries)
+            {
+                using var s = zip.CreateEntry(path).Open();
+                s.Write(content);
+            }
+        ms.Position = 0;
+        return ms;
+    }
+
+    [Fact]
+    public void Doc_duoc_cay_thu_muc_cua_zip_binh_thuong()
+    {
+        using var zip = TaoZip(
+            ("README.md", "# Bài 1"u8.ToArray()),
+            ("src/App.tsx", "export default App"u8.ToArray()),
+            ("src/utils/format.ts", "export const f = 1"u8.ToArray()));
+
+        var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
+
+        tree.Files.Count.ShouldBe(3);
+        tree.Files.Select(f =&gt; f.Path).ShouldContain("src/App.tsx");
+    }
+
+    [Theory]
+    [InlineData("../../../etc/passwd")]
+    [InlineData("..\\..\\Windows\\System32\\evil.dll")]
+    [InlineData("/etc/shadow")]
+    [InlineData("src/../../../../root/.ssh/authorized_keys")]
+    public void Tu_choi_zip_co_duong_dan_thoat_ra_ngoai(string duongDanAc)
+    {
+        // Zip-slip: entry có đường dẫn tương đối thoát khỏi thư mục đích.
+        using var zip = TaoZip((duongDanAc, "xấu"u8.ToArray()));
+
+        Should.Throw&lt;UnsafeArchiveException&gt;(() =&gt; SafeZipReader.ReadTree(zip, ZipLimits.Default));
+    }
+
+    [Fact]
+    public void Tu_choi_zip_vuot_qua_tong_dung_luong_sau_giai_nen()
+    {
+        // Zip bomb: file nén nhỏ nhưng giải nén ra hàng GB.
+        var to = new byte[10 * 1024 * 1024];   // 10 MB toàn số 0 → nén cực nhỏ
+        using var zip = TaoZip(("bom.bin", to));
+
+        var hanMuc = ZipLimits.Default with { MaxTotalUncompressedBytes = 1024 * 1024 };
+        Should.Throw&lt;UnsafeArchiveException&gt;(() =&gt; SafeZipReader.ReadTree(zip, hanMuc));
+    }
+
+    [Fact]
+    public void Tu_choi_zip_co_qua_nhieu_entry()
+    {
+        // node_modules vô tình bị nén vào — không phải tấn công, nhưng vẫn phải chặn.
+        var entries = Enumerable.Range(0, 200)
+            .Select(i =&gt; ($"f{i}.txt", "x"u8.ToArray())).ToArray();
+        using var zip = TaoZip(entries);
+
+        var hanMuc = ZipLimits.Default with { MaxEntryCount = 100 };
+        Should.Throw&lt;UnsafeArchiveException&gt;(() =&gt; SafeZipReader.ReadTree(zip, hanMuc));
+    }
+
+    [Fact]
+    public void Tu_choi_zip_co_ti_le_nen_bat_thuong()
+    {
+        var to = new byte[50 * 1024 * 1024];
+        using var zip = TaoZip(("bom.bin", to));
+
+        var hanMuc = ZipLimits.Default with { MaxCompressionRatio = 50 };
+        Should.Throw&lt;UnsafeArchiveException&gt;(() =&gt; SafeZipReader.ReadTree(zip, hanMuc));
+    }
+
+    [Fact]
+    public void Bo_qua_thu_muc_rac_cua_macos_va_windows()
+    {
+        // Mọi lớp học đều có sinh viên nén bằng Finder trên Mac.
+        using var zip = TaoZip(
+            ("README.md", "x"u8.ToArray()),
+            ("__MACOSX/._README.md", "x"u8.ToArray()),
+            (".DS_Store", "x"u8.ToArray()),
+            ("Thumbs.db", "x"u8.ToArray()));
+
+        var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
+
+        tree.Files.Count.ShouldBe(1);
+        tree.Files.Single().Path.ShouldBe("README.md");
+    }
+
+    [Fact]
+    public void File_khong_phai_zip_bao_loi_ro_rang()
+    {
+        using var khongPhaiZip = new MemoryStream("đây chỉ là text"u8.ToArray());
+
+        Should.Throw&lt;UnsafeArchiveException&gt;(() =&gt; SafeZipReader.ReadTree(khongPhaiZip, ZipLimits.Default));
+    }
+
+    [Fact]
+    public void Kiem_tra_cau_truc_bat_buoc_bao_thieu_dung_muc()
+    {
+        using var zip = TaoZip(("src/App.tsx", "x"u8.ToArray()));   // thiếu README.md
+        var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
+
+        var kq = tree.CheckStructure(new RequiredStructure
+        {
+            RequiredFiles = ["README.md"], RequiredFolders = ["src"],
+        });
+
+        kq.Passed.ShouldBeFalse();
+        kq.Missing.ShouldBe(["README.md"]);
+    }
+
+    [Fact]
+    public void Cau_truc_dung_thi_pass()
+    {
+        using var zip = TaoZip(("README.md", "x"u8.ToArray()), ("src/App.tsx", "x"u8.ToArray()));
+        var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
+
+        tree.CheckStructure(new RequiredStructure
+            { RequiredFiles = ["README.md"], RequiredFolders = ["src"] }).Passed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Cau_truc_van_dung_khi_sv_nen_ca_thu_muc_goc()
+    {
+        // Lỗi phổ biến nhất: sinh viên nén cả thư mục cha thành "BaiTap1/README.md".
+        // Chặn cứng chuyện này sẽ khiến nửa lớp bị gắn cờ đỏ oan.
+        using var zip = TaoZip(("BaiTap1/README.md", "x"u8.ToArray()),
+                               ("BaiTap1/src/App.tsx", "x"u8.ToArray()));
+        var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
+
+        tree.CheckStructure(new RequiredStructure
+            { RequiredFiles = ["README.md"], RequiredFolders = ["src"] }).Passed.ShouldBeTrue();
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ (10 test)</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Viết <code>SafeZipReader</code></label>
+<pre><code>using System.IO.Compression;
+
+namespace TeachHub.Domain.Files;
+
+public sealed class UnsafeArchiveException(string message) : Exception(message);
+
+public sealed record ZipLimits
+{
+    public long MaxTotalUncompressedBytes { get; init; } = 200L * 1024 * 1024;   // 200 MB
+    public int MaxEntryCount { get; init; } = 5_000;
+    public int MaxCompressionRatio { get; init; } = 100;
+    public int MaxPathDepth { get; init; } = 20;
+
+    public static ZipLimits Default =&gt; new();
+}
+
+/// &lt;summary&gt;
+/// Đọc cấu trúc file zip mà KHÔNG BAO GIỜ ghi ra đĩa theo đường dẫn nằm trong file zip.
+/// Mọi entry đều bị kiểm tra trước khi đọc; vượt hạn mức là dừng ngay, không đọc tiếp.
+/// Xem ADR-005.
+/// &lt;/summary&gt;
+public static class SafeZipReader
+{
+    private static readonly string[] RacHeThong = ["__MACOSX/", ".DS_Store", "Thumbs.db", "desktop.ini"];
+
+    public static FileTree ReadTree(Stream zipStream, ZipLimits limits)
+    {
+        ZipArchive archive;
+        try
+        {
+            archive = new ZipArchive(zipStream, ZipArchiveMode.Read, leaveOpen: true);
+        }
+        catch (InvalidDataException e)
+        {
+            throw new UnsafeArchiveException($"File không phải định dạng ZIP hợp lệ: {e.Message}");
+        }
+
+        using (archive)
+        {
+            if (archive.Entries.Count &gt; limits.MaxEntryCount)
+                throw new UnsafeArchiveException(
+                    $"File nén có {archive.Entries.Count} mục, vượt giới hạn {limits.MaxEntryCount}. " +
+                    "Có thể bạn đã nén nhầm cả thư mục node_modules hoặc bin/obj.");
+
+            long tongGiaiNen = 0, tongNen = 0;
+            var files = new List&lt;FileTreeNode&gt;();
+
+            foreach (var entry in archive.Entries)
+            {
+                if (entry.FullName.EndsWith('/')) continue;                       // thư mục
+                if (RacHeThong.Any(r =&gt; entry.FullName.Contains(r, StringComparison.Ordinal))) continue;
+
+                var duongDan = NormalizeAndGuard(entry.FullName, limits);
+
+                tongGiaiNen += entry.Length;
+                tongNen     += entry.CompressedLength;
+
+                if (tongGiaiNen &gt; limits.MaxTotalUncompressedBytes)
+                    throw new UnsafeArchiveException(
+                        $"Nội dung sau giải nén vượt {limits.MaxTotalUncompressedBytes / 1024 / 1024} MB.");
+
+                files.Add(new FileTreeNode(duongDan, entry.Length));
+            }
+
+            // Kiểm tỉ lệ nén sau cùng: từng entry lẻ có thể bình thường
+            // nhưng tổng thể vẫn là một quả bom.
+            if (tongNen &gt; 0 &amp;&amp; tongGiaiNen / tongNen &gt; limits.MaxCompressionRatio)
+                throw new UnsafeArchiveException(
+                    $"Tỉ lệ nén {tongGiaiNen / tongNen}:1 bất thường, từ chối xử lý.");
+
+            return new FileTree(files);
+        }
+    }
+
+    private static string NormalizeAndGuard(string raw, ZipLimits limits)
+    {
+        var path = raw.Replace('\\', '/');
+
+        if (Path.IsPathRooted(path) || path.StartsWith('/'))
+            throw new UnsafeArchiveException($"Đường dẫn tuyệt đối trong file nén: '{raw}'.");
+
+        var parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Contains(".."))
+            throw new UnsafeArchiveException($"Đường dẫn thoát khỏi thư mục đích (zip-slip): '{raw}'.");
+
+        if (parts.Length &gt; limits.MaxPathDepth)
+            throw new UnsafeArchiveException($"Đường dẫn quá sâu ({parts.Length} cấp): '{raw}'.");
+
+        return string.Join('/', parts);
+    }
+}</code></pre>
+
+<p><code>FileTree.CheckStructure</code> — xử lý ca "sinh viên nén cả thư mục gốc":</p>
+<pre><code>public sealed record FileTreeNode(string Path, long SizeBytes);
+
+public sealed record StructureCheckResult(bool Passed, List&lt;string&gt; Missing);
+
+public sealed class FileTree(List&lt;FileTreeNode&gt; files)
+{
+    public List&lt;FileTreeNode&gt; Files { get; } = files;
+
+    public StructureCheckResult CheckStructure(RequiredStructure required)
+    {
+        // Nếu MỌI file đều nằm dưới cùng một thư mục gốc, coi thư mục đó là gốc thật.
+        // Sinh viên nén bằng cách chuột phải vào thư mục là hành vi mặc định của Windows
+        // và macOS — chặn nó sẽ gắn cờ đỏ oan cho nửa lớp.
+        var goc = CommonRootFolder();
+        var duongDan = goc is null
+            ? Files.Select(f =&gt; f.Path).ToList()
+            : Files.Select(f =&gt; f.Path[(goc.Length + 1)..]).ToList();
+
+        var thieu = new List&lt;string&gt;();
+
+        foreach (var f in required.RequiredFiles)
+            if (!duongDan.Any(p =&gt; string.Equals(p, f, StringComparison.OrdinalIgnoreCase)))
+                thieu.Add(f);
+
+        foreach (var d in required.RequiredFolders)
+            if (!duongDan.Any(p =&gt; p.StartsWith(d + "/", StringComparison.OrdinalIgnoreCase)))
+                thieu.Add(d + "/");
+
+        return new StructureCheckResult(thieu.Count == 0, thieu);
+    }
+
+    private string? CommonRootFolder()
+    {
+        if (Files.Count == 0) return null;
+
+        var dau = Files[0].Path.Split('/');
+        if (dau.Length &lt; 2) return null;
+
+        var ungVien = dau[0];
+        return Files.All(f =&gt; f.Path.StartsWith(ungVien + "/", StringComparison.Ordinal))
+            ? ungVien : null;
+    }
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Chạy, xác nhận cả 10 test xanh</label>
+<pre><code>dotnet test backend/tests/TeachHub.Domain.Tests --filter SafeZipReaderTests</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Bổ sung test bằng file ZIP tấn công thật</label>
+<p>Tải một mẫu zip-slip công khai và một zip bomb nhỏ (ví dụ dạng 42.zip thu nhỏ) vào <code>tests/fixtures/</code>, viết test khẳng định cả hai đều bị từ chối. Zip do <code>ZipArchive</code> của .NET tự tạo trong test ở trên là zip "lịch sự" — công cụ tấn công thật tạo ra cấu trúc mà thư viện chuẩn không sinh được.</p>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(files): add hardened zip reader with slip, bomb and depth guards"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 3.4 — <code>Submission</code>, upload theo slot, lưu nháp / nộp chính thức</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Domain/Submissions/Submission.cs</code>, <code>SubmissionFile.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Api/Controllers/AssignmentsController.cs</code>, <code>SubmissionsController.cs</code>, <code>SubmissionSlotsController.cs</code><br>
+<b>Tạo:</b> <code>src/TeachHub.Application/Features/Submissions/Commands/UploadSubmissionFile/</code>, <code>Commands/SubmitAssignment/</code>, <code>Queries/GetSubmission/</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/SubmissionFlowTests.cs</code>
+</div>
+
+<p>Ba controller chia theo tiền tố đường dẫn của hợp đồng API (SRS mục 7), không chia theo entity:
+<code>AssignmentsController</code> giữ <code>/api/assignments/...</code> (upload nháp, nộp chính thức),
+<code>SubmissionsController</code> giữ <code>/api/submissions/...</code> (xem bài nộp, cây thư mục, nội dung file),
+<code>SubmissionSlotsController</code> giữ phần cấu hình slot dùng chung cho cả <code>assignment</code> lẫn
+<code>final_assessment</code>. Chia kiểu này thì đường dẫn trong tài liệu và tên file luôn khớp nhau —
+tìm chỗ sửa một endpoint không cần grep.</p>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ cho toàn bộ luồng UC-08</label>
+<pre><code>[Fact]
+public async Task Nop_chinh_thuc_bi_chan_khi_thieu_slot_bat_buoc()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    await sv.UploadToSlotAsync(assignmentId, "images", "anh.png", TestFiles.Png);
+
+    var res = await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null);
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    (await res.Content.ReadAsStringAsync()).ShouldContain("source_code");
+}
+
+[Fact]
+public async Task Nop_du_slot_bat_buoc_thi_thanh_cong()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    await sv.UploadToSlotAsync(assignmentId, "source_code", "bai.zip", TestFiles.ValidZip);
+
+    var res = await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null);
+
+    res.StatusCode.ShouldBe(HttpStatusCode.OK);
+}
+
+[Fact]
+public async Task File_sai_dinh_dang_slot_bi_tu_choi_ngay()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+
+    var res = await sv.UploadToSlotAsync(assignmentId, "source_code", "bai.rar", TestFiles.ValidZip);
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task File_doi_duoi_thanh_zip_van_bi_tu_choi_vi_chu_ky_sai()
+{
+    // Client nói dối là chuyện mặc định phải giả định.
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+
+    var res = await sv.UploadToSlotAsync(assignmentId, "source_code", "bai.zip",
+        noiDung: "đây là file text đổi đuôi"u8.ToArray());
+
+    res.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+}
+
+[Fact]
+public async Task Vuot_dung_luong_slot_bi_tu_choi()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSlotAsync(maxFileSizeMb: 1);
+
+    var res = await sv.UploadToSlotAsync(assignmentId, "source_code", "to.zip",
+        TestFiles.ZipOfSize(2 * 1024 * 1024));
+
+    res.StatusCode.ShouldBe(HttpStatusCode.RequestEntityTooLarge);
+}
+
+[Fact]
+public async Task Nop_sau_han_duoc_danh_dau_is_late()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentAsync(dueAt: factory.Now.AddHours(-1),
+                                                              allowLate: true);
+    await sv.UploadToSlotAsync(assignmentId, "source_code", "bai.zip", TestFiles.ValidZip);
+
+    var res = await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null);
+    var body = await res.Content.ReadFromJsonAsync&lt;JsonElement&gt;();
+
+    body.GetProperty("is_late").GetBoolean().ShouldBeTrue();
+}
+
+[Fact]
+public async Task Nop_sau_han_bi_chan_khi_khong_cho_nop_tre()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentAsync(dueAt: factory.Now.AddHours(-1),
+                                                              allowLate: false);
+    await sv.UploadToSlotAsync(assignmentId, "source_code", "bai.zip", TestFiles.ValidZip);
+
+    (await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null))
+        .StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+}
+
+[Fact]
+public async Task Nop_lai_tao_attempt_moi_va_giu_lai_ban_cu()
+{
+    // Gap #5: SRS nói "ghi đè, giữ lịch sử" nhưng không có cơ chế lịch sử.
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+
+    await sv.UploadToSlotAsync(assignmentId, "source_code", "v1.zip", TestFiles.ValidZip);
+    await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null);
+
+    await sv.UploadToSlotAsync(assignmentId, "source_code", "v2.zip", TestFiles.ValidZip);
+    await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null);
+
+    await using var db = await factory.CreateDbContextAsync();
+    var all = await db.Submissions.Where(s =&gt; s.AssignmentId == assignmentId).ToListAsync();
+
+    all.Count.ShouldBe(2);
+    all.Count(s =&gt; s.IsCurrent).ShouldBe(1);
+    all.Single(s =&gt; s.IsCurrent).AttemptNo.ShouldBe(2);
+}
+
+[Fact]
+public async Task Sinh_vien_khong_xem_duoc_bai_nop_cua_sinh_vien_khac()
+{
+    var (svA, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    await svA.UploadToSlotAsync(assignmentId, "source_code", "bai.zip", TestFiles.ValidZip);
+    var idBaiNop = await svA.SubmitAndGetIdAsync(assignmentId);
+
+    var svB = await factory.LoginAsAnotherStudentAsync();
+
+    (await svB.GetAsync($"/api/submissions/{idBaiNop}")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Chạy, xác nhận đỏ</label>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Entity <code>Submission</code></label>
+<pre><code>public class Submission : Entity
+{
+    public SlotOwnerType OwnerType { get; set; }
+    public Guid? AssignmentId { get; set; }
+    public Guid? FinalAssessmentId { get; set; }
+    public required Guid OfferingId { get; set; }
+
+    public SubmittedByType SubmittedByType { get; set; } = SubmittedByType.Individual;
+    public Guid? EnrollmentId { get; set; }     // Gap #2: enrollment, KHÔNG phải student_id
+    public Guid? GroupId { get; set; }          // Phase 4
+
+    /// &lt;summary&gt;Gap #5: nộp lại tạo attempt mới, bản cũ giữ nguyên với IsCurrent=false.&lt;/summary&gt;
+    public int AttemptNo { get; set; } = 1;
+    public bool IsCurrent { get; set; } = true;
+
+    public DateTimeOffset? SubmittedAt { get; set; }
+    public bool IsLate { get; set; }
+    public int HintsUsed { get; set; }
+    public SubmissionStatus Status { get; set; } = SubmissionStatus.Draft;
+
+    public decimal? Score { get; set; }
+    public Dictionary&lt;Guid, decimal&gt; RubricScores { get; set; } = [];   // jsonb
+    public string? Feedback { get; set; }
+    public Guid? GradedBy { get; set; }
+    public DateTimeOffset? GradedAt { get; set; }
+
+    public List&lt;SubmissionFile&gt; Files { get; set; } = [];
+
+    /// &lt;summary&gt;
+    /// So sánh hạn nộp dùng TimeProvider tiêm vào, không dùng DateTimeOffset.UtcNow —
+    /// nếu không thì mọi test liên quan tới hạn nộp phải chờ thời gian thật trôi qua.
+    /// &lt;/summary&gt;
+    public void MarkSubmitted(DateTimeOffset now, DateTimeOffset? dueAt)
+    {
+        SubmittedAt = now;
+        IsLate = dueAt is not null &amp;&amp; now &gt; dueAt;
+        Status = SubmissionStatus.Submitted;
+    }
+}
+
+public enum SubmissionStatus { Draft, Submitted, Grading, Graded, Returned }
+public enum SubmittedByType { Individual, Group }</code></pre>
+<p>Partial unique index bắt buộc:</p>
+<pre><code>CREATE UNIQUE INDEX ux_submission_current
+  ON submissions (assignment_id, final_assessment_id, enrollment_id, group_id)
+  WHERE is_current;</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Action upload trong <code>AssignmentsController</code> có nhiều lớp kiểm tra</label>
+<p>Thứ tự kiểm tra (dừng ngay khi hỏng, không đọc tiếp):</p>
+<ol>
+<li>Xác thực + sinh viên có thuộc lớp này không.</li>
+<li>Slot có tồn tại trong bài tập này không.</li>
+<li>Phần mở rộng có nằm trong <code>accepted_file_types</code> không.</li>
+<li><code>Content-Length</code> ≤ <code>max_file_size_mb</code> — <strong>chặn trước khi đọc body</strong>.</li>
+<li>Slot còn chỗ (<code>HasRoomFor</code>) không.</li>
+<li>Đọc 8 byte đầu → <code>FileSignatureValidator.Matches</code> (Phase 1 Task 1.7).</li>
+<li>Lưu qua <code>IFileStorage</code>, tạo <code>SubmissionFile</code> ở trạng thái <code>Pending</code>.</li>
+<li>Đẩy job xử lý lên queue <code>zip</code> nếu là file <code>.zip</code>.</li>
+</ol>
+<pre><code>using MediatR;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace TeachHub.Api.Controllers;
+
+[ApiController]
+[Route("api/assignments")]
+[Authorize]                       // fallback policy đã bắt buộc đăng nhập; vai trò đặt ở TỪNG action
+[Produces("application/json")]
+public sealed class AssignmentsController(ISender sender) : ApiControllerBase
+{
+    // KHÔNG đặt [Authorize(Policy = Policies.Student)] ở cấp class: cùng tiền tố /api/assignments
+    // còn phải chứa các endpoint chỉ dành giảng viên (POST /api/assignments,
+    // POST /api/assignments/{id}/slots — SRS mục 7). Policy trong ASP.NET Core CỘNG DỒN, nên
+    // class-level Student + action-level Instructor nghĩa là phải có CẢ HAI vai trò —
+    // không ai thoả, và mọi request trả 403 mà không có lý do rõ ràng.
+
+    [HttpPost("{id:guid}/submissions/draft")]
+    [Authorize(Policy = Policies.Student)]
+    [IgnoreAntiforgeryToken]
+    [EnableRateLimiting("upload")]
+    [RequestSizeLimit(300_000_000)]                                 // hạn mức Kestrel
+    [RequestFormLimits(MultipartBodyLengthLimit = 300_000_000)]     // hạn mức multipart của MVC
+    [ProducesResponseType&lt;SubmissionFileDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+    public async Task&lt;IActionResult&gt; UploadDraft(
+        Guid id,
+        [FromForm] IFormFile file,
+        [FromForm(Name = "slot_key")] string slotKey,
+        CancellationToken ct)
+    {
+        await using var noiDung = file.OpenReadStream();
+
+        return ToActionResult(await sender.Send(new UploadSubmissionFileCommand(
+            AssignmentId:  id,
+            SlotKey:       slotKey,
+            FileName:      file.FileName,
+            SizeBytes:     file.Length,
+            Content:       noiDung,
+            StudentUserId: CurrentUserId), ct));
+    }
+}</code></pre>
+<div class="hint"><strong>Controller mở stream, command chỉ nhận <code>Stream</code>.</strong> Đưa thẳng <code>IFormFile</code> xuống command sẽ kéo <code>Microsoft.AspNetCore.Http</code> vào tầng Application và biến mọi test handler thành bài dựng HTTP giả. <code>IFormFile</code> chỉ được phép xuất hiện trong <code>Controllers/</code>.</div>
+<div class="danger">
+<strong>Kiểm tra số 4 trong danh sách trên không tự nhiên đúng khi dùng <code>[FromForm]</code>.</strong>
+Model binding đã đọc và đệm xong toàn bộ multipart <em>trước khi</em> thân action chạy, nên "chặn trước khi đọc body"
+phải nằm ở chỗ chạy sớm hơn: <code>[RequestSizeLimit]</code> chặn ngay ở mức pipeline (trả 413 mà không nuốt hết body),
+còn nếu muốn thêm rào theo <code>Content-Length</code> thì viết <code>IResourceFilter</code> — resource filter chạy TRƯỚC
+model binding, còn action filter chạy SAU và đã muộn. Hạn mức riêng của từng slot nằm trong database nên vẫn phải
+kiểm trong handler; handler trả <code>Result.PayloadTooLarge</code> và <code>ToActionResult</code> quy đổi sang 413
+đúng như test <code>Vuot_dung_luong_slot_bi_tu_choi</code> mong đợi.
+</div>
+<pre><code>// Rate limit chống DoS bằng upload (yêu cầu NFR trong SRS mục 9)
+// Phần đăng ký này KHÔNG phụ thuộc kiểu API, giữ nguyên; chỗ áp dụng nó
+// bây giờ là attribute [EnableRateLimiting("upload")] trên action.
+// ĐÃ ĐĂNG KÝ TỪ PHASE 0 Task 0.5 — chép lại đây cho dễ đọc, đừng khai lần thứ hai.
+// Phase 1 đã gắn [EnableRateLimiting("upload")] lên endpoint upload bài giảng, mà attribute
+// không có bộ đăng ký tương ứng thì nó là metadata trơ: không rate limit nào chạy, không lỗi nào báo.
+builder.Services.AddRateLimiter(o =&gt; o.AddFixedWindowLimiter("upload", w =&gt;
+{
+    w.PermitLimit = 30;
+    w.Window = TimeSpan.FromMinutes(1);
+    w.QueueLimit = 0;
+}));
+
+// Và trong pipeline, PHẢI đứng trước app.MapControllers():
+app.UseRateLimiter();</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 5 — Command "nộp chính thức"</label>
+<pre><code>namespace TeachHub.Application.Features.Submissions.Commands.SubmitAssignment;
+
+public sealed record SubmitAssignmentCommand(Guid AssignmentId, Guid StudentUserId)
+    : ICommand&lt;Result&lt;SubmissionDto&gt;&gt;;
+
+public sealed class SubmitAssignmentHandler(IAppDbContext db, TimeProvider clock)
+    : ICommandHandler&lt;SubmitAssignmentCommand, Result&lt;SubmissionDto&gt;&gt;
+{
+    public async Task&lt;Result&lt;SubmissionDto&gt;&gt; Handle(SubmitAssignmentCommand request, CancellationToken ct)
+    {
+        var assignmentId = request.AssignmentId;
+
+        var assignment = await db.Assignments.Include(a =&gt; a.Slots)
+            .SingleOrDefaultAsync(a =&gt; a.Id == assignmentId, ct);
+        if (assignment is null) return Result&lt;SubmissionDto&gt;.NotFound();
+
+        // enrollment_id suy ra từ token, KHÔNG bao giờ nhận từ client: nếu nhận thì
+        // đổi một GUID trong body là nộp đè lên bài của bạn cùng lớp.
+        var enrollmentId = await db.Enrollments
+            .Where(e =&gt; e.StudentId == request.StudentUserId
+                     &amp;&amp; e.Offering.SubjectVersionId == assignment.SubjectVersionId)
+            .Select(e =&gt; e.Id)
+            .FirstOrDefaultAsync(ct);
+        if (enrollmentId == Guid.Empty)
+            return Result.Forbidden("Bạn không thuộc lớp có bài tập này.");
+
+        var draft = await db.Submissions.Include(s =&gt; s.Files)
+            .SingleOrDefaultAsync(s =&gt; s.AssignmentId == assignmentId
+                                    &amp;&amp; s.EnrollmentId == enrollmentId
+                                    &amp;&amp; s.IsCurrent &amp;&amp; s.Status == SubmissionStatus.Draft, ct);
+        if (draft is null) return Result&lt;SubmissionDto&gt;.Invalid("Chưa có tệp nào được tải lên.");
+
+        var now = clock.GetUtcNow();
+
+        if (assignment.DueAt is not null &amp;&amp; now &gt; assignment.DueAt &amp;&amp; !assignment.AllowLateSubmission)
+            return Result&lt;SubmissionDto&gt;.Forbidden($"Bài tập đã hết hạn lúc {assignment.DueAt:dd/MM/yyyy HH:mm} và không nhận nộp trễ.");
+
+        var daCo = draft.Files
+            .GroupBy(f =&gt; f.SlotKey)
+            .Select(g =&gt; (g.Key, g.Count()))
+            .ToList();
+
+        if (!assignment.CanBeSubmittedWith(daCo))
+        {
+            var thieu = assignment.Slots.Where(s =&gt; s.IsRequired)
+                .Where(s =&gt; !daCo.Any(d =&gt; d.Key == s.SlotKey))
+                .Select(s =&gt; s.SlotKey);
+            return Result&lt;SubmissionDto&gt;.Invalid($"Chưa nộp các phần bắt buộc: {string.Join(", ", thieu)}.");
+        }
+
+        // Nộp lại: bản trước chuyển sang lịch sử, KHÔNG xóa (Gap #5).
+        var truoc = await db.Submissions
+            .Where(s =&gt; s.AssignmentId == assignmentId &amp;&amp; s.EnrollmentId == enrollmentId
+                     &amp;&amp; s.IsCurrent &amp;&amp; s.Id != draft.Id)
+            .ToListAsync(ct);
+        foreach (var t in truoc) t.IsCurrent = false;
+
+        draft.AttemptNo = truoc.Count == 0 ? 1 : truoc.Max(t =&gt; t.AttemptNo) + 1;
+        draft.MarkSubmitted(now, assignment.DueAt);
+
+        await db.SaveChangesAsync(ct);
+        return Result&lt;SubmissionDto&gt;.Ok(SubmissionDto.From(draft));
+    }
+}</code></pre>
+<p>Action tương ứng, vẫn trong <code>AssignmentsController</code>:</p>
+<pre><code>[HttpPost("{id:guid}/submissions/submit")]
+[ProducesResponseType&lt;SubmissionDto&gt;(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status403Forbidden)]
+public async Task&lt;IActionResult&gt; Submit(Guid id, CancellationToken ct)
+    =&gt; ToActionResult(await sender.Send(new SubmitAssignmentCommand(id, CurrentUserId), ct));</code></pre>
+<div class="hint"><strong>Không có <code>BeginTransactionAsync</code> trong handler là cố ý.</strong> <code>SubmitAssignmentCommand</code> là <code>ICommand</code> nên <code>TransactionBehavior</code> đã bọc sẵn: hạ cờ <code>is_current</code> của các bản cũ và đóng dấu bản mới hoặc cùng vào, hoặc cùng không — không có trạng thái lỡ dở khiến partial unique index <code>ux_submission_current</code> bị vi phạm.</div>
+
+<label class="ck"><input type="checkbox"> Bước 6 — Chạy test, xác nhận xanh (9 test)</label>
+<label class="ck"><input type="checkbox"> Bước 7 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(submissions): add slot-based upload with draft and submit flow"</code></pre>
+</div>
+
+<div class="task">
+<h3>Task 3.5 — Pipeline xử lý file nền (Hangfire)</h3>
+<div class="files">
+<b>Tạo:</b> <code>src/TeachHub.Infrastructure/Jobs/ProcessSubmissionFileJob.cs</code>, <code>ThumbnailJob.cs</code><br>
+<b>Test:</b> <code>tests/TeachHub.Api.Tests/SubmissionProcessingTests.cs</code>
+</div>
+
+<label class="ck"><input type="checkbox"> Bước 1 — Test đỏ</label>
+<pre><code>[Fact]
+public async Task Upload_tra_ve_ngay_khong_cho_giai_nen_xong()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    var sw = Stopwatch.StartNew();
+
+    await sv.UploadToSlotAsync(assignmentId, "source_code", "to.zip", TestFiles.ZipOfSize(30 * 1024 * 1024));
+
+    sw.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(2));   // NFR: upload không chặn
+}
+
+[Fact]
+public async Task Job_dung_cay_thu_muc_va_cap_nhat_trang_thai()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    var fileId = await sv.UploadAndGetFileIdAsync(assignmentId, "source_code", "bai.zip", TestFiles.ValidZip);
+
+    await factory.RunPendingJobsAsync();
+
+    await using var db = await factory.CreateDbContextAsync();
+    var f = await db.SubmissionFiles.SingleAsync(x =&gt; x.Id == fileId);
+
+    f.ProcessingStatus.ShouldBe(FileProcessingStatus.Done);
+    f.FileTree.ShouldNotBeNull();
+    f.FileTree!.Files.ShouldContain(n =&gt; n.Path == "README.md");
+}
+
+[Fact]
+public async Task Zip_thieu_cau_truc_bat_buoc_van_nop_duoc_nhung_bi_gan_co()
+{
+    // SRS UC-08 bước 4: cảnh báo nhưng VẪN CHO NỘP.
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    var fileId = await sv.UploadAndGetFileIdAsync(assignmentId, "source_code", "thieu.zip",
+        TestFiles.ZipWithoutReadme);
+
+    var nop = await sv.PostAsync($"/api/assignments/{assignmentId}/submissions/submit", null);
+    nop.StatusCode.ShouldBe(HttpStatusCode.OK);          // vẫn nộp được
+
+    await factory.RunPendingJobsAsync();
+
+    await using var db = await factory.CreateDbContextAsync();
+    var f = await db.SubmissionFiles.SingleAsync(x =&gt; x.Id == fileId);
+    f.StructureCheckPassed.ShouldBeFalse();              // nhưng có cờ cho giảng viên
+}
+
+[Fact]
+public async Task Zip_doc_hai_bi_danh_dau_that_bai_va_khong_lam_sap_worker()
+{
+    var (sv, assignmentId) = await factory.SeedAssignmentWithSuggestedSlotsAsync();
+    var fileId = await sv.UploadAndGetFileIdAsync(assignmentId, "source_code", "bom.zip",
+        TestFiles.ZipBomb);
+
+    await factory.RunPendingJobsAsync();
+
+    await using var db = await factory.CreateDbContextAsync();
+    var f = await db.SubmissionFiles.SingleAsync(x =&gt; x.Id == fileId);
+
+    f.ProcessingStatus.ShouldBe(FileProcessingStatus.Failed);
+    f.ProcessingError.ShouldContain("vượt");
+}</code></pre>
+
+<label class="ck"><input type="checkbox"> Bước 2 — Viết job</label>
+<pre><code>using Hangfire;
+
+namespace TeachHub.Infrastructure.Jobs;
+
+public sealed class ProcessSubmissionFileJob(
+    AppDbContext db, IFileStorage storage, ILogger&lt;ProcessSubmissionFileJob&gt; log)
+{
+    /// &lt;summary&gt;
+    /// Chạy trên queue "zip" với ít worker (ADR-005): một file nén độc hại
+    /// không được phép chiếm hết worker và làm treo mọi job khác.
+    /// &lt;/summary&gt;
+    [Queue(JobsDependencyInjection.ZipQueue)]
+    [AutomaticRetry(Attempts = 2)]
+    public async Task RunAsync(Guid submissionFileId, CancellationToken ct)
+    {
+        var file = await db.SubmissionFiles
+            .Include(f =&gt; f.Slot)
+            .SingleOrDefaultAsync(f =&gt; f.Id == submissionFileId, ct);
+
+        if (file is null) return;                        // đã bị xóa trong lúc chờ
+        if (!file.Slot.AcceptsZip) { file.ProcessingStatus = FileProcessingStatus.Done; }
+        else
+        {
+            try
+            {
+                await using var stream = await storage.OpenReadAsync(file.FilePath, ct);
+                var tree = SafeZipReader.ReadTree(stream, ZipLimits.Default);
+
+                file.FileTree = tree;
+                file.StructureCheckPassed = file.Slot.RequiredStructure is null
+                    ? null
+                    : tree.CheckStructure(file.Slot.RequiredStructure).Passed;
+                file.ProcessingStatus = FileProcessingStatus.Done;
+            }
+            catch (UnsafeArchiveException e)
+            {
+                // Lỗi mong đợi: file hỏng hoặc độc hại. Ghi nhận rồi đi tiếp,
+                // KHÔNG ném lại — ném lại sẽ khiến Hangfire retry một file
+                // vốn dĩ không bao giờ xử lý được.
+                log.LogWarning("File nộp {Id} bị từ chối: {Reason}", file.Id, e.Message);
+                file.ProcessingStatus = FileProcessingStatus.Failed;
+                file.ProcessingError = e.Message;
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        await UpdateSubmissionStatusAsync(file.SubmissionId, ct);
+    }
+}</code></pre>
+<div class="hint"><strong>Phân biệt lỗi mong đợi và lỗi bất ngờ.</strong> <code>UnsafeArchiveException</code> bắt và ghi nhận (retry vô ích). Mọi exception khác cứ để ném ra — Hangfire retry và hiện lên dashboard, vì đó có thể là sự cố tạm thời của storage.</div>
+
+<label class="ck"><input type="checkbox"> Bước 3 — Xem file trong ZIP có tô màu cú pháp</label>
+<pre><code>GET /api/submissions/{id}/files/{slot_id}/file-tree             → cây thư mục
+GET /api/submissions/{id}/files/{fileId}/entry?path=src/App.tsx → nội dung một file</code></pre>
+<pre><code>[ApiController]
+[Route("api/submissions")]
+[Produces("application/json")]
+public sealed class SubmissionsController(ISender sender) : ApiControllerBase
+{
+    // KHÔNG gắn [Authorize] theo vai trò ở đây: cả sinh viên (bài của chính mình) lẫn
+    // giảng viên/trợ giảng (bài của lớp mình) đều dùng chung ba endpoint này.
+    // Fallback policy đã bắt buộc đăng nhập; quyền xem từng bài do handler quyết định
+    // và trả 404 chứ không 403 — xem test Sinh_vien_khong_xem_duoc_bai_nop_cua_sinh_vien_khac.
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType&lt;SubmissionDto&gt;(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task&lt;IActionResult&gt; Get(Guid id, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new GetSubmissionQuery(id, CurrentUserId), ct));
+
+    [HttpGet("{id:guid}/files/{slotId:guid}/file-tree")]
+    [ProducesResponseType&lt;FileTreeDto&gt;(StatusCodes.Status200OK)]
+    public async Task&lt;IActionResult&gt; FileTree(Guid id, Guid slotId, CancellationToken ct)
+        =&gt; ToActionResult(await sender.Send(new GetFileTreeQuery(id, slotId, CurrentUserId), ct));
+
+    [HttpGet("{id:guid}/files/{fileId:guid}/entry")]
+    public async Task&lt;IActionResult&gt; Entry(
+        Guid id, Guid fileId, [FromQuery] string path, CancellationToken ct)
+    {
+        var kq = await sender.Send(new GetZipEntryQuery(id, fileId, path, CurrentUserId), ct);
+        if (!kq.IsSuccess) return ToActionResult(kq);
+
+        // File(...) tự đặt Content-Disposition: attachment khi có fileDownloadName.
+        // KHÔNG gắn [Produces("text/plain")] lên action: attribute đó chỉ tác động lên
+        // ObjectResult, không đụng tới FileStreamResult — gắn vào chỉ tạo cảm giác an toàn giả.
+        return File(kq.Value.Content, "text/plain; charset=utf-8",
+                    fileDownloadName: kq.Value.FileName);
+    }
+}</code></pre>
+<div class="danger">
+Endpoint đọc nội dung entry phải chạy lại <code>NormalizeAndGuard</code> trên tham số <code>path</code>.
+Cây thư mục đã an toàn, nhưng <code>path</code> đến từ query string — người dùng sửa được.
+Ngoài ra: chỉ trả nội dung với file text dưới 1 MB, và <strong>luôn kèm header
+<code>Content-Type: text/plain</code> + <code>Content-Disposition: attachment</code></strong> để một file HTML
+do sinh viên nộp không thể chạy script trong phiên đăng nhập của giảng viên.
+</div>
+<p>Chỗ chạy lại <code>NormalizeAndGuard</code> là <code>GetZipEntryQueryHandler</code>, không phải controller — controller không chứa một dòng kiểm tra nghiệp vụ nào. Handler cần gọi được hàm này nên khi viết Task 3.3 hãy phơi nó ra thay vì chép lại logic sang tầng Application: hai bản sao của cùng một bộ luật đường dẫn sẽ lệch nhau ngay lần sửa đầu tiên.</p>
+
+<label class="ck"><input type="checkbox"> Bước 4 — Thumbnail cho ảnh (ImageSharp), queue mặc định</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Chạy test, xác nhận xanh</label>
+<label class="ck"><input type="checkbox"> Bước 6 — Commit</label>
+<pre><code>git add -A &amp;&amp; git commit -m "feat(jobs): process submission files in background with safety guards"</code></pre>
+</div>
+
+<hr>
+
+<h2>Chunk 3 — Giao diện</h2>
+
+<div class="task">
+<h3>Task 3.6 — Màn hình 6.4: cấu hình bài tập &amp; slot</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/app/(instructor)/assignments/[id]/edit/page.tsx</code></div>
+<p>Bảng slot kéo-thả: <em>Tên slot | Loại file | Bắt buộc? | Nhiều file? | Cho link? | Dung lượng tối đa</em>, nút "+ Thêm slot" và "Dùng mẫu gợi ý".</p>
+<label class="ck"><input type="checkbox"> Bước 1 — Bảng slot có thể sắp xếp lại (dnd-kit)</label>
+<label class="ck"><input type="checkbox"> Bước 2 — Chọn loại file bằng multi-select có gợi ý sẵn (<code>.zip</code>, <code>.pdf</code>, <code>.jpg</code>…) nhưng cho gõ tự do</label>
+<label class="ck"><input type="checkbox"> Bước 3 — Cấu hình cấu trúc bắt buộc chỉ hiện khi slot nhận <code>.zip</code></label>
+<label class="ck"><input type="checkbox"> Bước 4 — Trình soạn rubric (tiêu chí + điểm tối đa + các mức)</label>
+<div class="hint">Hiện tổng điểm rubric ngay cạnh <code>max_score</code> của bài tập và cảnh báo khi lệch. Rubric tổng 12 điểm cho bài thang 10 là lỗi rất dễ mắc và chỉ lộ ra lúc đang chấm dở.</div>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+</div>
+
+<div class="task">
+<h3>Task 3.7 — Màn hình 6.6: trang nộp bài của sinh viên</h3>
+<div class="files"><b>Tạo:</b> <code>frontend/src/app/(student)/assignments/[id]/submit/page.tsx</code></div>
+<p>Theo SRS mục 6.6:</p>
+<ul>
+<li>Mỗi slot một vùng upload riêng (hoặc ô nhập link nếu slot cho phép).</li>
+<li>Đèn trạng thái: xám = chưa nộp, xanh = đã nộp, đỏ = thiếu bắt buộc.</li>
+<li>Slot <code>.zip</code>: hiện checklist cấu trúc bắt buộc, tick xanh/đỏ.</li>
+<li>Nút "Lưu nháp" và "Nộp chính thức" — nút thứ hai chỉ bật khi đã đủ slot bắt buộc.</li>
+</ul>
+<label class="ck"><input type="checkbox"> Bước 1 — Vùng kéo-thả file cho từng slot, kèm thanh tiến trình</label>
+<label class="ck"><input type="checkbox"> Bước 2 — Kiểm tra định dạng và dung lượng ngay phía client trước khi gửi</label>
+<p class="meta">SRS UC-08 luồng phụ: "File vượt dung lượng hoặc sai định dạng slot → báo lỗi ngay tại bước 3, không upload lên server". Kiểm tra phía client là để trải nghiệm tốt; kiểm tra phía server (Task 3.4) mới là thứ bảo vệ hệ thống. <strong>Phải có cả hai.</strong></p>
+<label class="ck"><input type="checkbox"> Bước 3 — Hiện kết quả kiểm cấu trúc sau khi job chạy xong (poll hoặc SSE)</label>
+<div class="hint"><strong>Mặc định: poll. SSE chỉ khi đo được là cần.</strong> Helper Server-Sent Events dựng sẵn của .NET 10 chỉ tồn tại ở phía Minimal API — dự án này dùng Controllers nên muốn SSE phải tự ghi vào <code>Response.Body</code>. Bắt đầu bằng poll <code>GET /api/submissions/{id}/processing-status</code> mỗi 2 giây, dừng khi trạng thái đã chốt hoặc sau 2 phút — vài dòng, chạy được qua mọi reverse proxy.</div>
+<p>Nếu vẫn muốn SSE, action viết như sau — trả <code>Task</code> chứ không phải <code>IActionResult</code>, vì response được ghi thẳng bằng tay:</p>
+<pre><code>[HttpGet("{id:guid}/processing-status/stream")]
+public async Task StreamStatus(Guid id, CancellationToken ct)
+{
+    Response.ContentType = "text/event-stream";
+    Response.Headers.CacheControl = "no-cache";
+    Response.Headers["X-Accel-Buffering"] = "no";   // nginx mặc định đệm, đệm là hỏng SSE
+
+    while (!ct.IsCancellationRequested)
+    {
+        var tt = await sender.Send(new GetProcessingStatusQuery(id, CurrentUserId), ct);
+
+        await Response.WriteAsync($"data: {JsonSerializer.Serialize(tt)}\n\n", ct);
+        await Response.Body.FlushAsync(ct);
+
+        if (tt.IsFinal) break;
+        await Task.Delay(TimeSpan.FromSeconds(2), ct);
+    }
+}</code></pre>
+<div class="danger">
+<strong>Đánh đổi, nói thẳng:</strong> SSE tiết kiệm vòng lặp HTTP chứ <em>không</em> tiết kiệm truy vấn database —
+đoạn trên vẫn hỏi database mỗi 2 giây, chỉ khác là hỏi từ trong một kết nối đang treo. Muốn tiết kiệm thật thì
+job Hangfire phải chủ động phát tín hiệu (hàng đợi trong tiến trình hoặc <code>LISTEN/NOTIFY</code> của Postgres),
+và lúc đó bạn đã có thêm một hệ thống nữa phải nuôi. Mặt khác mỗi sinh viên đang chờ chiếm một kết nối mở:
+cả lớp nộp phút chót là hàng trăm kết nối treo cùng lúc, cộng với reverse proxy phải được cấu hình đúng,
+nếu không trình duyệt "im lặng" và không ai hiểu vì sao. Poll xấu hơn về lý thuyết nhưng hỏng theo cách dễ đoán hơn.
+</div>
+<label class="ck"><input type="checkbox"> Bước 4 — Hiển thị lịch sử nộp (các attempt trước, chỉ đọc)</label>
+<label class="ck"><input type="checkbox"> Bước 5 — Commit</label>
+</div>
+
+<hr>
+
+<h2>Nghiệm thu Phase 3</h2>
+<ol>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Tạo bài tập với 3 slot bằng "Dùng mẫu gợi ý", sửa lại nhãn tiếng Việt.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Tạo bài tập thứ hai, xóa bớt còn <strong>duy nhất 1 slot source code</strong> — đúng ví dụ trong SRS.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Sinh viên nộp ảnh trước → nút "Nộp chính thức" vẫn bị khóa, ghi rõ còn thiếu "Source code".</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Nộp thêm ZIP → nút bật, nộp thành công.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Xem được cây thư mục ZIP trên trình duyệt, mở một file <code>.tsx</code> có tô màu cú pháp.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Nộp một ZIP <strong>thiếu <code>README.md</code></strong> → vẫn nộp được, checklist hiện dấu đỏ, giảng viên nhìn thấy cờ.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Nộp một ZIP <strong>nén cả thư mục gốc</strong> (<code>BaiTap1/README.md</code>) → checklist vẫn xanh.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Thử upload file <code>.txt</code> đổi đuôi thành <code>.zip</code> → bị từ chối.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Upload file 30 MB → trang phản hồi dưới 2 giây, trạng thái xử lý cập nhật sau đó.</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Nộp lại lần hai → thấy cả 2 lần trong lịch sử, chỉ lần mới nhất là "hiện hành".</li>
+<li><label class="ck" style="display:inline"><input type="checkbox"></label> Đăng nhập bằng tài khoản sinh viên khác → không mở được bài nộp vừa rồi.</li>
+</ol>
+
+<h2>Rủi ro đã biết của phase này</h2>
+<table>
+<thead><tr><th>Rủi ro</th><th>Dấu hiệu</th><th>Xử lý</th></tr></thead>
+<tbody>
+<tr><td><strong>ZIP độc hại</strong></td><td>Máy chủ hết đĩa / treo</td><td>Task 3.3 — hạn mức cứng + queue riêng. Đừng cắt.</td></tr>
+<tr><td>File HTML sinh viên nộp chạy script trong phiên giảng viên</td><td>XSS trong trang chấm bài</td><td>Luôn trả <code>text/plain</code> + <code>Content-Disposition: attachment</code>; không bao giờ render nội dung nộp dưới dạng HTML.</td></tr>
+<tr><td>Cả lớp nộp cùng lúc phút chót</td><td>Hàng đợi job dồn ứ, đĩa đầy</td><td>Rate limit, giới hạn dung lượng slot, theo dõi độ dài hàng đợi trên dashboard Hangfire. Có thể tăng worker tạm thời trước hạn nộp lớn.</td></tr>
+<tr><td>Sinh viên nén sai cấu trúc hàng loạt</td><td>Nửa lớp bị cờ đỏ</td><td>Đã xử lý: chấp nhận thư mục gốc chung. Bổ sung mô tả rõ ràng ngay trên trang nộp.</td></tr>
+<tr><td>Storage phình nhanh</td><td>Đĩa đầy giữa học kỳ</td><td>Rủi ro #2 trong SRS mục 11. Theo dõi dung lượng theo lớp; Phase 9 làm archive học kỳ cũ.</td></tr>
+<tr><td>Nộp lại làm mất bài cũ</td><td>Sinh viên khiếu nại</td><td>Đã xử lý bằng <code>attempt_no</code> + <code>is_current</code>; file cũ không bao giờ bị xóa.</td></tr>
+</tbody>
+</table>
+
+<hr>
+<p class="meta">Tiếp theo: <a href="2026-08-13-phase-4-grading-gradebook.html">Phase 4 — Chấm điểm &amp; Sổ điểm</a> · Quay lại <a href="2026-08-13-teachhub-roadmap.html">Roadmap</a></p>
+
+</main>
+</body>
+</html>
