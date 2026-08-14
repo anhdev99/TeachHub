@@ -1,6 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using TeachHub.Application.Features.Enrollments.Commands.ImportEnrollments;
+using TeachHub.Application.Features.Enrollments.Queries.GetEnrollments;
 using TeachHub.Application.Features.Offerings;
 using TeachHub.Application.Features.Offerings.Commands.CreateOffering;
 using TeachHub.Application.Features.Offerings.Queries.GetOffering;
@@ -37,4 +40,43 @@ public sealed class OfferingsController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
         => ToActionResult(await sender.Send(new GetOfferingQuery(id, CurrentUserId), ct));
+
+    [HttpGet("{id:guid}/enrollments")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<IReadOnlyList<EnrollmentDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetEnrollments(Guid id, CancellationToken ct)
+        => ToActionResult(await sender.Send(new GetEnrollmentsQuery(id, CurrentUserId), ct));
+
+    [HttpPost("{id:guid}/enrollments/import")]
+    [Authorize(Policy = Policies.Instructor)]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]                             // danh sách lớp không bao giờ quá 10 MB
+    [RequestFormLimits(MultipartBodyLengthLimit = 10 * 1024 * 1024)] // hạn mức riêng của model binder multipart
+    [EnableRateLimiting("upload")]
+    [IgnoreAntiforgeryToken]
+    [ProducesResponseType<ImportEnrollmentsResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ImportEnrollments(
+        Guid id, [FromForm] ImportRosterForm form, CancellationToken ct)
+    {
+        await using var stream = form.File.OpenReadStream();
+
+        return ToActionResult(await sender.Send(new ImportEnrollmentsCommand(stream)
+        {
+            OfferingId = id, InstructorId = CurrentUserId,
+        }, ct));
+    }
+}
+
+/// <summary>
+/// Bọc IFormFile trong lớp [FromForm] — bắt buộc, không phải thẩm mỹ. Với tham số rời,
+/// OpenAPI sinh application/x-www-form-urlencoded và liệt kê thuộc tính nội bộ của IFormFile
+/// thay vì một field nhị phân, nên client TypeScript sinh tự động không gọi được endpoint này.
+/// </summary>
+public sealed class ImportRosterForm
+{
+    [FromForm(Name = "file")]   // ghim tên trên dây; model binder form KHÔNG theo JsonNamingPolicy
+    public required IFormFile File { get; init; }
 }

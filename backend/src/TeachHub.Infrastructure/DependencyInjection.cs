@@ -18,6 +18,7 @@ public static class DependencyInjection
             .UseSnakeCaseNamingConvention());
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IEnrollmentReader, Excel.ClosedXmlEnrollmentReader>();
 
         // Đăng ký SAU Logging và Validation (khai trong AddApplication) — thứ tự đăng ký
         // chính là thứ tự chạy từ ngoài vào trong, nên Transaction phải là lớp trong cùng,
