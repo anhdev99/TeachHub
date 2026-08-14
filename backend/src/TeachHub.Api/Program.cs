@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Hangfire;
 using Microsoft.AspNetCore.RateLimiting;
 using Scalar.AspNetCore;
 using Serilog;
@@ -7,6 +8,7 @@ using TeachHub.Api.Common;
 using TeachHub.Application;
 using TeachHub.Application.Common;
 using TeachHub.Infrastructure;
+using TeachHub.Infrastructure.Jobs;
 using TeachHub.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,6 +70,7 @@ builder.Services.AddRateLimiter(o =>
 
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddAuth(builder.Configuration);
+builder.Services.AddJobs(builder.Configuration);
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
@@ -90,6 +93,11 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference().AllowAnonymous();   // UI duyệt API tại /scalar/v1
 
 app.MapHealthChecks("/health").AllowAnonymous();
+
+// Dashboard Hangfire là middleware chứ không phải action nên không có class để gắn
+// [Authorize]; RequireAuthorization trên endpoint routing là cách duy nhất đúng ở đây.
+if (app.Configuration.GetValue("Hangfire:Enabled", true))
+    app.MapHangfireDashboard("/jobs").RequireAuthorization(Policies.Instructor);
 
 // CHỈ seed ở Development/Testing. Ở Production dùng POST /api/auth/bootstrap để tạo
 // giảng viên đầu tiên — seed tài khoản có mật khẩu công khai lên máy chủ thật là
