@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: teachhub-db
+    environment:
+      POSTGRES_DB: teachhub
+      POSTGRES_USER: teachhub
+      POSTGRES_PASSWORD: teachhub_dev
+      # Collation tiếng Việt để ORDER BY họ tên ra đúng thứ tự
+      LANG: vi_VN.utf8
+    ports: ["5433:5432"]
+    volumes: ["./data/pg:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U teachhub -d teachhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: teachhub-storage
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: teachhub
+      MINIO_ROOT_PASSWORD: teachhub_dev_secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: ["./data/minio:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
