@@ -7,35 +7,35 @@ Ký hiệu: `- [ ]` chưa làm · `- [x]` xong theo DoD · `- [!]` BỎ DỞ (gh
 
 ## Chunk 1 — Môn học & phiên bản
 
-- [ ] **Task 1.1** — Entity `Subject`, `SubjectVersion`, `Syllabus` + máy trạng thái draft→published→archived
-- [ ] **Task 1.2** — `Chapter`, `Lesson`, `LessonComponent`, `ComponentConfig` + reorder giữ order_index liên tục
-- [ ] **Task 1.3** — Ánh xạ EF Core (jsonb qua ToJson, enum chuỗi, soft delete filter) + migration `ContentModel`
+- [x] **Task 1.1** — Entity `Subject`, `SubjectVersion`, `Syllabus` + máy trạng thái draft→published→archived
+- [x] **Task 1.2** — `Chapter`, `Lesson`, `LessonComponent`, `ComponentConfig` + reorder giữ order_index liên tục
+- [x] **Task 1.3** — Ánh xạ EF Core (jsonb qua ToJson, enum chuỗi, soft delete filter) + migration `ContentModel`
 
 ## Chunk 2 — API nội dung & cơ chế versioning
 
-- [ ] **Task 1.4** — Controller Subject & SubjectVersion (create/list/get/versions/publish)
-- [ ] **Task 1.5** — Controller Chapter/Lesson/Component + reorder + action filter `[RequireDraftVersion]`
-- [ ] **Task 1.6** — ⭐ `SubjectVersionCloner` deep clone + remap `ref_id` (task quan trọng nhất của cả dự án)
+- [x] **Task 1.4** — Controller Subject & SubjectVersion (create/list/get/versions/publish)
+- [x] **Task 1.5** — Controller Chapter/Lesson/Component + reorder + action filter `[RequireDraftVersion]`
+- [x] **Task 1.6** — ⭐ `SubjectVersionCloner` deep clone + remap `ref_id` (task quan trọng nhất của cả dự án)
 
 ## Chunk 3 — Giao diện giảng viên
 
-- [ ] **Task 1.7** — Upload nội dung bài học + `FileSignatureValidator` (magic bytes)
-- [ ] **Task 1.8** — Màn hình 6.2: trình soạn thảo chương (kéo-thả, optimistic update)
-- [ ] **Task 1.9** — Màn hình 6.10: lịch sử phiên bản
+- [x] **Task 1.7** — Upload nội dung bài học + `FileSignatureValidator` (magic bytes)
+- [x] **Task 1.8** — Màn hình 6.2: trình soạn thảo chương (kéo-thả, optimistic update)
+- [x] **Task 1.9** — Màn hình 6.10: lịch sử phiên bản
 
 ## Bắt buộc theo Definition of Done mục 7
 
-- [ ] Thêm dòng vào `CrossInstructorIsolationTests` cho: `subjects`, `subject-versions`, `chapters`, `lessons`, `lesson-components`
+- [x] Thêm dòng vào `CrossInstructorIsolationTests` cho: `subjects`, `subject-versions`, `chapters`, `lessons`, `lesson-components`
 
 ## Nghiệm thu Phase 1 (thao tác tay trên UI)
 
-- [ ] 1. Tạo môn "IN4203 — Lập trình di động React Native"
-- [ ] 2. Version `2026-2027`, tạo 2 chương
-- [ ] 3. Chương 1 có 2 bài: bài 1 gắn assignment + quiz + reflection; **bài 2 không gắn gì** — vẫn hợp lệ
-- [ ] 4. Upload 1 PPT và 1 PDF, xem trước được trong trình duyệt
-- [ ] 5. Kéo-thả đổi thứ tự bài và component, tải lại thấy thứ tự đã lưu
-- [ ] 6. Xuất bản version → mọi nút sửa `disabled`
-- [ ] 7. Tạo version `2027-2028` từ nó → đủ 2 chương, đúng thứ tự, đúng component
-- [ ] 8. **Xóa một chương ở bản 2027-2028 → bản 2026-2027 vẫn còn nguyên**
-- [ ] 9. Xuất bản `2027-2028` → `2026-2027` tự thành `archived`, vẫn xem chỉ đọc được
-- [ ] 10. Trang lịch sử phiên bản hiện đủ 2 mốc với badge trạng thái đúng
+- [x] 1. Tạo môn "IN4203 — Lập trình di động React Native"
+- [x] 2. Version `2026-2027`, tạo 2 chương
+- [x] 3. Chương 1 có 2 bài: bài 1 gắn assignment + quiz + reflection; **bài 2 không gắn gì** — vẫn hợp lệ
+- [!] 4. Upload 1 PPT và 1 PDF, xem trước được trong trình duyệt — upload XONG (có kiểm magic bytes); **xem trước CHƯA LÀM**, thiếu endpoint phục vụ file
+- [x] 5. Kéo-thả đổi thứ tự bài và component, tải lại thấy thứ tự đã lưu
+- [x] 6. Xuất bản version → mọi nút sửa `disabled`
+- [x] 7. Tạo version `2027-2028` từ nó → đủ 2 chương, đúng thứ tự, đúng component
+- [x] 8. **Xóa một chương ở bản 2027-2028 → bản 2026-2027 vẫn còn nguyên**
+- [x] 9. Xuất bản `2027-2028` → `2026-2027` tự thành `archived`, vẫn xem chỉ đọc được
+- [x] 10. Trang lịch sử phiên bản hiện đủ 2 mốc với badge trạng thái đúng

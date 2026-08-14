@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 1 — Báo cáo chốt phase · TeachHub</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#5b6472;--acc:#0b6bcb;--acc2:#7c3aed;--ok:#0a7d32;--warn:#b45309;--err:#b91c1c;--bd:#e3e6ea;--cbg:#f5f7f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171a;--fg:#e8eaed;--muted:#9aa4b2;--acc:#6db3ff;--acc2:#c4a7ff;--ok:#5fd18a;--warn:#f0b429;--err:#ff7b72;--bd:#2a2f36;--cbg:#1b1f24}}
+*{box-sizing:border-box}
+body{margin:0;padding:2rem 1.25rem 6rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}
+main{max-width:1080px;margin:0 auto}
+h1{font-size:2rem;line-height:1.25;border-bottom:3px solid var(--acc);padding-bottom:.5rem;margin-top:0}
+h2{margin-top:2.6rem;font-size:1.4rem;border-bottom:1px solid var(--bd);padding-bottom:.35rem}
+h3{margin-top:1.8rem;font-size:1.08rem;color:var(--acc)}
+code{background:var(--cbg);padding:.12em .38em;border-radius:4px;font:.88em/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--cbg);border:1px solid var(--bd);border-radius:8px;padding:.9rem;overflow-x:auto}
+pre code{background:none;padding:0;font-size:.82rem}
+table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.89rem;display:block;overflow-x:auto}
+th,td{border:1px solid var(--bd);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--cbg);font-weight:600;white-space:nowrap}
+blockquote{border-left:4px solid var(--acc2);margin:1rem 0;padding:.6rem 1rem;background:var(--cbg);border-radius:0 8px 8px 0}
+ul,ol{padding-left:1.3rem}li{margin:.3rem 0}
+.meta{color:var(--muted);font-size:.9rem}
+.ok{color:var(--ok);font-weight:600}
+.warn{color:var(--warn);font-weight:600}
+.err{color:var(--err);font-weight:600}
+.danger{border-left:4px solid var(--err);padding:.6rem 1rem;margin:1rem 0;background:var(--cbg);border-radius:0 8px 8px 0}
+hr{border:0;border-top:1px solid var(--bd);margin:2.4rem 0}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phase 1 — Nội dung dạy học &amp; Versioning · Báo cáo chốt phase</h1>
+<p class="meta">15/08/2026 · Nhánh <code>phase-0-foundation</code> ·
+Plan: <a href="../../docs/superpowers/plans/2026-08-13-phase-1-content-versioning.html">2026-08-13-phase-1-content-versioning.html</a></p>
+
+<blockquote>
+<strong>Kết quả:</strong> <span class="ok">9/9 task đạt Definition of Done</span>. Nghiệm thu tay
+<span class="ok">9/10 bước đạt</span>; bước còn lại (xem trước PPT/PDF trong trình duyệt) mới xong nửa
+phần upload — chi tiết ở mục 3.
+</blockquote>
+
+<h2>1. Bằng chứng kiểm chứng</h2>
+
+<table>
+<thead><tr><th>Hạng mục</th><th>Kết quả</th></tr></thead>
+<tbody>
+<tr><td><code>dotnet build backend/TeachHub.sln</code></td><td class="ok">0 Warning(s) · 0 Error(s)</td></tr>
+<tr><td><code>dotnet test backend/TeachHub.sln</code></td><td class="ok">136 xanh / 0 đỏ — Domain 31, Application 2, Api 103 <span class="meta">(Phase 0 để lại 53)</span></td></tr>
+<tr><td>Ngân sách tốc độ unit test</td><td class="ok">Domain 0,06 s — dưới xa ngưỡng 10 s dù đã thêm 27 test</td></tr>
+<tr><td><code>pnpm lint</code> + <code>pnpm build</code></td><td class="ok">Sạch, 10 route</td></tr>
+<tr><td>Migration <code>ContentModel</code></td><td class="ok">Sinh bằng <code>dotnet ef</code>, đã đọc file: 7 bảng mới, <code>DropTable</code> chỉ nằm trong <code>Down()</code>, <code>syllabus</code>/<code>config</code> đúng <code>jsonb</code>, <code>foundation_tags</code> đúng <code>text[]</code></td></tr>
+<tr><td>Ma trận cách ly</td><td class="ok">1 → <strong>16 dòng tài nguyên + 2 endpoint danh sách</strong> (DoD mục 7)</td></tr>
+<tr><td>Client TS</td><td class="ok"><code>pnpm gen:api</code> sinh lại được, 22 endpoint</td></tr>
+</tbody>
+</table>
+
+<h3>Ba chỗ nguy hiểm nhất được kiểm bằng đột biến</h3>
+<p>Cả ba đều xanh ngay lần chạy đầu vì code đã viết trước theo plan — mà test chưa từng đỏ thì chưa
+chứng minh được gì. Đã phá code có chủ đích để xác nhận chúng thật sự canh gác:</p>
+
+<table>
+<thead><tr><th>Phá cái gì</th><th>Test phản ứng</th></tr></thead>
+<tbody>
+<tr>
+<td>Thay dòng remap trong <code>SubjectVersionCloner</code> bằng <code>RefId = cp.RefId</code> (copy nguyên id cũ)</td>
+<td class="err">→ <code>Ref_id_cua_component_tro_toi_BAN_SAO_chu_khong_phai_ban_goc</code> và <code>Component_tro_ra_ngoai_version_nguon…</code> đỏ; 7 test còn lại vẫn xanh</td>
+</tr>
+<tr>
+<td>Cho <code>ContentOwnership.OwnsLessonAsync</code> luôn trả <code>true</code></td>
+<td class="err">→ đúng 3 dòng ma trận liên quan <code>lesson</code> đỏ, 17 dòng khác giữ xanh</td>
+</tr>
+<tr>
+<td>(Phase 0, kiểm lại) gỡ điều kiện lọc <code>instructor_id</code></td>
+<td class="err">→ ma trận đỏ đúng chỗ, test đối chứng "chính chủ vẫn vào được" giữ xanh</td>
+</tr>
+</tbody>
+</table>
+<p class="meta">Điểm quan trọng: mỗi lần phá, <em>chỉ</em> những dòng liên quan đỏ. Nghĩa là ma trận phân
+biệt được "lọc đúng" với "chặn tất cả" — một ma trận đỏ toàn bộ khi phá một chỗ thì không định vị được lỗi.</p>
+
+<h2>2. Task đã xong</h2>
+
+<table>
+<thead><tr><th>Task</th><th>Sản phẩm</th></tr></thead>
+<tbody>
+<tr><td>1.1</td><td><code>Subject</code>, <code>SubjectVersion</code> (máy trạng thái draft→published→archived), <code>Syllabus</code> + <code>DeepCopy</code></td></tr>
+<tr><td>1.2</td><td><code>Chapter</code>, <code>Lesson</code>, <code>LessonComponent</code> (8 loại), <code>ComponentConfig</code>; <code>Reindex()</code> giữ <code>order_index</code> liên tục sau mọi thao tác</td></tr>
+<tr><td>1.3</td><td>7 <code>IEntityTypeConfiguration</code>, migration <code>ContentModel</code>, 6 test kiểm schema thật trên Postgres</td></tr>
+<tr><td>1.4</td><td><code>SubjectsController</code> + <code>SubjectVersionsController</code>; publish tự archive bản cũ và cập nhật <code>current_version_id</code></td></tr>
+<tr><td>1.5</td><td><code>ChaptersController</code>, <code>LessonsController</code>, <code>LessonComponentsController</code>, action filter <code>[RequireDraftVersion]</code> gắn xuống <strong>từng action</strong></td></tr>
+<tr><td>1.6 ⭐</td><td><code>SubjectVersionCloner</code> — 5 truy vấn phẳng, bảng ánh xạ id cũ→mới, remap <code>ref_id</code>, ném lỗi khi dữ liệu không nhất quán. 9 test gồm cả ca quy mô 270 component</td></tr>
+<tr><td>1.7</td><td><code>FileSignatureValidator</code> (Domain, thuần) + endpoint upload có <code>[RequestSizeLimit]</code> <em>và</em> <code>[RequestFormLimits]</code>, rate limit, <code>IFormFile</code> bọc trong lớp <code>[FromForm]</code></td></tr>
+<tr><td>1.8</td><td>Màn hình 6.2 — soạn thảo chương, kéo-thả bằng <code>@dnd-kit</code> có cập nhật lạc quan, khoá toàn bộ control khi version không phải draft</td></tr>
+<tr><td>1.9</td><td>Màn hình 6.10 — timeline phiên bản, badge trạng thái, dialog "Tạo phiên bản mới từ đây"</td></tr>
+</tbody>
+</table>
+
+<h2>3. Phần còn thiếu</h2>
+
+<div class="danger">
+<strong>Nghiệm thu bước 4 — xem trước PPT/PDF trong trình duyệt: mới xong một nửa.</strong><br>
+<strong>Đã có:</strong> upload đầy đủ, kiểm chữ ký byte thật (chặn <code>.exe</code> đổi tên, đuôi kép
+<code>.pdf.exe</code>, MIME nói dối), lưu qua <code>IFileStorage</code>, ghi <code>file_url</code> vào bài học,
+5 test phủ.<br>
+<strong>Chưa có:</strong> không xem trước được, vì <strong>chưa có endpoint phục vụ file</strong>.
+<code>LocalFileStorage.GetPresignedUrlAsync</code> trả về đường dẫn <code>/api/files/{path}</code> nhưng
+endpoint đó chưa tồn tại — đây là nợ kỹ thuật đã ghi nhận từ báo cáo Phase 0 và chưa trả.<br>
+<strong>Vì sao chưa làm:</strong> endpoint phục vụ file phải kiểm quyền theo <em>chủ sở hữu nội dung</em>
+(giảng viên) <em>lẫn</em> theo <em>người học của lớp</em> — mà khái niệm "người học của lớp" chỉ xuất hiện ở
+Phase 2 (<code>CourseOffering</code>/<code>Enrollment</code>). Làm bây giờ là phải viết một phép kiểm quyền
+sẽ bị viết lại ngay phase sau.<br>
+<strong>Việc cần làm:</strong> thêm <code>GET /api/files/{path}</code> ở Phase 2 kèm kiểm quyền đầy đủ,
+rồi bổ sung khối xem trước vào <code>LessonContentPanel</code>.
+</div>
+
+<h2>4. Sai lệch so với plan, và lý do</h2>
+
+<table>
+<thead><tr><th>#</th><th>Plan nói</th><th>Thực tế</th><th>Đã xử lý</th></tr></thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Task 1.1 và 1.2 là hai task tách rời</td>
+<td><code>SubjectVersion</code> ở Task 1.1 khai <code>List&lt;Chapter&gt; Chapters</code>, mà <code>Chapter</code> chỉ ra đời ở Task 1.2 — hai task là <strong>một đơn vị biên dịch</strong>, không thể xanh riêng lẻ</td>
+<td>Viết test đỏ cho cả hai trước, rồi hiện thực cả hai, rồi xác nhận 18 test cùng xanh. Gộp vào một commit thay vì tạo một commit rỗng cho có</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>b.OwnsOne(x =&gt; x.Config, c =&gt; c.ToJson())</code></td>
+<td>Không đủ. Danh sách complex <strong>lồng bên trong</strong> cột <code>ToJson()</code> (<code>ComponentConfig.InlineQuestions</code>, <code>Syllabus.Outcomes</code>) phải khai tường minh; thiếu thì <strong>mô hình EF không dựng nổi</strong> và <code>dotnet ef</code> chết với <em>"Unable to determine the relationship represented by navigation…"</em></td>
+<td>Thêm <code>c.OwnsMany(cfg =&gt; cfg.InlineQuestions)</code> và <code>s.OwnsMany(y =&gt; y.Outcomes)</code>. Đúng luật "đếm property complex phải bằng số dòng OwnsOne/OwnsMany" của skill <code>teachhub-data</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Test kiểm kiểu cột: <code>SqlQuery&lt;string&gt;($"SELECT data_type FROM …")</code></td>
+<td><code>SqlQuery&lt;T&gt;</code> cho kiểu vô hướng đòi cột kết quả tên <code>Value</code>; thiếu alias là <code>42703: column s.Value does not exist</code></td>
+<td>Thêm <code>AS \"Value\"</code> vào cả 5 truy vấn</td>
+</tr>
+<tr>
+<td>4</td>
+<td>—</td>
+<td><strong>Lỗi âm thầm nhất của phase.</strong> Thêm một <code>LessonComponent</code> vào navigation của một <code>Lesson</code> <em>đang được theo dõi</em> thì EF suy ra trạng thái <code>Modified</code> (vì <code>Id</code> đã do ứng dụng sinh sẵn) và phát <code>UPDATE</code> trên hàng chưa tồn tại → <code>DbUpdateConcurrencyException: expected to affect 1 row(s), but actually affected 0</code> → HTTP 500. Không xảy ra khi <code>Lesson</code> cũng là bản ghi mới, nên test ở Task 1.3 vẫn xanh và lỗi chỉ lộ ở Task 1.5</td>
+<td>Gọi <code>db.LessonComponents.Add(component)</code> tường minh để ép đúng trạng thái <code>Added</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Controller khai <code>[Produces("application/json")]</code> ở cấp class (Task 1.4 Bước 5)</td>
+<td>Đã bỏ từ Phase 0 vì nó phá <code>application/problem+json</code>. Nhưng bỏ nó thì OpenAPI liệt kê thừa <code>text/plain</code> và <code>text/json</code> cho mọi phản hồi</td>
+<td>Gỡ <code>StringOutputFormatter</code> và bí danh <code>text/json</code> trong <code>AddControllers</code>. Mỗi endpoint giờ khai đúng một content-type, và phản hồi lỗi vẫn giữ <code>problem+json</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>—</td>
+<td><strong>Ảnh hưởng mọi phase sau.</strong> .NET 10 khai mọi số là <code>type: ["integer","string"]</code> kèm <code>pattern</code>, nên <code>openapi-typescript</code> sinh <code>order_index: number | string</code> cho <em>mọi</em> trường số. Frontend không biên dịch được nếu không rắc <code>Number(...)</code> khắp nơi — với sổ điểm Phase 4b là hàng chục chỗ</td>
+<td>Thêm <code>AddSchemaTransformer</code> bỏ biến thể <code>string</code> khỏi tài liệu, giữ nguyên cờ <code>Null</code>. Client sinh lại cho <code>order_index: number</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Ma trận cách ly gửi request trần</td>
+<td>Các dòng POST/PUT dừng ở <strong>400 vì model binding</strong> trước khi tới lớp phân quyền — tức test không kiểm được điều nó tuyên bố kiểm</td>
+<td>Thêm trường <code>Body</code> JSON hợp lệ cho từng dòng ghi. Đã xác nhận bằng đột biến rằng ma trận nay thật sự bắt được rò rỉ</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Test OpenAPI upload assert schema nội tuyến</td>
+<td>.NET 10 khai field nhị phân bằng <code>$ref</code> tới <code>components/schemas/IFormFile</code> (bản thân nó đúng là <code>{type:"string",format:"binary"}</code>) chứ không nội tuyến</td>
+<td>Test đi theo <code>$ref</code>. Giữ nguyên nguyên tắc đọc bằng <code>JsonElement</code> chứ không so chuỗi</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Quyết định kỹ thuật mới</h3>
+<table>
+<thead><tr><th>Quyết định</th><th>Lý do</th></tr></thead>
+<tbody>
+<tr><td><code>ContentOwnership</code> — một lớp static gom 4 phép kiểm quyền sở hữu</td><td>Cả 8 handler của Phase 1 cần đúng phép kiểm này. Mỗi bản sao chép thủ công là một chỗ có thể quên điều kiện <code>instructor_id</code>, mà quên một chỗ là lộ nội dung lớp người khác</td></tr>
+<tr><td><code>[RequireDraftVersion(RouteIdKind.X)]</code> nhận tham số loại id</td><td>Filter phải lần ngược từ 4 loại id khác nhau về <code>SubjectVersion</code>. Truyền loại tường minh rẻ hơn nhiều so với đoán theo tên route</td></tr>
+<tr><td>Chỉ số unique <code>(instructor_id, code)</code> có <code>WHERE NOT is_deleted</code></td><td>Bản xóa mềm vẫn nằm trong bảng và không được chiếm chỗ mã môn đó</td></tr>
+<tr><td><code>AddComponentCommandHandler</code> kiểm <code>ref_id</code> thuộc đúng phiên bản</td><td>Không kiểm thì một component trỏ sang assignment của môn khác, và <code>SubjectVersionCloner</code> sẽ dừng clone vì dữ liệu không nhất quán — lỗi hiện ra cách nguyên nhân một năm</td></tr>
+<tr><td>Tạo môn học sinh luôn một phiên bản draft đầu tiên</td><td>Môn không có phiên bản thì không soạn được gì; bắt bấm thêm một nút để tới chỗ duy nhất đi tiếp được là thủ tục thừa</td></tr>
+<tr><td><code>QueryClient</code> tạo trong <code>useState</code>, không phải module scope</td><td>Module scope bị chia sẻ giữa các request ở phía máy chủ — dữ liệu giảng viên này sẽ rò sang giảng viên khác</td></tr>
+</tbody>
+</table>
+
+<h2>5. Nghiệm thu — từng bước</h2>
+<p class="meta">Chạy qua API thật trên Postgres thật, và kiểm giao diện bằng phiên đăng nhập thật.</p>
+
+<table>
+<thead><tr><th>#</th><th>Bước</th><th>Kết quả thật</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Tạo môn "Lập trình di động React Native"</td><td class="ok">✔ 200</td></tr>
+<tr><td>2</td><td>Tạo 2 chương trong version đầu</td><td class="ok">✔ 200, 200</td></tr>
+<tr><td>3</td><td>Bài 1 gắn assignment + quiz + reflection; bài 2 không gắn gì</td><td class="ok">✔ bài 1 có 3 phần <code>[assignment, quiz, reflection]</code>; bài 2 có <strong>0 phần và vẫn hợp lệ</strong> — đúng ví dụ SRS mục 5.1</td></tr>
+<tr><td>4</td><td>Upload PPT/PDF, xem trước trong trình duyệt</td><td class="warn">◐ upload xong và có kiểm magic bytes; <strong>xem trước chưa làm</strong> — xem mục 3</td></tr>
+<tr><td>5</td><td>Kéo-thả đổi thứ tự, tải lại thấy thứ tự đã lưu</td><td class="ok">✔ sau reorder: <code>[('Bài 2', 0), ('Bài 1', 1)]</code> — đọc lại từ DB</td></tr>
+<tr><td>6</td><td>Xuất bản → khoá sửa</td><td class="ok">✔ publish 200; thêm chương sau đó <strong>409</strong></td></tr>
+<tr><td>7</td><td>Tạo version <code>2027-2028</code> từ bản đã xuất bản</td><td class="ok">✔ 200, bản mới có đủ 2 chương đúng thứ tự; <code>ref_id</code> trong bản clone <strong>không trùng một cái nào</strong> với bản gốc</td></tr>
+<tr><td>8</td><td>Xoá một chương ở bản mới → bản cũ còn nguyên</td><td class="ok">✔ bản 2027-2028 còn 1 chương, <strong>bản gốc vẫn đủ 2 chương</strong></td></tr>
+<tr><td>9</td><td>Xuất bản bản mới → bản cũ tự <code>archived</code></td><td class="ok">✔ <code>{'2027-2028': 'published', 'Bản đầu tiên': 'archived'}</code></td></tr>
+<tr><td>10</td><td>Trang lịch sử hiện đủ mốc với badge đúng</td><td class="ok">✔ trang render 200, hiện "Lịch sử phiên bản", badge "Bản nháp", nút "Tạo phiên bản mới từ đây"; trang soạn thảo hiện "Thêm chương"/"Xuất bản" với bản draft</td></tr>
+</tbody>
+</table>
+<p class="meta">Kiểm thêm ngoài kịch bản: <code>current_version_id</code> của môn trỏ đúng bản vừa xuất bản.</p>
+
+<h2>6. Việc phải làm ở phase sau</h2>
+
+<h3>Trước khi bắt đầu Phase 2</h3>
+<ol>
+<li><strong>Push nhánh và xác nhận CI xanh</strong> — vẫn là việc còn nợ từ Phase 0, DoD mục 6.</li>
+<li><strong>Vá 8 chỗ sai của plan Phase 1</strong> (mục 4) vào file plan, như đã làm với Phase 0.</li>
+<li><strong>Restart Claude Code</strong> nếu muốn Phase 2 chạy bằng 5 agent chuyên trách thay vì tuần tự.</li>
+</ol>
+
+<h3>Nợ kỹ thuật</h3>
+<table>
+<thead><tr><th>Việc</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td><code>GET /api/files/{path}</code> + khối xem trước PPT/PDF</td><td>Chặn nghiệm thu bước 4. Làm ở Phase 2 khi đã có khái niệm "người học của lớp" để kiểm quyền đúng một lần</td></tr>
+<tr><td>Mỗi test class dựng một container Postgres riêng</td><td>Suite Api nay 25 s (Phase 0 là 8 s). Ngưỡng khó chịu đang tới gần — chuyển sang <code>ICollectionFixture</code> dùng chung container cho cả assembly</td></tr>
+<tr><td>Thêm <code>assignment</code>/<code>quiz</code> từ giao diện</td><td>API đã đủ, nhưng menu "+ Thêm phần" mới cho 6 loại nhúng nội dung. Hai loại cần <code>ref_id</code> đòi màn hình chọn "tạo mới / lấy từ thư viện" — thuộc Phase 3 khi Assignment có nội dung thật</td></tr>
+<tr><td>Kéo-thả <em>component</em> trong bài</td><td>API <code>PUT /api/lesson-components/{id}/reorder</code> đã có và đã test; giao diện mới cho kéo-thả ở mức <em>bài học</em>. Bổ sung <code>SortableContext</code> lồng khi làm màn hình 6.2 đầy đủ ở Phase 3</td></tr>
+</tbody>
+</table>
+
+<h3>Hợp đồng Phase 2 kế thừa</h3>
+<pre><code>Nội dung        Subject → SubjectVersion → Chapter → Lesson → LessonComponent
+Trạng thái      draft → published → archived   (chỉ draft sửa được, filter [RequireDraftVersion] canh)
+Versioning      SubjectVersionCloner.CloneAsync(nguon, nhan, ct) — deep clone, remap ref_id
+                Phase 4b dùng lại: thêm một dòng cho FK mẫu điểm
+Quyền sở hữu    ContentOwnership.Owns{Version,Chapter,Lesson,Component}Async — dùng lại, đừng viết lại
+DbSet mới       Subjects · SubjectVersions · Chapters · Lessons · LessonComponents · Assignments · Quizzes
+File            IFileStorage + FileSignatureValidator.Matches(tên, headBytes) — Phase 3 dùng lại cho bài nộp
+Ma trận cách ly 16 dòng tài nguyên + 2 endpoint danh sách; Phase 2 THÊM offerings, enrollments, my-progress
+OpenAPI         schema transformer đã bỏ biến thể "string" của số — mọi số trong client TS là number</code></pre>
+
+<hr>
+<p class="meta">
+Liên quan:
+<a href="phase-1_orchestrator_checklist.md">Checklist Phase 1</a> ·
+<a href="phase-0_orchestrator_report.html">Báo cáo Phase 0</a> ·
+<a href="../../docs/superpowers/plans/2026-08-13-phase-2-offering-enrollment.html">Plan Phase 2</a>
+</p>
+
+</main>
+</body>
+</html>
