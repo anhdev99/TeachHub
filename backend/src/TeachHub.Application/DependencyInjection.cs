@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using TeachHub.Application.Common.Behaviors;
+using TeachHub.Application.Features.Subjects;
 
 namespace TeachHub.Application;
 
@@ -22,6 +23,11 @@ public static class DependencyInjection
         });
 
         services.AddValidatorsFromAssembly(assembly);
+
+        // Cloner cố ý là lớp thường chứ không phải MediatR handler: nó là bước nhân bản cơ học,
+        // Phase 4b sẽ dùng lại. Phần điều phối và kiểm quyền nằm ở command handler.
+        services.AddScoped<SubjectVersionCloner>();
+
         return services;
     }
 }

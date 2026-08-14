@@ -66,6 +66,46 @@ public class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return client;
     }
 
+    /// <summary>Đăng nhập bằng một tài khoản bất kỳ; tạo mới nếu chưa có (dùng cho test nhiều giảng viên).</summary>
+    public async Task<HttpClient> LoginAsAsync(string email, string password = "Teach@123")
+    {
+        using (var scope = Services.CreateScope())
+        {
+            var users = scope.ServiceProvider
+                .GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<TeachHub.Domain.Identity.AppUser>>();
+            if (await users.FindByEmailAsync(email) is null)
+            {
+                var u = new TeachHub.Domain.Identity.AppUser
+                {
+                    UserName = email, Email = email, FullName = email, EmailConfirmed = true,
+                };
+                await users.CreateAsync(u, password);
+                await users.AddToRoleAsync(u, TeachHub.Domain.Identity.Roles.Instructor);
+            }
+        }
+
+        var client = CreateClient();
+        var res = await client.PostAsJsonAsync("/api/auth/login", new { email, password });
+        res.EnsureSuccessStatusCode();
+        var json = await res.Content.ReadFromJsonAsync<JsonElement>();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", json.GetProperty("access_token").GetString());
+        return client;
+    }
+
+    /// <summary>Tạo một môn học kèm phiên bản draft đầu tiên; trả về (subjectId, versionId).</summary>
+    public static async Task<(Guid SubjectId, Guid VersionId)> SeedSubjectWithDraftAsync(HttpClient gv)
+    {
+        var ma = $"IN{Guid.CreateVersion7().ToString("N")[^6..].ToUpperInvariant()}";
+        var res = await gv.PostAsJsonAsync("/api/subjects", new { code = ma, name = "Môn kiểm thử" });
+        res.EnsureSuccessStatusCode();
+        var json = await res.Content.ReadFromJsonAsync<JsonElement>();
+
+        var subjectId = json.GetProperty("id").GetGuid();
+        var versions = await gv.GetFromJsonAsync<JsonElement>($"/api/subjects/{subjectId}/versions");
+        return (subjectId, versions.EnumerateArray().First().GetProperty("id").GetGuid());
+    }
+
     public new async Task DisposeAsync()
     {
         await _db.DisposeAsync();
