@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Domain.Common;
+using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
 
 namespace TeachHub.Infrastructure.Persistence;
@@ -12,6 +13,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
 {
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<InstructorInvite> InstructorInvites => Set<InstructorInvite>();
+
+    public DbSet<Subject> Subjects => Set<Subject>();
+    public DbSet<SubjectVersion> SubjectVersions => Set<SubjectVersion>();
+    public DbSet<Chapter> Chapters => Set<Chapter>();
+    public DbSet<Lesson> Lessons => Set<Lesson>();
+    public DbSet<LessonComponent> LessonComponents => Set<LessonComponent>();
+    public DbSet<Assignment> Assignments => Set<Assignment>();
+    public DbSet<Quiz> Quizzes => Set<Quiz>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 
