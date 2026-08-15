@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
+using TeachHub.Domain.Assessments;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Common;
 using TeachHub.Domain.Content;
+using TeachHub.Domain.Grading;
+using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Learning;
 using TeachHub.Domain.Submissions;
@@ -37,6 +40,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<SubmissionSlot> SubmissionSlots => Set<SubmissionSlot>();
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<SubmissionFile> SubmissionFiles => Set<SubmissionFile>();
+
+    public DbSet<StudentGroup> StudentGroups => Set<StudentGroup>();
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
+    public DbSet<GradeAuditLog> GradeAuditLogs => Set<GradeAuditLog>();
+    public DbSet<FinalAssessment> FinalAssessments => Set<FinalAssessment>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 

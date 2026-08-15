@@ -60,6 +60,13 @@ export default async function OfferingDetailPage({
             </span>
           )}
         </p>
+
+        <nav className="mt-2 flex flex-wrap gap-3 text-sm">
+          <Link href={`/offerings/${id}/grading`} className="underline">Bài nộp &amp; chấm điểm</Link>
+          <Link href={`/offerings/${id}/groups`} className="underline">Chia nhóm</Link>
+          <Link href={`/offerings/${id}/gradebook`} className="underline">Sổ điểm</Link>
+          <Link href="/rubrics" className="underline">Rubric</Link>
+        </nav>
       </div>
 
       <Card>

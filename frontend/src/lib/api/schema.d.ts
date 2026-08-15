@@ -1123,6 +1123,479 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/offerings/{offeringId}/final-assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FinalAssessmentDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateFinalAssessmentCommand"];
+                    "application/*+json": components["schemas"]["CreateFinalAssessmentCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FinalAssessmentDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/final-assessments/{id}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddFinalAssessmentSlotCommand"];
+                    "application/*+json": components["schemas"]["AddFinalAssessmentSlotCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionSlotDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/instructor/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstructorDashboardDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateGroupCommand"];
+                    "application/*+json": components["schemas"]["CreateGroupCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/groups/auto-generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AutoGenerateGroupsCommand"];
+                    "application/*+json": components["schemas"]["AutoGenerateGroupsCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateGroupMembersCommand"];
+                    "application/*+json": components["schemas"]["UpdateGroupMembersCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/groups/{id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/instructor/invites": {
         parameters: {
             query?: never;
@@ -2103,6 +2576,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rubrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RubricDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateRubricCommand"];
+                    "application/*+json": components["schemas"]["CreateRubricCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RubricDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/subjects": {
         parameters: {
             query?: never;
@@ -2723,6 +3273,165 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/submissions/{id}/grade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GradeSubmissionCommand"];
+                    "application/*+json": components["schemas"]["GradeSubmissionCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradedSubmissionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{id}/return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ToGradeItemDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/submission-slots/{id}": {
         parameters: {
             query?: never;
@@ -2841,6 +3550,23 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        AddFinalAssessmentSlotCommand: {
+            slot_key: string;
+            label: string;
+            accepted_file_types: string[];
+            allow_link_instead_of_file: boolean;
+            /** Format: int32 */
+            max_files: number;
+            /** Format: int32 */
+            max_file_size_mb: number;
+            is_required: boolean;
+            required_files: string[];
+            required_folders: string[];
+            /** Format: uuid */
+            final_assessment_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         AddSubmissionSlotCommand: {
             slot_key: string;
             label: string;
@@ -2887,10 +3613,33 @@ export interface components {
             /** Format: double */
             penalty_percent: number;
         };
+        AutoGenerateGroupsCommand: {
+            /** Format: int32 */
+            group_size: number;
+            /** Format: int32 */
+            seed: number;
+            preview: boolean;
+            /** Format: uuid */
+            offering_id?: string;
+            /** Format: uuid */
+            actor_id?: string;
+        };
         BootstrapInstructorCommand: {
             email: string;
             full_name: string;
             password: string;
+        };
+        CanXuLyDto: {
+            /** Format: uuid */
+            submission_id: string;
+            /** Format: uuid */
+            offering_id: string;
+            class_code: string;
+            title: string;
+            who: string;
+            /** Format: date-time */
+            submitted_at: null | string;
+            is_late: boolean;
         };
         ChangePasswordCommand: {
             current_password: string;
@@ -2961,6 +3710,31 @@ export interface components {
             initial_password: null | string;
             note: string;
         };
+        CreateFinalAssessmentCommand: {
+            type: components["schemas"]["FinalAssessmentType"];
+            title: string;
+            description: null | string;
+            /** Format: uuid */
+            grade_column_id: null | string;
+            /** Format: date-time */
+            due_at: null | string;
+            submission_mode: components["schemas"]["SubmissionMode"];
+            /** Format: double */
+            max_score: number;
+            use_suggested_slots: boolean;
+            /** Format: uuid */
+            offering_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        CreateGroupCommand: {
+            name: string;
+            member_enrollment_ids: string[];
+            /** Format: uuid */
+            offering_id?: string;
+            /** Format: uuid */
+            actor_id?: string;
+        };
         CreateLessonCommand: {
             title: string;
             content_type?: components["schemas"]["LessonContentType"];
@@ -2988,6 +3762,13 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        CreateRubricCommand: {
+            name: string;
+            is_template: boolean;
+            criteria: components["schemas"]["NewCriterion"][];
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         CreateStudentAccountsResponse: {
             /** Format: int32 */
             created: number;
@@ -3001,6 +3782,12 @@ export interface components {
             description?: null | string;
             /** Format: uuid */
             instructor_id?: string;
+        };
+        CriterionLevelDto: {
+            label: string;
+            /** Format: double */
+            points: number;
+            description: null | string;
         };
         EnrollmentDto: {
             /** Format: uuid */
@@ -3033,6 +3820,64 @@ export interface components {
             /** Format: int64 */
             size_bytes: number;
         };
+        FinalAssessmentDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offering_id: string;
+            type: components["schemas"]["FinalAssessmentType"];
+            title: string;
+            description: null | string;
+            /** Format: uuid */
+            grade_column_id: null | string;
+            /** Format: date-time */
+            due_at: null | string;
+            submission_mode: components["schemas"]["SubmissionMode"];
+            /** Format: uuid */
+            rubric_id: null | string;
+            /** Format: double */
+            max_score: number;
+            slots: components["schemas"]["SubmissionSlotDto"][];
+        };
+        /** @enum {unknown} */
+        FinalAssessmentType: "quiz" | "final_project";
+        GradedSubmissionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            score: null | number;
+            feedback: null | string;
+            status: components["schemas"]["SubmissionStatus"];
+            rubric_scores: {
+                [key: string]: number;
+            };
+        };
+        GradeSubmissionCommand: {
+            rubric_scores: {
+                [key: string]: number;
+            };
+            /** Format: double */
+            direct_score: null | number;
+            feedback: null | string;
+            /** Format: uuid */
+            submission_id?: string;
+            /** Format: uuid */
+            grader_id?: string;
+        };
+        GroupDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offering_id: string;
+            name: string;
+            members: components["schemas"]["GroupMemberDto"][];
+        };
+        GroupMemberDto: {
+            /** Format: uuid */
+            enrollment_id: string;
+            student_code: string;
+            full_name: string;
+        };
         /** Format: binary */
         IFormFile: string;
         ImportEnrollmentsResponse: {
@@ -3052,6 +3897,16 @@ export interface components {
             options?: string[];
             correct_indexes?: number[];
             explanation?: null | string;
+        };
+        InstructorDashboardDto: {
+            /** Format: int32 */
+            so_lop_dang_day: number;
+            /** Format: int32 */
+            so_bai_chua_cham: number;
+            /** Format: int32 */
+            so_bai_tap_sap_den_han: number;
+            can_xu_ly: components["schemas"]["CanXuLyDto"][];
+            lop: components["schemas"]["LopTongQuanDto"][];
         };
         InviteCreatedDto: {
             /** Format: uuid */
@@ -3136,6 +3991,19 @@ export interface components {
         LoginCommand: {
             email: string;
             password: string;
+        };
+        LopTongQuanDto: {
+            /** Format: uuid */
+            offering_id: string;
+            subject_code: string;
+            subject_name: string;
+            class_code: string;
+            /** Format: int32 */
+            student_count: number;
+            /** Format: int32 */
+            chua_cham: number;
+            /** Format: double */
+            average_progress_percent: number;
         };
         MeDto: {
             /** Format: uuid */
@@ -3235,6 +4103,11 @@ export interface components {
             overall_percent: number;
             chapters: components["schemas"]["MyChapterDto"][];
         };
+        NewCriterion: {
+            description: string;
+            /** Format: double */
+            max_points: number;
+        };
         OfferingDto: {
             /** Format: uuid */
             id: string;
@@ -3285,6 +4158,25 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        RubricCriterionDto: {
+            /** Format: uuid */
+            id: string;
+            description: string;
+            /** Format: double */
+            max_points: number;
+            /** Format: int32 */
+            order_index: number;
+            levels: components["schemas"]["CriterionLevelDto"][];
+        };
+        RubricDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            is_template: boolean;
+            /** Format: double */
+            max_points: number;
+            criteria: components["schemas"]["RubricCriterionDto"][];
+        };
         SubjectDto: {
             /** Format: uuid */
             id: string;
@@ -3319,7 +4211,11 @@ export interface components {
             /** Format: uuid */
             assignment_id: null | string;
             /** Format: uuid */
+            final_assessment_id: null | string;
+            /** Format: uuid */
             offering_id: string;
+            /** Format: uuid */
+            group_id: null | string;
             /** Format: int32 */
             attempt_no: number;
             is_current: boolean;
@@ -3330,6 +4226,9 @@ export interface components {
             /** Format: double */
             score: null | number;
             feedback: null | string;
+            rubric_scores: {
+                [key: string]: number;
+            };
             files: components["schemas"]["SubmissionFileDto"][];
         };
         SubmissionFileDto: {
@@ -3381,6 +4280,23 @@ export interface components {
             references?: string[];
             description?: null | string;
         };
+        ToGradeItemDto: {
+            /** Format: uuid */
+            submission_id: string;
+            /** Format: uuid */
+            assignment_id: null | string;
+            /** Format: uuid */
+            final_assessment_id: null | string;
+            title: string;
+            group_name: null | string;
+            student_names: string;
+            /** Format: date-time */
+            submitted_at: null | string;
+            is_late: boolean;
+            status: components["schemas"]["SubmissionStatus"];
+            /** Format: double */
+            score: null | number;
+        };
         TokenPair: {
             access_token: string;
             refresh_token: string;
@@ -3405,6 +4321,13 @@ export interface components {
             assignment_id?: string;
             /** Format: uuid */
             instructor_id?: string;
+        };
+        UpdateGroupMembersCommand: {
+            member_enrollment_ids: string[];
+            /** Format: uuid */
+            group_id?: string;
+            /** Format: uuid */
+            actor_id?: string;
         };
         UpdateSubmissionSlotCommand: {
             label: string;

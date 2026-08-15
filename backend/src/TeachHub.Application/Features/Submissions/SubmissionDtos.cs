@@ -17,14 +17,24 @@ public sealed record SubmissionFileDto(
 }
 
 public sealed record SubmissionDto(
-    Guid Id, Guid? AssignmentId, Guid OfferingId, int AttemptNo, bool IsCurrent,
+    Guid Id, Guid? AssignmentId, Guid? FinalAssessmentId, Guid OfferingId,
+    Guid? GroupId, int AttemptNo, bool IsCurrent,
     SubmissionStatus Status, DateTimeOffset? SubmittedAt, bool IsLate,
-    decimal? Score, string? Feedback,
+    decimal? Score, string? Feedback, Dictionary<Guid, decimal> RubricScores,
     List<SubmissionFileDto> Files)
 {
-    public static SubmissionDto From(Submission s) => new(
-        s.Id, s.AssignmentId, s.OfferingId, s.AttemptNo, s.IsCurrent,
-        s.Status, s.SubmittedAt, s.IsLate, s.Score, s.Feedback,
+    /// <summary>
+    /// <paramref name="thayDiem"/> = false thì điểm, nhận xét và điểm từng tiêu chí bị che.
+    /// Luật này nằm ở tầng Application chứ không ở controller là chủ ý: cùng một DTO được
+    /// ba màn hình dùng lại, và nếu luật nằm ở controller thì màn hình thứ hai gọi thẳng
+    /// query sẽ lộ điểm mà không ai nhận ra.
+    /// </summary>
+    public static SubmissionDto From(Submission s, bool thayDiem = true) => new(
+        s.Id, s.AssignmentId, s.FinalAssessmentId, s.OfferingId, s.GroupId,
+        s.AttemptNo, s.IsCurrent, s.Status, s.SubmittedAt, s.IsLate,
+        thayDiem ? s.Score : null,
+        thayDiem ? s.Feedback : null,
+        thayDiem ? s.RubricScores : [],
         [.. s.Files.OrderBy(f => f.UploadedAt).Select(SubmissionFileDto.From)]);
 }
 
@@ -41,6 +51,23 @@ public static class SubmissionAccess
             (db.Enrollments.Any(e => e.Id == s.EnrollmentId && e.UserId == userId) ||
              db.CourseOfferings.Any(o => o.Id == s.OfferingId &&
                  db.Subjects.Any(sub => sub.Id == o.SubjectId && sub.InstructorId == userId))), ct);
+
+    /// <summary>
+    /// Người gọi có được thấy điểm và nhận xét của bài này không.
+    ///
+    /// Giảng viên: luôn thấy. Sinh viên: CHỈ sau khi giảng viên bấm "Trả bài". Đây không
+    /// phải chi tiết nhỏ — giảng viên chấm rải rác nhiều ngày, và nếu điểm hiện ngay khi
+    /// vừa chấm thì người được chấm trước sẽ so bì với người chưa được chấm. Hai trạng thái
+    /// <c>Graded</c> và <c>Returned</c> tách biệt chính là để giải quyết chuyện đó.
+    /// </summary>
+    public static async Task<bool> ThayDiemAsync(
+        IAppDbContext db, Submission s, Guid userId, CancellationToken ct)
+    {
+        if (s.Status == SubmissionStatus.Returned) return true;
+
+        return await db.CourseOfferings.AnyAsync(o => o.Id == s.OfferingId &&
+            db.Subjects.Any(sub => sub.Id == o.SubjectId && sub.InstructorId == userId), ct);
+    }
 
     /// <summary>
     /// Enrollment của sinh viên trong lớp đang chạy bài tập này, hoặc null nếu không thuộc lớp.

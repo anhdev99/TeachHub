@@ -20,7 +20,8 @@ public sealed class GetSubmissionHandler(IAppDbContext db)
             .Include(x => x.Files)
             .SingleAsync(x => x.Id == request.SubmissionId, ct);
 
-        return Result<SubmissionDto>.Ok(SubmissionDto.From(s));
+        return Result<SubmissionDto>.Ok(
+            SubmissionDto.From(s, await SubmissionAccess.ThayDiemAsync(db, s, request.UserId, ct)));
     }
 }
 
@@ -51,9 +52,14 @@ public sealed class GetMySubmissionHandler(IAppDbContext db)
             .OrderByDescending(s => s.AttemptNo)
             .ToListAsync(ct);
 
+        // Chính chủ đọc bài của mình vẫn phải qua luật che điểm: đây là đường sinh viên
+        // dùng thường xuyên nhất, bỏ sót ở đây là lộ điểm trước khi trả bài cho cả lớp.
+        static SubmissionDto Chuyen(Submission s) =>
+            SubmissionDto.From(s, s.Status == SubmissionStatus.Returned);
+
         return Result<MyAssignmentSubmissionDto>.Ok(new MyAssignmentSubmissionDto(
-            tatCa.Where(s => s.IsCurrent).Select(SubmissionDto.From).FirstOrDefault(),
-            [.. tatCa.Where(s => !s.IsCurrent).Select(SubmissionDto.From)]));
+            tatCa.Where(s => s.IsCurrent).Select(Chuyen).FirstOrDefault(),
+            [.. tatCa.Where(s => !s.IsCurrent).Select(Chuyen)]));
     }
 }
 

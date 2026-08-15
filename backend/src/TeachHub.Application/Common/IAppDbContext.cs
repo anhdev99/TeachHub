@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Domain.Assignments;
+using TeachHub.Domain.Assessments;
 using TeachHub.Domain.Content;
+using TeachHub.Domain.Grading;
+using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Learning;
 using TeachHub.Domain.Submissions;
@@ -40,6 +43,12 @@ public interface IAppDbContext
     DbSet<SubmissionSlot> SubmissionSlots { get; }
     DbSet<Submission> Submissions { get; }
     DbSet<SubmissionFile> SubmissionFiles { get; }
+
+    // Phase 4a — chấm điểm và làm việc nhóm
+    DbSet<StudentGroup> StudentGroups { get; }
+    DbSet<GroupMember> GroupMembers { get; }
+    DbSet<GradeAuditLog> GradeAuditLogs { get; }
+    DbSet<FinalAssessment> FinalAssessments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

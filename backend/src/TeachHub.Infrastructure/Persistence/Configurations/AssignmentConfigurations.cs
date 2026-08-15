@@ -2,8 +2,10 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TeachHub.Domain.Assessments;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Content;
+using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Submissions;
 using TeachHub.Domain.Teaching;
@@ -109,9 +111,13 @@ public sealed class SubmissionConfiguration : IEntityTypeConfiguration<Submissio
 
         b.HasOne<Assignment>().WithMany().HasForeignKey(x => x.AssignmentId)
          .OnDelete(DeleteBehavior.Restrict);   // KHÔNG cascade: bài nộp là bằng chứng chấm điểm
+        b.HasOne<FinalAssessment>().WithMany().HasForeignKey(x => x.FinalAssessmentId)
+         .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
          .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Enrollment>().WithMany().HasForeignKey(x => x.EnrollmentId)
+         .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<StudentGroup>().WithMany().HasForeignKey(x => x.GroupId)
          .OnDelete(DeleteBehavior.Restrict);
 
         b.HasMany(x => x.Files).WithOne().HasForeignKey(f => f.SubmissionId)

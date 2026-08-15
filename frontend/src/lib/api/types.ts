@@ -35,6 +35,15 @@ export type FileTreeDto = components["schemas"]["FileTreeDto"];
 export type FileProcessingStatus = components["schemas"]["FileProcessingStatus"];
 export type SubmissionStatus = components["schemas"]["SubmissionStatus"];
 
+// Phase 4a — chấm điểm, nhóm, đợt cuối môn, dashboard
+export type GroupDto = components["schemas"]["GroupDto"];
+export type GroupMemberDto = components["schemas"]["GroupMemberDto"];
+export type ToGradeItemDto = components["schemas"]["ToGradeItemDto"];
+export type GradedSubmissionDto = components["schemas"]["GradedSubmissionDto"];
+export type FinalAssessmentDto = components["schemas"]["FinalAssessmentDto"];
+export type InstructorDashboardDto = components["schemas"]["InstructorDashboardDto"];
+export type RubricDto = components["schemas"]["RubricDto"];
+
 export const NHAN_TRANG_THAI_NOP: Record<SubmissionStatus, string> = {
   draft: "Bản nháp",
   submitted: "Đã nộp",

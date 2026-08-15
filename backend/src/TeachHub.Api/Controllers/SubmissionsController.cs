@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using TeachHub.Application.Features.Grading;
 using TeachHub.Application.Features.Submissions;
 using TeachHub.Application.Features.Submissions.Queries.GetMyAssignments;
 using TeachHub.Application.Features.Submissions.Queries.GetSubmission;
@@ -50,4 +51,34 @@ public sealed class SubmissionsController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MyAssignments(Guid offeringId, CancellationToken ct)
         => ToActionResult(await sender.Send(new GetMyAssignmentsQuery(offeringId, CurrentUserId), ct));
+
+    // ── Phase 4a: chấm bài ──────────────────────────────────────────────────────────────
+    // Thêm vào chính lớp này chứ KHÔNG tạo file controller thứ hai cùng route: hai lớp cùng
+    // tên là CS0101 lúc biên dịch, còn hai action cùng đường dẫn là AmbiguousMatchException
+    // lúc chạy — lỗi thứ hai không có gì ở tầng biên dịch bắt được.
+
+    [HttpPost("{id:guid}/grade")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<GradedSubmissionDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Grade(Guid id, GradeSubmissionCommand command, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            command with { SubmissionId = id, GraderId = CurrentUserId }, ct));
+
+    [HttpPost("{id:guid}/return")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Return(Guid id, CancellationToken ct)
+        => ToActionResult(await sender.Send(new ReturnSubmissionCommand(id, CurrentUserId), ct));
+
+    [HttpGet("/api/offerings/{offeringId:guid}/submissions")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<List<ToGradeItemDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ToGrade(Guid offeringId, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            new GetSubmissionsToGradeQuery(offeringId, CurrentUserId), ct));
 }

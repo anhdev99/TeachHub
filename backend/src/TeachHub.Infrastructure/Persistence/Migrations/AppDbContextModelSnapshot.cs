@@ -153,6 +153,72 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("asp_net_user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Assessments.FinalAssessment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
+                    b.Property<Guid?>("GradeColumnId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_column_id");
+
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("max_score");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<Guid?>("RefQuizId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ref_quiz_id");
+
+                    b.Property<Guid?>("RubricId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rubric_id");
+
+                    b.Property<string>("SubmissionMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("submission_mode");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_final_assessments");
+
+                    b.HasIndex("OfferingId")
+                        .HasDatabaseName("ix_final_assessments_offering_id");
+
+                    b.HasIndex("RubricId")
+                        .HasDatabaseName("ix_final_assessments_rubric_id");
+
+                    b.ToTable("final_assessments", (string)null);
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Assignments.AssignmentHint", b =>
                 {
                     b.Property<Guid>("Id")
@@ -312,6 +378,9 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_submission_slots");
+
+                    b.HasIndex("FinalAssessmentId")
+                        .HasDatabaseName("ix_submission_slots_final_assessment_id");
 
                     b.HasIndex("AssignmentId", "OrderIndex")
                         .HasDatabaseName("ix_submission_slots_assignment_id_order_index");
@@ -689,6 +758,127 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_subject_versions_subject_id_version_label");
 
                     b.ToTable("subject_versions", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeAuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<Guid>("ChangedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("changed_by");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<decimal?>("NewValue")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("new_value");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<decimal?>("OldValue")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("old_value");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_id");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("target_type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_audit_logs");
+
+                    b.HasIndex("ChangedBy")
+                        .HasDatabaseName("ix_grade_audit_logs_changed_by");
+
+                    b.HasIndex("EnrollmentId")
+                        .HasDatabaseName("ix_grade_audit_logs_enrollment_id");
+
+                    b.HasIndex("OfferingId", "ChangedAt")
+                        .HasDatabaseName("ix_grade_audit_logs_offering_id_changed_at");
+
+                    b.HasIndex("TargetType", "TargetId", "ChangedAt")
+                        .HasDatabaseName("ix_grade_audit_logs_target_type_target_id_changed_at");
+
+                    b.ToTable("grade_audit_logs", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Groups.GroupMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_group_members");
+
+                    b.HasIndex("EnrollmentId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_group_members_enrollment_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_group_members_group_id");
+
+                    b.ToTable("group_members", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Groups.StudentGroup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_student_groups");
+
+                    b.HasIndex("OfferingId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_student_groups_offering_id_name");
+
+                    b.ToTable("student_groups", (string)null);
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Identity.AppRole", b =>
@@ -1096,6 +1286,12 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.HasIndex("EnrollmentId")
                         .HasDatabaseName("ix_submissions_enrollment_id");
 
+                    b.HasIndex("FinalAssessmentId")
+                        .HasDatabaseName("ix_submissions_final_assessment_id");
+
+                    b.HasIndex("GroupId")
+                        .HasDatabaseName("ix_submissions_group_id");
+
                     b.HasIndex("OfferingId", "Status")
                         .HasDatabaseName("ix_submissions_offering_id_status");
 
@@ -1394,6 +1590,50 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Assessments.FinalAssessment", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_final_assessments_course_offerings_offering_id");
+
+                    b.HasOne("TeachHub.Domain.Assignments.Rubric", null)
+                        .WithMany()
+                        .HasForeignKey("RubricId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_final_assessments_rubrics_rubric_id");
+
+                    b.OwnsOne("TeachHub.Domain.Assignments.GroupConfig", "GroupConfig", b1 =>
+                        {
+                            b1.Property<Guid>("FinalAssessmentId");
+
+                            b1.Property<string>("AllocationMode")
+                                .IsRequired();
+
+                            b1.Property<bool>("AllowIndividualScores");
+
+                            b1.Property<int>("MaxSize");
+
+                            b1.Property<int>("MinSize");
+
+                            b1.HasKey("FinalAssessmentId");
+
+                            b1.ToTable("final_assessments");
+
+                            b1
+                                .ToJson("group_config")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("FinalAssessmentId")
+                                .HasConstraintName("fk_final_assessments_final_assessments_id");
+                        });
+
+                    b.Navigation("GroupConfig");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Assignments.AssignmentHint", b =>
                 {
                     b.HasOne("TeachHub.Domain.Content.Assignment", null)
@@ -1462,6 +1702,12 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("fk_submission_slots_assignments_assignment_id");
 
+                    b.HasOne("TeachHub.Domain.Assessments.FinalAssessment", null)
+                        .WithMany("Slots")
+                        .HasForeignKey("FinalAssessmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_submission_slots_final_assessments_final_assessment_id");
+
                     b.OwnsOne("TeachHub.Domain.Assignments.RequiredStructure", "RequiredStructure", b1 =>
                         {
                             b1.Property<Guid>("SubmissionSlotId");
@@ -1516,7 +1762,8 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
 
                             b1.Property<int>("MinSize");
 
-                            b1.HasKey("AssignmentId");
+                            b1.HasKey("AssignmentId")
+                                .HasName("pk_assignments");
 
                             b1.ToTable("assignments");
 
@@ -1526,7 +1773,7 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
 
                             b1.WithOwner()
                                 .HasForeignKey("AssignmentId")
-                                .HasConstraintName("fk_assignments_assignments_id");
+                                .HasConstraintName("fk_assignments_assignments_assignment_id");
                         });
 
                     b.Navigation("GroupConfig");
@@ -1711,6 +1958,57 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeAuditLog", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_audit_logs_asp_net_users_changed_by");
+
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_audit_logs_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_audit_logs_course_offerings_offering_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Groups.GroupMember", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_members_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Groups.StudentGroup", null)
+                        .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_group_members_student_groups_group_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Groups.StudentGroup", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_student_groups_course_offerings_offering_id");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Identity.InstructorInvite", b =>
                 {
                     b.HasOne("TeachHub.Domain.Identity.AppUser", null)
@@ -1778,6 +2076,18 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasForeignKey("EnrollmentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("fk_submissions_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Assessments.FinalAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("FinalAssessmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_submissions_final_assessments_final_assessment_id");
+
+                    b.HasOne("TeachHub.Domain.Groups.StudentGroup", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_submissions_student_groups_group_id");
 
                     b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
                         .WithMany()
@@ -1882,6 +2192,11 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_enrollments_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Assessments.FinalAssessment", b =>
+                {
+                    b.Navigation("Slots");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Assignments.Rubric", b =>
                 {
                     b.Navigation("Criteria");
@@ -1912,6 +2227,11 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TeachHub.Domain.Content.SubjectVersion", b =>
                 {
                     b.Navigation("Chapters");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Groups.StudentGroup", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>
