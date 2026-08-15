@@ -220,4 +220,60 @@ public class LearningProgressTests(TeachHubApiFactory factory)
             .Single(l => l.GetProperty("id").GetGuid() == bai2)
             .GetProperty("access").GetString().ShouldBe("unlocked");
     }
+
+    /// <summary>
+    /// "Xong" phải có ĐÚNG MỘT nghĩa trong toàn bộ payload. Trước đây <c>completed</c> lấy từ
+    /// dòng lesson_progress còn phần trăm và khóa lấy từ <c>UnlockEngine.IsComplete</c> — hai
+    /// định nghĩa khác nhau — nên sinh viên thấy dấu ✓ ở Bài 1 và đồng thời thấy Bài 2 khóa
+    /// kèm dòng "Hoàn thành Bài 1 để mở bài này". Không có cách nào thoát, và không test nào
+    /// bắt được vì mỗi test chỉ soi một trong hai trường.
+    /// </summary>
+    [Fact]
+    public async Task Danh_dau_bai_xong_nhung_con_phan_bat_buoc_thi_chua_tinh_la_hoan_thanh()
+    {
+        var gv = await factory.LoginAsInstructorAsync();
+        var (subjectId, versionId) = await TeachHubApiFactory.SeedSubjectWithDraftAsync(gv);
+
+        var ch = await gv.PostAsJsonAsync($"/api/subject-versions/{versionId}/chapters",
+            new { title = "Chương 1", unlock_rule = "after_previous_completed" });
+        var chapterId = (await ch.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        var b1 = await gv.PostAsJsonAsync($"/api/chapters/{chapterId}/lessons",
+            new { title = "Bài 1", is_required_to_unlock_next = true });
+        var bai1 = (await b1.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+        (await gv.PostAsJsonAsync($"/api/chapters/{chapterId}/lessons", new { title = "Bài 2" }))
+            .EnsureSuccessStatusCode();
+
+        var cp = await gv.PostAsJsonAsync($"/api/lessons/{bai1}/components",
+            new { type = "reflection", is_required = true });
+        var componentId = (await cp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        (await gv.PostAsync($"/api/subject-versions/{versionId}/publish", null)).EnsureSuccessStatusCode();
+        var offeringId = await TeachHubApiFactory.CreateOfferingAsync(gv, subjectId, versionId);
+        var sv = await factory.LoginAsNewStudentOfAsync(offeringId);
+
+        (await sv.PostAsync($"/api/lessons/{bai1}/complete", null)).EnsureSuccessStatusCode();
+
+        var giua = await sv.GetFromJsonAsync<JsonElement>($"/api/offerings/{offeringId}/my-progress");
+        var b1Giua = giua.GetProperty("chapters")[0].GetProperty("lessons").EnumerateArray()
+            .Single(l => l.GetProperty("id").GetGuid() == bai1);
+
+        // Nội dung đã xem xong — giao diện cần biết để phản hồi cú bấm của sinh viên.
+        b1Giua.GetProperty("marked_done").GetBoolean().ShouldBeTrue();
+        // …nhưng bài CHƯA hoàn thành, đúng nghĩa mà phần trăm và khóa đang dùng.
+        b1Giua.GetProperty("completed").GetBoolean().ShouldBeFalse();
+        b1Giua.GetProperty("required_components_remaining").GetInt32().ShouldBe(1);
+        giua.GetProperty("overall_percent").GetDecimal().ShouldBe(0m);
+
+        (await sv.PostAsync($"/api/lesson-components/{componentId}/complete", null))
+            .EnsureSuccessStatusCode();
+
+        var sau = await sv.GetFromJsonAsync<JsonElement>($"/api/offerings/{offeringId}/my-progress");
+        var b1Sau = sau.GetProperty("chapters")[0].GetProperty("lessons").EnumerateArray()
+            .Single(l => l.GetProperty("id").GetGuid() == bai1);
+
+        b1Sau.GetProperty("completed").GetBoolean().ShouldBeTrue();
+        b1Sau.GetProperty("required_components_remaining").GetInt32().ShouldBe(0);
+        sau.GetProperty("overall_percent").GetDecimal().ShouldBe(50m);
+    }
 }

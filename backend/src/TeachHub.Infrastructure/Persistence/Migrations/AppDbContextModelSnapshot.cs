@@ -153,12 +153,185 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("asp_net_user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Assignments.AssignmentHint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AssignmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assignment_id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<decimal>("PenaltyPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("penalty_percent");
+
+                    b.HasKey("Id")
+                        .HasName("pk_assignment_hints");
+
+                    b.HasIndex("AssignmentId", "OrderIndex")
+                        .HasDatabaseName("ix_assignment_hints_assignment_id_order_index");
+
+                    b.ToTable("assignment_hints", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Assignments.Rubric", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_id");
+
+                    b.Property<bool>("IsTemplate")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_template");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_rubrics");
+
+                    b.HasIndex("InstructorId", "IsTemplate")
+                        .HasDatabaseName("ix_rubrics_instructor_id_is_template");
+
+                    b.ToTable("rubrics", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Assignments.RubricCriterion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<decimal>("MaxPoints")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("max_points");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<Guid>("RubricId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rubric_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_rubric_criteria");
+
+                    b.HasIndex("RubricId", "OrderIndex")
+                        .HasDatabaseName("ix_rubric_criteria_rubric_id_order_index");
+
+                    b.ToTable("rubric_criteria", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Assignments.SubmissionSlot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.PrimitiveCollection<List<string>>("AcceptedFileTypes")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("accepted_file_types");
+
+                    b.Property<bool>("AllowLinkInsteadOfFile")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_link_instead_of_file");
+
+                    b.Property<Guid?>("AssignmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assignment_id");
+
+                    b.Property<Guid?>("FinalAssessmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("final_assessment_id");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_required");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("label");
+
+                    b.Property<int>("MaxFileSizeMb")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_file_size_mb");
+
+                    b.Property<int>("MaxFiles")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_files");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("owner_type");
+
+                    b.Property<string>("SlotKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("slot_key");
+
+                    b.HasKey("Id")
+                        .HasName("pk_submission_slots");
+
+                    b.HasIndex("AssignmentId", "OrderIndex")
+                        .HasDatabaseName("ix_submission_slots_assignment_id_order_index");
+
+                    b.ToTable("submission_slots", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_submission_slots_owner", "(owner_type = 'Assignment'      AND assignment_id IS NOT NULL AND final_assessment_id IS NULL) OR\n(owner_type = 'FinalAssessment' AND final_assessment_id IS NOT NULL AND assignment_id IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Content.Assignment", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<bool>("AllowLateSubmission")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_late_submission");
 
                     b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("timestamp with time zone")
@@ -168,13 +341,37 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<DateTimeOffset?>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
+                    b.Property<decimal>("LatePenaltyPercentPerDay")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("late_penalty_percent_per_day");
+
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("max_score");
+
+                    b.Property<Guid?>("RubricId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("rubric_id");
+
                     b.Property<Guid>("SubjectVersionId")
                         .HasColumnType("uuid")
                         .HasColumnName("subject_version_id");
+
+                    b.Property<string>("SubmissionMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("submission_mode");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -184,6 +381,9 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_assignments");
+
+                    b.HasIndex("RubricId")
+                        .HasDatabaseName("ix_assignments_rubric_id");
 
                     b.HasIndex("SubjectVersionId")
                         .HasDatabaseName("ix_assignments_subject_version_id");
@@ -803,6 +1003,194 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("lesson_progresses", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AssignmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("assignment_id");
+
+                    b.Property<int>("AttemptNo")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_no");
+
+                    b.Property<Guid?>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<string>("Feedback")
+                        .HasColumnType("text")
+                        .HasColumnName("feedback");
+
+                    b.Property<Guid?>("FinalAssessmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("final_assessment_id");
+
+                    b.Property<DateTimeOffset?>("GradedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("graded_at");
+
+                    b.Property<Guid?>("GradedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("graded_by");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<int>("HintsUsed")
+                        .HasColumnType("integer")
+                        .HasColumnName("hints_used");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_current");
+
+                    b.Property<bool>("IsLate")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_late");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("owner_type");
+
+                    b.Property<string>("RubricScores")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("rubric_scores");
+
+                    b.Property<decimal?>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("score");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<string>("SubmittedByType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("submitted_by_type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_submissions");
+
+                    b.HasIndex("EnrollmentId")
+                        .HasDatabaseName("ix_submissions_enrollment_id");
+
+                    b.HasIndex("OfferingId", "Status")
+                        .HasDatabaseName("ix_submissions_offering_id_status");
+
+                    b.HasIndex("AssignmentId", "FinalAssessmentId", "EnrollmentId", "GroupId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_submission_current")
+                        .HasFilter("is_current");
+
+                    b.ToTable("submissions", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_submissions_owner", "(owner_type = 'Assignment'      AND assignment_id IS NOT NULL AND final_assessment_id IS NULL) OR\n(owner_type = 'FinalAssessment' AND final_assessment_id IS NOT NULL AND assignment_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Submissions.SubmissionFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("content_type");
+
+                    b.Property<string>("ExternalUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("external_url");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("file_name");
+
+                    b.Property<string>("FilePath")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("file_path");
+
+                    b.PrimitiveCollection<List<string>>("MissingStructureItems")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("missing_structure_items");
+
+                    b.Property<string>("ProcessingError")
+                        .HasColumnType("text")
+                        .HasColumnName("processing_error");
+
+                    b.Property<string>("ProcessingStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("processing_status");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<Guid>("SlotId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("slot_id");
+
+                    b.Property<string>("SlotKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("slot_key");
+
+                    b.Property<bool?>("StructureCheckPassed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("structure_check_passed");
+
+                    b.Property<Guid>("SubmissionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submission_id");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_submission_files");
+
+                    b.HasIndex("SlotId")
+                        .HasDatabaseName("ix_submission_files_slot_id");
+
+                    b.HasIndex("SubmissionId", "SlotKey")
+                        .HasDatabaseName("ix_submission_files_submission_id_slot_key");
+
+                    b.ToTable("submission_files", (string)null);
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Teaching.CourseOffering", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1006,14 +1394,142 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_asp_net_user_tokens_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Assignments.AssignmentHint", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Content.Assignment", null)
+                        .WithMany("Hints")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_assignment_hints_assignments_assignment_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Assignments.Rubric", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_rubrics_asp_net_users_instructor_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Assignments.RubricCriterion", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Assignments.Rubric", null)
+                        .WithMany("Criteria")
+                        .HasForeignKey("RubricId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_rubric_criteria_rubrics_rubric_id");
+
+                    b.OwnsMany("TeachHub.Domain.Assignments.CriterionLevel", "Levels", b1 =>
+                        {
+                            b1.Property<Guid>("RubricCriterionId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Description");
+
+                            b1.Property<string>("Label")
+                                .IsRequired();
+
+                            b1.Property<decimal>("Points")
+                                .HasPrecision(5, 2);
+
+                            b1.HasKey("RubricCriterionId", "__synthesizedOrdinal");
+
+                            b1.ToTable("rubric_criteria");
+
+                            b1
+                                .ToJson("levels")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("RubricCriterionId")
+                                .HasConstraintName("fk_rubric_criteria_rubric_criteria_rubric_criterion_id");
+                        });
+
+                    b.Navigation("Levels");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Assignments.SubmissionSlot", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Content.Assignment", null)
+                        .WithMany("Slots")
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_submission_slots_assignments_assignment_id");
+
+                    b.OwnsOne("TeachHub.Domain.Assignments.RequiredStructure", "RequiredStructure", b1 =>
+                        {
+                            b1.Property<Guid>("SubmissionSlotId");
+
+                            b1.PrimitiveCollection<string>("RequiredFiles")
+                                .IsRequired();
+
+                            b1.PrimitiveCollection<string>("RequiredFolders")
+                                .IsRequired();
+
+                            b1.HasKey("SubmissionSlotId");
+
+                            b1.ToTable("submission_slots");
+
+                            b1
+                                .ToJson("required_structure")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SubmissionSlotId")
+                                .HasConstraintName("fk_submission_slots_submission_slots_id");
+                        });
+
+                    b.Navigation("RequiredStructure");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Content.Assignment", b =>
                 {
+                    b.HasOne("TeachHub.Domain.Assignments.Rubric", null)
+                        .WithMany()
+                        .HasForeignKey("RubricId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_assignments_rubrics_rubric_id");
+
                     b.HasOne("TeachHub.Domain.Content.SubjectVersion", null)
                         .WithMany()
                         .HasForeignKey("SubjectVersionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_assignments_subject_versions_subject_version_id");
+
+                    b.OwnsOne("TeachHub.Domain.Assignments.GroupConfig", "GroupConfig", b1 =>
+                        {
+                            b1.Property<Guid>("AssignmentId");
+
+                            b1.Property<string>("AllocationMode")
+                                .IsRequired();
+
+                            b1.Property<bool>("AllowIndividualScores");
+
+                            b1.Property<int>("MaxSize");
+
+                            b1.Property<int>("MinSize");
+
+                            b1.HasKey("AssignmentId");
+
+                            b1.ToTable("assignments");
+
+                            b1
+                                .ToJson("group_config")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AssignmentId")
+                                .HasConstraintName("fk_assignments_assignments_id");
+                        });
+
+                    b.Navigation("GroupConfig");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Content.Chapter", b =>
@@ -1249,6 +1765,90 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_lesson_progresses_lessons_lesson_id");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Content.Assignment", null)
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_submissions_assignments_assignment_id");
+
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_submissions_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_submissions_course_offerings_offering_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Submissions.SubmissionFile", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Assignments.SubmissionSlot", "Slot")
+                        .WithMany()
+                        .HasForeignKey("SlotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_submission_files_submission_slots_slot_id");
+
+                    b.HasOne("TeachHub.Domain.Submissions.Submission", null)
+                        .WithMany("Files")
+                        .HasForeignKey("SubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_submission_files_submissions_submission_id");
+
+                    b.OwnsOne("TeachHub.Domain.Files.FileTree", "FileTree", b1 =>
+                        {
+                            b1.Property<Guid>("SubmissionFileId");
+
+                            b1.HasKey("SubmissionFileId");
+
+                            b1.ToTable("submission_files");
+
+                            b1
+                                .ToJson("file_tree")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("SubmissionFileId")
+                                .HasConstraintName("fk_submission_files_submission_files_id");
+
+                            b1.OwnsMany("TeachHub.Domain.Files.FileTreeNode", "Files", b2 =>
+                                {
+                                    b2.Property<Guid>("FileTreeSubmissionFileId");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd();
+
+                                    b2.Property<string>("Path")
+                                        .IsRequired();
+
+                                    b2.Property<long>("SizeBytes");
+
+                                    b2.HasKey("FileTreeSubmissionFileId", "__synthesizedOrdinal")
+                                        .HasName("pk_submission_files");
+
+                                    b2.ToTable("submission_files");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("FileTreeSubmissionFileId")
+                                        .HasConstraintName("fk_submission_files_submission_files_file_tree_submission_file_id");
+                                });
+
+                            b1.Navigation("Files");
+                        });
+
+                    b.Navigation("FileTree");
+
+                    b.Navigation("Slot");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Teaching.CourseOffering", b =>
                 {
                     b.HasOne("TeachHub.Domain.Content.Subject", null)
@@ -1282,6 +1882,18 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_enrollments_asp_net_users_user_id");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Assignments.Rubric", b =>
+                {
+                    b.Navigation("Criteria");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Content.Assignment", b =>
+                {
+                    b.Navigation("Hints");
+
+                    b.Navigation("Slots");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Content.Chapter", b =>
                 {
                     b.Navigation("Lessons");
@@ -1300,6 +1912,11 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TeachHub.Domain.Content.SubjectVersion", b =>
                 {
                     b.Navigation("Chapters");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>
+                {
+                    b.Navigation("Files");
                 });
 #pragma warning restore 612, 618
         }

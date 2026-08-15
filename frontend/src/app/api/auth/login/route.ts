@@ -24,5 +24,19 @@ export async function POST(req: NextRequest) {
   const pair: TokenPair = await res.json();
   await luuToken(pair);
 
-  return NextResponse.json({ ok: true });
+  // Trả về đích ĐÚNG THEO VAI TRÒ. Trước đây trang đăng nhập luôn đẩy về /dashboard, nên
+  // sinh viên rơi vào màn hình của giảng viên — và nếu còn phải đổi mật khẩu lần đầu thì
+  // họ không có gì dẫn tới chỗ tự gỡ chặn.
+  const me = await fetch(`${API_BASE}/api/auth/me`, {
+    headers: { authorization: `Bearer ${pair.access_token}` },
+    cache: "no-store",
+  });
+
+  let dich = "/dashboard";
+  if (me.ok) {
+    const { roles } = (await me.json()) as { roles: string[] };
+    dich = roles.includes("Instructor") ? "/subjects" : "/learn";
+  }
+
+  return NextResponse.json({ ok: true, redirect_to: dich });
 }

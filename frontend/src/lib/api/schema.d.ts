@@ -4,6 +4,505 @@
  */
 
 export interface paths {
+    "/api/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateAssignmentCommand"];
+                    "application/*+json": components["schemas"]["CreateAssignmentCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignmentDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignmentDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateAssignmentCommand"];
+                    "application/*+json": components["schemas"]["UpdateAssignmentCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignmentDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/subject-versions/{versionId}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    versionId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignmentDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/slots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddSubmissionSlotCommand"];
+                    "application/*+json": components["schemas"]["AddSubmissionSlotCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionSlotDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/slots/suggested": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionSlotDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submissions/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                        slot_key?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionFileDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Payload Too Large */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/submissions/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{id}/my-submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyAssignmentSubmissionDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -522,6 +1021,50 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1932,6 +2475,298 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/submissions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{id}/files/{fileId}/file-tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FileTreeDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{id}/files/{fileId}/entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    path?: string;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyAssignmentDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submission-slots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateSubmissionSlotCommand"];
+                    "application/*+json": components["schemas"]["UpdateSubmissionSlotCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionSlotDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1952,6 +2787,52 @@ export interface components {
             lesson_id?: string;
             /** Format: uuid */
             instructor_id?: string;
+        };
+        AddSubmissionSlotCommand: {
+            slot_key: string;
+            label: string;
+            accepted_file_types: string[];
+            allow_link_instead_of_file: boolean;
+            /** Format: int32 */
+            max_files: number;
+            /** Format: int32 */
+            max_file_size_mb: number;
+            is_required: boolean;
+            required_files: string[];
+            required_folders: string[];
+            /** Format: uuid */
+            assignment_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        AssignmentDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            subject_version_id: string;
+            title: string;
+            description: null | string;
+            submission_mode: components["schemas"]["SubmissionMode"];
+            /** Format: date-time */
+            due_at: null | string;
+            allow_late_submission: boolean;
+            /** Format: double */
+            late_penalty_percent_per_day: number;
+            /** Format: uuid */
+            rubric_id: null | string;
+            /** Format: double */
+            max_score: number;
+            slots: components["schemas"]["SubmissionSlotDto"][];
+            hints: components["schemas"]["AssignmentHintDto"][];
+        };
+        AssignmentHintDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order_index: number;
+            content: string;
+            /** Format: double */
+            penalty_percent: number;
         };
         BootstrapInstructorCommand: {
             email: string;
@@ -1994,6 +2875,22 @@ export interface components {
             reflection_prompt?: null | string;
             starter_code_url?: null | string;
             language?: null | string;
+        };
+        CreateAssignmentCommand: {
+            title: string;
+            description: null | string;
+            /** Format: date-time */
+            due_at: null | string;
+            allow_late_submission: boolean;
+            /** Format: double */
+            late_penalty_percent_per_day: number;
+            /** Format: double */
+            max_score: number;
+            use_suggested_slots: boolean;
+            /** Format: uuid */
+            subject_version_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
         };
         CreateChapterCommand: {
             title: string;
@@ -2066,6 +2963,23 @@ export interface components {
         };
         /** @enum {unknown} */
         EnrollmentStatus: "imported" | "active" | "dropped";
+        /** @enum {unknown} */
+        FileProcessingStatus: "pending" | "processing" | "done" | "failed";
+        FileTreeDto: {
+            /** Format: uuid */
+            file_id: string;
+            file_name: string;
+            processing_status: components["schemas"]["FileProcessingStatus"];
+            processing_error: null | string;
+            structure_check_passed: null | boolean;
+            missing_structure_items: string[];
+            entries: components["schemas"]["FileTreeEntryDto"][];
+        };
+        FileTreeEntryDto: {
+            path: string;
+            /** Format: int64 */
+            size_bytes: number;
+        };
         /** Format: binary */
         IFormFile: string;
         ImportEnrollmentsResponse: {
@@ -2177,6 +3091,30 @@ export interface components {
             full_name: string;
             roles: string[];
         };
+        MyAssignmentDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            description: null | string;
+            /** Format: date-time */
+            due_at: null | string;
+            allow_late_submission: boolean;
+            /** Format: double */
+            max_score: number;
+            slots: components["schemas"]["SubmissionSlotDto"][];
+            /** Format: uuid */
+            submission_id: null | string;
+            status: null | components["schemas"]["SubmissionStatus"];
+            is_late: boolean;
+            /** Format: int32 */
+            attempt_count: number;
+            /** Format: double */
+            score: null | number;
+        };
+        MyAssignmentSubmissionDto: {
+            current: null | components["schemas"]["SubmissionDto"];
+            history: components["schemas"]["SubmissionDto"][];
+        };
         MyChapterDto: {
             /** Format: uuid */
             id: string;
@@ -2189,6 +3127,21 @@ export interface components {
             completion_percent: number;
             lessons: components["schemas"]["MyLessonDto"][];
         };
+        MyComponentDto: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["LessonComponentType"];
+            /** Format: int32 */
+            order_index: number;
+            is_required: boolean;
+            completed: boolean;
+            html: null | string;
+            reflection_prompt: null | string;
+            starter_code_url: null | string;
+            language: null | string;
+            /** Format: int32 */
+            inline_question_count: number;
+        };
         MyLessonDto: {
             /** Format: uuid */
             id: string;
@@ -2198,10 +3151,14 @@ export interface components {
             content_type: components["schemas"]["LessonContentType"];
             file_url: null | string;
             completed: boolean;
+            marked_done: boolean;
+            /** Format: int32 */
+            required_components_remaining: number;
             access: components["schemas"]["LessonAccess"];
             locked_reason: null | string;
             /** Format: int32 */
             component_count: number;
+            components: components["schemas"]["MyComponentDto"][];
         };
         MyOfferingDto: {
             /** Format: uuid */
@@ -2301,6 +3258,63 @@ export interface components {
         };
         /** @enum {unknown} */
         SubjectVersionStatus: "draft" | "published" | "archived";
+        SubmissionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            assignment_id: null | string;
+            /** Format: uuid */
+            offering_id: string;
+            /** Format: int32 */
+            attempt_no: number;
+            is_current: boolean;
+            status: components["schemas"]["SubmissionStatus"];
+            /** Format: date-time */
+            submitted_at: null | string;
+            is_late: boolean;
+            /** Format: double */
+            score: null | number;
+            feedback: null | string;
+            files: components["schemas"]["SubmissionFileDto"][];
+        };
+        SubmissionFileDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            slot_id: string;
+            slot_key: string;
+            file_name: string;
+            external_url: null | string;
+            /** Format: int64 */
+            size_bytes: number;
+            processing_status: components["schemas"]["FileProcessingStatus"];
+            processing_error: null | string;
+            structure_check_passed: null | boolean;
+            missing_structure_items: string[];
+            /** Format: date-time */
+            uploaded_at: string;
+        };
+        /** @enum {unknown} */
+        SubmissionMode: "individual" | "group";
+        SubmissionSlotDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order_index: number;
+            slot_key: string;
+            label: string;
+            accepted_file_types: string[];
+            allow_link_instead_of_file: boolean;
+            /** Format: int32 */
+            max_files: number;
+            /** Format: int32 */
+            max_file_size_mb: number;
+            is_required: boolean;
+            required_files: string[];
+            required_folders: string[];
+        };
+        /** @enum {unknown} */
+        SubmissionStatus: "draft" | "submitted" | "grading" | "graded" | "returned";
         Syllabus: {
             /** Format: int32 */
             credits?: null | number;
@@ -2320,6 +3334,39 @@ export interface components {
         };
         /** @enum {unknown} */
         UnlockRule: "free" | "after_previous_completed";
+        UpdateAssignmentCommand: {
+            title: string;
+            description: null | string;
+            /** Format: date-time */
+            due_at: null | string;
+            allow_late_submission: boolean;
+            /** Format: double */
+            late_penalty_percent_per_day: number;
+            /** Format: double */
+            max_score: number;
+            /** Format: uuid */
+            rubric_id: null | string;
+            /** Format: uuid */
+            assignment_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        UpdateSubmissionSlotCommand: {
+            label: string;
+            accepted_file_types: string[];
+            allow_link_instead_of_file: boolean;
+            /** Format: int32 */
+            max_files: number;
+            /** Format: int32 */
+            max_file_size_mb: number;
+            is_required: boolean;
+            required_files: string[];
+            required_folders: string[];
+            /** Format: uuid */
+            slot_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         UpdateVersionCommand: {
             version_label?: null | string;
             changelog?: null | string;

@@ -167,7 +167,7 @@ việc" mạnh nhất và kết quả trông y hệt như làm đúng.
 Báo lại cho người dùng: lệnh nào, lỗi gì (dán nguyên văn), đã thử gì. Để họ chạy hộ, cài công cụ
 thiếu, hoặc quyết định cách khác. Ví dụ tình huống thật: `dotnet ef` chưa cài
 (`dotnet tool install --global dotnet-ef --version 10.0.11`), `pnpm gen:api` chết vì API chưa chạy
-ở `http://localhost:5080`, `dotnet ef database update` chết vì container Postgres chưa `docker compose up`.
+ở `http://localhost:9810`, `dotnet ef database update` chết vì container Postgres chưa `docker compose up`.
 Tất cả đều là "thiếu điều kiện", không phải "lệnh vô dụng" — sửa điều kiện rồi chạy lại, đừng
 thay bằng file gõ tay.
 
@@ -299,7 +299,7 @@ Script trong `frontend/package.json` (file này viết tay được, nó không 
 
 ```json
 "scripts": {
-  "gen:api": "openapi-typescript http://localhost:5080/openapi/v1.json -o src/lib/api/schema.d.ts"
+  "gen:api": "openapi-typescript http://localhost:9810/openapi/v1.json -o src/lib/api/schema.d.ts"
 }
 ```
 

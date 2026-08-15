@@ -54,14 +54,30 @@ public class Lesson : Entity, ISoftDeletable
         var c = Components.SingleOrDefault(x => x.Id == componentId)
                 ?? throw new InvalidOperationException($"Không có component {componentId} trong bài này.");
 
+        SapTheoOrderIndex();
         Components.Remove(c);
         Components.Insert(Math.Clamp(toIndex, 0, Components.Count), c);
-        Reindex();
+        DanhSoLai();
     }
 
     // OrderIndex phải luôn là 0..n-1 liên tục. Nếu để hở, kéo-thả ở UI sẽ
     // dần tạo ra các khoảng trống và thứ tự hiển thị thành không xác định.
     private void Reindex()
+    {
+        SapTheoOrderIndex();
+        DanhSoLai();
+    }
+
+    /// <summary>
+    /// EF nạp collection navigation KHÔNG kèm ORDER BY, nên thứ tự phần tử trong
+    /// <see cref="Components"/> là thứ tự heap của Postgres. Sau một lần DELETE, hàng chèn
+    /// sau có thể lấp vào chỗ trống và thứ tự nạp lệch khỏi OrderIndex. Đánh số lại theo
+    /// thứ tự nạp khi đó là HOÁN VỊ các phần của bài học: không exception, không test nào
+    /// đỏ một cách chắc chắn, chỉ thỉnh thoảng thứ tự đổi sau khi xóa một phần.
+    /// </summary>
+    private void SapTheoOrderIndex() => Components.Sort((x, y) => x.OrderIndex.CompareTo(y.OrderIndex));
+
+    private void DanhSoLai()
     {
         for (var i = 0; i < Components.Count; i++) Components[i].OrderIndex = i;
     }

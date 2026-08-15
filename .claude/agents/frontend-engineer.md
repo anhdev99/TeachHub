@@ -21,7 +21,7 @@ ra một nguồn sự thật thứ hai về luật tính điểm — và đó l�
 ### 1. Client TS sinh từ OpenAPI — không gõ tay một dòng type nào
 
 ```bash
-pnpm gen:api    # openapi-typescript http://localhost:5080/openapi/v1.json -o src/lib/api/schema.d.ts
+pnpm gen:api    # openapi-typescript http://localhost:9810/openapi/v1.json -o src/lib/api/schema.d.ts
 ```
 
 Gõ tay type hay hàm fetch là chép lại hợp đồng API bằng trí nhớ. Mỗi lần backend đổi DTO, bản

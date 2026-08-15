@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { MyLessonDto, MyProgressDto } from "@/lib/api/types";
+import { PhanBaiHoc } from "./phan-bai-hoc";
 import { XemNoiDung } from "./xem-noi-dung";
 
 export function TrangHoc({
@@ -30,6 +31,12 @@ export function TrangHoc({
   const hoanThanh = useMutation({
     mutationFn: (lessonId: string) =>
       apiFetch(`/api/lessons/${lessonId}/complete`, { method: "POST" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: khoa }),
+  });
+
+  const hoanThanhPhan = useMutation({
+    mutationFn: (componentId: string) =>
+      apiFetch(`/api/lesson-components/${componentId}/complete`, { method: "POST" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: khoa }),
   });
 
@@ -103,7 +110,13 @@ export function TrangHoc({
                               : "hover:bg-muted"
                           } ${bai?.id === l.id ? "bg-muted font-medium" : ""}`}
                         >
-                          <span aria-hidden>{khoaLai ? "🔒" : l.completed ? "✓" : "○"}</span>
+                          {/* Bốn trạng thái, không phải hai: khóa · hoàn thành · đã xem
+                              nhưng còn phần bắt buộc · chưa động tới. Gộp hai trạng thái
+                              giữa lại thành ✓ là lý do sinh viên từng thấy bài đã ✓ mà bài
+                              kế tiếp vẫn khóa vì "chưa hoàn thành" chính bài đó. */}
+                          <span aria-hidden>
+                            {khoaLai ? "🔒" : l.completed ? "✓" : l.marked_done ? "◐" : "○"}
+                          </span>
                           <span className="flex-1">{l.title}</span>
                         </button>
                       </li>
@@ -133,6 +146,22 @@ export function TrangHoc({
 
               <XemNoiDung contentType={bai.content_type} fileUrl={bai.file_url} />
 
+              {bai.components.length > 0 && (
+                <section className="flex flex-col gap-2">
+                  <h2 className="text-sm font-medium">Các phần trong bài</h2>
+                  <ul className="flex flex-col gap-2">
+                    {bai.components.map((p) => (
+                      <PhanBaiHoc
+                        key={p.id}
+                        phan={p}
+                        dangLuu={hoanThanhPhan.isPending && hoanThanhPhan.variables === p.id}
+                        onHoanThanh={(id) => hoanThanhPhan.mutate(id)}
+                      />
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-4">
                 <span className="text-muted-foreground text-sm">
                   {bai.component_count > 0 ? `${bai.component_count} phần trong bài` : "Không có phần thêm"}
@@ -140,6 +169,13 @@ export function TrangHoc({
 
                 {bai.completed ? (
                   <Badge>Đã hoàn thành</Badge>
+                ) : bai.marked_done ? (
+                  // Đã bấm "Đã học xong" nhưng bài vẫn chưa tính là hoàn thành. Phải nói rõ
+                  // còn thiếu gì: im lặng ở đây là sinh viên bấm nút, không thấy gì đổi, rồi
+                  // nhìn bài kế tiếp vẫn khóa mà không hiểu vì sao.
+                  <Badge variant="secondary">
+                    Đã xem xong nội dung — còn {bai.required_components_remaining} phần bắt buộc
+                  </Badge>
                 ) : (
                   <Button
                     onClick={() => hoanThanh.mutate(bai.id)}

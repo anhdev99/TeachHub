@@ -93,6 +93,49 @@ public class TeachHubApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return client;
     }
 
+    /// <summary>
+    /// Tạo một sinh viên mới, ghi danh vào lớp đã cho, rồi trả về client đã đăng nhập.
+    /// Mỗi lần gọi sinh một email khác nhau: các test dùng chung một container Postgres nên
+    /// email cố định sẽ đụng nhau và test đỏ theo thứ tự chạy chứ không theo lỗi thật.
+    /// </summary>
+    public async Task<HttpClient> LoginAsNewStudentOfAsync(Guid offeringId)
+    {
+        // Lấy 6 ký tự CUỐI: UUIDv7 xếp theo thời gian nên tiền tố gần như trùng nhau.
+        var duoi = Guid.CreateVersion7().ToString("N")[^6..];
+        var email = $"sv-{duoi}@sv.edu.vn";
+        const string matKhau = "Sinh@123";
+
+        using (var scope = Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var users = scope.ServiceProvider
+                .GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<TeachHub.Domain.Identity.AppUser>>();
+
+            var u = new TeachHub.Domain.Identity.AppUser
+            {
+                UserName = email, Email = email, FullName = $"SV {duoi}",
+                StudentCode = $"22540{duoi}", EmailConfirmed = true,
+            };
+            await users.CreateAsync(u, matKhau);
+            await users.AddToRoleAsync(u, TeachHub.Domain.Identity.Roles.Student);
+
+            db.Enrollments.Add(new TeachHub.Domain.Teaching.Enrollment
+            {
+                OfferingId = offeringId, StudentCode = u.StudentCode!, FullName = u.FullName,
+                Email = email, UserId = u.Id, Status = TeachHub.Domain.Teaching.EnrollmentStatus.Active,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var client = CreateClient();
+        var res = await client.PostAsJsonAsync("/api/auth/login", new { email, password = matKhau });
+        res.EnsureSuccessStatusCode();
+        var json = await res.Content.ReadFromJsonAsync<JsonElement>();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", json.GetProperty("access_token").GetString());
+        return client;
+    }
+
     /// <summary>Tạo một môn học kèm phiên bản draft đầu tiên; trả về (subjectId, versionId).</summary>
     public static async Task<(Guid SubjectId, Guid VersionId)> SeedSubjectWithDraftAsync(HttpClient gv)
     {

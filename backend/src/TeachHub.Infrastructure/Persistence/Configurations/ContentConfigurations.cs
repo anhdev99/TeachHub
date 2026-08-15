@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
 
@@ -122,9 +123,31 @@ public sealed class AssignmentConfiguration : IEntityTypeConfiguration<Assignmen
     {
         b.HasKey(x => x.Id);
         b.Property(x => x.Title).HasMaxLength(300).IsRequired();
+        b.Property(x => x.SubmissionMode).HasConversion<string>().HasMaxLength(32);
+        b.Property(x => x.MaxScore).HasPrecision(5, 2);
+        b.Property(x => x.LatePenaltyPercentPerDay).HasPrecision(5, 2);
+
+        // GroupConfig CHỨA enum AllocationMode, nên phải khai .HasConversion<string>()
+        // cho riêng nó: EF dùng JsonValueReaderWriter cho cột ToJson() và KHÔNG đọc
+        // JsonStringEnumConverter cấu hình ở tầng HTTP. Thiếu dòng này thì jsonb lưu
+        // {"AllocationMode": 1} — không lỗi, không test đỏ, chỉ là dữ liệu đổi nghĩa
+        // vào ngày ai đó chèn một giá trị vào giữa enum.
+        b.OwnsOne(x => x.GroupConfig, g =>
+        {
+            g.ToJson();
+            g.Property(y => y.AllocationMode).HasConversion<string>();
+        });
+
+        b.HasMany(x => x.Hints).WithOne().HasForeignKey(h => h.AssignmentId)
+         .OnDelete(DeleteBehavior.Cascade);
 
         b.HasOne<SubjectVersion>().WithMany().HasForeignKey(x => x.SubjectVersionId)
          .OnDelete(DeleteBehavior.Cascade);
+
+        // Rubric thuộc giảng viên và dùng chung giữa nhiều bài tập, nên xóa bài tập
+        // không được đụng tới rubric.
+        b.HasOne<Rubric>().WithMany().HasForeignKey(x => x.RubricId)
+         .OnDelete(DeleteBehavior.Restrict);
 
         b.HasQueryFilter(x => !x.IsDeleted);
         b.HasIndex(x => x.SubjectVersionId);

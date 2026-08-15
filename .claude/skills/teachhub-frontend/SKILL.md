@@ -15,7 +15,7 @@ Không thay thư viện nào trong danh sách này bằng lựa chọn khác mà
 > *"This is NOT the Next.js you know — this version has breaking changes"*. Viết theo trí nhớ
 > về Next 15 là cách nhanh nhất để tạo ra code trông đúng mà không chạy.
 
-Backend chạy ở `http://localhost:5080`, frontend ở `http://localhost:3000`.
+Backend chạy ở `http://localhost:9810`, frontend ở `http://localhost:9811`.
 Hợp đồng API là **snake_case** (§5 tài liệu kiến trúc), lỗi luôn là ProblemDetails RFC 9457.
 
 ---
@@ -91,7 +91,7 @@ nhanh nhất làm trang học phình bundle trên điện thoại của sinh vi�
 
 ```json
 "scripts": {
-  "gen:api": "openapi-typescript http://localhost:5080/openapi/v1.json -o src/lib/api/schema.d.ts"
+  "gen:api": "openapi-typescript http://localhost:9810/openapi/v1.json -o src/lib/api/schema.d.ts"
 }
 ```
 
@@ -141,7 +141,7 @@ import type { paths } from "./schema";
 export async function serverApi() {
   const at = (await cookies()).get("th_at")?.value;
   return createClient<paths>({
-    baseUrl: process.env.API_BASE_URL ?? "http://localhost:5080",
+    baseUrl: process.env.API_BASE_URL ?? "http://localhost:9810",
     headers: at ? { Authorization: `Bearer ${at}` } : {},
   });
 }

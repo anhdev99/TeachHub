@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Learning;
+using TeachHub.Domain.Submissions;
 using TeachHub.Domain.Teaching;
 
 namespace TeachHub.Application.Common;
@@ -30,6 +32,14 @@ public interface IAppDbContext
     DbSet<Enrollment> Enrollments { get; }
     DbSet<LessonProgress> LessonProgresses { get; }
     DbSet<ComponentProgress> ComponentProgresses { get; }
+
+    // Phase 3 — bài tập và nộp bài
+    DbSet<Rubric> Rubrics { get; }
+    DbSet<RubricCriterion> RubricCriteria { get; }
+    DbSet<AssignmentHint> AssignmentHints { get; }
+    DbSet<SubmissionSlot> SubmissionSlots { get; }
+    DbSet<Submission> Submissions { get; }
+    DbSet<SubmissionFile> SubmissionFiles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

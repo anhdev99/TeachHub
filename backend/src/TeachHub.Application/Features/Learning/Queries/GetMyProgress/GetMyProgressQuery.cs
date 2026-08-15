@@ -6,9 +6,35 @@ using TeachHub.Domain.Learning;
 
 namespace TeachHub.Application.Features.Learning.Queries.GetMyProgress;
 
+/// <param name="Completed">
+/// Bài đã HOÀN THÀNH theo đúng nghĩa mà phần trăm và luật mở khóa đang dùng
+/// (<see cref="UnlockEngine.IsComplete"/>): đã xem xong nội dung VÀ xong mọi phần bắt buộc.
+/// </param>
+/// <param name="MarkedDone">
+/// Sinh viên đã bấm "Đã học xong" cho phần trình bày. Tách khỏi <paramref name="Completed"/>
+/// vì giao diện cần phản hồi cú bấm ngay cả khi bài chưa đủ điều kiện tính là hoàn thành.
+/// </param>
+/// <param name="RequiredComponentsRemaining">
+/// Số phần bắt buộc còn thiếu. Không có con số này thì sinh viên bấm xong mà không thấy gì
+/// đổi và cũng không biết còn thiếu gì — đúng ngõ cụt đã gặp khi chạy thử.
+/// </param>
+/// <param name="Components">
+/// Danh sách phần của bài. Trước đây chỉ trả <paramref name="ComponentCount"/>, nên giao diện
+/// ghi được "3 phần trong bài · còn 1 phần bắt buộc" mà KHÔNG hiện phần nào để làm: sinh viên
+/// không có đường hoàn thành phần bắt buộc, và bài kế tiếp khóa vĩnh viễn. Con số một mình
+/// không phải là một màn hình dùng được.
+/// </param>
 public sealed record MyLessonDto(
     Guid Id, string Title, int OrderIndex, LessonContentType ContentType, string? FileUrl,
-    bool Completed, LessonAccess Access, string? LockedReason, int ComponentCount);
+    bool Completed, bool MarkedDone, int RequiredComponentsRemaining,
+    LessonAccess Access, string? LockedReason, int ComponentCount,
+    List<MyComponentDto> Components);
+
+/// <param name="Html">Nội dung nhúng của hook / custom_note / code_along. Null với loại khác.</param>
+public sealed record MyComponentDto(
+    Guid Id, LessonComponentType Type, int OrderIndex, bool IsRequired, bool Completed,
+    string? Html, string? ReflectionPrompt, string? StarterCodeUrl, string? Language,
+    int InlineQuestionCount);
 
 public sealed record MyChapterDto(
     Guid Id, string Title, string? Objective, int OrderIndex,
@@ -50,7 +76,14 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
         var lessonIds = lessons.Select(l => l.Id).ToList();
         var components = await db.LessonComponents.AsNoTracking()
             .Where(cp => lessonIds.Contains(cp.LessonId))
-            .Select(cp => new { cp.Id, cp.LessonId, cp.IsRequired })
+            .OrderBy(cp => cp.OrderIndex)
+            .Select(cp => new
+            {
+                cp.Id, cp.LessonId, cp.IsRequired, cp.Type, cp.OrderIndex,
+                cp.Config.Html, cp.Config.ReflectionPrompt,
+                cp.Config.StarterCodeUrl, cp.Config.Language,
+                InlineQuestionCount = cp.Config.InlineQuestions.Count,
+            })
             .ToListAsync(ct);
 
         var lessonXong = await db.LessonProgresses.AsNoTracking()
@@ -84,6 +117,7 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                 [.. baiCuaChuong.Select(l =>
                 {
                     var truyCap = access.GetValueOrDefault(l.Id, LessonAccess.Unlocked);
+                    var nut = node.Lessons.Single(n => n.Id == l.Id);
 
                     // Nêu đích danh bài đang chặn. Chỉ hiện một ổ khóa câm là nguồn tin nhắn
                     // hỏi bài số một của mọi LMS.
@@ -100,11 +134,27 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                         ? null
                         : l.FileUrl;
 
+                    // "Xong" phải dùng CÙNG một định nghĩa với phần trăm và luật mở khóa —
+                    // tức UnlockEngine.IsComplete. Trước đây chỗ này lấy thẳng
+                    // progress.CompletedLessons, nên giao diện hiện ✓ ở Bài 1 trong khi Bài 2
+                    // vẫn khóa với lý do "Hoàn thành Bài 1": sinh viên không có đường nào đi tiếp.
                     return new MyLessonDto(
                         l.Id, l.Title, l.OrderIndex, l.ContentType, fileUrl,
-                        progress.CompletedLessons.Contains(l.Id), truyCap,
+                        UnlockEngine.IsComplete(nut, progress),
+                        progress.CompletedLessons.Contains(l.Id),
+                        nut.Components.Count(c => c.IsRequired
+                                                  && !progress.CompletedComponents.Contains(c.Id)),
+                        truyCap,
                         chan is null ? null : $"Hoàn thành “{chan.Title}” để mở bài này.",
-                        components.Count(cp => cp.LessonId == l.Id));
+                        components.Count(cp => cp.LessonId == l.Id),
+                        [.. components
+                            .Where(cp => cp.LessonId == l.Id)
+                            .OrderBy(cp => cp.OrderIndex)
+                            .Select(cp => new MyComponentDto(
+                                cp.Id, cp.Type, cp.OrderIndex, cp.IsRequired,
+                                progress.CompletedComponents.Contains(cp.Id),
+                                cp.Html, cp.ReflectionPrompt, cp.StarterCodeUrl, cp.Language,
+                                cp.InlineQuestionCount))]);
                 })]));
 
             tongBai += node.Lessons.Count;

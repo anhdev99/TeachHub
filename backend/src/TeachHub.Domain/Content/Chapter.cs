@@ -46,13 +46,23 @@ public class Chapter : Entity, ISoftDeletable
         var l = Lessons.SingleOrDefault(x => x.Id == lessonId)
                 ?? throw new InvalidOperationException($"Không có bài {lessonId} trong chương này.");
 
+        SapTheoOrderIndex();
         Lessons.Remove(l);
         Lessons.Insert(Math.Clamp(toIndex, 0, Lessons.Count), l);
-        Reindex();
+        DanhSoLai();
     }
 
     // Cùng lý do với Lesson.Reindex: OrderIndex hở là thứ tự hiển thị thành không xác định.
     private void Reindex()
+    {
+        SapTheoOrderIndex();
+        DanhSoLai();
+    }
+
+    // Xem Lesson.SapTheoOrderIndex: thứ tự EF nạp về không phải OrderIndex.
+    private void SapTheoOrderIndex() => Lessons.Sort((x, y) => x.OrderIndex.CompareTo(y.OrderIndex));
+
+    private void DanhSoLai()
     {
         for (var i = 0; i < Lessons.Count; i++) Lessons[i].OrderIndex = i;
     }

@@ -50,7 +50,8 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/dashboard");
+    const { redirect_to } = (await res.json()) as { redirect_to?: string };
+    router.push(redirect_to ?? "/dashboard");
     router.refresh();
   }
 

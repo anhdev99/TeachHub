@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
+using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Common;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Learning;
+using TeachHub.Domain.Submissions;
 using TeachHub.Domain.Teaching;
 
 namespace TeachHub.Infrastructure.Persistence;
@@ -28,6 +30,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<LessonProgress> LessonProgresses => Set<LessonProgress>();
     public DbSet<ComponentProgress> ComponentProgresses => Set<ComponentProgress>();
+
+    public DbSet<Rubric> Rubrics => Set<Rubric>();
+    public DbSet<RubricCriterion> RubricCriteria => Set<RubricCriterion>();
+    public DbSet<AssignmentHint> AssignmentHints => Set<AssignmentHint>();
+    public DbSet<SubmissionSlot> SubmissionSlots => Set<SubmissionSlot>();
+    public DbSet<Submission> Submissions => Set<Submission>();
+    public DbSet<SubmissionFile> SubmissionFiles => Set<SubmissionFile>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 

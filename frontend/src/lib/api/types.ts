@@ -20,8 +20,28 @@ export type MyOfferingDto = components["schemas"]["MyOfferingDto"];
 export type MyProgressDto = components["schemas"]["MyProgressDto"];
 export type MyChapterDto = components["schemas"]["MyChapterDto"];
 export type MyLessonDto = components["schemas"]["MyLessonDto"];
+export type MyComponentDto = components["schemas"]["MyComponentDto"];
 export type LessonAccess = components["schemas"]["LessonAccess"];
 export type LessonContentType = components["schemas"]["LessonContentType"];
+
+// Phase 3 — bài tập và nộp bài
+export type AssignmentDto = components["schemas"]["AssignmentDto"];
+export type SubmissionSlotDto = components["schemas"]["SubmissionSlotDto"];
+export type SubmissionDto = components["schemas"]["SubmissionDto"];
+export type SubmissionFileDto = components["schemas"]["SubmissionFileDto"];
+export type MyAssignmentDto = components["schemas"]["MyAssignmentDto"];
+export type MyAssignmentSubmissionDto = components["schemas"]["MyAssignmentSubmissionDto"];
+export type FileTreeDto = components["schemas"]["FileTreeDto"];
+export type FileProcessingStatus = components["schemas"]["FileProcessingStatus"];
+export type SubmissionStatus = components["schemas"]["SubmissionStatus"];
+
+export const NHAN_TRANG_THAI_NOP: Record<SubmissionStatus, string> = {
+  draft: "Bản nháp",
+  submitted: "Đã nộp",
+  grading: "Đang chấm",
+  graded: "Đã chấm",
+  returned: "Đã trả bài",
+};
 
 export const NHAN_TRANG_THAI: Record<SubjectVersionStatus, string> = {
   draft: "Bản nháp",

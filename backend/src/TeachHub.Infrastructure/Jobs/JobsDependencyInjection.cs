@@ -2,6 +2,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TeachHub.Application.Common;
 
 namespace TeachHub.Infrastructure.Jobs;
 
@@ -12,7 +13,18 @@ public static class JobsDependencyInjection
 
     public static IServiceCollection AddJobs(this IServiceCollection services, IConfiguration config)
     {
-        if (!config.GetValue("Hangfire:Enabled", true)) return services;
+        services.AddScoped<ProcessSubmissionFileJob>();
+
+        if (!config.GetValue("Hangfire:Enabled", true))
+        {
+            // Hangfire tắt (integration test, môi trường tối giản): xử lý ngay trong tiến trình
+            // thay vì bỏ qua. Bỏ qua thì tệp nộp nằm mãi ở trạng thái Pending và cây thư mục
+            // không bao giờ hiện ra — một chế độ hỏng âm thầm, khó lần hơn hẳn so với chậm.
+            services.AddScoped<ISubmissionFileQueue, InlineSubmissionFileQueue>();
+            return services;
+        }
+
+        services.AddScoped<ISubmissionFileQueue, HangfireSubmissionFileQueue>();
 
         services.AddHangfire(c => c
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

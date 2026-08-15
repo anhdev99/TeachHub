@@ -7,9 +7,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Trỏ vào biến do next/font sinh ra trong layout.tsx. Trước đây dòng đầu viết
+     `--font-sans: var(--font-sans)` — tự trỏ vào chính nó nên phân giải ra rỗng, và cả giao
+     diện rơi về serif mặc định của trình duyệt dù Geist vẫn được tải về. */
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
