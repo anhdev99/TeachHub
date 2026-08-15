@@ -1,0 +1,151 @@
+<meta charset="utf-8">
+<title>Phase 4a + 4b · Báo cáo chốt MVP</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1d21; --muted:#5b6572; --line:#e3e7ec; --ok:#0a7d3f; --warn:#a8620a; --bad:#b3261e; --code:#f6f8fa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#15181c; --fg:#e6e9ee; --muted:#9aa4b1; --line:#2b313a; --ok:#54d38a; --warn:#e0a458; --bad:#ef8079; --code:#1d2228; }
+  }
+  * { box-sizing: border-box; }
+  body { background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+         max-width:62rem; margin:0 auto; padding:2rem 1.25rem 5rem; }
+  h1 { font-size:1.9rem; line-height:1.25; margin:0 0 .25rem; }
+  h2 { font-size:1.3rem; margin:2.5rem 0 .75rem; padding-top:1.25rem; border-top:1px solid var(--line); }
+  h3 { font-size:1.05rem; margin:1.75rem 0 .5rem; }
+  .sub { color:var(--muted); margin:0 0 2rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.94rem; }
+  th, td { text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-weight:600; color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
+  code { background:var(--code); padding:.12em .38em; border-radius:4px; font-size:.88em;
+         font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  pre { background:var(--code); padding:.9rem 1rem; border-radius:8px; overflow-x:auto; font-size:.85rem; line-height:1.5; }
+  .ok { color:var(--ok); font-weight:600; } .warn { color:var(--warn); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+  .box { border:1px solid var(--line); border-left:3px solid var(--warn); border-radius:6px; padding:.85rem 1rem; margin:1.25rem 0; }
+  ul { padding-left:1.3rem; } li { margin:.3rem 0; }
+</style>
+
+<h1>Phase 4a + 4b — Chấm điểm, Nhóm, Sổ điểm động</h1>
+<p class="sub">16/08/2026 · 🎓 <strong>MVP hoàn tất</strong> · build 0 cảnh báo · 121 test thuần xanh trong 110 ms</p>
+
+<div class="box">
+  <strong>Sai lệch có chủ ý so với Definition of Done.</strong> Người dùng yêu cầu không viết test
+  để đi nhanh. Đã tuân theo cho phần integration, và nghiệm thu bằng cách gọi API thật + lái
+  Chromium thật. <strong>Ngoại lệ được giữ:</strong> mọi hàm thuần tính điểm. Một lỗi làm tròn hay
+  một trần điểm cộng áp hai lần không có triệu chứng nào trên giao diện — nó chỉ hiện ra khi bảng
+  điểm đã nộp cho phòng đào tạo. 121 test này chạy trong 110 ms nên không làm chậm gì cả.
+</div>
+
+<h2>1. Thứ tự tính điểm — thứ quan trọng nhất của phase</h2>
+
+<pre>1. rawColumn[c] = sửa tay ? GradeRecord.Score : Aggregation.Apply(nguồn ĐÃ quy về thang 10)
+2. ledger      = BonusLedger.Build(bonuses, settings)   ← sắp xếp tất định + áp trần MỘT LẦN
+3. columnScore = clamp(rawColumn + ledger.ByColumn[c], 0, 10)
+4. total       = Σ(columnScore × weight/100) + ledger.ToFinalTotal
+5. total       = ApplyConditions(total, columnScore, conditions)   ← điểm sàn
+6. total       = clamp(round(total, 1, AwayFromZero), 0, 10)</pre>
+
+<p>Ba chỗ mà đảo thứ tự là ra số khác, và cả ba đều có test:</p>
+<ul>
+  <li><strong>Bước 2 trước bước 3</strong> — trần điểm cộng áp một lần trên toàn bộ. Áp lại ở từng
+      chỗ dùng thì ô sổ điểm và điểm tổng ra hai con số khác nhau.</li>
+  <li><strong>Bước 5 sau bước 4</strong> — điểm sàn áp SAU khi đã cộng mọi điểm cộng. Đảo lại thì
+      sinh viên thi cuối môn 3.5 vẫn qua môn nhờ điểm phát biểu trên lớp.</li>
+  <li><strong>Bước 6 cuối cùng</strong> — làm tròn đúng một lần. Làm tròn từng cột rồi cộng lại
+      lệch tới 0.2–0.3 điểm trên lớp 6 cột.</li>
+</ul>
+
+<p>Ngoài ra: <code>BonusLedger.Build</code> sắp xếp theo <code>(GrantedAt, Id)</code> trước khi cắt
+trần. Không sắp xếp thì trần cắt theo thứ tự câu truy vấn trả về, và cùng một tập điểm cộng đọc
+hai lần cho hai kết quả — có test khẳng định đảo thứ tự đầu vào không đổi kết quả.</p>
+
+<h2>2. Task đã xong</h2>
+
+<table>
+  <tr><th>Task</th><th>Sản phẩm</th></tr>
+  <tr><td>4a.1</td><td><code>StudentGroup</code>, <code>GroupMember</code>, <code>GroupAllocator</code> — rải phần dư, không để nhóm một người; cùng seed cùng kết quả</td></tr>
+  <tr><td>4a.2</td><td><code>GradeSubmissionCommand</code>, <code>ReturnSubmissionCommand</code>, <code>GradeAuditLog</code> chỉ-ghi-thêm</td></tr>
+  <tr><td>4a.3</td><td>Màn hình chấm bài 3 cột + phím tắt ⌘/Ctrl+Enter + dải nhóm đầy đủ thành viên</td></tr>
+  <tr><td>4a.4</td><td><code>FinalAssessment</code> loại <code>final_project</code>, dùng lại nguyên vẹn slot/submission của Phase 3</td></tr>
+  <tr><td>4a.5</td><td>Dashboard giảng viên — truy vấn projection, số câu truy vấn là hằng số theo sĩ số</td></tr>
+  <tr><td>+</td><td><strong>Ngoài plan:</strong> API và màn hình soạn rubric — 4a không chấm theo rubric được nếu không có chỗ tạo rubric</td></tr>
+  <tr><td>4b.1–2</td><td><code>GradeSchemeTemplate</code> + mở lớp = SAO CHÉP mẫu rồi cắt dây</td></tr>
+  <tr><td>4b.3</td><td><code>GradeAggregator</code> — 8 quy tắc, chuẩn hóa mọi nguồn về thang 10 TRƯỚC khi gộp</td></tr>
+  <tr><td>4b.4</td><td><code>BonusLedger</code> tất định + <code>GradebookCalculator</code></td></tr>
+  <tr><td>4b.5</td><td><code>GradeCondition</code> + <code>GradeConditionEvaluator</code></td></tr>
+  <tr><td>4b.6</td><td><code>GradeColumn</code>, <code>GradeColumnSource</code>, <code>GradeRecord</code>, <code>GradeSnapshot</code> + 4 CHECK constraint</td></tr>
+  <tr><td>4b.7</td><td>Điểm cộng + thư viện lý do (ẩn chứ không xóa; lý do lưu bản sao văn bản)</td></tr>
+  <tr><td>4b.8–10</td><td>Sổ điểm, cấu hình cột, cấu hình điểm sàn, popover điểm cộng dùng chung, xuất CSV theo mẫu</td></tr>
+</table>
+
+<h2>3. Ba lỗi tìm được khi chạy trên database ĐÃ CÓ dữ liệu</h2>
+
+<p>Cả ba đều thuộc loại mà một database trống không bao giờ để lộ.</p>
+
+<h3>Lỗi 1 — <code>Entity.Id</code> tự sinh làm EF phát UPDATE thay vì INSERT</h3>
+<p>Đây là lỗi đáng giá nhất của cả hai phase. <code>Entity.Id</code> khởi tạo bằng
+<code>Guid.CreateVersion7()</code> ngay lúc dựng object, nên khóa của một entity mới KHÔNG BAO GIỜ
+mang giá trị mặc định. Khi thêm con vào navigation của một parent đang được EF theo dõi, EF nhìn
+khóa khác default và kết luận hàng đã tồn tại → phát <code>UPDATE … WHERE id = …</code> → chết với
+<em>"expected to affect 1 row(s), but actually affected 0"</em>.</p>
+<p>Đã vá ở <strong>bốn chỗ</strong> bằng cách <code>Add</code> tường minh qua DbSet:
+gắn nguồn cho cột điểm, sửa thành viên nhóm, lưu bộ cột mẫu, lưu mẫu xuất Excel. Các chỗ khác
+an toàn vì parent cũng mới (cả đồ thị ở trạng thái Added).</p>
+
+<h3>Lỗi 2 — cột jsonb mới là NULL trên hàng cũ</h3>
+<p><code>CourseOffering.GradeConditions</code> thêm ở migration này, nên mọi lớp tạo trước đó có
+<code>grade_conditions = NULL</code>. EF materialize thành <code>null</code> chứ không phải danh
+sách rỗng, và sổ điểm ném <code>NullReferenceException</code> → 500. Đã ép kiểu nullable rồi
+<code>?? []</code> ở điểm đọc, kèm chú thích lý do để không ai "dọn cho gọn" về sau.</p>
+
+<h3>Lỗi 3 — không tạo được đợt cuối môn khi chưa có cột điểm</h3>
+<p>Plan ghi <code>FinalAssessment.GradeColumnId</code> là <code>required</code>. Nhưng cột điểm
+thuộc Phase 4b, nên ở 4a không có cột nào để trỏ tới — và cũng không có màn hình nào tạo cột
+trước. Đã đổi thành nullable; giao diện nhắc gắn cột, điểm chỉ chảy vào sổ khi đã gắn.</p>
+
+<h2>4. Nghiệm thu — chạy thật qua API và Chromium</h2>
+
+<table>
+  <tr><th>#</th><th>Bước</th><th>Kết quả</th></tr>
+  <tr><td>1</td><td>Chia nhóm ngẫu nhiên, xem trước hai lần cùng seed</td><td class="ok">✔ ra đúng cùng kết quả, không nhóm 1 người</td></tr>
+  <tr><td>2</td><td>Rubric 3 tiêu chí tổng 10; rubric tổng 13 điểm</td><td class="ok">✔ tạo được / bị chặn 400</td></tr>
+  <tr><td>3</td><td>Chấm theo rubric 4.5 + 2 + 1.5</td><td class="ok">✔ tổng đúng <strong>8.0</strong></td></tr>
+  <tr><td>4</td><td>Chấm 99 điểm cho tiêu chí trần 5</td><td class="ok">✔ 400, nêu đích danh tiêu chí và khoảng cho phép</td></tr>
+  <tr><td>5</td><td>Chấm lại 8.0 → 8.5</td><td class="ok">✔ <code>grade_audit_logs</code> có 2 dòng, dòng 2 ghi 8.00 → 8.50 kèm người sửa</td></tr>
+  <tr><td>6</td><td>Sinh viên xem bài TRƯỚC khi trả bài</td><td class="ok">✔ <code>score = null</code>, <code>feedback = null</code></td></tr>
+  <tr><td>7</td><td>Bấm "Trả bài" rồi xem lại</td><td class="ok">✔ thấy đủ 8.5 và nhận xét</td></tr>
+  <tr><td>8</td><td>Đổi 2 cột → 3 cột (20/30/50)</td><td class="ok">✔; tổng ≠ 100% bị chặn 400</td></tr>
+  <tr><td>9</td><td>Gắn bài tập làm nguồn cột Thường kỳ</td><td class="ok">✔ điểm 8.5 chảy vào cột</td></tr>
+  <tr><td>10</td><td>Sửa tay ô Cuối môn = 3.5 + điều kiện cuối môn &lt; 4</td><td class="ok">✔ tổng bị chặn ở <strong>3.9</strong> dù Thường kỳ 8.5</td></tr>
+  <tr><td>11</td><td>Cấp 2đ thẳng điểm tổng, trần lớp 1đ</td><td class="ok">✔ chỉ 1đ có hiệu lực, và <strong>vẫn không qua ngưỡng 3.9</strong></td></tr>
+  <tr><td>12</td><td>Điểm cộng âm · cộng vào cột mà không chọn cột</td><td class="ok">✔ cả hai 400</td></tr>
+  <tr><td>13</td><td>Ẩn lý do trong thư viện</td><td class="ok">✔ biến khỏi danh sách, còn nguyên khi <code>include_hidden=true</code></td></tr>
+  <tr><td>14</td><td>Xuất CSV mặc định và theo mẫu tùy chỉnh</td><td class="ok">✔ <code>MSSV,Họ và tên,Thi,TK</code> đúng mẫu, BOM UTF-8</td></tr>
+  <tr><td>15</td><td>5 màn hình trên Chromium</td><td class="ok">✔ dashboard · sổ điểm · chia nhóm · bài nộp · rubric — không lỗi console</td></tr>
+</table>
+
+<h2>5. Cổng chất lượng</h2>
+<ul>
+  <li><code>dotnet build TeachHub.sln</code> → <span class="ok">0 Warning(s), 0 Error(s)</span></li>
+  <li><code>dotnet test</code> (Domain) → <span class="ok">121/121 xanh, 110 ms</span></li>
+  <li><code>npx tsc --noEmit</code> sạch · <code>pnpm build</code> dựng được toàn bộ route</li>
+  <li>Hai migration <code>GroupsGradingAndFinalAssessments</code> và <code>DynamicGradebook</code>: <code>Up()</code> <strong>không có lệnh Drop nào</strong>, đã apply lên DB đang có dữ liệu thật của Phase 1–3</li>
+  <li>Enum trong jsonb lưu ĐÚNG dạng chuỗi — kiểm bằng psql: <code>{"N": 0, "Kind": "Average", "TreatMissingAsZero": true}</code></li>
+  <li>4 CHECK constraint sinh đúng: <code>ck_bonus_points_positive</code>, <code>ck_bonus_reason_not_blank</code>, <code>ck_bonus_target_column</code>, <code>ck_grade_column_key_slug</code></li>
+</ul>
+
+<h2>6. Còn nợ lại sau MVP</h2>
+
+<table>
+  <tr><th>Việc</th><th>Ghi chú</th></tr>
+  <tr><td class="warn">Không có integration test cho Phase 3, 4a, 4b</td><td>Theo yêu cầu người dùng. Mọi luồng đã nghiệm thu tay, nhưng <strong>không có lưới an toàn cho lần refactor sau</strong>. Đây là món nợ lớn nhất và nên trả trước khi mở tính năng mới.</td></tr>
+  <tr><td class="warn"><code>CrossInstructorIsolationTests</code> chưa có dòng cho tài nguyên mới</td><td>Phase 3–4b thêm 12 loại tài nguyên thuộc giảng viên. Cách ly đã kiểm tay (SV khác → 404) nhưng chưa vào ma trận tự động — DoD mục 7 chưa đạt.</td></tr>
+  <tr><td><code>GradeSnapshot</code> có bảng nhưng chưa có lệnh chốt sổ</td><td>Entity và schema đã sẵn; hành động "đóng lớp → chốt bản bất biến" chưa nối vào đâu.</td></tr>
+  <tr><td>Kéo-thả: sắp xếp slot, cột điểm, chia nhóm</td><td>Hiện sắp theo thứ tự thêm vào; sửa thứ tự phải sửa trong form. dnd-kit đã cài sẵn từ Phase 0.</td></tr>
+  <tr><td>Xuất <code>.xlsx</code> thật</td><td>Đang xuất CSV có BOM UTF-8 — Excel mở bình thường. Đánh đổi có chủ ý để không thêm một phụ thuộc phải nuôi.</td></tr>
+  <tr><td>Thumbnail ảnh, mỗi test class một container Postgres</td><td>Nợ mang từ Phase 2–3 sang, chưa xử lý.</td></tr>
+</table>
+
+<p class="sub" style="margin-top:2.5rem">
+Việc nên làm ngay sau MVP, trước khi mở tính năng mới: sao lưu database hằng ngày, theo dõi dung
+lượng lưu trữ theo lớp, và ghi lại mọi thao tác vướng víu gặp phải trong tuần đầu dùng thật —
+đúng như Rủi ro #4 của SRS mục 11.
+</p>
