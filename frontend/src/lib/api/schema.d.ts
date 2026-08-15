@@ -1317,6 +1317,817 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/offerings/{offeringId}/gradebook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    provisional?: boolean;
+                };
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradebookDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gradebook/init": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["InitGradebookCommand"];
+                    "application/*+json": components["schemas"]["InitGradebookCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/grade-columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateGradeColumnsCommand"];
+                    "application/*+json": components["schemas"]["UpdateGradeColumnsCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grade-columns/{columnId}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    columnId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetColumnSourcesCommand"];
+                    "application/*+json": components["schemas"]["SetColumnSourcesCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/grade-columns/{columnId}/grades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    columnId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetManualGradeCommand"];
+                    "application/*+json": components["schemas"]["SetManualGradeCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gradebook/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateGradebookSettingsCommand"];
+                    "application/*+json": components["schemas"]["UpdateGradebookSettingsCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gradebook/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    template_id?: string;
+                };
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/bonus-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BonusPointDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bonus-points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GrantBonusPointCommand"];
+                    "application/*+json": components["schemas"]["GrantBonusPointCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BonusPointDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/bonus-points/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/instructor/bonus-reasons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    include_hidden?: boolean;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BonusReasonTemplateDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveBonusReasonTemplateCommand"];
+                    "application/*+json": components["schemas"]["SaveBonusReasonTemplateCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BonusReasonTemplateDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/instructor/bonus-reasons/{id}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: {
+                    is_active?: boolean;
+                };
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/instructor/grade-scheme-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeSchemeTemplateDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveGradeSchemeTemplateCommand"];
+                    "application/*+json": components["schemas"]["SaveGradeSchemeTemplateCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeSchemeTemplateDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/instructor/grade-export-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeExportTemplateDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveGradeExportTemplateCommand"];
+                    "application/*+json": components["schemas"]["SaveGradeExportTemplateCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeExportTemplateDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/offerings/{offeringId}/groups": {
         parameters: {
             query?: never;
@@ -3584,6 +4395,8 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        /** @enum {unknown} */
+        AggregationKind: "manual" | "average" | "weighted_average" | "sum" | "max" | "min" | "drop_lowest_n" | "best_n_of_m";
         AssignmentDto: {
             /** Format: uuid */
             id: string;
@@ -3624,6 +4437,35 @@ export interface components {
             /** Format: uuid */
             actor_id?: string;
         };
+        BonusPointDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            enrollment_id: string;
+            student_name: string;
+            target: components["schemas"]["BonusTarget"];
+            /** Format: uuid */
+            target_column_id: null | string;
+            /** Format: double */
+            points: number;
+            reason: string;
+            /** Format: date-time */
+            granted_at: string;
+        };
+        BonusReasonTemplateDto: {
+            /** Format: uuid */
+            id: string;
+            label: string;
+            /** Format: double */
+            default_points: number;
+            default_target: null | components["schemas"]["BonusTarget"];
+            default_column_key: null | string;
+            /** Format: int32 */
+            order_index: number;
+            is_active: boolean;
+        };
+        /** @enum {unknown} */
+        BonusTarget: "final_total" | "grade_column";
         BootstrapInstructorCommand: {
             email: string;
             full_name: string;
@@ -3641,6 +4483,8 @@ export interface components {
             submitted_at: null | string;
             is_late: boolean;
         };
+        /** @enum {unknown} */
+        CapAction: "cap_final_at";
         ChangePasswordCommand: {
             current_password: string;
             new_password: string;
@@ -3678,6 +4522,8 @@ export interface components {
             starter_code_url?: null | string;
             language?: null | string;
         };
+        /** @enum {unknown} */
+        ConditionOperator: "less_than" | "less_or_equal";
         CreateAssignmentCommand: {
             title: string;
             description: null | string;
@@ -3841,6 +4687,90 @@ export interface components {
         };
         /** @enum {unknown} */
         FinalAssessmentType: "quiz" | "final_project";
+        GradebookDto: {
+            /** Format: uuid */
+            offering_id: string;
+            class_code: string;
+            subject_code: string;
+            subject_name: string;
+            columns: components["schemas"]["GradeColumnDto"][];
+            rows: components["schemas"]["GradeRowDto"][];
+            conditions: components["schemas"]["GradeConditionDto"][];
+            bonus_default_target: components["schemas"]["BonusTarget"];
+            /** Format: uuid */
+            bonus_default_column_id: null | string;
+            /** Format: double */
+            bonus_max_points_per_student: null | number;
+            weights_valid: boolean;
+            weights_error: null | string;
+            unknown_condition_column_keys: string[];
+        };
+        GradeCellDto: {
+            /** Format: uuid */
+            column_id: string;
+            /** Format: double */
+            raw_score: number;
+            /** Format: double */
+            score: number;
+            is_manual_override: boolean;
+            /** Format: double */
+            bonus: number;
+        };
+        GradeColumnDto: {
+            /** Format: uuid */
+            id: string;
+            key: string;
+            name: string;
+            /** Format: double */
+            weight_percent: number;
+            /** Format: int32 */
+            order_index: number;
+            kind: components["schemas"]["AggregationKind"];
+            /** Format: int32 */
+            n: number;
+            treat_missing_as_zero: boolean;
+            sources: components["schemas"]["GradeColumnSourceDto"][];
+        };
+        GradeColumnInput: {
+            /** Format: uuid */
+            id: null | string;
+            key: string;
+            name: string;
+            /** Format: double */
+            weight_percent: number;
+            /** Format: int32 */
+            order_index: number;
+            kind: components["schemas"]["AggregationKind"];
+            /** Format: int32 */
+            n: number;
+            treat_missing_as_zero: boolean;
+        };
+        GradeColumnSourceDto: {
+            /** Format: uuid */
+            id: string;
+            source_type: components["schemas"]["GradeSourceType"];
+            /** Format: uuid */
+            source_id: string;
+            source_title: string;
+            /** Format: double */
+            weight_within_column: null | number;
+        };
+        GradeColumnSourceInput: {
+            source_type: components["schemas"]["GradeSourceType"];
+            /** Format: uuid */
+            source_id: string;
+            /** Format: double */
+            weight_within_column: null | number;
+        };
+        GradeConditionDto: {
+            column_key: string;
+            op: components["schemas"]["ConditionOperator"];
+            /** Format: double */
+            threshold: number;
+            action: components["schemas"]["CapAction"];
+            /** Format: double */
+            action_value: number;
+        };
         GradedSubmissionDto: {
             /** Format: uuid */
             id: string;
@@ -3852,6 +4782,59 @@ export interface components {
                 [key: string]: number;
             };
         };
+        GradeExportItemDto: {
+            source: components["schemas"]["GradeExportSource"];
+            column_key: null | string;
+            header: string;
+            /** Format: int32 */
+            order_index: number;
+            /** Format: int32 */
+            decimal_places: number;
+        };
+        /** @enum {unknown} */
+        GradeExportSource: "student_code" | "full_name" | "email" | "class_name" | "grade_column" | "bonus_total" | "final_score" | "blank";
+        GradeExportTemplateDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            is_default: boolean;
+            items: components["schemas"]["GradeExportItemDto"][];
+        };
+        GradeRowDto: {
+            /** Format: uuid */
+            enrollment_id: string;
+            student_code: string;
+            full_name: string;
+            class_name: null | string;
+            cells: components["schemas"]["GradeCellDto"][];
+            /** Format: double */
+            bonus_to_final: number;
+            /** Format: double */
+            final_score: number;
+        };
+        GradeSchemeTemplateDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            is_default: boolean;
+            /** Format: int32 */
+            order_index: number;
+            items: components["schemas"]["GradeSchemeTemplateItemDto"][];
+        };
+        GradeSchemeTemplateItemDto: {
+            key: string;
+            name: string;
+            /** Format: double */
+            weight_percent: number;
+            /** Format: int32 */
+            order_index: number;
+            kind: components["schemas"]["AggregationKind"];
+            /** Format: int32 */
+            n: number;
+            treat_missing_as_zero: boolean;
+        };
+        /** @enum {unknown} */
+        GradeSourceType: "assignment" | "quiz" | "final_assessment";
         GradeSubmissionCommand: {
             rubric_scores: {
                 [key: string]: number;
@@ -3863,6 +4846,20 @@ export interface components {
             submission_id?: string;
             /** Format: uuid */
             grader_id?: string;
+        };
+        GrantBonusPointCommand: {
+            /** Format: uuid */
+            enrollment_id: string;
+            target: components["schemas"]["BonusTarget"];
+            /** Format: uuid */
+            target_column_id: null | string;
+            /** Format: double */
+            points: number;
+            reason: string;
+            /** Format: uuid */
+            template_id: null | string;
+            /** Format: uuid */
+            instructor_id?: string;
         };
         GroupDto: {
             /** Format: uuid */
@@ -3891,6 +4888,14 @@ export interface components {
             /** Format: int32 */
             row_number: number;
             message: string;
+        };
+        InitGradebookCommand: {
+            /** Format: uuid */
+            template_id: null | string;
+            /** Format: uuid */
+            offering_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
         };
         InlineQuestion: {
             text: string;
@@ -4177,6 +5182,53 @@ export interface components {
             max_points: number;
             criteria: components["schemas"]["RubricCriterionDto"][];
         };
+        SaveBonusReasonTemplateCommand: {
+            /** Format: uuid */
+            id: null | string;
+            label: string;
+            /** Format: double */
+            default_points: number;
+            default_target: null | components["schemas"]["BonusTarget"];
+            default_column_key: null | string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SaveGradeExportTemplateCommand: {
+            /** Format: uuid */
+            id: null | string;
+            name: string;
+            is_default: boolean;
+            items: components["schemas"]["GradeExportItemDto"][];
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SaveGradeSchemeTemplateCommand: {
+            /** Format: uuid */
+            id: null | string;
+            name: string;
+            is_default: boolean;
+            items: components["schemas"]["GradeSchemeTemplateItemDto"][];
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SetColumnSourcesCommand: {
+            sources: components["schemas"]["GradeColumnSourceInput"][];
+            /** Format: uuid */
+            column_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SetManualGradeCommand: {
+            /** Format: uuid */
+            enrollment_id: string;
+            /** Format: double */
+            score: null | number;
+            note: null | string;
+            /** Format: uuid */
+            column_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         SubjectDto: {
             /** Format: uuid */
             id: string;
@@ -4319,6 +5371,25 @@ export interface components {
             rubric_id: null | string;
             /** Format: uuid */
             assignment_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        UpdateGradebookSettingsCommand: {
+            bonus_default_target: components["schemas"]["BonusTarget"];
+            /** Format: uuid */
+            bonus_default_column_id: null | string;
+            /** Format: double */
+            bonus_max_points_per_student: null | number;
+            conditions: components["schemas"]["GradeConditionDto"][];
+            /** Format: uuid */
+            offering_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        UpdateGradeColumnsCommand: {
+            columns: components["schemas"]["GradeColumnInput"][];
+            /** Format: uuid */
+            offering_id?: string;
             /** Format: uuid */
             instructor_id?: string;
         };

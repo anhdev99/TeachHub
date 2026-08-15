@@ -50,5 +50,17 @@ public interface IAppDbContext
     DbSet<GradeAuditLog> GradeAuditLogs { get; }
     DbSet<FinalAssessment> FinalAssessments { get; }
 
+    // Phase 4b — sổ điểm động
+    DbSet<GradeColumn> GradeColumns { get; }
+    DbSet<GradeColumnSource> GradeColumnSources { get; }
+    DbSet<GradeRecord> GradeRecords { get; }
+    DbSet<GradeSchemeTemplate> GradeSchemeTemplates { get; }
+    DbSet<GradeSchemeTemplateItem> GradeSchemeTemplateItems { get; }
+    DbSet<BonusPoint> BonusPoints { get; }
+    DbSet<BonusPointReasonTemplate> BonusPointReasonTemplates { get; }
+    DbSet<GradeExportTemplate> GradeExportTemplates { get; }
+    DbSet<GradeExportItem> GradeExportItems { get; }
+    DbSet<GradeSnapshot> GradeSnapshots { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

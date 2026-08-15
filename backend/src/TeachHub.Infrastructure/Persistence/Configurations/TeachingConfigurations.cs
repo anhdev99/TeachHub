@@ -26,6 +26,20 @@ public sealed class CourseOfferingConfiguration : IEntityTypeConfiguration<Cours
         b.HasOne<SubjectVersion>().WithMany().HasForeignKey(x => x.SubjectVersionId)
          .OnDelete(DeleteBehavior.Restrict);
 
+        b.Property(x => x.BonusDefaultTarget).HasConversion<string>().HasMaxLength(32);
+        b.Property(x => x.BonusMaxPointsPerStudent).HasPrecision(5, 2);
+
+        // GradeCondition chứa HAI enum (Op, Action) → phải khai .HasConversion<string>() cho
+        // TỪNG cái. EF dùng JsonValueReaderWriter cho cột ToJson() và không đọc cấu hình JSON
+        // của tầng HTTP; thiếu là điều kiện điểm sàn lưu số trong jsonb và đổi nghĩa khi enum
+        // được chèn thêm giá trị.
+        b.OwnsMany(x => x.GradeConditions, c =>
+        {
+            c.ToJson();
+            c.Property(y => y.Op).HasConversion<string>();
+            c.Property(y => y.Action).HasConversion<string>();
+        });
+
         b.HasIndex(x => new { x.SubjectId, x.Semester, x.ClassCode }).IsUnique();
 
         // Mã lớp phải duy nhất trong số các mã CÒN HIỆU LỰC; mã cũ hết hạn được tái sử dụng.

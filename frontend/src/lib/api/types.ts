@@ -44,6 +44,29 @@ export type FinalAssessmentDto = components["schemas"]["FinalAssessmentDto"];
 export type InstructorDashboardDto = components["schemas"]["InstructorDashboardDto"];
 export type RubricDto = components["schemas"]["RubricDto"];
 
+// Phase 4b — sổ điểm động
+export type GradebookDto = components["schemas"]["GradebookDto"];
+export type GradeColumnDto = components["schemas"]["GradeColumnDto"];
+export type GradeRowDto = components["schemas"]["GradeRowDto"];
+export type GradeCellDto = components["schemas"]["GradeCellDto"];
+export type BonusPointDto = components["schemas"]["BonusPointDto"];
+export type BonusReasonTemplateDto = components["schemas"]["BonusReasonTemplateDto"];
+export type GradeSchemeTemplateDto = components["schemas"]["GradeSchemeTemplateDto"];
+export type GradeExportTemplateDto = components["schemas"]["GradeExportTemplateDto"];
+export type AggregationKind = components["schemas"]["AggregationKind"];
+export type BonusTarget = components["schemas"]["BonusTarget"];
+
+export const NHAN_QUY_TAC_GOP: Record<AggregationKind, string> = {
+  manual: "Nhập tay",
+  average: "Trung bình",
+  weighted_average: "Trung bình có trọng số",
+  sum: "Cộng dồn",
+  max: "Cao nhất",
+  min: "Thấp nhất",
+  drop_lowest_n: "Bỏ N thấp nhất",
+  best_n_of_m: "Lấy N tốt nhất",
+};
+
 export const NHAN_TRANG_THAI_NOP: Record<SubmissionStatus, string> = {
   draft: "Bản nháp",
   submitted: "Đã nộp",

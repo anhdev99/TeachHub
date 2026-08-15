@@ -1,4 +1,5 @@
 using TeachHub.Domain.Common;
+using TeachHub.Domain.Grading;
 
 namespace TeachHub.Domain.Teaching;
 
@@ -23,6 +24,24 @@ public class CourseOffering : Entity, IAuditable
 
     /// <summary>Hạn nộp hiển thị và nhập theo múi giờ này; lưu xuống DB luôn là UTC (Gap #16).</summary>
     public string TimeZoneId { get; set; } = "Asia/Ho_Chi_Minh";
+
+    // ── Sổ điểm (Phase 4b) ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// CHỈ ghi nhận nguồn gốc ("lớp này mở từ mẫu nào"). KHÔNG phép tính nào đọc tới nó:
+    /// cột điểm của lớp là bản SAO CHÉP đã cắt dây khỏi mẫu. Thấy một câu truy vấn join từ
+    /// offering sang template để lấy trọng số thì đó là bug, không phải tối ưu.
+    /// </summary>
+    public Guid? GradeSchemeTemplateId { get; set; }
+
+    /// <summary>Điều kiện điểm sàn của lớp — lưu jsonb.</summary>
+    public List<GradeCondition> GradeConditions { get; set; } = [];
+
+    public BonusTarget BonusDefaultTarget { get; set; } = BonusTarget.GradeColumn;
+    public Guid? BonusDefaultColumnId { get; set; }
+
+    /// <summary>null = không đặt trần riêng cho lớp này.</summary>
+    public decimal? BonusMaxPointsPerStudent { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }

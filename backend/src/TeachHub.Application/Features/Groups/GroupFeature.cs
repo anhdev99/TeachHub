@@ -228,10 +228,14 @@ public sealed class UpdateGroupMembersHandler(IAppDbContext db)
             return Result.Conflict($"Đã ở nhóm khác: {string.Join(", ", ten)}.");
         }
 
-        nhom.Members.RemoveAll(m => !moi.Contains(m.EnrollmentId));
+        // Add/Remove TƯỜNG MINH qua DbSet chứ không qua navigation của parent đang tracked:
+        // Entity.Id tự sinh UUIDv7 lúc khởi tạo nên EF nhìn khóa khác default rồi kết luận
+        // hàng đã tồn tại, phát UPDATE thay vì INSERT và chết với "expected to affect 1 row".
+        db.GroupMembers.RemoveRange(nhom.Members.Where(m => !moi.Contains(m.EnrollmentId)));
 
-        foreach (var id in moi.Where(id => nhom.Members.All(m => m.EnrollmentId != id)))
-            nhom.Members.Add(new GroupMember { EnrollmentId = id });
+        db.GroupMembers.AddRange(
+            moi.Where(id => nhom.Members.All(m => m.EnrollmentId != id))
+               .Select(id => new GroupMember { GroupId = nhom.Id, EnrollmentId = id }));
 
         await db.SaveChangesAsync(ct);
         return Result.Ok();

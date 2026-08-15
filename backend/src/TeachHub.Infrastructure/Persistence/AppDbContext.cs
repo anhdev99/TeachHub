@@ -46,6 +46,17 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<GradeAuditLog> GradeAuditLogs => Set<GradeAuditLog>();
     public DbSet<FinalAssessment> FinalAssessments => Set<FinalAssessment>();
 
+    public DbSet<GradeColumn> GradeColumns => Set<GradeColumn>();
+    public DbSet<GradeColumnSource> GradeColumnSources => Set<GradeColumnSource>();
+    public DbSet<GradeRecord> GradeRecords => Set<GradeRecord>();
+    public DbSet<GradeSchemeTemplate> GradeSchemeTemplates => Set<GradeSchemeTemplate>();
+    public DbSet<GradeSchemeTemplateItem> GradeSchemeTemplateItems => Set<GradeSchemeTemplateItem>();
+    public DbSet<BonusPoint> BonusPoints => Set<BonusPoint>();
+    public DbSet<BonusPointReasonTemplate> BonusPointReasonTemplates => Set<BonusPointReasonTemplate>();
+    public DbSet<GradeExportTemplate> GradeExportTemplates => Set<GradeExportTemplate>();
+    public DbSet<GradeExportItem> GradeExportItems => Set<GradeExportItem>();
+    public DbSet<GradeSnapshot> GradeSnapshots => Set<GradeSnapshot>();
+
     DbSet<AppUser> IAppDbContext.Users => Users;
 
     protected override void OnModelCreating(ModelBuilder b)

@@ -760,6 +760,138 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("subject_versions", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Grading.BonusPoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("ContextId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("context_id");
+
+                    b.Property<string>("ContextType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("context_type");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("granted_at");
+
+                    b.Property<Guid>("GrantedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<decimal>("Points")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("points");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("target");
+
+                    b.Property<Guid?>("TargetColumnId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("target_column_id");
+
+                    b.Property<Guid?>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bonus_points");
+
+                    b.HasIndex("OfferingId")
+                        .HasDatabaseName("ix_bonus_points_offering_id");
+
+                    b.HasIndex("TargetColumnId")
+                        .HasDatabaseName("ix_bonus_points_target_column_id");
+
+                    b.HasIndex("TemplateId")
+                        .HasDatabaseName("ix_bonus_points_template_id");
+
+                    b.HasIndex("EnrollmentId", "GrantedAt")
+                        .HasDatabaseName("ix_bonus_points_enrollment_id_granted_at");
+
+                    b.ToTable("bonus_points", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_bonus_points_positive", "points > 0");
+
+                            t.HasCheckConstraint("ck_bonus_reason_not_blank", "btrim(reason) <> ''");
+
+                            t.HasCheckConstraint("ck_bonus_target_column", "(target = 'GradeColumn' AND target_column_id IS NOT NULL) OR\n(target = 'FinalTotal'  AND target_column_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.BonusPointReasonTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("DefaultColumnKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("default_column_key");
+
+                    b.Property<decimal>("DefaultPoints")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("default_points");
+
+                    b.Property<string>("DefaultTarget")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("default_target");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("label");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.HasKey("Id")
+                        .HasName("pk_bonus_point_reason_templates");
+
+                    b.HasIndex("InstructorId", "OrderIndex")
+                        .HasDatabaseName("ix_bonus_point_reason_templates_instructor_id_order_index");
+
+                    b.ToTable("bonus_point_reason_templates", (string)null);
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Grading.GradeAuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -824,6 +956,325 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_grade_audit_logs_target_type_target_id_changed_at");
 
                     b.ToTable("grade_audit_logs", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeColumn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<decimal>("WeightPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("weight_percent");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_columns");
+
+                    b.HasIndex("OfferingId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grade_columns_offering_id_key");
+
+                    b.ToTable("grade_columns", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_grade_column_key_slug", "key ~ '^[a-z0-9_]+$'");
+                        });
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeColumnSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("GradeColumnId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_column_id");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("source_type");
+
+                    b.Property<decimal?>("WeightWithinColumn")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("weight_within_column");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_column_sources");
+
+                    b.HasIndex("GradeColumnId", "SourceType", "SourceId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grade_column_sources_grade_column_id_source_type_source_id");
+
+                    b.ToTable("grade_column_sources", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeExportItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ColumnKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("column_key");
+
+                    b.Property<int>("DecimalPlaces")
+                        .HasColumnType("integer")
+                        .HasColumnName("decimal_places");
+
+                    b.Property<string>("Header")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("header");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("source");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_export_items");
+
+                    b.HasIndex("TemplateId", "OrderIndex")
+                        .HasDatabaseName("ix_grade_export_items_template_id_order_index");
+
+                    b.ToTable("grade_export_items", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeExportTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_id");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_export_templates");
+
+                    b.HasIndex("InstructorId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grade_export_templates_instructor_id_name");
+
+                    b.ToTable("grade_export_templates", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<Guid>("GradeColumnId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_column_id");
+
+                    b.Property<bool>("IsManualOverride")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_manual_override");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("note");
+
+                    b.Property<decimal?>("Score")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("score");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_records");
+
+                    b.HasIndex("GradeColumnId")
+                        .HasDatabaseName("ix_grade_records_grade_column_id");
+
+                    b.HasIndex("EnrollmentId", "GradeColumnId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grade_records_enrollment_id_grade_column_id");
+
+                    b.ToTable("grade_records", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSchemeTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_id");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_scheme_templates");
+
+                    b.HasIndex("InstructorId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grade_scheme_templates_instructor_id_name");
+
+                    b.ToTable("grade_scheme_templates", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSchemeTemplateItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<Guid>("TemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("template_id");
+
+                    b.Property<decimal>("WeightPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("weight_percent");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_scheme_template_items");
+
+                    b.HasIndex("TemplateId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_grade_scheme_template_items_template_id_key");
+
+                    b.ToTable("grade_scheme_template_items", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("payload_hash");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload_json");
+
+                    b.Property<DateTimeOffset>("TakenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("taken_at");
+
+                    b.Property<Guid>("TakenBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("taken_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_grade_snapshots");
+
+                    b.HasIndex("OfferingId", "TakenAt")
+                        .HasDatabaseName("ix_grade_snapshots_offering_id_taken_at");
+
+                    b.ToTable("grade_snapshots", (string)null);
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Groups.GroupMember", b =>
@@ -1394,6 +1845,21 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("BonusDefaultColumnId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("bonus_default_column_id");
+
+                    b.Property<string>("BonusDefaultTarget")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("bonus_default_target");
+
+                    b.Property<decimal?>("BonusMaxPointsPerStudent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("bonus_max_points_per_student");
+
                     b.Property<string>("ClassCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1403,6 +1869,10 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
+
+                    b.Property<Guid?>("GradeSchemeTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_scheme_template_id");
 
                     b.Property<DateTimeOffset?>("JoinCodeExpiresAt")
                         .HasColumnType("timestamp with time zone")
@@ -1958,6 +2428,45 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Grading.BonusPoint", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_bonus_points_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_bonus_points_course_offerings_offering_id");
+
+                    b.HasOne("TeachHub.Domain.Grading.GradeColumn", null)
+                        .WithMany()
+                        .HasForeignKey("TargetColumnId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_bonus_points_grade_columns_target_column_id");
+
+                    b.HasOne("TeachHub.Domain.Grading.BonusPointReasonTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_bonus_points_bonus_point_reason_templates_template_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.BonusPointReasonTemplate", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_bonus_point_reason_templates_asp_net_users_instructor_id");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Grading.GradeAuditLog", b =>
                 {
                     b.HasOne("TeachHub.Domain.Identity.AppUser", null)
@@ -1980,6 +2489,148 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_grade_audit_logs_course_offerings_offering_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeColumn", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_columns_course_offerings_offering_id");
+
+                    b.OwnsOne("TeachHub.Domain.Grading.GradeAggregation", "Aggregation", b1 =>
+                        {
+                            b1.Property<Guid>("GradeColumnId");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired();
+
+                            b1.Property<int>("N");
+
+                            b1.Property<bool>("TreatMissingAsZero");
+
+                            b1.HasKey("GradeColumnId")
+                                .HasName("pk_grade_columns");
+
+                            b1.ToTable("grade_columns");
+
+                            b1
+                                .ToJson("aggregation")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("GradeColumnId")
+                                .HasConstraintName("fk_grade_columns_grade_columns_grade_column_id");
+                        });
+
+                    b.Navigation("Aggregation")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeColumnSource", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Grading.GradeColumn", null)
+                        .WithMany("Sources")
+                        .HasForeignKey("GradeColumnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_column_sources_grade_columns_grade_column_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeExportItem", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Grading.GradeExportTemplate", null)
+                        .WithMany("Items")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_export_items_grade_export_templates_template_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeExportTemplate", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_export_templates_asp_net_users_instructor_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeRecord", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_records_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Grading.GradeColumn", null)
+                        .WithMany()
+                        .HasForeignKey("GradeColumnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_records_grade_columns_grade_column_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSchemeTemplate", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_scheme_templates_asp_net_users_instructor_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSchemeTemplateItem", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Grading.GradeSchemeTemplate", null)
+                        .WithMany("Items")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_scheme_template_items_grade_scheme_templates_template");
+
+                    b.OwnsOne("TeachHub.Domain.Grading.GradeAggregation", "Aggregation", b1 =>
+                        {
+                            b1.Property<Guid>("GradeSchemeTemplateItemId");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired();
+
+                            b1.Property<int>("N");
+
+                            b1.Property<bool>("TreatMissingAsZero");
+
+                            b1.HasKey("GradeSchemeTemplateItemId");
+
+                            b1.ToTable("grade_scheme_template_items");
+
+                            b1
+                                .ToJson("aggregation")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("GradeSchemeTemplateItemId")
+                                .HasConstraintName("fk_grade_scheme_template_items_grade_scheme_template_items_id");
+                        });
+
+                    b.Navigation("Aggregation")
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSnapshot", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_grade_snapshots_course_offerings_offering_id");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Groups.GroupMember", b =>
@@ -2174,6 +2825,41 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_course_offerings_subject_versions_subject_version_id");
+
+                    b.OwnsMany("TeachHub.Domain.Grading.GradeCondition", "GradeConditions", b1 =>
+                        {
+                            b1.Property<Guid>("CourseOfferingId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<string>("Action")
+                                .IsRequired();
+
+                            b1.Property<decimal>("ActionValue");
+
+                            b1.Property<string>("ColumnKey")
+                                .IsRequired();
+
+                            b1.Property<string>("Op")
+                                .IsRequired();
+
+                            b1.Property<decimal>("Threshold");
+
+                            b1.HasKey("CourseOfferingId", "__synthesizedOrdinal");
+
+                            b1.ToTable("course_offerings");
+
+                            b1
+                                .ToJson("grade_conditions")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("CourseOfferingId")
+                                .HasConstraintName("fk_course_offerings_course_offerings_course_offering_id");
+                        });
+
+                    b.Navigation("GradeConditions");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Teaching.Enrollment", b =>
@@ -2227,6 +2913,21 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TeachHub.Domain.Content.SubjectVersion", b =>
                 {
                     b.Navigation("Chapters");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeColumn", b =>
+                {
+                    b.Navigation("Sources");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeExportTemplate", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Grading.GradeSchemeTemplate", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Groups.StudentGroup", b =>
