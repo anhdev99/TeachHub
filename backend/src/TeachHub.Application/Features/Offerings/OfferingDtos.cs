@@ -4,10 +4,17 @@ using TeachHub.Domain.Teaching;
 
 namespace TeachHub.Application.Features.Offerings;
 
+/// <param name="SubjectCode">
+/// Mã và tên môn lấy kèm ngay trong truy vấn. Không có hai trường này thì danh sách lớp chỉ
+/// hiện "DA24TIN01 · HK1 2026-2027" — giảng viên dạy bốn môn không đọc ra đó là lớp môn nào,
+/// và giao diện buộc phải gọi thêm một vòng /api/subjects rồi tự ghép.
+/// </param>
 public sealed record OfferingDto(
     Guid Id,
     Guid SubjectId,
     Guid SubjectVersionId,
+    string SubjectCode,
+    string SubjectName,
     string Semester,
     string ClassCode,
     string? JoinCode,

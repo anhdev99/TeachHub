@@ -8,6 +8,7 @@ using TeachHub.Application.Features.Assignments.Commands.ManageSlots;
 using TeachHub.Application.Features.Assignments.Commands.UpdateAssignment;
 using TeachHub.Application.Features.Assignments.Queries.GetAssignments;
 using TeachHub.Application.Features.Submissions;
+using TeachHub.Application.Features.Submissions.Commands.DeleteSubmissionFile;
 using TeachHub.Application.Features.Submissions.Commands.SubmitAssignment;
 using TeachHub.Application.Features.Submissions.Commands.UploadSubmissionFile;
 using TeachHub.Application.Features.Submissions.Queries.GetSubmission;
@@ -118,6 +119,15 @@ public sealed class AssignmentsController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MySubmission(Guid id, CancellationToken ct)
         => ToActionResult(await sender.Send(new GetMySubmissionQuery(id, CurrentUserId), ct));
+
+    // Route tuyệt đối: đường dẫn thuộc về tệp, không thuộc về bài tập.
+    [HttpDelete("/api/submission-files/{fileId:guid}")]
+    [Authorize(Policy = Policies.Student)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeleteFile(Guid fileId, CancellationToken ct)
+        => ToActionResult(await sender.Send(new DeleteSubmissionFileCommand(fileId, CurrentUserId), ct));
 }
 
 /// <summary>

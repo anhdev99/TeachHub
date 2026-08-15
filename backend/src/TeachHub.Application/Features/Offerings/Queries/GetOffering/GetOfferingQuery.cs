@@ -16,7 +16,10 @@ public sealed class GetOfferingQueryHandler(IAppDbContext db)
             .Where(x => x.Id == request.OfferingId &&
                         db.Subjects.Any(s => s.Id == x.SubjectId && s.InstructorId == request.InstructorId))
             .Select(x => new OfferingDto(
-                x.Id, x.SubjectId, x.SubjectVersionId, x.Semester, x.ClassCode,
+                x.Id, x.SubjectId, x.SubjectVersionId,
+                db.Subjects.Where(s => s.Id == x.SubjectId).Select(s => s.Code).Single(),
+                db.Subjects.Where(s => s.Id == x.SubjectId).Select(s => s.Name).Single(),
+                x.Semester, x.ClassCode,
                 x.JoinCodeValue, x.JoinCodeExpiresAt, x.Status, x.TimeZoneId,
                 db.Enrollments.Count(e => e.OfferingId == x.Id), x.CreatedAt))
             .SingleOrDefaultAsync(ct);

@@ -1,0 +1,167 @@
+<meta charset="utf-8">
+<title>Phase 3 — Bài tập &amp; Nộp bài · Báo cáo chốt phase</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1d21; --muted:#5b6572; --line:#e3e7ec; --ok:#0a7d3f; --warn:#a8620a; --bad:#b3261e; --code:#f6f8fa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#15181c; --fg:#e6e9ee; --muted:#9aa4b1; --line:#2b313a; --ok:#54d38a; --warn:#e0a458; --bad:#ef8079; --code:#1d2228; }
+  }
+  * { box-sizing: border-box; }
+  body { background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+         max-width:60rem; margin:0 auto; padding:2rem 1.25rem 5rem; }
+  h1 { font-size:1.9rem; line-height:1.25; margin:0 0 .25rem; }
+  h2 { font-size:1.3rem; margin:2.5rem 0 .75rem; padding-top:1.25rem; border-top:1px solid var(--line); }
+  h3 { font-size:1.05rem; margin:1.75rem 0 .5rem; }
+  .sub { color:var(--muted); margin:0 0 2rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.94rem; }
+  th, td { text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-weight:600; color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
+  code { background:var(--code); padding:.12em .38em; border-radius:4px; font-size:.88em;
+         font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  pre { background:var(--code); padding:.9rem 1rem; border-radius:8px; overflow-x:auto; font-size:.86rem; }
+  .ok { color:var(--ok); font-weight:600; } .warn { color:var(--warn); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+  .box { border:1px solid var(--line); border-left:3px solid var(--warn); border-radius:6px; padding:.85rem 1rem; margin:1.25rem 0; }
+  .box.ok { border-left-color:var(--ok); color:inherit; }
+  ul { padding-left:1.3rem; } li { margin:.3rem 0; }
+</style>
+
+<h1>Phase 3 — Bài tập &amp; Nộp bài đa định dạng</h1>
+<p class="sub">15/08/2026 · 7/7 task xong · nghiệm thu 20/20 bước đạt · build 0 cảnh báo</p>
+
+<div class="box">
+  <strong>Sai lệch có chủ ý so với Definition of Done.</strong> Người dùng yêu cầu <em>không viết
+  test</em> cho phase này để đi nhanh, thay bằng kiểm chứng trực tiếp trên UI thật (Chromium điều
+  khiển bằng Playwright). DoD mục 1 (test đỏ trước) và mục 3 (toàn bộ suite xanh) vì thế
+  <strong>không áp dụng</strong> cho phase này. Một ngoại lệ được giữ: <code>SafeZipReaderTests</code>
+  (16 test, 72 ms) — zip-slip và zip bomb không có biểu hiện nào trên giao diện, bấm thử trên UI
+  không phân biệt được bộ đọc an toàn với bộ đọc thủng.
+</div>
+
+<h2>1. Task đã xong</h2>
+
+<table>
+  <tr><th>Task</th><th>Sản phẩm</th><th>Ghi chú</th></tr>
+  <tr><td>3.0a</td><td>Danh sách phần của bài trong <code>MyLessonDto</code> + UI hoàn thành từng phần</td><td>Vá ngõ cụt Phase 2 — xem mục 3</td></tr>
+  <tr><td>3.0b</td><td><code>/offerings</code>, <code>/offerings/[id]</code></td><td>Cửa vào mọi màn hình Phase 3; Phase 2 chưa có màn giảng viên nào cho lớp</td></tr>
+  <tr><td>3.1</td><td><code>Rubric</code>, <code>RubricCriterion</code>, <code>CriterionLevel</code>, <code>AssignmentHint</code>, <code>GroupConfig</code>; <code>Assignment</code> mở rộng</td><td>Xem quyết định namespace ở mục 2</td></tr>
+  <tr><td>3.2</td><td><code>SubmissionSlot</code>, <code>SlotTemplates</code>, <code>RequiredStructure</code> + CHECK <code>ck_submission_slots_owner</code></td><td>Đã kiểm constraint bằng SQL thô, chặn đúng cả hai ca</td></tr>
+  <tr><td>3.3 🔒</td><td><code>SafeZipReader</code>, <code>ZipLimits</code>, <code>FileTree</code> + 16 test</td><td>Test bắt được một lỗi thật — mục 3</td></tr>
+  <tr><td>3.4</td><td><code>Submission</code>, <code>SubmissionFile</code>, upload 8 lớp kiểm, nháp/nộp chính thức, partial unique index <code>ux_submission_current</code></td><td></td></tr>
+  <tr><td>3.5</td><td><code>ProcessSubmissionFileJob</code> trên queue <code>zip</code>, cổng <code>ISubmissionFileQueue</code>, endpoint cây thư mục + nội dung entry</td><td>Thêm <code>InlineSubmissionFileQueue</code> — mục 2</td></tr>
+  <tr><td>3.6</td><td><code>/assignments/[id]/edit</code> — cấu hình bài tập &amp; slot</td><td></td></tr>
+  <tr><td>3.7</td><td><code>/assignments/[id]/submit</code>, <code>/learn/[offeringId]/assignments</code></td><td>Đèn trạng thái, checklist cấu trúc, lịch sử nộp, xem mã nguồn có tô màu</td></tr>
+</table>
+
+<h2>2. Quyết định kỹ thuật phát sinh</h2>
+
+<h3>2.1 <code>Assignment</code> ở lại namespace <code>TeachHub.Domain.Content</code></h3>
+<p>Plan ghi <code>src/TeachHub.Domain/Assignments/Assignment.cs</code>. Không làm theo:
+<code>AppDbContextModelSnapshot</code> định danh entity bằng <strong>tên CLR đầy đủ</strong>
+(<code>"TeachHub.Domain.Content.Assignment"</code>), nên đổi namespace làm EF coi đây là một entity
+mới và migration kế tiếp sinh ra cặp <code>DropTable</code> + <code>CreateTable</code> trên bảng đã
+có bài nộp thật. Các kiểu mới (<code>Rubric</code>, <code>SubmissionSlot</code>,
+<code>Submission</code>) không có lịch sử migration nên nằm đúng namespace plan mô tả.</p>
+
+<h3>2.2 Bài tập được phép thêm vào phiên bản ĐÃ XUẤT BẢN</h3>
+<p>Bản đầu tiên chặn mọi phiên bản khác <code>Draft</code>, giống luật Phase 1 áp cho chương/bài học.
+Chạy thử cho thấy điều đó khoá luôn chính luồng chính: lớp học phần ghim bản đã xuất bản, nên
+<em>không bao giờ</em> tạo được bài tập cho lớp đang dạy. Đã nới thành chỉ chặn
+<code>Archived</code>, kèm lý do ghi trong code: bài học là thứ sinh viên đang đọc nên sửa giữa kỳ
+là đổi nội dung dưới chân người học, còn <strong>giao thêm bài tập giữa học kỳ là việc bình thường
+nhất của một giảng viên</strong> và nó thêm chứ không sửa thứ gì đã học. Phần nguy hiểm thật —
+xóa slot khi đã có bài nộp — vẫn bị chặn riêng bằng 409 kèm số tệp.</p>
+
+<h3>2.3 <code>InlineSubmissionFileQueue</code> khi Hangfire tắt</h3>
+<p><code>Hangfire:Enabled = false</code> (integration test, môi trường tối giản) trước đây làm
+<code>AddJobs</code> trả về sớm và không đăng ký gì. Với Phase 3 điều đó nghĩa là tệp nộp nằm mãi ở
+<code>Pending</code>, cây thư mục không bao giờ hiện — một chế độ hỏng âm thầm. Nay đăng ký một
+hiện thực chạy job trên scope DI riêng ngay sau request, không await trong luồng request.</p>
+
+<h3>2.4 <code>ConcatStream</code> cho kiểm chữ ký file</h3>
+<p>Kiểm 8 byte đầu đòi đọc trước khi lưu, nhưng stream multipart <strong>không seek được</strong> nên
+không tua lại được, và đọc cả file vào bộ nhớ để tua thì một bài nộp 200 MB chiếm 200 MB RAM. Giải
+pháp: nối phần đầu đã đọc với phần còn lại của stream gốc.</p>
+
+<h3>2.5 <code>OfferingDto</code> thêm <code>subject_code</code> + <code>subject_name</code></h3>
+<p>Thiếu hai trường này thì danh sách lớp chỉ hiện <em>"DA24TIN01 · HK1 2026-2027"</em> — giảng viên
+dạy bốn môn không đọc ra đó là lớp môn nào, và giao diện buộc phải gọi thêm một vòng
+<code>/api/subjects</code> rồi tự ghép.</p>
+
+<h2>3. Ba lỗi thật tìm được khi chạy UI</h2>
+
+<h3>Lỗi 1 — Cổng 5080 trùng với một dự án khác trên máy</h3>
+<p>Một ứng dụng khác (<code>iOffice.Api</code>) đang giữ cổng 5080. Hậu quả kép: API TeachHub chết ngay
+lúc khởi động, và tệ hơn — <code>pnpm gen:api</code> hardcode <code>localhost:5080</code> nên sẽ sinh
+client TypeScript <strong>từ schema của dự án kia</strong> mà không báo lỗi gì. Đã chuyển sang
+<strong>9810 / 9811</strong>, và <code>gen:api</code> nay đọc <code>${API_BASE_URL}</code>.</p>
+
+<h3>Lỗi 2 — Ngõ cụt ở trang học: phần bắt buộc không có cách nào hoàn thành</h3>
+<p>Bài 1 hiện <em>"3 phần trong bài · còn 1 phần bắt buộc"</em> nhưng <strong>không liệt kê phần nào</strong>.
+API đã có <code>POST /api/lesson-components/{id}/complete</code>, nhưng <code>MyLessonDto</code> chỉ
+trả <code>component_count</code> là một con số. Sinh viên không có đường hoàn thành phần bắt buộc,
+và bài kế tiếp khoá vĩnh viễn. Đã thêm <code>MyComponentDto</code> và UI từng phần; sau khi vá:
+Bài 1 ✓, Bài 2 mở, tổng tiến độ 0% → 33.3%.</p>
+
+<h3>Lỗi 3 — Ngõ cụt ở trang nộp bài: không nộp lại được</h3>
+<p>Slot <code>source_code</code> có <code>max_files = 1</code>. Sau khi nộp chính thức, giao diện đếm
+số tệp của lượt <em>đã nộp</em> nên kết luận slot hết chỗ và ẩn nút chọn tệp —
+<strong>sinh viên nộp nhầm bài thì không còn đường nào sửa</strong>. Backend vốn đã xử lý đúng
+(tải tệp sau khi đã nộp sẽ mở một attempt mới), chỉ giao diện chặn nhầm. Đã sửa, và bổ sung
+<code>DELETE /api/submission-files/{id}</code> để xóa tệp khi bài còn là bản nháp — đã nộp chính
+thức thì trả 409 vì tệp là bằng chứng chấm điểm.</p>
+
+<h3>Ngoài ra — test bắt được một lỗi trong heuristic thư mục gốc</h3>
+<p><code>CheckStructure</code> bóc "thư mục bọc" khi mọi tệp nằm chung một thư mục gốc, để không gắn cờ
+đỏ oan cho sinh viên nén cả thư mục cha. Nhưng với một bài chỉ có <code>src/App.tsx</code>, nó bóc
+mất chính thư mục <code>src</code> đang được yêu cầu và báo thiếu <code>src/</code>. Đã sửa: thử
+<strong>cả hai cách hiểu</strong> (đọc nguyên và bóc một lớp) rồi lấy cách khớp hơn.</p>
+
+<h2>4. Nghiệm thu — chạy tay trên Chromium thật</h2>
+
+<table>
+  <tr><th>#</th><th>Bước</th><th>Kết quả</th></tr>
+  <tr><td>1</td><td>Tạo bài tập bằng "Dùng mẫu gợi ý"</td><td class="ok">✔ đúng 3 slot source_code / images / video_demo</td></tr>
+  <tr><td>2</td><td>Bài tập thứ hai, xóa còn duy nhất 1 slot source code</td><td class="ok">✔ còn 1 phần bắt buộc</td></tr>
+  <tr><td>3</td><td>SV nộp ảnh trước → nút "Nộp chính thức"</td><td class="ok">✔ vẫn khóa, ghi rõ <em>Còn thiếu: Source code (nén ZIP)</em></td></tr>
+  <tr><td>4</td><td>Nộp thêm ZIP → nút bật, nộp thành công</td><td class="ok">✔ "Đã nộp lần 1"</td></tr>
+  <tr><td>5</td><td>Xem cây thư mục ZIP, mở <code>src/App.tsx</code></td><td class="ok">✔ có tô màu cú pháp (4 màu, Shiki)</td></tr>
+  <tr><td>6</td><td>ZIP thiếu <code>README.md</code></td><td class="ok">✔ vẫn nộp được, cờ "Thiếu cấu trúc" + liệt kê mục thiếu</td></tr>
+  <tr><td>7</td><td>ZIP nén cả thư mục gốc (<code>BaiTap1/README.md</code>)</td><td class="ok">✔ checklist xanh</td></tr>
+  <tr><td>8</td><td><code>.txt</code> đổi đuôi thành <code>.zip</code></td><td class="ok">✔ HTTP 400, báo nội dung không khớp định dạng</td></tr>
+  <tr><td>9</td><td>Upload 30 MB</td><td class="ok">✔ <strong>0.32 s</strong> (NFR &lt; 2 s), trạng thái xử lý cập nhật sau đó</td></tr>
+  <tr><td>10</td><td>Nộp lại lần hai</td><td class="ok">✔ attempt 4, 3 lượt cũ trong lịch sử, đúng 1 bản hiện hành</td></tr>
+  <tr><td>11</td><td>Tài khoản SV khác mở bài nộp</td><td class="ok">✔ 404 (không phải 403)</td></tr>
+  <tr><td>12</td><td>Trang nộp bài ở 360px</td><td class="ok">✔ không cuộn ngang, không lỗi console</td></tr>
+</table>
+
+<h3>Ma trận cách ly (đã kiểm bằng API thật)</h3>
+<table>
+  <tr><th>Người gọi</th><th><code>GET /api/submissions/{id}</code></th><th><code>…/file-tree</code></th></tr>
+  <tr><td>Dung — chủ bài nộp</td><td class="ok">200</td><td class="ok">200</td></tr>
+  <tr><td>An — sinh viên khác <em>cùng lớp</em></td><td class="ok">404</td><td class="ok">404</td></tr>
+  <tr><td>Giảng viên dạy lớp này</td><td class="ok">200</td><td class="ok">200</td></tr>
+  <tr><td>Không đăng nhập</td><td class="ok">401</td><td class="ok">401</td></tr>
+</table>
+
+<h2>5. Cổng chất lượng</h2>
+<ul>
+  <li><code>dotnet build TeachHub.sln</code> → <span class="ok">0 Warning(s), 0 Error(s)</span></li>
+  <li><code>dotnet test</code> (Domain) → <span class="ok">81/81 xanh, 104 ms</span></li>
+  <li><code>npx tsc --noEmit</code> → <span class="ok">sạch</span> · <code>pnpm build</code> → <span class="ok">17 route dựng được</span></li>
+  <li>Migration <code>AssignmentsAndSubmissions</code>: <code>Up()</code> <strong>không có lệnh Drop nào</strong>; đã apply thành công trên DB <em>đang có dữ liệu thật</em> của Phase 1–2</li>
+  <li><code>/openapi/v1.json</code> trả 200; endpoint upload khai đúng <code>{"type":"string","format":"binary"}</code>; <code>pnpm gen:api</code> chạy được</li>
+</ul>
+
+<h2>6. Việc phải làm ở phase sau</h2>
+
+<table>
+  <tr><th>Việc</th><th>Vì sao</th></tr>
+  <tr><td class="warn">Không có integration test cho luồng nộp bài</td><td>Theo yêu cầu của người dùng cho phase này. Toàn bộ luồng đã nghiệm thu tay trên UI thật, nhưng <strong>không có lưới an toàn cho lần refactor sau</strong>. Nếu Phase 4a chạm vào <code>Submission</code>, nên viết lại phần test này trước.</td></tr>
+  <tr><td class="warn">Mỗi test class dựng một container Postgres riêng</td><td>Nợ kỹ thuật ghi từ Phase 2, vẫn chưa xử lý. Nên chuyển sang <code>ICollectionFixture</code>.</td></tr>
+  <tr><td>Chưa thêm dòng vào <code>CrossInstructorIsolationTests</code></td><td>Phase 3 thêm <code>Assignment</code>, <code>SubmissionSlot</code>, <code>Rubric</code> — ba loại tài nguyên mới thuộc giảng viên. Cách ly <em>đã kiểm bằng tay</em> (bảng ở mục 4) nhưng chưa vào ma trận tự động.</td></tr>
+  <tr><td><code>final_assessment_id</code> chưa có FK</td><td>Bảng <code>FinalAssessment</code> thuộc Phase 4a. Cột và CHECK constraint đã dựng sẵn để Phase 4a chỉ phải thêm đúng một FK.</td></tr>
+  <tr><td>Thumbnail cho ảnh (ImageSharp)</td><td>Bước 4 của Task 3.5, chưa làm. Không chặn gì: ảnh vẫn nộp và xem được.</td></tr>
+  <tr><td>Kéo-thả sắp xếp slot</td><td>Task 3.6 bước 1 mô tả bảng slot kéo-thả. Hiện slot xếp theo thứ tự thêm vào; sửa thứ tự chưa làm được.</td></tr>
+  <tr><td>Trình soạn rubric</td><td>Task 3.6 bước 4. Entity và API rubric đã có; màn hình soạn chưa. Phase 4a cần nó để chấm.</td></tr>
+</table>
+
+<p class="sub" style="margin-top:2.5rem">Tiếp theo: Phase 4a — Chấm điểm &amp; Nhóm (UC-07b, 10, 21–25).</p>

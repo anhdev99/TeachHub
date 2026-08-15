@@ -49,11 +49,18 @@ public sealed class CreateAssignmentHandler(IAppDbContext db)
             .Select(v => v.Status)
             .SingleAsync(ct);
 
-        // Bản đã xuất bản là bản sinh viên đang học. Thêm bài tập vào đó giữa học kỳ nghĩa
-        // là nội dung đổi dưới chân người đang học — đúng thứ versioning sinh ra để chặn.
-        if (status != SubjectVersionStatus.Draft)
+        // Chỉ chặn bản LƯU TRỮ, không chặn bản đã xuất bản — khác với chương/bài học.
+        //
+        // Bài học là thứ sinh viên đang đọc: sửa giữa học kỳ là đổi nội dung dưới chân người
+        // đang học, nên Phase 1 gắn RequireDraftVersion cho mọi thao tác sửa bài học. Bài tập
+        // thì ngược lại: giao thêm bài giữa học kỳ là việc bình thường nhất của một giảng viên,
+        // và nó THÊM chứ không sửa thứ gì sinh viên đã học. Chặn ở đây nghĩa là muốn ra thêm
+        // một bài tập phải tạo phiên bản môn mới rồi mở lại lớp — không ai làm vậy giữa kỳ.
+        //
+        // Phần nguy hiểm thật (xóa slot khi đã có bài nộp) đã được chặn riêng bằng 409.
+        if (status == SubjectVersionStatus.Archived)
             return Result<AssignmentDto>.Conflict(
-                "Chỉ thêm được bài tập vào bản nháp. Hãy tạo phiên bản mới từ bản đã xuất bản.");
+                "Phiên bản này đã lưu trữ, không thêm bài tập được nữa.");
 
         var assignment = new Assignment
         {

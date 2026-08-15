@@ -18,7 +18,10 @@ public sealed class GetOfferingsQueryHandler(IAppDbContext db)
             .Where(x => request.SubjectId == null || x.SubjectId == request.SubjectId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new OfferingDto(
-                x.Id, x.SubjectId, x.SubjectVersionId, x.Semester, x.ClassCode,
+                x.Id, x.SubjectId, x.SubjectVersionId,
+                db.Subjects.Where(s => s.Id == x.SubjectId).Select(s => s.Code).Single(),
+                db.Subjects.Where(s => s.Id == x.SubjectId).Select(s => s.Name).Single(),
+                x.Semester, x.ClassCode,
                 x.JoinCodeValue, x.JoinCodeExpiresAt, x.Status, x.TimeZoneId,
                 db.Enrollments.Count(e => e.OfferingId == x.Id), x.CreatedAt))
             .ToListAsync(ct);

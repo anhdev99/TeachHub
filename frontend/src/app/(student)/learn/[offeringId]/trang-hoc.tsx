@@ -61,9 +61,14 @@ export function TrangHoc({
           <span className="text-muted-foreground font-mono">{data.subject_code}</span>{" "}
           {data.subject_name}
         </span>
-        <Badge variant="secondary" className="ml-auto">
-          Hoàn thành {data.overall_percent}%
-        </Badge>
+        <Link
+          href={`/learn/${offeringId}/assignments`}
+          className="text-muted-foreground hover:text-foreground ml-auto text-sm"
+        >
+          Bài tập
+        </Link>
+
+        <Badge variant="secondary">Hoàn thành {data.overall_percent}%</Badge>
 
         {/* Dưới 768px sidebar thu vào drawer — SRS mục 9: SV hay xem trên điện thoại. */}
         <Button

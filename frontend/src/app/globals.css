@@ -131,3 +131,13 @@
     @apply font-sans;
   }
 }
+/*
+ * Shiki phát ra màu sáng inline và màu tối dưới dạng biến --shiki-dark (xem
+ * components/submission/xem-ma-nguon.tsx). Không có quy tắc này thì ở chế độ tối khối mã
+ * giữ nguyên bảng màu sáng: chữ gần như không đọc được trên nền tối.
+ */
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}

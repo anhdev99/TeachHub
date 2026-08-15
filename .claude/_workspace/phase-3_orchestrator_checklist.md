@@ -16,34 +16,34 @@ khác, tuyệt đối không cắt". Test của riêng task này chạy trong mi
 ## Chunk 0 — Vá khoảng trống Phase 2 (phát hiện khi chạy UI thật)
 
 - [x] 3.0a Trang tiến độ trả về danh sách phần của bài + UI hoàn thành từng phần
-- [ ] 3.0b Màn hình giảng viên cho lớp học phần (`/offerings`) — cửa vào của mọi màn hình Phase 3
+- [x] 3.0b Màn hình giảng viên cho lớp học phần (`/offerings`) — cửa vào của mọi màn hình Phase 3
 
 ## Chunk 1 — Bài tập & cấu hình format nộp
 
-- [ ] 3.1 Assignment (mở rộng), Rubric, RubricCriterion, AssignmentHint, GroupConfig
-- [ ] 3.2 SubmissionSlot động + SlotTemplates + RequiredStructure + CHECK constraint owner
+- [x] 3.1 Assignment (mở rộng), Rubric, RubricCriterion, AssignmentHint, GroupConfig
+- [x] 3.2 SubmissionSlot động + SlotTemplates + RequiredStructure + CHECK constraint owner
 
 ## Chunk 2 — Nộp bài & xử lý file
 
-- [ ] 3.3 SafeZipReader + ZipLimits + FileTree 🔒 **giữ test**
-- [ ] 3.4 Submission, SubmissionFile, upload theo slot, lưu nháp / nộp chính thức
-- [ ] 3.5 Pipeline xử lý file nền (Hangfire) + xem cây thư mục / nội dung entry
+- [x] 3.3 SafeZipReader + ZipLimits + FileTree 🔒 **giữ test**
+- [x] 3.4 Submission, SubmissionFile, upload theo slot, lưu nháp / nộp chính thức
+- [x] 3.5 Pipeline xử lý file nền (Hangfire) + xem cây thư mục / nội dung entry
 
 ## Chunk 3 — Giao diện
 
-- [ ] 3.6 Màn hình 6.4: cấu hình bài tập & slot (giảng viên)
-- [ ] 3.7 Màn hình 6.6: trang nộp bài (sinh viên)
+- [x] 3.6 Màn hình 6.4: cấu hình bài tập & slot (giảng viên)
+- [x] 3.7 Màn hình 6.6: trang nộp bài (sinh viên)
 
 ## Nghiệm thu (chạy tay trên UI thật)
 
-- [ ] Tạo bài tập 3 slot bằng "Dùng mẫu gợi ý", sửa nhãn tiếng Việt
-- [ ] Tạo bài tập thứ hai, xóa còn duy nhất 1 slot source code
-- [ ] SV nộp ảnh trước → "Nộp chính thức" vẫn khóa, ghi rõ thiếu "Source code"
-- [ ] Nộp thêm ZIP → nút bật, nộp thành công
-- [ ] Xem cây thư mục ZIP, mở một file .tsx
-- [ ] ZIP thiếu README.md → vẫn nộp được, checklist đỏ
-- [ ] ZIP nén cả thư mục gốc (BaiTap1/README.md) → checklist xanh
-- [ ] File .txt đổi đuôi .zip → bị từ chối
-- [ ] Upload 30 MB → phản hồi < 2 giây
-- [ ] Nộp lại lần hai → thấy 2 attempt, chỉ bản mới là hiện hành
-- [ ] Tài khoản SV khác không mở được bài nộp
+- [x] Tạo bài tập 3 slot bằng "Dùng mẫu gợi ý", sửa nhãn tiếng Việt
+- [x] Tạo bài tập thứ hai, xóa còn duy nhất 1 slot source code
+- [x] SV nộp ảnh trước → "Nộp chính thức" vẫn khóa, ghi rõ thiếu "Source code"
+- [x] Nộp thêm ZIP → nút bật, nộp thành công
+- [x] Xem cây thư mục ZIP, mở một file .tsx
+- [x] ZIP thiếu README.md → vẫn nộp được, checklist đỏ
+- [x] ZIP nén cả thư mục gốc (BaiTap1/README.md) → checklist xanh
+- [x] File .txt đổi đuôi .zip → bị từ chối
+- [x] Upload 30 MB → phản hồi < 2 giây
+- [x] Nộp lại lần hai → thấy 2 attempt, chỉ bản mới là hiện hành
+- [x] Tài khoản SV khác không mở được bài nộp

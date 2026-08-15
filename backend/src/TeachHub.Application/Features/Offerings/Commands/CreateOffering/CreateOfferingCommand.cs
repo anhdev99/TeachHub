@@ -86,7 +86,8 @@ public sealed class CreateOfferingCommandHandler(IAppDbContext db, TimeProvider 
         await db.SaveChangesAsync(ct);
 
         return Result<OfferingDto>.Ok(new OfferingDto(
-            offering.Id, offering.SubjectId, offering.SubjectVersionId, offering.Semester,
+            offering.Id, offering.SubjectId, offering.SubjectVersionId,
+            subject.Code, subject.Name, offering.Semester,
             offering.ClassCode, offering.JoinCodeValue, offering.JoinCodeExpiresAt,
             offering.Status, offering.TimeZoneId, 0, offering.CreatedAt));
     }
