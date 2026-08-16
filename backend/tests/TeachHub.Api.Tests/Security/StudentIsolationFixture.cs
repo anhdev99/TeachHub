@@ -256,7 +256,7 @@ public sealed class StudentIsolationFixture : TeachHubApiFactory
             new { is_enabled = true, leaderboard_visibility = "real_names", leaderboard_size = 10 });
 
         // ---- Hoạt động thật của sinh viên chính ----
-        await ChayAsync(sv, HttpMethod.Post, $"/api/lessons/{lessonId}/complete?secondsSpent=120", null);
+        await ChayAsync(sv, HttpMethod.Post, $"/api/lessons/{lessonId}/complete?seconds_spent=120", null);
         await ChayAsync(sv, HttpMethod.Post, $"/api/lesson-components/{id["componentId"]}/complete", null);
 
         // Tham số query KHÔNG đi theo JsonNamingPolicy, nên gõ sai tên nó không sinh ra lỗi nào:
