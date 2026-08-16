@@ -6,6 +6,7 @@ using TeachHub.Domain.Grading;
 using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Learning;
+using TeachHub.Domain.Quizzes;
 using TeachHub.Domain.Submissions;
 using TeachHub.Domain.Teaching;
 
@@ -61,6 +62,12 @@ public interface IAppDbContext
     DbSet<GradeExportTemplate> GradeExportTemplates { get; }
     DbSet<GradeExportItem> GradeExportItems { get; }
     DbSet<GradeSnapshot> GradeSnapshots { get; }
+
+    // Phase 5 — trắc nghiệm
+    DbSet<QuizQuestion> QuizQuestions { get; }
+    DbSet<QuestionOption> QuestionOptions { get; }
+    DbSet<QuizItem> QuizItems { get; }
+    DbSet<QuizAttempt> QuizAttempts { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

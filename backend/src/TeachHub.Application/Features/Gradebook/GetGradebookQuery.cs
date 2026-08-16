@@ -84,6 +84,15 @@ public sealed class GetGradebookHandler(IAppDbContext db)
             .Where(f => idCuoiMon.Contains(f.Id))
             .ToDictionaryAsync(f => f.Id, f => f.MaxScore, ct);
 
+        // Nguồn Quiz (Phase 5). QuizAttempt đã lưu sẵn NormalizedScore trên thang 10 nên
+        // thang gốc ở đây là 10 — chuẩn hóa làm MỘT lần lúc chấm, không làm lại lần thứ hai.
+        var idQuiz = nguon.Where(s => s.SourceType == GradeSourceType.Quiz).Select(s => s.SourceId).ToList();
+
+        var diemQuiz = await db.QuizAttempts.AsNoTracking()
+            .Where(a => idQuiz.Contains(a.QuizId) && a.NormalizedScore != null)
+            .Select(a => new { a.QuizId, a.EnrollmentId, a.NormalizedScore })
+            .ToListAsync(ct);
+
         var baiNop = await db.Submissions.AsNoTracking()
             .Where(s => s.OfferingId == request.OfferingId && s.IsCurrent && s.Score != null)
             .Select(s => new { s.AssignmentId, s.FinalAssessmentId, s.EnrollmentId, s.GroupId, s.Score })
@@ -124,9 +133,12 @@ public sealed class GetGradebookHandler(IAppDbContext db)
 
                 var nguonCuaCot = c.Sources.Select(s => new SourceScore(
                     DiemCuaNguon(s, e.Id),
-                    s.SourceType == GradeSourceType.Assignment
-                        ? tranBaiTap.GetValueOrDefault(s.SourceId, 10m)
-                        : tranCuoiMon.GetValueOrDefault(s.SourceId, 10m),
+                    s.SourceType switch
+                    {
+                        GradeSourceType.Assignment => tranBaiTap.GetValueOrDefault(s.SourceId, 10m),
+                        GradeSourceType.FinalAssessment => tranCuoiMon.GetValueOrDefault(s.SourceId, 10m),
+                        _ => 10m,                       // Quiz đã chuẩn hóa sẵn về thang 10
+                    },
                     s.WeightWithinColumn)).ToList();
 
                 var suaTay = ghi?.IsManualOverride ?? false;
@@ -160,6 +172,13 @@ public sealed class GetGradebookHandler(IAppDbContext db)
 
             decimal? DiemCuaNguon(GradeColumnSource s, Guid enrollmentId)
             {
+                // Quiz: lấy lượt CAO NHẤT của sinh viên. Quiz cho làm nhiều lần chính là để
+                // học lại cho tới khi nắm được; lấy lượt cuối thì một lần bấm nhầm xóa sạch
+                // kết quả tốt trước đó.
+                if (s.SourceType == GradeSourceType.Quiz)
+                    return diemQuiz.Where(x => x.QuizId == s.SourceId && x.EnrollmentId == enrollmentId)
+                                   .Select(x => x.NormalizedScore).Max();
+
                 var nhomCuaToi = thanhVien.Where(m => m.EnrollmentId == enrollmentId)
                                           .Select(m => m.GroupId).ToList();
 
@@ -189,9 +208,15 @@ public sealed class GetGradebookHandler(IAppDbContext db)
             c.Aggregation.Kind, c.Aggregation.N, c.Aggregation.TreatMissingAsZero,
             [.. c.Sources.Select(s => new GradeColumnSourceDto(
                 s.Id, s.SourceType, s.SourceId,
-                s.SourceType == GradeSourceType.Assignment
-                    ? db.Assignments.Where(a => a.Id == s.SourceId).Select(a => a.Title).FirstOrDefault() ?? "(đã xóa)"
-                    : db.FinalAssessments.Where(f => f.Id == s.SourceId).Select(f => f.Title).FirstOrDefault() ?? "(đã xóa)",
+                s.SourceType switch
+                {
+                    GradeSourceType.Assignment =>
+                        db.Assignments.Where(a => a.Id == s.SourceId).Select(a => a.Title).FirstOrDefault() ?? "(đã xóa)",
+                    GradeSourceType.Quiz =>
+                        db.Quizzes.Where(q => q.Id == s.SourceId).Select(q => q.Title).FirstOrDefault() ?? "(đã xóa)",
+                    _ =>
+                        db.FinalAssessments.Where(f => f.Id == s.SourceId).Select(f => f.Title).FirstOrDefault() ?? "(đã xóa)",
+                },
                 s.WeightWithinColumn))]);
     }
 }

@@ -631,7 +631,11 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_deleted");
 
-                    b.Property<Guid>("SubjectVersionId")
+                    b.Property<Guid?>("OfferingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("offering_id");
+
+                    b.Property<Guid?>("SubjectVersionId")
                         .HasColumnType("uuid")
                         .HasColumnName("subject_version_id");
 
@@ -644,10 +648,16 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.HasKey("Id")
                         .HasName("pk_quizzes");
 
+                    b.HasIndex("OfferingId")
+                        .HasDatabaseName("ix_quizzes_offering_id");
+
                     b.HasIndex("SubjectVersionId")
                         .HasDatabaseName("ix_quizzes_subject_version_id");
 
-                    b.ToTable("quizzes", (string)null);
+                    b.ToTable("quizzes", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_quizzes_owner", "(subject_version_id IS NOT NULL AND offering_id IS NULL) OR\n(subject_version_id IS NULL     AND offering_id IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Content.Subject", b =>
@@ -1644,6 +1654,196 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.ToTable("lesson_progresses", (string)null);
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuestionOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_correct");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("question_id");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.HasKey("Id")
+                        .HasName("pk_question_options");
+
+                    b.HasIndex("QuestionId", "OrderIndex")
+                        .HasDatabaseName("ix_question_options_question_id_order_index");
+
+                    b.ToTable("question_options", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptNo")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_no");
+
+                    b.Property<Guid>("EnrollmentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("enrollment_id");
+
+                    b.Property<decimal?>("MaxScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("max_score");
+
+                    b.Property<decimal?>("NormalizedScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("normalized_score");
+
+                    b.PrimitiveCollection<string>("QuestionOrder")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("question_order");
+
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("quiz_id");
+
+                    b.Property<decimal?>("RawScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("raw_score");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.PrimitiveCollection<string>("WrongQuestionIds")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("wrong_question_ids");
+
+                    b.HasKey("Id")
+                        .HasName("pk_quiz_attempts");
+
+                    b.HasIndex("EnrollmentId")
+                        .HasDatabaseName("ix_quiz_attempts_enrollment_id");
+
+                    b.HasIndex("QuizId", "EnrollmentId", "AttemptNo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_quiz_attempts_quiz_id_enrollment_id_attempt_no");
+
+                    b.ToTable("quiz_attempts", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer")
+                        .HasColumnName("order_index");
+
+                    b.Property<decimal?>("PointsOverride")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("points_override");
+
+                    b.Property<Guid>("QuestionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("question_id");
+
+                    b.Property<Guid>("QuizId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("quiz_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_quiz_items");
+
+                    b.HasIndex("QuestionId")
+                        .HasDatabaseName("ix_quiz_items_question_id");
+
+                    b.HasIndex("QuizId", "QuestionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_quiz_items_quiz_id_question_id");
+
+                    b.ToTable("quiz_items", (string)null);
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AllowPartialCredit")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_partial_credit");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("text")
+                        .HasColumnName("explanation");
+
+                    b.PrimitiveCollection<List<string>>("FoundationTags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("foundation_tags");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instructor_id");
+
+                    b.Property<decimal>("Points")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("points");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_quiz_questions");
+
+                    b.HasIndex("InstructorId")
+                        .HasDatabaseName("ix_quiz_questions_instructor_id");
+
+                    b.ToTable("quiz_questions", (string)null);
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2344,12 +2544,49 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("TeachHub.Domain.Content.Quiz", b =>
                 {
+                    b.HasOne("TeachHub.Domain.Teaching.CourseOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_quizzes_course_offerings_offering_id");
+
                     b.HasOne("TeachHub.Domain.Content.SubjectVersion", null)
                         .WithMany()
                         .HasForeignKey("SubjectVersionId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_quizzes_subject_versions_subject_version_id");
+
+                    b.OwnsOne("TeachHub.Domain.Quizzes.QuizConfig", "Config", b1 =>
+                        {
+                            b1.Property<Guid>("QuizId");
+
+                            b1.Property<bool>("IsGraded");
+
+                            b1.Property<int?>("MaxAttempts");
+
+                            b1.Property<bool>("ShowExplanationAfterSubmit");
+
+                            b1.Property<bool>("ShuffleOptions");
+
+                            b1.Property<bool>("ShuffleQuestions");
+
+                            b1.Property<int?>("TimeLimitMinutes");
+
+                            b1.HasKey("QuizId");
+
+                            b1.ToTable("quizzes");
+
+                            b1
+                                .ToJson("config")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("QuizId")
+                                .HasConstraintName("fk_quizzes_quizzes_id");
+                        });
+
+                    b.Navigation("Config")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Content.Subject", b =>
@@ -2714,6 +2951,117 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_lesson_progresses_lessons_lesson_id");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuestionOption", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Quizzes.QuizQuestion", null)
+                        .WithMany("Options")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_question_options_quiz_questions_question_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizAttempt", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Teaching.Enrollment", null)
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_quiz_attempts_enrollments_enrollment_id");
+
+                    b.HasOne("TeachHub.Domain.Content.Quiz", null)
+                        .WithMany()
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_quiz_attempts_quizzes_quiz_id");
+
+                    b.OwnsMany("TeachHub.Domain.Quizzes.StoredAnswer", "Answers", b1 =>
+                        {
+                            b1.Property<Guid>("QuizAttemptId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<Guid>("QuestionId");
+
+                            b1.PrimitiveCollection<string>("SelectedOptionIds")
+                                .IsRequired();
+
+                            b1.Property<string>("Text");
+
+                            b1.HasKey("QuizAttemptId", "__synthesizedOrdinal");
+
+                            b1.ToTable("quiz_attempts");
+
+                            b1
+                                .ToJson("answers")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("QuizAttemptId")
+                                .HasConstraintName("fk_quiz_attempts_quiz_attempts_quiz_attempt_id");
+                        });
+
+                    b.Navigation("Answers");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizItem", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Quizzes.QuizQuestion", null)
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_quiz_items_quiz_questions_question_id");
+
+                    b.HasOne("TeachHub.Domain.Content.Quiz", null)
+                        .WithMany("Items")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_quiz_items_quizzes_quiz_id");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizQuestion", b =>
+                {
+                    b.HasOne("TeachHub.Domain.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_quiz_questions_asp_net_users_instructor_id");
+
+                    b.OwnsOne("TeachHub.Domain.Quizzes.FillBlankConfig", "FillBlank", b1 =>
+                        {
+                            b1.Property<Guid>("QuizQuestionId");
+
+                            b1.PrimitiveCollection<string>("AcceptedAnswers")
+                                .IsRequired();
+
+                            b1.Property<bool>("CaseSensitive");
+
+                            b1.Property<bool>("NormalizeUnicode");
+
+                            b1.Property<bool>("TrimWhitespace");
+
+                            b1.HasKey("QuizQuestionId");
+
+                            b1.ToTable("quiz_questions");
+
+                            b1
+                                .ToJson("fill_blank")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("QuizQuestionId")
+                                .HasConstraintName("fk_quiz_questions_quiz_questions_id");
+                        });
+
+                    b.Navigation("FillBlank");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>
                 {
                     b.HasOne("TeachHub.Domain.Content.Assignment", null)
@@ -2905,6 +3253,11 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
                     b.Navigation("Components");
                 });
 
+            modelBuilder.Entity("TeachHub.Domain.Content.Quiz", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("TeachHub.Domain.Content.Subject", b =>
                 {
                     b.Navigation("Versions");
@@ -2933,6 +3286,11 @@ namespace TeachHub.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("TeachHub.Domain.Groups.StudentGroup", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("TeachHub.Domain.Quizzes.QuizQuestion", b =>
+                {
+                    b.Navigation("Options");
                 });
 
             modelBuilder.Entity("TeachHub.Domain.Submissions.Submission", b =>

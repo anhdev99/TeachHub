@@ -40,13 +40,8 @@ public sealed class CreateFinalAssessmentValidator : AbstractValidator<CreateFin
         RuleFor(x => x.MaxScore).InclusiveBetween(0m, 10m)
             .WithMessage("Điểm tối đa phải nằm trong khoảng 0 đến 10.");
 
-        // "exam" KHÔNG có trong enum nên JsonStringEnumConverter chặn ngay ở tầng đọc JSON
-        // với thông báo của bộ đọc. "quiz" CÓ trong enum nên nó đi tới được đây — đây là chỗ
-        // duy nhất kiểm chứng được câu "chưa hỗ trợ" do mình viết ra.
-        RuleFor(x => x.Type)
-            .Must(t => t == FinalAssessmentType.FinalProject)
-            .WithMessage("Loại này chưa hỗ trợ trong MVP — chỉ có bài tập lớn cuối kỳ. "
-                       + "Trắc nghiệm chờ engine quiz ở Phase 5.");
+        // Phase 5 đã mở khóa loại Quiz. "exam" vẫn KHÔNG có trong enum nên
+        // JsonStringEnumConverter chặn ngay ở tầng đọc JSON — không có nhánh nào ở đây.
     }
 }
 

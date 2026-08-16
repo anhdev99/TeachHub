@@ -3387,6 +3387,593 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    tag?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestionDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveQuestionCommand"];
+                    "application/*+json": components["schemas"]["SaveQuestionCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizQuestionDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quizzes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    subject_version_id?: string;
+                    offering_id?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveQuizCommand"];
+                    "application/*+json": components["schemas"]["SaveQuizCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quizzes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quizzes/{id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetQuizQuestionsCommand"];
+                    "application/*+json": components["schemas"]["SetQuizQuestionsCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["QuizDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/quizzes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyQuizDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quizzes/{id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TakeAttemptDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz-attempts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TakeAttemptDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz-attempts/{id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveQuizAnswersCommand"];
+                    "application/*+json": components["schemas"]["SaveQuizAnswersCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quiz-attempts/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TakeAttemptDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rubrics": {
         parameters: {
             query?: never;
@@ -4666,6 +5253,12 @@ export interface components {
             /** Format: int64 */
             size_bytes: number;
         };
+        FillBlankDto: {
+            accepted_answers: string[];
+            case_sensitive: boolean;
+            trim_whitespace: boolean;
+            normalize_unicode: boolean;
+        };
         FinalAssessmentDto: {
             /** Format: uuid */
             id: string;
@@ -5108,10 +5701,33 @@ export interface components {
             overall_percent: number;
             chapters: components["schemas"]["MyChapterDto"][];
         };
+        MyQuizDto: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            description: null | string;
+            is_graded: boolean;
+            /** Format: int32 */
+            time_limit_minutes: null | number;
+            /** Format: int32 */
+            max_attempts: null | number;
+            /** Format: int32 */
+            question_count: number;
+            /** Format: int32 */
+            attempts_used: number;
+            /** Format: double */
+            best_normalized_score: null | number;
+            /** Format: uuid */
+            in_progress_attempt_id: null | string;
+        };
         NewCriterion: {
             description: string;
             /** Format: double */
             max_points: number;
+        };
+        NewOption: {
+            text: string;
+            is_correct: boolean;
         };
         OfferingDto: {
             /** Format: uuid */
@@ -5143,6 +5759,69 @@ export interface components {
             status?: null | number;
             detail?: null | string;
             instance?: null | string;
+        };
+        QuestionOptionDto: {
+            /** Format: uuid */
+            id: string;
+            text: string;
+            is_correct: boolean;
+            /** Format: int32 */
+            order_index: number;
+        };
+        QuestionReviewDto: {
+            /** Format: uuid */
+            question_id: string;
+            is_correct: boolean;
+            /** Format: double */
+            earned: number;
+            /** Format: double */
+            max: number;
+            explanation: null | string;
+            correct_option_ids: string[];
+            accepted_answers: string[];
+        };
+        /** @enum {unknown} */
+        QuestionType: "single_choice" | "multiple_choice" | "true_false" | "fill_blank";
+        /** @enum {unknown} */
+        QuizAttemptStatus: "in_progress" | "submitted" | "auto_submitted";
+        QuizConfigDto: {
+            is_graded: boolean;
+            /** Format: int32 */
+            time_limit_minutes: null | number;
+            /** Format: int32 */
+            max_attempts: null | number;
+            shuffle_questions: boolean;
+            shuffle_options: boolean;
+            show_explanation_after_submit: boolean;
+        };
+        QuizDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            subject_version_id: null | string;
+            /** Format: uuid */
+            offering_id: null | string;
+            title: string;
+            description: null | string;
+            config: components["schemas"]["QuizConfigDto"];
+            /** Format: int32 */
+            question_count: number;
+            /** Format: double */
+            total_points: number;
+            questions: components["schemas"]["QuizQuestionDto"][];
+        };
+        QuizQuestionDto: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["QuestionType"];
+            text: string;
+            explanation: null | string;
+            foundation_tags: string[];
+            /** Format: double */
+            points: number;
+            allow_partial_credit: boolean;
+            options: components["schemas"]["QuestionOptionDto"][];
+            fill_blank: null | components["schemas"]["FillBlankDto"];
         };
         RefreshTokenCommand: {
             refresh_token: string;
@@ -5211,6 +5890,41 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        SaveQuestionCommand: {
+            /** Format: uuid */
+            id: null | string;
+            type: components["schemas"]["QuestionType"];
+            text: string;
+            explanation: null | string;
+            foundation_tags: string[];
+            /** Format: double */
+            points: number;
+            allow_partial_credit: boolean;
+            options: components["schemas"]["NewOption"][];
+            fill_blank: null | components["schemas"]["FillBlankDto"];
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SaveQuizAnswersCommand: {
+            answers: components["schemas"]["TakeAnswerDto"][];
+            /** Format: uuid */
+            attempt_id?: string;
+            /** Format: uuid */
+            user_id?: string;
+        };
+        SaveQuizCommand: {
+            /** Format: uuid */
+            id: null | string;
+            /** Format: uuid */
+            subject_version_id: null | string;
+            /** Format: uuid */
+            offering_id: null | string;
+            title: string;
+            description: null | string;
+            config: components["schemas"]["QuizConfigDto"];
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         SetColumnSourcesCommand: {
             sources: components["schemas"]["GradeColumnSourceInput"][];
             /** Format: uuid */
@@ -5226,6 +5940,13 @@ export interface components {
             note: null | string;
             /** Format: uuid */
             column_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SetQuizQuestionsCommand: {
+            question_ids: string[];
+            /** Format: uuid */
+            quiz_id?: string;
             /** Format: uuid */
             instructor_id?: string;
         };
@@ -5331,6 +6052,53 @@ export interface components {
             outcomes?: components["schemas"]["LearningOutcome"][];
             references?: string[];
             description?: null | string;
+        };
+        TakeAnswerDto: {
+            /** Format: uuid */
+            question_id: string;
+            selected_option_ids: string[];
+            text: null | string;
+        };
+        TakeAttemptDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            quiz_id: string;
+            title: string;
+            description: null | string;
+            /** Format: int32 */
+            attempt_no: number;
+            status: components["schemas"]["QuizAttemptStatus"];
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            due_at: null | string;
+            /** Format: int32 */
+            seconds_remaining: null | number;
+            is_graded: boolean;
+            questions: components["schemas"]["TakeQuestionDto"][];
+            answers: components["schemas"]["TakeAnswerDto"][];
+            /** Format: double */
+            raw_score: null | number;
+            /** Format: double */
+            max_score: null | number;
+            /** Format: double */
+            normalized_score: null | number;
+            review: components["schemas"]["QuestionReviewDto"][];
+        };
+        TakeOptionDto: {
+            /** Format: uuid */
+            id: string;
+            text: string;
+        };
+        TakeQuestionDto: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["QuestionType"];
+            text: string;
+            /** Format: double */
+            points: number;
+            options: components["schemas"]["TakeOptionDto"][];
         };
         ToGradeItemDto: {
             /** Format: uuid */

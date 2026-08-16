@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Identity;
+using TeachHub.Domain.Teaching;
 
 namespace TeachHub.Infrastructure.Persistence.Configurations;
 
@@ -163,8 +164,26 @@ public sealed class QuizConfiguration : IEntityTypeConfiguration<Quiz>
 
         b.HasOne<SubjectVersion>().WithMany().HasForeignKey(x => x.SubjectVersionId)
          .OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
+         .OnDelete(DeleteBehavior.Cascade);
+
+        // Config KHÔNG chứa enum nào; ngày nào thêm enum vào đây thì phải khai
+        // .HasConversion<string>() cho riêng nó — EF dùng JsonValueReaderWriter cho cột
+        // ToJson() và không đọc JsonStringEnumConverter của tầng HTTP.
+        b.OwnsOne(x => x.Config, c => c.ToJson());
+
+        b.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.QuizId)
+         .OnDelete(DeleteBehavior.Cascade);
+
+        // Gap #3: đúng MỘT trong hai chủ sở hữu. Bỏ CHECK thì một quiz thuộc cả phiên bản môn
+        // lẫn một lớp, và clone version sẽ nhân đôi nó.
+        b.ToTable(t => t.HasCheckConstraint("ck_quizzes_owner", """
+            (subject_version_id IS NOT NULL AND offering_id IS NULL) OR
+            (subject_version_id IS NULL     AND offering_id IS NOT NULL)
+            """));
 
         b.HasQueryFilter(x => !x.IsDeleted);
         b.HasIndex(x => x.SubjectVersionId);
+        b.HasIndex(x => x.OfferingId);
     }
 }

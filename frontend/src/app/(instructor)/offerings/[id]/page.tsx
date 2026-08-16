@@ -65,7 +65,9 @@ export default async function OfferingDetailPage({
           <Link href={`/offerings/${id}/grading`} className="underline">Bài nộp &amp; chấm điểm</Link>
           <Link href={`/offerings/${id}/groups`} className="underline">Chia nhóm</Link>
           <Link href={`/offerings/${id}/gradebook`} className="underline">Sổ điểm</Link>
+          <Link href={`/offerings/${id}/quizzes`} className="underline">Trắc nghiệm</Link>
           <Link href="/rubrics" className="underline">Rubric</Link>
+          <Link href="/questions" className="underline">Ngân hàng câu hỏi</Link>
         </nav>
       </div>
 

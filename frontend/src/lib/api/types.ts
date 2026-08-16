@@ -56,6 +56,22 @@ export type GradeExportTemplateDto = components["schemas"]["GradeExportTemplateD
 export type AggregationKind = components["schemas"]["AggregationKind"];
 export type BonusTarget = components["schemas"]["BonusTarget"];
 
+// Phase 5 — trắc nghiệm
+export type QuizDto = components["schemas"]["QuizDto"];
+export type QuizQuestionDto = components["schemas"]["QuizQuestionDto"];
+export type MyQuizDto = components["schemas"]["MyQuizDto"];
+export type TakeAttemptDto = components["schemas"]["TakeAttemptDto"];
+export type TakeQuestionDto = components["schemas"]["TakeQuestionDto"];
+export type TakeAnswerDto = components["schemas"]["TakeAnswerDto"];
+export type QuestionType = components["schemas"]["QuestionType"];
+
+export const NHAN_LOAI_CAU_HOI: Record<QuestionType, string> = {
+  single_choice: "Chọn một",
+  multiple_choice: "Chọn nhiều",
+  true_false: "Đúng / Sai",
+  fill_blank: "Điền khuyết",
+};
+
 export const NHAN_QUY_TAC_GOP: Record<AggregationKind, string> = {
   manual: "Nhập tay",
   average: "Trung bình",

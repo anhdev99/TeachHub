@@ -10,6 +10,7 @@ using TeachHub.Domain.Grading;
 using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
 using TeachHub.Domain.Learning;
+using TeachHub.Domain.Quizzes;
 using TeachHub.Domain.Submissions;
 using TeachHub.Domain.Teaching;
 
@@ -56,6 +57,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<GradeExportTemplate> GradeExportTemplates => Set<GradeExportTemplate>();
     public DbSet<GradeExportItem> GradeExportItems => Set<GradeExportItem>();
     public DbSet<GradeSnapshot> GradeSnapshots => Set<GradeSnapshot>();
+
+    public DbSet<QuizQuestion> QuizQuestions => Set<QuizQuestion>();
+    public DbSet<QuestionOption> QuestionOptions => Set<QuestionOption>();
+    public DbSet<QuizItem> QuizItems => Set<QuizItem>();
+    public DbSet<QuizAttempt> QuizAttempts => Set<QuizAttempt>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 
