@@ -87,7 +87,12 @@ function NoiDungHtml({ html }: { html: string }) {
   return (
     <div
       className="text-sm [&_a]:underline [&_li]:my-0.5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1 [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-5"
-      // Ngoại lệ DUY NHẤT trong tệp này: chuỗi đã đi qua `locHtml` ngay phía trên.
+      // Ngoại lệ DUY NHẤT trong tệp này. `locHtml` ngay phía trên đã gỡ script/iframe/object
+      // và tước mọi thuộc tính on* cùng mọi javascript:/data:.
+      //
+      // Chỉ thị dưới đây phải nằm SÁT dòng nó bảo vệ — `eslint-disable-next-line` chỉ áp cho
+      // đúng một dòng kế tiếp, chèn thêm chú thích vào giữa là nó lặng lẽ mất tác dụng.
+      // eslint-disable-next-line react/no-danger -- đã lọc qua locHtml, xem giải thích trên
       dangerouslySetInnerHTML={{ __html: sach }}
     />
   );
