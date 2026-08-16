@@ -74,7 +74,13 @@ export function TaoMonMoi() {
             />
           </div>
 
-          {loi && <p className="text-destructive text-sm">{loi}</p>}
+          {/* `detail` của ProblemDetails đã là câu tiếng Việt viết sẵn cho người dùng —
+              hiện nguyên văn, không quy về "Đã có lỗi xảy ra". */}
+          {loi && (
+            <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm">
+              {loi}
+            </p>
+          )}
         </div>
 
         <DialogFooter>

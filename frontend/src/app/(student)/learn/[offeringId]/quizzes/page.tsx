@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyQuizDto } from "@/lib/api/types";
 import { DanhSachQuiz } from "./danh-sach-quiz";
@@ -25,18 +25,14 @@ export default async function MyQuizzesPage({
   const ds: MyQuizDto[] = await res.json();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/learn/${offeringId}`}
-          className="text-muted-foreground hover:text-foreground text-sm"
-        >
-          ← Trang học
-        </Link>
-        <h1 className="text-2xl font-semibold">Trắc nghiệm</h1>
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe="Trắc nghiệm"
+        moTa="Bài trắc nghiệm của lớp này và số lượt bạn đã dùng."
+        quayLai={{ href: `/learn/${offeringId}`, nhan: "Trang học" }}
+      />
 
       <DanhSachQuiz offeringId={offeringId} banDau={ds} />
-    </main>
+    </Trang>
   );
 }

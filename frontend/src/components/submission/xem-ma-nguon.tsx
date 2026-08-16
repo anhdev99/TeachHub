@@ -144,8 +144,21 @@ export function XemMaNguon({
     };
   }, [submissionId, fileId, path, tenTep, khoaVung]);
 
-  if (loi) return <p className="text-destructive text-sm">{loi}</p>;
-  if (html === null) return <p className="text-muted-foreground text-sm">Đang tải tệp…</p>;
+  // Câu chữ lấy nguyên từ `ProblemDetails.detail` của backend — nó đã được viết bằng tiếng
+  // Việt cho người đọc. Bọc trong khung `danger` để phân biệt với chính nội dung tệp.
+  if (loi)
+    return (
+      <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm text-pretty">
+        {loi}
+      </p>
+    );
+
+  if (html === null)
+    return (
+      <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-2 text-sm">
+        Đang tải tệp…
+      </p>
+    );
 
   return (
     <div

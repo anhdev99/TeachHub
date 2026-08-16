@@ -1,10 +1,12 @@
 "use client";
 
+import { Archive, FilePen, GitBranch, Layers, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -15,21 +17,36 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { TrongRong } from "@/components/shell/trang";
+import { ngay } from "@/lib/dinh-dang";
 import { apiFetch } from "@/lib/api/fetcher";
 import { NHAN_TRANG_THAI, type SubjectVersionDto } from "@/lib/api/types";
 
-function MauBadge(status: SubjectVersionDto["status"]) {
-  // Xanh = đang dùng, vàng = còn sửa được, xám = lịch sử. Ba trạng thái phải phân biệt
-  // được từ xa: đây là chỗ giảng viên kiểm tra trước khi sửa nội dung.
-  switch (status) {
-    case "published":
-      return "default" as const;
-    case "draft":
-      return "secondary" as const;
-    default:
-      return "outline" as const;
-  }
-}
+/**
+ * Ba trạng thái phải phân biệt được TỪ XA — đây là chỗ giảng viên kiểm tra trước khi sửa
+ * nội dung, và sửa nhầm bản đang chạy nghĩa là đổi nội dung dưới chân một lớp đã có bài nộp.
+ *
+ * Màu lấy từ token ngữ nghĩa chứ không phải `variant` mặc định của Badge: `default` là màu
+ * thương hiệu (xanh mực), nó không mang nghĩa "đang dùng được" — dùng nó ở đây thì đổi màu
+ * thương hiệu là đổi luôn nghĩa của trạng thái.
+ */
+const KIEU_TRANG_THAI = {
+  published: {
+    badge: "bg-ok-soft text-ok border-ok/25 border",
+    cham: "bg-ok",
+    Icon: Lock,
+  },
+  draft: {
+    badge: "bg-warn-soft text-warn border-warn/25 border",
+    cham: "bg-warn",
+    Icon: FilePen,
+  },
+  archived: {
+    badge: "bg-muted text-muted-foreground border-border border",
+    cham: "bg-border",
+    Icon: Archive,
+  },
+} as const;
 
 export function DongThoiGian({
   subjectId,
@@ -80,38 +97,69 @@ export function DongThoiGian({
 
   return (
     <>
-      <ol className="border-border flex flex-col gap-4 border-l-2 pl-6">
-        {versions.map((v) => (
-          <li key={v.id} className="relative">
-            <span className="bg-border absolute -left-[1.85rem] top-3 size-3 rounded-full" />
+      {versions.length === 0 ? (
+        <Card>
+          <CardContent>
+            <TrongRong
+              Icon={Layers}
+              tieuDe="Chưa có phiên bản nào"
+              moTa="Phiên bản là một bản chụp nội dung môn học. Lớp học phần luôn ghim vào một phiên bản đã xuất bản."
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <ol className="border-border flex flex-col gap-3 border-l-2 pl-6">
+          {versions.map((v) => {
+            const kieu = KIEU_TRANG_THAI[v.status];
+            const laNhap = v.status === "draft";
 
-            <div className="border-border flex flex-col gap-3 rounded-lg border p-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-medium">{v.version_label}</span>
-                <Badge variant={MauBadge(v.status)}>{NHAN_TRANG_THAI[v.status]}</Badge>
-                {v.published_at && (
-                  <span className="text-muted-foreground text-xs">
-                    Xuất bản {new Date(v.published_at).toLocaleDateString("vi-VN")}
-                  </span>
-                )}
-              </div>
+            return (
+              <li key={v.id} className="relative">
+                {/* Chấm mốc mang màu trạng thái: quét dọc cột mốc là thấy ngay bản nào còn
+                    sửa được mà không phải đọc từng nhãn. */}
+                <span
+                  aria-hidden
+                  className={`${kieu.cham} border-background absolute top-5 -left-[1.9rem] size-3.5 rounded-full border-2`}
+                />
 
-              {v.changelog && <p className="text-muted-foreground text-sm">{v.changelog}</p>}
+                <Card>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <kieu.Icon className="text-muted-foreground size-4 shrink-0" aria-hidden />
+                      <span className="font-medium">{v.version_label}</span>
+                      <Badge className={`${kieu.badge} shrink-0`}>
+                        {NHAN_TRANG_THAI[v.status]}
+                      </Badge>
+                      {v.published_at && (
+                        <span className="text-muted-foreground text-xs">
+                          Xuất bản{" "}
+                          <time dateTime={v.published_at}>{ngay(v.published_at)}</time>
+                        </span>
+                      )}
+                    </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button asChild size="sm" variant="outline">
-                  <Link href={`/subjects/${subjectId}/versions/${v.id}`}>
-                    {v.status === "draft" ? "Soạn nội dung" : "Xem chỉ đọc"}
-                  </Link>
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setNguon(v)}>
-                  Tạo phiên bản mới từ đây
-                </Button>
-              </div>
-            </div>
-          </li>
-        ))}
-      </ol>
+                    {v.changelog && (
+                      <p className="text-muted-foreground text-sm text-pretty">{v.changelog}</p>
+                    )}
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild size="sm" variant={laNhap ? "default" : "outline"}>
+                        <Link href={`/subjects/${subjectId}/versions/${v.id}`}>
+                          {laNhap ? "Soạn nội dung" : "Xem chỉ đọc"}
+                        </Link>
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setNguon(v)}>
+                        <GitBranch className="size-4" aria-hidden />
+                        Tạo phiên bản mới từ đây
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       <Dialog open={nguon !== null} onOpenChange={(o) => !o && setNguon(null)}>
         <DialogContent>
@@ -144,7 +192,11 @@ export function DongThoiGian({
               Toàn bộ chương, bài học và component sẽ được nhân bản. Phiên bản nguồn không đổi.
             </p>
 
-            {loi && <p className="text-destructive text-sm">{loi}</p>}
+            {loi && (
+              <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm">
+                {loi}
+              </p>
+            )}
           </div>
 
           <DialogFooter>

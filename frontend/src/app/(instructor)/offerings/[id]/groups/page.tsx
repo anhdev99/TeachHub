@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { EnrollmentDto, GroupDto } from "@/lib/api/types";
 import { ChiaNhom } from "./chia-nhom";
@@ -24,18 +24,17 @@ export default async function GroupsPage({ params }: { params: Promise<{ id: str
   const sinhVien: EnrollmentDto[] = resSv.ok ? await resSv.json() : [];
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-4xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link href={`/offerings/${id}`} className="text-muted-foreground hover:text-foreground text-sm">
-          ← Lớp học phần
-        </Link>
-        <h1 className="text-2xl font-semibold">Chia nhóm</h1>
-      </div>
+    <Trang>
+      <DauTrang
+        quayLai={{ href: `/offerings/${id}`, nhan: "Lớp học phần" }}
+        tieuDe="Chia nhóm"
+        moTa="Chia ngẫu nhiên theo sĩ số, rồi kéo-thả từng sinh viên để chỉnh lại."
+      />
 
       {/* Truyền cả danh sách sinh viên chứ không chỉ sĩ số: màn hình cần biết AI chưa có nhóm
           để dựng vùng thả "Chưa có nhóm". Chỉ có con số thì kéo một sinh viên ra khỏi nhóm
           xong là người đó biến mất khỏi màn hình. */}
       <ChiaNhom offeringId={id} banDau={nhom} sinhVien={sinhVien} />
-    </main>
+    </Trang>
   );
 }

@@ -1,8 +1,12 @@
+import { ChevronRight, ScanSearch } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { CanhBaoTrungLap } from "@/components/submission/canh-bao-trung-lap";
+import { diem } from "@/lib/dinh-dang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { components } from "@/lib/api/schema";
 
@@ -33,81 +37,99 @@ export default async function SimilarityPage({
   const bc: SimilarityReportDto = await res.json();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-4xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/offerings/${offering}/grading`}
-          className="text-muted-foreground hover:text-foreground text-sm"
-        >
-          ← Bài nộp
-        </Link>
-        <h1 className="text-2xl font-semibold">Báo cáo trùng lặp mã nguồn</h1>
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe="Báo cáo trùng lặp mã nguồn"
+        moTa={`So ${bc.submissions_compared} bài nộp của lớp, ngưỡng cảnh báo ${diem(bc.threshold_percent)}%.`}
+        quayLai={{ href: `/offerings/${offering}/grading`, nhan: "Bài nộp" }}
+      />
 
-      {/* Cảnh báo, KHÔNG BAO GIỜ tự trừ điểm (Rủi ro #3 của SRS). Con số ở đây là gợi ý để
-          giảng viên đọc bài, không phải bằng chứng — bài nhập môn dùng chung starter code
-          trùng 70–90% một cách hoàn toàn chính đáng. */}
-      <div className="border-border rounded-lg border border-l-4 border-l-amber-500 p-3 text-sm">
-        Đây là <strong>gợi ý để đọc kỹ</strong>, không phải kết luận. Hệ thống không bao giờ tự
-        trừ điểm. Bài dùng chung mã khởi đầu sẽ trùng cao một cách chính đáng — hãy mở bài ra
-        xem trước khi kết luận.
-      </div>
+      <CanhBaoTrungLap />
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {bc.warning_count} cặp vượt ngưỡng {bc.threshold_percent}%
-          </CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <CardTitle className="text-base">Các cặp giống nhau nhất</CardTitle>
+          {/* Hổ phách chứ không đỏ: con số này mở một cuộc đọc bài, không mở một vụ kỷ luật. */}
+          <Badge
+            className={
+              bc.warning_count > 0
+                ? "bg-warn-soft text-warn border-warn/25 border"
+                : "bg-ok-soft text-ok border-ok/25 border"
+            }
+          >
+            {bc.warning_count > 0
+              ? `${bc.warning_count} cặp vượt ngưỡng`
+              : "Không cặp nào vượt ngưỡng"}
+          </Badge>
         </CardHeader>
+
         <CardContent className="flex flex-col gap-3">
-          <p className="text-muted-foreground text-sm">
-            So {bc.submissions_compared} bài nộp.
-            {bc.submissions_without_fingerprints > 0 &&
-              ` ${bc.submissions_without_fingerprints} bài chưa băm xong hoặc không có mã nguồn.`}
-          </p>
+          {bc.submissions_without_fingerprints > 0 && (
+            // Không nói ra thì "0 cặp" bị đọc thành "cả lớp trong sạch", trong khi thật ra
+            // một phần lớp còn chưa được đem ra so.
+            <p className="text-muted-foreground text-sm text-pretty">
+              {bc.submissions_without_fingerprints} bài chưa băm xong hoặc không có mã nguồn nên
+              không nằm trong phép so này.
+            </p>
+          )}
 
           {bc.pairs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Không có cặp nào đáng chú ý.
-            </p>
+            <TrongRong
+              Icon={ScanSearch}
+              tieuDe="Không có cặp nào đáng chú ý"
+              moTa="Không cặp bài nộp nào đủ giống để cần bạn đọc đối chiếu. Bài nộp mới sẽ được so lại sau khi băm xong."
+            />
           ) : (
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-1.5">
               {bc.pairs.map((c) => (
-                <li
-                  key={`${c.submission_a_id}-${c.submission_b_id}`}
-                  className={`border-border flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 ${
-                    c.is_warning ? "border-l-4 border-l-destructive" : ""
-                  }`}
-                >
-                  <span className="text-sm">
-                    <strong>{c.owner_a}</strong> ↔ <strong>{c.owner_b}</strong>
-                  </span>
-                  <span className="flex flex-wrap items-center gap-2">
-                    <Badge variant={c.is_warning ? "destructive" : "secondary"}>
-                      {c.similarity_percent}% trùng
-                    </Badge>
-                    <span className="text-muted-foreground text-xs">
-                      Jaccard {c.jaccard_percent}% · {c.shared_fingerprints}/{c.total_a} đoạn chung
+                <li key={`${c.submission_a_id}-${c.submission_b_id}`}>
+                  {/* Chuyển tiếp cả tên hai bên: API so sánh chỉ trả id, mà cột mã nguồn
+                      không ghi rõ của ai thì giảng viên đọc xong vẫn phải quay lại đây dò. */}
+                  <Link
+                    href={
+                      `/submissions/${c.submission_a_id}/compare/${c.submission_b_id}` +
+                      `?offering=${offering}&assignment=${id}` +
+                      `&a=${encodeURIComponent(c.owner_a)}&b=${encodeURIComponent(c.owner_b)}`
+                    }
+                    className="hover:bg-accent group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="flex flex-wrap items-center gap-x-1.5 font-medium">
+                        <span className="truncate">{c.owner_a}</span>
+                        <span aria-hidden>↔</span>
+                        <span className="truncate">{c.owner_b}</span>
+                      </span>
+                      <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                        <span>Jaccard {diem(c.jaccard_percent)}%</span>
+                        <span aria-hidden>·</span>
+                        <span className="font-mono text-xs">
+                          {c.shared_fingerprints}/{c.total_a}
+                        </span>
+                        <span>đoạn chung</span>
+                      </span>
                     </span>
-                    {/* Chuyển tiếp cả tên hai bên: API so sánh chỉ trả id, mà cột mã nguồn
-                        không ghi rõ của ai thì giảng viên đọc xong vẫn phải quay lại đây dò. */}
-                    <Link
-                      href={
-                        `/submissions/${c.submission_a_id}/compare/${c.submission_b_id}` +
-                        `?offering=${offering}&assignment=${id}` +
-                        `&a=${encodeURIComponent(c.owner_a)}&b=${encodeURIComponent(c.owner_b)}`
-                      }
-                      className="text-sm underline"
+
+                    <Badge
+                      className={`shrink-0 border tabular-nums ${
+                        c.is_warning
+                          ? "bg-warn-soft text-warn border-warn/25"
+                          : "bg-card text-muted-foreground border-border"
+                      }`}
                     >
-                      Xem cạnh nhau
-                    </Link>
-                  </span>
+                      {diem(c.similarity_percent)}% trùng
+                    </Badge>
+
+                    <ChevronRight
+                      className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
+                      aria-hidden
+                    />
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
         </CardContent>
       </Card>
-    </main>
+    </Trang>
   );
 }

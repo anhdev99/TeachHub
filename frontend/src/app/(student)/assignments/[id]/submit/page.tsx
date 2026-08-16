@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyAssignmentDto, MyAssignmentSubmissionDto } from "@/lib/api/types";
 import { TrangNopBai } from "./trang-nop-bai";
@@ -57,22 +57,21 @@ export default async function SubmitPage({
 
   if (!baiTap) notFound();
 
-  return (
-    <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/learn/${offeringId}/assignments`}
-          className="text-muted-foreground hover:text-foreground text-sm"
-        >
-          ← Bài tập
-        </Link>
-        <h1 className="text-2xl font-semibold">{baiTap.title}</h1>
-        {baiTap.description && (
-          <p className="text-muted-foreground text-sm">{baiTap.description}</p>
-        )}
-      </div>
+  // Mốc "bây giờ" đọc ở MÁY CHỦ rồi truyền xuống: trang render với `cache: "no-store"` nên
+  // luôn mới, và client không phải đọc lại đồng hồ (đọc lại là lệch hydrate — xem chú thích
+  // của prop `quaHan`).
+  // eslint-disable-next-line react-hooks/purity -- server component render một lần mỗi request
+  const quaHan = baiTap.due_at !== null && new Date(baiTap.due_at).getTime() < Date.now();
 
-      <TrangNopBai baiTap={baiTap} banDau={baiNop} />
-    </main>
+  return (
+    <Trang>
+      <DauTrang
+        tieuDe={baiTap.title}
+        moTa={baiTap.description}
+        quayLai={{ href: `/learn/${offeringId}/assignments`, nhan: "Bài tập" }}
+      />
+
+      <TrangNopBai baiTap={baiTap} banDau={baiNop} quaHan={quaHan} />
+    </Trang>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const VONG = [
   { gia: "system", nhan: "Theo hệ thống", Icon: Monitor },
@@ -19,12 +19,20 @@ const VONG = [
  */
 export function DoiChuDe({ className = "" }: { className?: string }) {
   const { theme, setTheme } = useTheme();
-  const [daGan, setDaGan] = useState(false);
 
   // Chủ đề chỉ biết được ở trình duyệt (localStorage + cài đặt máy). Render icon trước khi
-  // gắn xong là máy chủ và trình duyệt vẽ ra hai icon khác nhau — lỗi hydration thật, khác
-  // với thẻ <html> vốn đã được miễn trừ. Giữ đúng kích thước để bố cục không nhảy.
-  useEffect(() => setDaGan(true), []);
+  // hydrate xong là máy chủ và trình duyệt vẽ ra hai icon khác nhau — lỗi hydration thật,
+  // khác với thẻ <html> vốn đã được miễn trừ. Giữ đúng kích thước để bố cục không nhảy.
+  //
+  // `useSyncExternalStore` chứ không phải `useState` + `useEffect(() => setDaGan(true))`:
+  // cách kia gây một vòng render thừa và vi phạm `react-hooks/set-state-in-effect`. Ở đây
+  // React lấy `false` khi dựng HTML trên máy chủ và `true` ở trình duyệt, đúng một lần,
+  // không cần effect nào. Hàm subscribe trả về no-op vì giá trị này không bao giờ đổi nữa.
+  const daGan = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const hienTai = VONG.find((v) => v.gia === theme) ?? VONG[0];
   const keTiep = VONG[(VONG.indexOf(hienTai) + 1) % VONG.length]!;

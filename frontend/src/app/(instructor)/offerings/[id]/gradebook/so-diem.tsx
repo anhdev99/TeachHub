@@ -10,16 +10,23 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertTriangle, Download, GripVertical, Loader2, Plus, Settings2, Table2, Trash2, Users,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { CuonNgang, TrongRong } from "@/components/shell/trang";
+import { diem } from "@/lib/dinh-dang";
 import { apiFetch } from "@/lib/api/fetcher";
 import {
   NHAN_QUY_TAC_GOP, type AggregationKind, type GradebookDto, type GradeColumnDto,
@@ -27,6 +34,29 @@ import {
 import { CapDiemCong } from "./cap-diem-cong";
 
 type Nguon = { type: "assignment" | "final_assessment"; id: string; title: string };
+
+/**
+ * Hai cột định danh được GHIM khi cuộn ngang.
+ *
+ * `left` của cột thứ hai phải bằng ĐÚNG bề rộng thật của cột thứ nhất, và đó là lý do phải
+ * có `min-w-*` chứ không chỉ `w-*`: với `table-auto`, `width` chỉ là gợi ý — trình duyệt đo
+ * được cột MSSV chỉ cần 88px thì nó co lại còn 88px, trong khi cột Họ tên vẫn dính ở mốc
+ * 96px. Khe 8px ở giữa để lọt đúng phần nội dung đang cuộn qua, và trông như chữ chồng chữ.
+ * `min-width` thì thuật toán bảng buộc phải tôn trọng.
+ */
+const O_MSSV = "sticky left-0 w-24 min-w-24 sm:w-28 sm:min-w-28";
+const O_HO_TEN =
+  "sticky left-24 sm:left-28 w-32 min-w-32 max-w-32 sm:w-52 sm:min-w-52 sm:max-w-52 " +
+  "border-r-2 border-border";
+
+/**
+ * Ô ghim BẮT BUỘC phải có z-index. Thiếu nó thì ô nằm sau trong DOM (chính là các cột đang
+ * trôi qua khi cuộn) vẽ đè lên ô ghim: mã sinh viên và ô nhập điểm chồng lên nhau thành một
+ * mớ không đọc được — đúng vào lúc cuộn tới cột cuối, tức là đúng lúc cần cột ghim nhất.
+ * Hàng tiêu đề cao hơn thân bảng một bậc để hàng đầu tiên không che nó.
+ */
+const GHIM_HEADER = "z-20";
+const GHIM_O = "z-10";
 
 export function SoDiem({
   offeringId,
@@ -79,140 +109,258 @@ export function SoDiem({
 
   if (so.columns.length === 0) {
     return (
-      <div className="border-border flex flex-col items-start gap-3 rounded-lg border p-6">
-        <p className="text-sm">
-          Lớp này chưa có cột điểm nào. Tạo bộ cột mặc định để bắt đầu — sửa lại trọng số bất
-          cứ lúc nào.
-        </p>
-        <Button disabled={khoiTao.isPending} onClick={() => khoiTao.mutate()}>
-          {khoiTao.isPending ? "Đang tạo…" : "Tạo bộ cột mặc định"}
-        </Button>
-      </div>
+      <Card>
+        <CardContent>
+          <TrongRong
+            Icon={Table2}
+            tieuDe="Lớp này chưa có cột điểm nào"
+            moTa="Tạo bộ cột mặc định để bắt đầu — tên cột, trọng số và quy tắc gộp sửa lại được bất cứ lúc nào."
+            hanhDong={
+              <Button
+                className="min-h-11"
+                disabled={khoiTao.isPending}
+                onClick={() => khoiTao.mutate()}
+              >
+                {khoiTao.isPending ? "Đang tạo…" : "Tạo bộ cột mặc định"}
+              </Button>
+            }
+          />
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <label className="flex min-h-11 items-center gap-2.5 text-sm">
           <Switch checked={tamTinh} onCheckedChange={setTamTinh} />
-          Xem điểm tạm tính (bỏ qua bài chưa chấm)
+          Xem điểm tạm tính <span className="text-muted-foreground">(bỏ qua bài chưa chấm)</span>
         </label>
 
-        {/* Endpoint xuất mặc định trả .xlsx; CSV phải hỏi bằng ?format=csv. Nhãn phải khớp
-            định dạng thật — ghi "CSV" rồi tải về một tệp .xlsx là giảng viên mở bằng công cụ
-            sai rồi tưởng tệp hỏng. */}
-        <a
-          href={`/api/offerings/${offeringId}/gradebook/export`}
-          className="text-sm underline"
-        >
-          Xuất bảng điểm (Excel)
-        </a>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Endpoint xuất mặc định trả .xlsx; CSV phải hỏi bằng ?format=csv. Nhãn phải khớp
+              định dạng thật — ghi "CSV" rồi tải về một tệp .xlsx là giảng viên mở bằng công cụ
+              sai rồi tưởng tệp hỏng. */}
+          <Button asChild variant="outline" size="sm">
+            <a href={`/api/offerings/${offeringId}/gradebook/export`}>
+              <Download className="size-4" aria-hidden />
+              Xuất Excel
+            </a>
+          </Button>
 
-        <a
-          href={`/api/offerings/${offeringId}/gradebook/export?format=csv`}
-          className="text-muted-foreground hover:text-foreground text-sm underline"
-        >
-          Xuất CSV
-        </a>
+          <Button asChild variant="ghost" size="sm">
+            <a href={`/api/offerings/${offeringId}/gradebook/export?format=csv`}>Xuất CSV</a>
+          </Button>
 
-        <CauHinhCot offeringId={offeringId} so={so} nguon={nguon} onXong={lamMoi} />
+          <CauHinhCot offeringId={offeringId} so={so} nguon={nguon} onXong={lamMoi} />
+        </div>
       </div>
 
-      {!so.weights_valid && (
-        <p className="text-destructive text-sm">{so.weights_error}</p>
-      )}
-
-      {so.unknown_condition_column_keys.length > 0 && (
-        <p className="text-destructive text-sm">
-          Điều kiện điểm sàn trỏ tới cột không tồn tại:{" "}
-          {so.unknown_condition_column_keys.join(", ")} — điều kiện đó đang KHÔNG có hiệu lực.
+      {!so.weights_valid && so.weights_error && (
+        <p className="bg-danger-soft text-danger border-danger/25 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span className="text-pretty">{so.weights_error}</span>
         </p>
       )}
 
-      {/* Bảng rộng cuộn trong khối riêng; cột MSSV và Họ tên ghim lại, nếu không thì cuộn
-          tới cột "Cuối môn" là không còn biết đang nhập điểm cho ai. */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-border border-b">
-              <th className="bg-background sticky left-0 z-10 px-2 py-2 text-left">MSSV</th>
-              <th className="bg-background sticky left-24 z-10 px-2 py-2 text-left">Họ tên</th>
-              {so.columns.map((c) => (
-                <th key={c.id} className="px-2 py-2 text-left whitespace-nowrap">
-                  {c.name}
-                  <span className="text-muted-foreground block text-xs font-normal">
-                    {c.weight_percent}% · {NHAN_QUY_TAC_GOP[c.kind]}
-                  </span>
-                </th>
-              ))}
-              <th className="px-2 py-2 text-left">Điểm cộng</th>
-              <th className="px-2 py-2 text-left">Tổng</th>
-              <th className="px-2 py-2" />
-            </tr>
-          </thead>
+      {so.unknown_condition_column_keys.length > 0 && (
+        <p className="bg-danger-soft text-danger border-danger/25 flex items-start gap-2 rounded-lg border px-3 py-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span className="text-pretty">
+            Điều kiện điểm sàn trỏ tới cột không tồn tại:{" "}
+            <span className="font-mono text-xs">
+              {so.unknown_condition_column_keys.join(", ")}
+            </span>{" "}
+            — điều kiện đó đang <strong className="font-semibold">KHÔNG</strong> có hiệu lực.
+          </span>
+        </p>
+      )}
 
-          <tbody>
-            {so.rows.map((h) => (
-              <tr key={h.enrollment_id} className="border-border border-b">
-                <td className="bg-background sticky left-0 z-10 px-2 py-1.5 font-mono text-xs">
-                  {h.student_code}
-                </td>
-                <td className="bg-background sticky left-24 z-10 px-2 py-1.5 whitespace-nowrap">
-                  {h.full_name}
-                </td>
+      {so.rows.length === 0 ? (
+        <Card>
+          <CardContent>
+            <TrongRong
+              Icon={Users}
+              tieuDe="Lớp chưa có sinh viên nào"
+              moTa="Cột điểm đã sẵn sàng. Nhập danh sách sinh viên cho lớp là bảng này có hàng để nhập."
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        // `overflow-hidden` là bắt buộc, không phải trang trí: <CuonNgang> có `-mx-1` nên
+        // vùng cuộn thò ra ngoài khung 4px mỗi bên. Không cắt thì đúng dải 4px đó hiện phần
+        // nội dung đang cuộn qua NGAY BÊN TRÁI cột ghim — trông như chữ chồng lên nhau.
+        <div className="bg-card border-border overflow-hidden rounded-xl border">
+          {/* Bảng rộng cuộn trong KHỐI RIÊNG (quy tắc §5), không phải cả trang cuộn ngang. */}
+          <CuonNgang>
+            {/* border-separate chứ không border-collapse: với border-collapse, đường kẻ của
+                ô `position: sticky` bị trình duyệt vẽ vào lớp bảng chứ không đi theo ô, nên
+                cột ghim mất viền ngay khi bắt đầu cuộn. */}
+            <table className="w-full border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr>
+                  <th
+                    className={`${O_MSSV} ${GHIM_HEADER} bg-card border-border border-b px-2 py-2 text-left align-bottom`}
+                  >
+                    MSSV
+                  </th>
+                  <th
+                    className={`${O_HO_TEN} ${GHIM_HEADER} bg-card border-border border-b px-2 py-2 text-left align-bottom`}
+                  >
+                    Họ tên
+                  </th>
+                  {so.columns.map((c) => (
+                    <th
+                      key={c.id}
+                      className="bg-card border-border border-b px-2 py-2 text-left align-bottom whitespace-nowrap"
+                    >
+                      {c.name}
+                      <span className="text-muted-foreground block text-xs font-normal">
+                        {c.weight_percent}% · {NHAN_QUY_TAC_GOP[c.kind]}
+                      </span>
+                    </th>
+                  ))}
+                  <th className="bg-card border-border border-b px-2 py-2 text-left align-bottom whitespace-nowrap">
+                    Điểm cộng
+                  </th>
+                  <th className="bg-card border-border border-b px-2 py-2 text-left align-bottom">
+                    Tổng
+                  </th>
+                  <th className="bg-card border-border border-b px-2 py-2" />
+                </tr>
+              </thead>
 
-                {so.columns.map((c) => {
-                  const o = h.cells.find((x) => x.column_id === c.id);
-
-                  return (
-                    <td key={c.id} className="px-2 py-1.5">
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number" step="0.25" min={0} max={10}
-                          defaultValue={o?.score ?? ""}
-                          className={`h-8 w-20 ${o?.is_manual_override ? "border-primary" : ""}`}
-                          onBlur={(e) => {
-                            const v = e.target.value === "" ? null : Number(e.target.value);
-                            if (v === (o?.score ?? null)) return;
-                            suaO.mutate({
-                              columnId: c.id, enrollmentId: h.enrollment_id, score: v,
-                            });
-                          }}
-                        />
-                        {(o?.bonus ?? 0) > 0 && (
-                          <span className="text-xs text-green-600">+{o!.bonus}</span>
-                        )}
-                      </div>
+              <tbody>
+                {so.rows.map((h) => (
+                  // Cả hàng sáng lên khi rê chuột: với bảng rộng phải cuộn ngang, đây là thứ
+                  // giữ mắt bám đúng một sinh viên trên đường đi tới cột "Cuối môn".
+                  <tr key={h.enrollment_id} className="hover:bg-accent/50 group/hang">
+                    <td
+                      className={`${O_MSSV} ${GHIM_O} bg-card border-border group-hover/hang:bg-accent/50 border-b px-2 py-1.5 font-mono text-xs`}
+                    >
+                      {h.student_code}
                     </td>
-                  );
-                })}
+                    <td
+                      className={`${O_HO_TEN} ${GHIM_O} bg-card border-border group-hover/hang:bg-accent/50 truncate border-b px-2 py-1.5 whitespace-nowrap`}
+                      title={h.full_name}
+                    >
+                      {h.full_name}
+                    </td>
 
-                <td className="px-2 py-1.5 tabular-nums">
-                  {h.bonus_to_final > 0 ? `+${h.bonus_to_final}` : "—"}
-                </td>
-                <td className="px-2 py-1.5 font-medium tabular-nums">{h.final_score}</td>
-                <td className="px-2 py-1.5">
-                  <CapDiemCong
-                    offeringId={offeringId}
-                    enrollmentId={h.enrollment_id}
-                    tenSinhVien={h.full_name}
-                    cot={so.columns}
-                    macDinhTarget={so.bonus_default_target}
-                    macDinhColumnId={so.bonus_default_column_id}
-                    onXong={lamMoi}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    {so.columns.map((c) => {
+                      const o = h.cells.find((x) => x.column_id === c.id);
+
+                      // Ba trạng thái của một ô điểm phải phân biệt được: đang lưu (chưa
+                      // chắc chắn), sửa tay (không bị chấm bài ghi đè), tự tính (dẫn xuất từ
+                      // nguồn). Nhìn giống nhau thì giảng viên không biết số nào là số của mình.
+                      const dangLuu =
+                        suaO.isPending &&
+                        suaO.variables?.columnId === c.id &&
+                        suaO.variables?.enrollmentId === h.enrollment_id;
+
+                      return (
+                        <td key={c.id} className="border-border border-b px-2 py-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative">
+                              <Input
+                                type="number" step="0.25" min={0} max={10}
+                                defaultValue={o?.score ?? ""}
+                                aria-busy={dangLuu}
+                                aria-label={`${c.name} của ${h.full_name}`}
+                                title={
+                                  o?.is_manual_override
+                                    ? "Điểm sửa tay — chấm lại bài sẽ không ghi đè"
+                                    : "Điểm do quy tắc gộp tự tính"
+                                }
+                                className={`h-9 w-20 tabular-nums transition-colors ${
+                                  o?.is_manual_override
+                                    ? "border-primary ring-primary/25 font-medium ring-1"
+                                    : ""
+                                } ${dangLuu ? "text-muted-foreground pr-7" : ""}`}
+                                onBlur={(e) => {
+                                  const v = e.target.value === "" ? null : Number(e.target.value);
+                                  if (v === (o?.score ?? null)) return;
+                                  suaO.mutate({
+                                    columnId: c.id, enrollmentId: h.enrollment_id, score: v,
+                                  });
+                                }}
+                              />
+                              {dangLuu && (
+                                <Loader2
+                                  className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 size-3.5 -translate-y-1/2 animate-spin"
+                                  aria-hidden
+                                />
+                              )}
+                            </div>
+
+                            {(o?.bonus ?? 0) > 0 && (
+                              <span
+                                className="text-ok text-xs font-medium tabular-nums"
+                                title="Điểm cộng đã cấp vào cột này"
+                              >
+                                +{diem(o!.bonus)}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      );
+                    })}
+
+                    <td className="border-border border-b px-2 py-1.5 tabular-nums">
+                      {h.bonus_to_final > 0 ? (
+                        <span className="text-ok font-medium">+{diem(h.bonus_to_final)}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="border-border border-b px-2 py-1.5 text-base font-semibold tabular-nums">
+                      {diem(h.final_score)}
+                    </td>
+                    <td className="border-border border-b px-1 py-1.5">
+                      <CapDiemCong
+                        offeringId={offeringId}
+                        enrollmentId={h.enrollment_id}
+                        tenSinhVien={h.full_name}
+                        cot={so.columns}
+                        macDinhTarget={so.bonus_default_target}
+                        macDinhColumnId={so.bonus_default_column_id}
+                        onXong={lamMoi}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CuonNgang>
+        </div>
+      )}
+
+      {/* Chú giải đặt ngay dưới bảng, có mẫu màu thật: mô tả bằng lời "ô viền đậm" bắt người
+          đọc tự dịch sang thứ đang nhìn thấy. */}
+      <div className="text-muted-foreground flex flex-col gap-1.5 text-sm">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <span className="flex items-center gap-2">
+            <span className="border-input bg-background h-5 w-9 rounded-md border" aria-hidden />
+            Tự tính theo quy tắc gộp
+          </span>
+          <span className="flex items-center gap-2">
+            <span
+              className="border-primary ring-primary/25 bg-background h-5 w-9 rounded-md border ring-1"
+              aria-hidden
+            />
+            Đã sửa tay
+          </span>
+          <span className="flex items-center gap-2">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Đang lưu
+          </span>
+        </div>
+        <p className="text-pretty">
+          Chấm lại bài trong một cột <strong className="font-medium">không</strong> ghi đè lên ô
+          đã sửa tay. Xoá trắng ô để trả nó về cho quy tắc tổng hợp tự tính.
+        </p>
       </div>
-
-      <p className="text-muted-foreground text-sm">
-        Ô viền đậm là điểm đã sửa tay — chấm lại bài trong cột sẽ không ghi đè lên nó. Xóa
-        trắng ô để trả về cho quy tắc tổng hợp tự tính.
-      </p>
     </div>
   );
 }
@@ -244,7 +392,9 @@ function HangCot({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex flex-wrap items-end gap-2 ${isDragging ? "opacity-50" : ""}`}
+      className={`border-border bg-card flex flex-wrap items-end gap-2 rounded-lg border p-2 ${
+        isDragging ? "opacity-50 shadow-lg" : ""
+      }`}
     >
       {/* Tay cầm riêng thay vì kéo cả hàng: cả hàng đều là input, kéo được cả hàng thì mọi
           thao tác bôi đen chữ trong ô đều biến thành kéo cột.
@@ -252,16 +402,16 @@ function HangCot({
           cử chỉ để cuộn trang và tay cầm không kéo được. */}
       <button
         type="button"
-        className="text-muted-foreground hover:text-foreground h-11 w-11 shrink-0 cursor-grab touch-none text-lg active:cursor-grabbing"
+        className="text-muted-foreground hover:text-foreground hover:bg-accent grid h-11 w-8 shrink-0 cursor-grab touch-none place-items-center rounded-md transition-colors active:cursor-grabbing"
         aria-label={`Kéo để đổi thứ tự cột ${c.name}`}
         {...attributes}
         {...listeners}
       >
-        ⠿
+        <GripVertical className="size-4" aria-hidden />
       </button>
 
       <div className="flex flex-col gap-1">
-        <Label>Tên cột</Label>
+        <Label className="text-muted-foreground text-xs">Tên cột</Label>
         <Input
           className="w-40" value={c.name}
           onChange={(e) => onDoi({ name: e.target.value })}
@@ -269,20 +419,22 @@ function HangCot({
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label>Khóa</Label>
-        <Input className="w-32 font-mono text-xs" value={c.key} readOnly />
+        <Label className="text-muted-foreground text-xs">Khóa</Label>
+        {/* Khóa cột nối cột của LỚP với mẫu xuất Excel của GIẢNG VIÊN, nên nó chỉ đọc:
+            đổi khóa là làm gãy mẫu xuất đang dùng. */}
+        <Input className="text-muted-foreground w-32 font-mono text-xs" value={c.key} readOnly />
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label>Trọng số %</Label>
+        <Label className="text-muted-foreground text-xs">Trọng số %</Label>
         <Input
-          type="number" min={0} max={100} className="w-24" value={c.weight_percent}
+          type="number" min={0} max={100} className="w-24 tabular-nums" value={c.weight_percent}
           onChange={(e) => onDoi({ weight_percent: Number(e.target.value) })}
         />
       </div>
 
       <div className="flex flex-col gap-1">
-        <Label>Quy tắc gộp</Label>
+        <Label className="text-muted-foreground text-xs">Quy tắc gộp</Label>
         <Select value={c.kind} onValueChange={(v) => onDoi({ kind: v as AggregationKind })}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -295,9 +447,9 @@ function HangCot({
 
       {(c.kind === "drop_lowest_n" || c.kind === "best_n_of_m") && (
         <div className="flex flex-col gap-1">
-          <Label>N</Label>
+          <Label className="text-muted-foreground text-xs">N</Label>
           <Input
-            type="number" min={0} className="w-20" value={c.n}
+            type="number" min={0} className="w-20 tabular-nums" value={c.n}
             onChange={(e) => onDoi({ n: Number(e.target.value) })}
           />
         </div>
@@ -305,7 +457,13 @@ function HangCot({
 
       <GanNguon columnId={c.id} nguon={nguon} daGan={c.sources} onXong={onXongNguon} />
 
-      <Button size="sm" variant="ghost" onClick={onXoa}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-muted-foreground hover:text-danger hover:bg-danger-soft"
+        onClick={onXoa}
+      >
+        <Trash2 className="size-4" aria-hidden />
         Xóa cột
       </Button>
     </div>
@@ -401,31 +559,34 @@ function CauHinhCot({
   if (!mo) {
     return (
       <Button size="sm" variant="outline" onClick={() => { setCot(so.columns); setMo(true); }}>
+        <Settings2 className="size-4" aria-hidden />
         Cấu hình cột điểm
       </Button>
     );
   }
 
   return (
-    <div className="border-border flex w-full flex-col gap-3 rounded-lg border p-4">
+    <div className="bg-muted/40 border-border flex w-full flex-col gap-3 rounded-xl border p-3 sm:p-4">
       <p className="text-muted-foreground text-sm">
-        Kéo tay cầm ⠿ để đổi thứ tự cột. Thứ tự chỉ được ghi lại khi bấm “Lưu”.
+        Kéo tay cầm để đổi thứ tự cột. Thứ tự chỉ được ghi lại khi bấm “Lưu”.
       </p>
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={keoXong}>
+      <DndContext id="keo-cot-diem" sensors={sensors} collisionDetection={closestCenter} onDragEnd={keoXong}>
         <SortableContext items={cot.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-          {cot.map((c) => (
-            <HangCot
-              key={c.id}
-              c={c}
-              nguon={nguon}
-              onDoi={(moi) =>
-                setCot((cu) => cu.map((x) => (x.id === c.id ? { ...x, ...moi } : x)))
-              }
-              onXoa={() => setCot((cu) => cu.filter((x) => x.id !== c.id))}
-              onXongNguon={onXong}
-            />
-          ))}
+          <div className="flex flex-col gap-2">
+            {cot.map((c) => (
+              <HangCot
+                key={c.id}
+                c={c}
+                nguon={nguon}
+                onDoi={(moi) =>
+                  setCot((cu) => cu.map((x) => (x.id === c.id ? { ...x, ...moi } : x)))
+                }
+                onXoa={() => setCot((cu) => cu.filter((x) => x.id !== c.id))}
+                onXongNguon={onXong}
+              />
+            ))}
+          </div>
         </SortableContext>
       </DndContext>
 
@@ -440,21 +601,32 @@ function CauHinhCot({
             } as GradeColumnDto])
           }
         >
-          + Thêm cột
+          <Plus className="size-4" aria-hidden />
+          Thêm cột
         </Button>
 
-        <span className={`text-sm ${tong === 100 ? "text-muted-foreground" : "text-destructive"}`}>
+        {/* Tổng trọng số là điều kiện để lưu được, nên nó phải nổi bật ngay cạnh nút Lưu chứ
+            không phải một dòng chữ nhỏ ở đâu đó. */}
+        <span
+          className={`rounded-md px-2 py-1 text-sm font-medium tabular-nums ${
+            tong === 100
+              ? "bg-ok-soft text-ok"
+              : "bg-danger-soft text-danger"
+          }`}
+        >
           Tổng trọng số: {tong}%{tong !== 100 && " — phải bằng 100%"}
         </span>
 
-        <Button
-          size="sm"
-          disabled={luu.isPending || tong !== 100}
-          onClick={() => luu.mutate(cot)}
-        >
-          {luu.isPending ? "Đang lưu…" : "Lưu"}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => setMo(false)}>Đóng</Button>
+        <div className="flex flex-1 justify-end gap-2">
+          <Button size="sm" variant="ghost" onClick={() => setMo(false)}>Đóng</Button>
+          <Button
+            size="sm"
+            disabled={luu.isPending || tong !== 100}
+            onClick={() => luu.mutate(cot)}
+          >
+            {luu.isPending ? "Đang lưu…" : "Lưu"}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -502,33 +674,38 @@ function GanNguon({
   }
 
   return (
-    <div className="border-border flex w-full flex-col gap-2 rounded border p-3">
-      <p className="text-muted-foreground text-sm">
+    <div className="border-border bg-card flex w-full flex-col gap-2 rounded-lg border p-3">
+      <p className="text-muted-foreground text-sm text-pretty">
         Bài tập / đợt cuối môn nào chảy vào cột này. Không gắn nguồn thì cột chỉ nhập tay.
       </p>
 
-      {nguon.length === 0 && (
-        <p className="text-muted-foreground text-sm">Chưa có bài tập nào để gắn.</p>
+      {nguon.length === 0 ? (
+        <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-4 text-center text-sm">
+          Chưa có bài tập nào để gắn.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-0.5">
+          {nguon.map((n) => {
+            const k = `${n.type}:${n.id}`;
+            return (
+              <li key={k}>
+                <label className="hover:bg-accent flex min-h-11 items-center gap-2.5 rounded-lg px-2 text-sm transition-colors">
+                  <Checkbox
+                    checked={chon.includes(k)}
+                    onCheckedChange={(v) =>
+                      setChon((cu) => (v === true ? [...cu, k] : cu.filter((x) => x !== k)))
+                    }
+                  />
+                  <span className="min-w-0 flex-1 truncate">{n.title}</span>
+                  <Badge variant="outline" className="shrink-0 text-xs font-normal">
+                    {n.type === "assignment" ? "Bài tập" : "Cuối môn"}
+                  </Badge>
+                </label>
+              </li>
+            );
+          })}
+        </ul>
       )}
-
-      {nguon.map((n) => {
-        const k = `${n.type}:${n.id}`;
-        return (
-          <label key={k} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={chon.includes(k)}
-              onChange={(e) =>
-                setChon((cu) => (e.target.checked ? [...cu, k] : cu.filter((x) => x !== k)))
-              }
-            />
-            {n.title}
-            <Badge variant="outline" className="text-xs">
-              {n.type === "assignment" ? "Bài tập" : "Cuối môn"}
-            </Badge>
-          </label>
-        );
-      })}
 
       <div className="flex gap-2">
         <Button size="sm" disabled={luu.isPending} onClick={() => luu.mutate()}>Lưu nguồn</Button>

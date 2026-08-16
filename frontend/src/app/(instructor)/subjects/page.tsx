@@ -1,8 +1,10 @@
+import { BookOpen, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { SubjectDto } from "@/lib/api/types";
 import { TaoMonMoi } from "./tao-mon-moi";
@@ -20,44 +22,66 @@ export default async function SubjectsPage() {
   const subjects: SubjectDto[] = await res.json();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-4xl flex-col gap-6 p-6">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Môn học của tôi</h1>
-        <TaoMonMoi />
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe="Môn học"
+        moTa="Mỗi môn giữ nhiều phiên bản nội dung; lớp học phần ghim vào một phiên bản đã xuất bản."
+        hanhDong={<TaoMonMoi />}
+      />
 
-      {subjects.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Chưa có môn học nào. Tạo môn đầu tiên để bắt đầu soạn nội dung.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {subjects.map((s) => (
-            <li key={s.id}>
-              <Link href={`/subjects/${s.id}/versions`}>
-                <Card className="transition-colors hover:border-primary">
-                  <CardHeader className="flex flex-row items-center justify-between gap-3">
-                    <CardTitle className="text-base">
-                      <span className="text-muted-foreground font-mono">{s.code}</span>{" "}
-                      {s.name}
-                    </CardTitle>
+      <Card>
+        <CardContent>
+          {subjects.length === 0 ? (
+            <TrongRong
+              Icon={BookOpen}
+              tieuDe="Chưa có môn học nào"
+              moTa="Tạo môn đầu tiên, soạn nội dung trong một phiên bản nháp, rồi xuất bản để mở lớp."
+            />
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {subjects.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    href={`/subjects/${s.id}/versions`}
+                    className="hover:bg-accent group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="truncate font-medium">{s.name}</span>
+                      <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                        <span className="font-mono text-xs">{s.code}</span>
+                        {s.description && (
+                          <>
+                            <span aria-hidden>·</span>
+                            <span className="truncate">{s.description}</span>
+                          </>
+                        )}
+                      </span>
+                    </span>
+
+                    {/* Xanh = có bản đang dùng được để mở lớp; xám = mới chỉ có bản nháp.
+                        Đây là thông tin quyết định "mở lớp được chưa", nên nó phải đọc
+                        được từ danh sách chứ không phải bấm vào mới biết. */}
                     {s.current_version_id ? (
-                      <Badge>Đang có bản xuất bản</Badge>
+                      <Badge className="bg-ok-soft text-ok border-ok/25 shrink-0 border">
+                        Đã xuất bản
+                      </Badge>
                     ) : (
-                      <Badge variant="secondary">Chưa xuất bản</Badge>
+                      <Badge variant="secondary" className="shrink-0">
+                        Chưa xuất bản
+                      </Badge>
                     )}
-                  </CardHeader>
-                  {s.description && (
-                    <CardContent className="text-muted-foreground text-sm">
-                      {s.description}
-                    </CardContent>
-                  )}
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+
+                    <ChevronRight
+                      className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </Trang>
   );
 }

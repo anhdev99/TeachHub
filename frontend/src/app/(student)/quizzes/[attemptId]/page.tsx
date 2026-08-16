@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { TakeAttemptDto } from "@/lib/api/types";
 import { LamBai } from "./lam-bai";
@@ -29,23 +29,16 @@ export default async function TakeQuizPage({
   const luot: TakeAttemptDto = await res.json();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-5 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        {offering && (
-          <Link
-            href={`/learn/${offering}/quizzes`}
-            className="text-muted-foreground hover:text-foreground text-sm"
-          >
-            ← Trắc nghiệm
-          </Link>
-        )}
-        <h1 className="text-2xl font-semibold">{luot.title}</h1>
-        {luot.description && (
-          <p className="text-muted-foreground text-sm">{luot.description}</p>
-        )}
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe={luot.title}
+        moTa={luot.description}
+        quayLai={
+          offering ? { href: `/learn/${offering}/quizzes`, nhan: "Trắc nghiệm" } : undefined
+        }
+      />
 
       <LamBai banDau={luot} />
-    </main>
+    </Trang>
   );
 }

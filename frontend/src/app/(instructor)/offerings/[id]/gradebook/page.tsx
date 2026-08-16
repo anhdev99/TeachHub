@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { AssignmentDto, FinalAssessmentDto, GradebookDto } from "@/lib/api/types";
 import { SoDiem } from "./so-diem";
@@ -34,15 +34,22 @@ export default async function GradebookPage({ params }: { params: Promise<{ id: 
   ]);
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-full flex-col gap-5 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link href={`/offerings/${id}`} className="text-muted-foreground hover:text-foreground text-sm">
-          ← Lớp học phần
-        </Link>
-        <h1 className="text-2xl font-semibold">
-          Sổ điểm <span className="text-muted-foreground font-normal">· {so.class_code}</span>
-        </h1>
-      </div>
+    // `rong`: sổ điểm là bảng nhiều cột, đây đúng là màn hình cần bề ngang. Bề rộng do
+    // <Trang> quyết định chứ không phải mỗi trang tự khai một kiểu.
+    <Trang rong>
+      <DauTrang
+        quayLai={{ href: `/offerings/${id}`, nhan: "Lớp học phần" }}
+        tieuDe="Sổ điểm"
+        moTa={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="font-mono text-xs">{so.subject_code}</span>
+            <span aria-hidden>·</span>
+            <span className="font-mono text-xs">{so.class_code}</span>
+            <span aria-hidden>·</span>
+            <span>{so.subject_name}</span>
+          </span>
+        }
+      />
 
       <SoDiem
         offeringId={id}
@@ -52,6 +59,6 @@ export default async function GradebookPage({ params }: { params: Promise<{ id: 
           ...cuoiMon.map((f) => ({ type: "final_assessment" as const, id: f.id, title: f.title })),
         ]}
       />
-    </main>
+    </Trang>
   );
 }

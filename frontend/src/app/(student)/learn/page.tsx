@@ -1,7 +1,9 @@
+import { ChevronRight, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyOfferingDto } from "@/lib/api/types";
 import { NhapMaLop } from "./nhap-ma-lop";
@@ -25,37 +27,57 @@ export default async function LearnPage() {
   const offerings: MyOfferingDto[] = await res.json();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Lớp của tôi</h1>
-        <NhapMaLop />
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe="Lớp của tôi"
+        moTa="Chọn một lớp để mở trang học."
+        // Khi chưa có lớp nào thì nút này chuyển xuống trạng thái rỗng: đặt cả hai chỗ là
+        // hai nút giống hệt nhau trên cùng một màn hình, và người dùng phải đoán xem chúng
+        // có làm cùng một việc không.
+        hanhDong={offerings.length > 0 ? <NhapMaLop /> : undefined}
+      />
 
       {offerings.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Bạn chưa vào lớp nào. Nhập mã lớp giảng viên đọc trên lớp để bắt đầu.
-        </p>
+        <TrongRong
+          Icon={GraduationCap}
+          tieuDe="Bạn chưa vào lớp nào"
+          moTa="Giảng viên đọc mã lớp gồm 6 ký tự trên lớp. Nhập mã đó để vào lớp đầu tiên của bạn."
+          hanhDong={<NhapMaLop />}
+        />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {offerings.map((o) => (
-            <li key={o.id}>
-              <Link href={`/learn/${o.id}`}>
-                <Card className="transition-colors hover:border-primary">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      <span className="text-muted-foreground font-mono">{o.subject_code}</span>{" "}
-                      {o.subject_name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground text-sm">
-                    {o.class_code} · {o.semester}
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <Card>
+          <CardContent className="px-2">
+            <ul className="flex flex-col gap-1">
+              {offerings.map((o) => (
+                <li key={o.id}>
+                  <Link
+                    href={`/learn/${o.id}`}
+                    className="hover:bg-accent group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="truncate font-medium">{o.subject_name}</span>
+                      <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                        {/* Mã môn và mã lớp là ĐỊNH DANH, không phải văn xuôi — chữ đều
+                            giúp đối chiếu với bảng của giảng viên nhanh hơn hẳn. */}
+                        <span className="font-mono text-xs">{o.subject_code}</span>
+                        <span aria-hidden>·</span>
+                        <span className="font-mono text-xs">{o.class_code}</span>
+                        <span aria-hidden>·</span>
+                        <span>{o.semester}</span>
+                      </span>
+                    </span>
+
+                    <ChevronRight
+                      className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
       )}
-    </main>
+    </Trang>
   );
 }

@@ -121,8 +121,18 @@ export function DieuHuongGv({
   const pathname = usePathname();
 
   // Đổi trang thì đóng ngăn kéo. Không có dòng này thì trên điện thoại, bấm một mục xong
-  // ngăn kéo vẫn che kín trang vừa mở, và người dùng tưởng bấm không ăn.
-  useEffect(() => setMo(false), [pathname]);
+  // ngăn kéo vẫn che kín trang vừa mở, và người dùng tưởng bấm không ăn. Vẫn cần dù các
+  // mục đã tự gọi `setMo(false)`: nút Lùi của trình duyệt đổi trang mà không qua mục nào.
+  //
+  // Chỉnh state NGAY TRONG LÚC RENDER thay vì trong `useEffect`. Đây là khuôn được React
+  // khuyến nghị cho ca "đổi state khi prop đổi": React nhận ra và render lại ngay trước khi
+  // vẽ ra màn hình, nên không có khung hình nào lọt ra với ngăn kéo còn mở. Làm bằng effect
+  // thì đổi state sau khi đã vẽ — thành một lần render thừa và một cú nháy thấy được.
+  const [duongCu, setDuongCu] = useState(pathname);
+  if (pathname !== duongCu) {
+    setDuongCu(pathname);
+    setMo(false);
+  }
 
   // Khoá cuộn nền khi ngăn kéo mở, nếu không thì vuốt trong ngăn kéo lại cuộn trang phía sau.
   useEffect(() => {

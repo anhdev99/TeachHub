@@ -3,7 +3,8 @@
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -16,8 +17,22 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { ChapterDto, LessonDto } from "@/lib/api/types";
@@ -36,8 +51,16 @@ export function KhoiChuong({
   const khoa = ["lessons", chuong.id] as const;
   const [tenBaiMoi, setTenBaiMoi] = useState("");
 
+  // MouseSensor + TouchSensor, KHÔNG phải PointerSensor — giống `so-diem.tsx` và
+  // `chia-nhom.tsx`. Pointer event gộp chuột với cảm ứng làm một, nên `PointerSensor` khởi
+  // động kéo ngay khi ngón tay trượt được vài pixel: trên điện thoại, MỌI cú vuốt để cuộn
+  // danh sách bài học đều bị hiểu thành kéo bài đi chỗ khác. Đây là chỗ duy nhất còn sót lại
+  // dùng PointerSensor, và nó là danh sách dài nhất — tức là chỗ người ta cuộn nhiều nhất.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // `delay` chứ không phải `distance` cho cảm ứng: phải giữ một nhịp mới tính là kéo, nên
+    // vuốt nhanh vẫn là cuộn.
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -100,48 +123,97 @@ export function KhoiChuong({
   const bai = baiQuery.data ?? [];
 
   return (
-    <section className="border-border flex flex-col gap-3 rounded-lg border p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-medium">{chuong.title}</h2>
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-col gap-1">
+          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+            <span className="text-pretty">{chuong.title}</span>
+            <Badge variant="secondary" className="shrink-0 font-normal">
+              {bai.length} bài
+            </Badge>
+          </CardTitle>
+          {chuong.objective && (
+            <p className="text-muted-foreground text-sm text-pretty">{chuong.objective}</p>
+          )}
+        </div>
+
         {suaDuoc && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-destructive"
-            onClick={() => xoaChuong.mutate()}
-            disabled={xoaChuong.isPending}
-          >
-            Xoá chương
-          </Button>
+          // Xoá chương kéo theo TOÀN BỘ bài học bên trong. Trước đây một cú bấm là mất sạch,
+          // không hỏi lại, không hoàn tác được — và nút thì nằm ngay cạnh tiêu đề chương.
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-danger hover:text-danger hover:bg-danger-soft shrink-0"
+                disabled={xoaChuong.isPending}
+              >
+                <Trash2 className="size-4" aria-hidden />
+                {xoaChuong.isPending ? "Đang xoá…" : "Xoá chương"}
+              </Button>
+            </AlertDialogTrigger>
+
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Xoá chương “{chuong.title}”?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {/* Nói ĐÚNG cái sắp mất, kèm số lượng. Một câu chung chung kiểu "bạn có
+                      chắc không?" chỉ tạo thêm một cú bấm rồi ai cũng bấm qua theo phản xạ;
+                      con số bài học mới là thứ khiến người ta dừng lại đọc. */}
+                  {bai.length > 0
+                    ? `Chương này đang có ${bai.length} bài học. Xoá chương sẽ xoá luôn toàn bộ số bài học đó.`
+                    : "Chương này chưa có bài học nào."}{" "}
+                  Thao tác này không hoàn tác được.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Huỷ</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => xoaChuong.mutate()}
+                  className="bg-danger text-primary-foreground hover:bg-danger/90"
+                >
+                  Xoá chương
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
-      </div>
+      </CardHeader>
 
-      {chuong.objective && (
-        <p className="text-muted-foreground text-sm">{chuong.objective}</p>
-      )}
+      <CardContent className="flex flex-col gap-3">
+        {baiQuery.isPending ? (
+          <p className="text-muted-foreground flex items-center gap-2 text-sm">
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+            Đang tải bài học…
+          </p>
+        ) : bai.length === 0 ? (
+          // Không dùng <TrongRong> ở đây: khung nét đứt cỡ lớn lặp lại cho từng chương sẽ
+          // át cả trang. Một dòng ngắn trong khung nhạt là đủ để phân biệt "trống" với "hỏng".
+          <p className="border-border text-muted-foreground rounded-lg border border-dashed px-3 py-4 text-center text-sm">
+            Chương này chưa có bài học nào.
+          </p>
+        ) : (
+          <DndContext id={`keo-bai-${chuong.id}`} sensors={sensors} collisionDetection={closestCenter} onDragEnd={ketThucKeo}>
+            <SortableContext items={bai.map((l) => l.id)} strategy={verticalListSortingStrategy}>
+              <ul className="flex flex-col gap-2">
+                {bai.map((l) => (
+                  <TheBai key={l.id} bai={l} suaDuoc={suaDuoc} chapterId={chuong.id} />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+        )}
 
-      {baiQuery.isPending ? (
-        <p className="text-muted-foreground text-sm">Đang tải bài học…</p>
-      ) : bai.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Chương này chưa có bài học nào.</p>
-      ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={ketThucKeo}>
-          <SortableContext items={bai.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-            <ul className="flex flex-col gap-2">
-              {bai.map((l) => (
-                <TheBai key={l.id} bai={l} suaDuoc={suaDuoc} chapterId={chuong.id} />
-              ))}
-            </ul>
-          </SortableContext>
-        </DndContext>
-      )}
-
-      {suaDuoc && (
-        <div className="flex gap-2">
+        {/* Giữ nguyên ô nhập ở trạng thái `disabled` khi phiên bản đã khoá, không ẩn đi —
+            xem ghi chú ở trinh-soan-thao.tsx. */}
+        <div className="flex flex-wrap gap-2">
           <Input
+            className="min-w-40 flex-1"
             value={tenBaiMoi}
+            disabled={!suaDuoc}
+            aria-label={`Tên bài học mới trong chương ${chuong.title}`}
             onChange={(e) => setTenBaiMoi(e.target.value)}
-            placeholder="Tên bài học mới"
+            placeholder={suaDuoc ? "Tên bài học mới" : "Đã khoá — phiên bản chỉ xem"}
             onKeyDown={(e) => {
               if (e.key === "Enter" && tenBaiMoi.trim()) themBai.mutate(tenBaiMoi.trim());
             }}
@@ -149,13 +221,15 @@ export function KhoiChuong({
           <Button
             size="sm"
             variant="outline"
+            className="h-9"
             onClick={() => themBai.mutate(tenBaiMoi.trim())}
-            disabled={!tenBaiMoi.trim() || themBai.isPending}
+            disabled={!suaDuoc || !tenBaiMoi.trim() || themBai.isPending}
           >
+            <Plus className="size-4" aria-hidden />
             Thêm bài
           </Button>
         </div>
-      )}
-    </section>
+      </CardContent>
+    </Card>
   );
 }

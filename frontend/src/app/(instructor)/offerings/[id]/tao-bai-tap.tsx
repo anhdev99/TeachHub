@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -9,7 +10,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,19 +77,28 @@ export function TaoBaiTap({ subjectVersionId }: { subjectVersionId: string }) {
   return (
     <Dialog open={mo} onOpenChange={setMo}>
       <DialogTrigger asChild>
-        <Button size="sm">Tạo bài tập</Button>
+        <Button>
+          <Plus className="size-4" aria-hidden />
+          Tạo bài tập
+        </Button>
       </DialogTrigger>
 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Bài tập mới</DialogTitle>
+          {/* Nói rõ bài tập thuộc về PHIÊN BẢN chứ không thuộc về lớp: đây là chỗ hay
+              hiểu nhầm, và hiểu nhầm nó nghĩa là sửa bài tập của cả những lớp khác. */}
+          <DialogDescription>
+            Bài tập gắn vào phiên bản nội dung mà lớp này đang ghim — mọi lớp dùng cùng
+            phiên bản sẽ thấy nó.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
           <div className="flex flex-col gap-2">
             <Label htmlFor="title">Tên bài tập</Label>
             <Input id="title" {...register("title")} />
-            {errors.title && <p className="text-destructive text-sm">{errors.title.message}</p>}
+            {errors.title && <p className="text-danger text-sm">{errors.title.message}</p>}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -107,12 +117,14 @@ export function TaoBaiTap({ subjectVersionId }: { subjectVersionId: string }) {
               <Input id="max_score" type="number" step="0.25" min={0} max={10}
                      {...register("max_score")} />
               {errors.max_score && (
-                <p className="text-destructive text-sm">{errors.max_score.message}</p>
+                <p className="text-danger text-sm">{errors.max_score.message}</p>
               )}
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
+          {/* min-h-11: cả dòng là vùng bấm, không chỉ ô vuông 16px của Checkbox — trên
+              điện thoại đó là khác biệt giữa "tích được" và "tích ba lần mới trúng". */}
+          <label className="flex min-h-11 items-center gap-2.5 text-sm">
             <Checkbox
               checked={watch("allow_late_submission")}
               onCheckedChange={(c) => setValue("allow_late_submission", c === true)}
@@ -120,7 +132,7 @@ export function TaoBaiTap({ subjectVersionId }: { subjectVersionId: string }) {
             Cho phép nộp trễ
           </label>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2.5 text-sm">
             <Checkbox
               checked={watch("use_suggested_slots")}
               onCheckedChange={(c) => setValue("use_suggested_slots", c === true)}

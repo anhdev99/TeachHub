@@ -6,6 +6,7 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, GripVertical, Shuffle, UserPlus, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TrongRong } from "@/components/shell/trang";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { EnrollmentDto, GroupDto, GroupMemberDto } from "@/lib/api/types";
 
@@ -62,14 +64,19 @@ function TheSinhVien({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform) }}
-      className={`border-border flex min-h-11 items-center justify-between gap-2 rounded border px-2 py-1.5 text-sm ${
-        khoaKeo ? "" : "cursor-grab touch-manipulation active:cursor-grabbing"
-      } ${isDragging ? "opacity-40" : ""}`}
+      className={`border-border bg-card flex min-h-11 items-center gap-2 rounded-lg border px-2 py-1.5 text-sm transition-shadow ${
+        khoaKeo ? "" : "cursor-grab touch-manipulation active:cursor-grabbing hover:border-primary"
+      } ${isDragging ? "opacity-40 shadow-lg" : ""}`}
       {...attributes}
       {...listeners}
     >
-      <span>{m.full_name}</span>
-      <span className="text-muted-foreground font-mono text-xs">{m.student_code}</span>
+      {/* Tay cầm là dấu hiệu DUY NHẤT cho biết thẻ này kéo được. Không có nó thì con trỏ
+          đổi hình khi rê vào là quá muộn — người dùng phải thử mới biết. */}
+      {!khoaKeo && (
+        <GripVertical className="text-muted-foreground size-4 shrink-0" aria-hidden />
+      )}
+      <span className="min-w-0 flex-1 truncate">{m.full_name}</span>
+      <span className="text-muted-foreground shrink-0 font-mono text-xs">{m.student_code}</span>
     </div>
   );
 }
@@ -88,8 +95,8 @@ function VungTha({
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-16 flex-col gap-1 rounded-md p-1 ${
-        isOver ? "bg-muted ring-primary ring-2" : ""
+      className={`flex min-h-16 flex-col gap-1 rounded-lg p-1 transition-colors ${
+        isOver ? "bg-accent ring-primary ring-2" : ""
       }`}
     >
       {children}
@@ -263,7 +270,10 @@ export function ChiaNhom({
     <div className="flex flex-col gap-5">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Chia ngẫu nhiên</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Shuffle className="text-muted-foreground size-4" aria-hidden />
+            Chia ngẫu nhiên
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
@@ -291,6 +301,7 @@ export function ChiaNhom({
             </div>
 
             <Button variant="outline" disabled={chia.isPending} onClick={() => chia.mutate(true)}>
+              <Eye className="size-4" aria-hidden />
               Xem trước
             </Button>
 
@@ -300,18 +311,29 @@ export function ChiaNhom({
           </div>
 
           {dangXemTruoc && (
-            <p className="text-sm">
-              Đang hiển thị <strong>bản xem trước</strong>, chưa lưu. Bấm “Xác nhận & lưu” để
-              ghi lại đúng cách chia này. Kéo-thả tạm khoá cho tới khi bản này được lưu.
+            // Hổ phách + viền: bản xem trước và bản đã lưu trông giống hệt nhau nếu chỉ
+            // khác một dòng chữ đen, và giảng viên sẽ đóng trang mà tưởng đã lưu xong.
+            <p className="bg-warn-soft text-warn border-warn/25 rounded-lg border px-3 py-2 text-sm text-pretty">
+              Đang hiển thị <strong className="font-semibold">bản xem trước</strong>, chưa lưu.
+              Bấm “Xác nhận &amp; lưu” để ghi lại đúng cách chia này. Kéo-thả tạm khoá cho tới
+              khi bản này được lưu.
             </p>
           )}
         </CardContent>
       </Card>
 
       {dangHien.length === 0 && chuaCoNhom.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Chưa chia nhóm.</p>
+        <Card>
+          <CardContent>
+            <TrongRong
+              Icon={Users}
+              tieuDe="Lớp chưa có sinh viên nào để chia"
+              moTa="Nhập danh sách sinh viên cho lớp trước, rồi quay lại đây chia nhóm."
+            />
+          </CardContent>
+        </Card>
       ) : (
-        <DndContext sensors={sensors} onDragEnd={keoXong}>
+        <DndContext id="keo-nhom" sensors={sensors} onDragEnd={keoXong}>
           {!dangXemTruoc && (
             <p className="text-muted-foreground text-sm">
               Kéo tên sinh viên sang nhóm khác để chuyển. Trên điện thoại: chạm giữ khoảng một
@@ -324,12 +346,16 @@ export function ChiaNhom({
               <Card key={g.id === ID_TAM ? `tam-${i}` : g.id}>
                 <CardHeader className="flex flex-row items-center justify-between gap-2">
                   <CardTitle className="text-base">{g.name}</CardTitle>
-                  <Badge variant="secondary">{g.members.length} người</Badge>
+                  <Badge variant="secondary" className="font-normal">
+                    {g.members.length} người
+                  </Badge>
                 </CardHeader>
                 <CardContent>
                   <VungTha id={g.id} khoaKeo={khoaKeo}>
                     {g.members.length === 0 && (
-                      <p className="text-muted-foreground p-1 text-sm">Kéo sinh viên vào đây.</p>
+                      <p className="border-border text-muted-foreground rounded-lg border border-dashed p-3 text-center text-sm">
+                        Kéo sinh viên vào đây.
+                      </p>
                     )}
                     {g.members.map((m) => (
                       <TheSinhVien
@@ -348,13 +374,26 @@ export function ChiaNhom({
           {!dangXemTruoc && (
             <Card className="mt-3">
               <CardHeader className="flex flex-row items-center justify-between gap-2">
-                <CardTitle className="text-base">Chưa có nhóm</CardTitle>
-                <Badge variant="outline">{chuaCoNhom.length} người</Badge>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <UserPlus className="text-muted-foreground size-4" aria-hidden />
+                  Chưa có nhóm
+                </CardTitle>
+                {/* Hổ phách khi còn người chưa được xếp: đó là việc chưa xong, không phải
+                    một con số trung tính. Hết người thì về xanh lá. */}
+                <Badge
+                  className={
+                    chuaCoNhom.length > 0
+                      ? "bg-warn-soft text-warn border-warn/25 border font-normal"
+                      : "bg-ok-soft text-ok border-ok/25 border font-normal"
+                  }
+                >
+                  {chuaCoNhom.length} người
+                </Badge>
               </CardHeader>
               <CardContent>
                 <VungTha id={CHUA_CO_NHOM} khoaKeo={khoaKeo}>
                   {chuaCoNhom.length === 0 && (
-                    <p className="text-muted-foreground p-1 text-sm">
+                    <p className="border-border text-muted-foreground rounded-lg border border-dashed p-3 text-center text-sm">
                       Mọi sinh viên đều đã có nhóm.
                     </p>
                   )}

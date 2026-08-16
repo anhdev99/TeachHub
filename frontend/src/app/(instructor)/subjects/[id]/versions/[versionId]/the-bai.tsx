@@ -3,6 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, GripVertical, Paperclip, Plus, X } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,41 +70,53 @@ export function TheBai({
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`border-border bg-background flex flex-col gap-2 rounded-md border p-3 ${
-        isDragging ? "opacity-60 shadow-lg" : ""
+      className={`border-border bg-card flex flex-col gap-2 rounded-lg border transition-shadow ${
+        isDragging ? "shadow-lg opacity-70" : ""
       }`}
     >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 py-1.5">
         {suaDuoc && (
           <button
             type="button"
-            className="text-muted-foreground cursor-grab px-1 active:cursor-grabbing"
+            className="text-muted-foreground hover:text-foreground grid size-9 shrink-0 cursor-grab place-items-center rounded-md transition-colors active:cursor-grabbing"
             aria-label={`Kéo để đổi thứ tự bài ${bai.title}`}
             {...attributes}
             {...listeners}
           >
-            ⠿
+            <GripVertical className="size-4" aria-hidden />
           </button>
         )}
 
-        <span className="text-muted-foreground text-xs tabular-nums">{bai.order_index + 1}.</span>
-        <span className="font-medium">{bai.title}</span>
+        {/* Số thứ tự dùng tabular-nums để cột số không răng cưa khi chương có trên 10 bài. */}
+        <span className="text-muted-foreground w-5 shrink-0 text-right text-xs tabular-nums">
+          {bai.order_index + 1}
+        </span>
+        <span className="min-w-0 flex-1 truncate font-medium">{bai.title}</span>
 
-        {bai.file_url && <Badge variant="outline">Có tệp</Badge>}
+        {bai.file_url && (
+          <Badge variant="outline" className="shrink-0 gap-1 font-normal">
+            <Paperclip className="size-3" aria-hidden />
+            Có tệp
+          </Badge>
+        )}
 
         <Button
           size="sm"
           variant="ghost"
-          className="ml-auto"
+          className="text-muted-foreground shrink-0"
           onClick={() => setMo((v) => !v)}
           aria-expanded={mo}
         >
-          {bai.components.length} phần {mo ? "▲" : "▼"}
+          {bai.components.length} phần
+          <ChevronDown
+            className={`size-4 transition-transform ${mo ? "rotate-180" : ""}`}
+            aria-hidden
+          />
         </Button>
       </div>
 
       {mo && (
-        <div className="flex flex-col gap-2 pl-6">
+        <div className="border-border flex flex-col gap-2 border-t px-3 py-2.5">
           {bai.components.length === 0 ? (
             // Một bài không có component nào là HỢP LỆ (SRS mục 5.1) — nói rõ để người
             // dùng không tưởng là thiếu dữ liệu.
@@ -115,20 +128,21 @@ export function TheBai({
               {bai.components.map((c) => (
                 <li
                   key={c.id}
-                  className="border-border flex items-center gap-2 rounded border px-2 py-1 text-sm"
+                  className="border-border flex items-center gap-2 rounded-md border px-2 py-1 text-sm"
                 >
-                  <span className="text-muted-foreground text-xs tabular-nums">
+                  <span className="text-muted-foreground w-4 shrink-0 text-right text-xs tabular-nums">
                     {c.order_index + 1}
                   </span>
-                  <span>{NHAN_LOAI_COMPONENT[c.type]}</span>
+                  <span className="min-w-0 flex-1 truncate">{NHAN_LOAI_COMPONENT[c.type]}</span>
                   {suaDuoc && (
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-destructive ml-auto h-6"
+                      className="text-muted-foreground hover:text-danger hover:bg-danger-soft size-7 shrink-0 p-0"
+                      aria-label={`Xoá phần ${NHAN_LOAI_COMPONENT[c.type]}`}
                       onClick={() => xoaComponent.mutate(c.id)}
                     >
-                      Xoá
+                      <X className="size-4" aria-hidden />
                     </Button>
                   )}
                 </li>
@@ -160,12 +174,17 @@ export function TheBai({
                 onClick={() => themComponent.mutate(loaiChon)}
                 disabled={themComponent.isPending}
               >
-                + Thêm phần
+                <Plus className="size-4" aria-hidden />
+                Thêm phần
               </Button>
             </div>
           )}
 
-          {loi && <p className="text-destructive text-sm">{loi}</p>}
+          {loi && (
+            <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm">
+              {loi}
+            </p>
+          )}
         </div>
       )}
     </li>

@@ -48,10 +48,14 @@ export function DauTrang({
 }) {
   return (
     <div className="flex flex-col gap-3">
+      {/* `py-3 -my-3` chứ không chỉ `min-h-11`: vùng bấm phải đạt 44px cho ngón tay, nhưng
+          nếu để nó chiếm 44px thật thì đầu mỗi trang phình thêm hơn một dòng. Phần đệm nới
+          vùng chạm ra, phần lề âm kéo bố cục về chỗ cũ — nhìn vẫn là một dòng chữ nhỏ.
+          Đây là đường quay lại CHÍNH trên điện thoại, bấm trượt là phải cuộn lên tìm lại. */}
       {quayLai && (
         <Link
           href={quayLai.href}
-          className="text-muted-foreground hover:text-foreground -ml-1 inline-flex w-fit items-center gap-1 text-sm transition-colors"
+          className="text-muted-foreground hover:text-foreground -my-3 -ml-1 inline-flex min-h-11 w-fit items-center gap-1 py-3 text-sm transition-colors"
         >
           <ChevronLeft className="size-4" aria-hidden />
           {quayLai.nhan}

@@ -1,10 +1,34 @@
+import { ChevronRight, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { OfferingDto } from "@/lib/api/types";
+
+/**
+ * Nhãn trạng thái lớp. `active` là trạng thái thường ngày nên KHÔNG tô màu — tô hết mọi
+ * dòng thì màu không còn phân biệt được gì, và cái đáng chú ý ("đã đóng") chìm nghỉm.
+ */
+function NhanTrangThai({ status }: { status: OfferingDto["status"] }) {
+  if (status === "active") {
+    return (
+      <Badge className="bg-ok-soft text-ok border-ok/25 shrink-0 border">Đang chạy</Badge>
+    );
+  }
+  if (status === "closed") {
+    return (
+      <Badge variant="secondary" className="shrink-0">
+        Đã đóng
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-warn-soft text-warn border-warn/25 shrink-0 border">Bản nháp</Badge>
+  );
+}
 
 export default async function OfferingsPage() {
   const token = (await cookies()).get(COOKIE_ACCESS)?.value;
@@ -19,49 +43,63 @@ export default async function OfferingsPage() {
   const offerings: OfferingDto[] = await res.json();
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-4xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Lớp học phần</h1>
-        <Link href="/subjects" className="text-muted-foreground hover:text-foreground text-sm">
-          Môn học của tôi →
-        </Link>
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe="Lớp học phần"
+        moTa="Mỗi lớp ghim vào một phiên bản nội dung đã xuất bản của môn học."
+      />
 
-      {offerings.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Chưa mở lớp nào. Mở lớp từ một phiên bản môn học đã xuất bản.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {offerings.map((o) => (
-            <li key={o.id}>
-              <Link href={`/offerings/${o.id}`}>
-                <Card className="transition-colors hover:border-primary">
-                  <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-                    <CardTitle className="text-base">
-                      <span className="text-muted-foreground font-mono">{o.subject_code}</span>{" "}
-                      {o.subject_name}
-                    </CardTitle>
-                    <Badge variant={o.status === "active" ? "default" : "secondary"}>
-                      {o.status === "active" ? "Đang chạy" : o.status}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                    <span>{o.class_code}</span>
-                    <span>{o.semester}</span>
-                    <span>{o.enrollment_count} sinh viên</span>
-                    {o.join_code && (
-                      <span>
-                        Mã lớp <span className="font-mono">{o.join_code}</span>
+      <Card>
+        <CardContent>
+          {offerings.length === 0 ? (
+            <TrongRong
+              Icon={GraduationCap}
+              tieuDe="Chưa mở lớp nào"
+              moTa="Lớp học phần mở từ một phiên bản môn học đã xuất bản. Soạn nội dung và xuất bản trước."
+              hanhDong={
+                <Link
+                  href="/subjects"
+                  className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
+                >
+                  Tới Môn học
+                </Link>
+              }
+            />
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {offerings.map((o) => (
+                <li key={o.id}>
+                  <Link
+                    href={`/offerings/${o.id}`}
+                    className="hover:bg-accent group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
+                  >
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="truncate font-medium">{o.subject_name}</span>
+                      <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                        {/* Mã môn và mã lớp là ĐỊNH DANH, không phải văn xuôi — font-mono
+                            để chúng thẳng cột với nhau giữa các dòng. */}
+                        <span className="font-mono text-xs">{o.subject_code}</span>
+                        <span aria-hidden>·</span>
+                        <span className="font-mono text-xs">{o.class_code}</span>
+                        <span aria-hidden>·</span>
+                        <span>{o.semester}</span>
+                        <span aria-hidden>·</span>
+                        <span>{o.enrollment_count} sinh viên</span>
                       </span>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+                    </span>
+
+                    <NhanTrangThai status={o.status} />
+                    <ChevronRight
+                      className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </Trang>
   );
 }

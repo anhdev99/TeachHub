@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { components } from "@/lib/api/schema";
 import { TienDoCaNhan } from "./tien-do-ca-nhan";
@@ -38,18 +38,14 @@ export default async function ProgressPage({
   ]);
 
   return (
-    <main className="mx-auto flex min-h-svh max-w-3xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link
-          href={`/learn/${offeringId}`}
-          className="text-muted-foreground hover:text-foreground text-sm"
-        >
-          ← Trang học
-        </Link>
-        <h1 className="text-2xl font-semibold">Tiến độ của tôi</h1>
-      </div>
+    <Trang>
+      <DauTrang
+        tieuDe="Tiến độ của tôi"
+        moTa="Điểm kinh nghiệm, chuỗi ngày học và những câu cần ôn lại hôm nay."
+        quayLai={{ href: `/learn/${offeringId}`, nhan: "Trang học" }}
+      />
 
       <TienDoCaNhan me={me} bangXepHang={bxh} onTap={onTap} />
-    </main>
+    </Trang>
   );
 }

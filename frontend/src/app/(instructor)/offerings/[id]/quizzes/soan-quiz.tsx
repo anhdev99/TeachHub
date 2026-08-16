@@ -1,6 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ListChecks, Plus, Timer } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TrongRong } from "@/components/shell/trang";
 import { apiFetch } from "@/lib/api/fetcher";
 import { NHAN_LOAI_CAU_HOI, type QuizDto, type QuizQuestionDto } from "@/lib/api/types";
 
@@ -94,31 +97,48 @@ export function SoanQuiz({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap gap-x-5">
+            <label className="flex min-h-11 items-center gap-2.5 text-sm">
               <Checkbox checked={tinhDiem} onCheckedChange={(c) => setTinhDiem(c === true)} />
               Tính điểm (bỏ tích = bài luyện tập)
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex min-h-11 items-center gap-2.5 text-sm">
               <Checkbox checked={xaoCau} onCheckedChange={(c) => setXaoCau(c === true)} />
               Xáo thứ tự câu
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex min-h-11 items-center gap-2.5 text-sm">
               <Checkbox checked={xaoPa} onCheckedChange={(c) => setXaoPa(c === true)} />
               Xáo thứ tự phương án
             </label>
           </div>
 
-          <Button disabled={tao.isPending || !ten.trim()} onClick={() => tao.mutate()}>
+          <Button
+            className="self-start"
+            disabled={tao.isPending || !ten.trim()}
+            onClick={() => tao.mutate()}
+          >
+            <Plus className="size-4" aria-hidden />
             {tao.isPending ? "Đang tạo…" : "Tạo bài trắc nghiệm"}
           </Button>
         </CardContent>
       </Card>
 
-      {ds.map((q) => (
-        <ChonCauHoi key={q.id} quiz={q} nganHang={nganHang}
-                    onXong={() => qc.invalidateQueries({ queryKey: khoa })} />
-      ))}
+      {ds.length === 0 ? (
+        <Card>
+          <CardContent>
+            <TrongRong
+              Icon={ListChecks}
+              tieuDe="Lớp này chưa có bài trắc nghiệm nào"
+              moTa="Tạo bài ở khối bên trên, rồi chọn câu hỏi từ ngân hàng câu hỏi của bạn."
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        ds.map((q) => (
+          <ChonCauHoi key={q.id} quiz={q} nganHang={nganHang}
+                      onXong={() => qc.invalidateQueries({ queryKey: khoa })} />
+        ))
+      )}
     </div>
   );
 }
@@ -155,12 +175,19 @@ function ChonCauHoi({
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base">{quiz.title}</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={quiz.config.is_graded ? "default" : "secondary"}>
+          <Badge variant={quiz.config.is_graded ? "default" : "secondary"} className="font-normal">
             {quiz.config.is_graded ? "Tính điểm" : "Luyện tập"}
           </Badge>
-          <Badge variant="outline">{quiz.question_count} câu · {quiz.total_points} điểm</Badge>
-          {quiz.config.time_limit_minutes !== null && (
-            <Badge variant="outline">{quiz.config.time_limit_minutes} phút</Badge>
+          <Badge variant="outline" className="font-normal">
+            {quiz.question_count} câu · {quiz.total_points} điểm
+          </Badge>
+          {/* `!= null`: API không gửi khoá nào có giá trị null, nên bài không giới hạn thời
+              gian về tới đây là `undefined` — so sánh chặt sẽ lọt và in ra nhãn trống "phút". */}
+          {quiz.config.time_limit_minutes != null && (
+            <Badge variant="outline" className="gap-1 font-normal">
+              <Timer className="size-3" aria-hidden />
+              {quiz.config.time_limit_minutes} phút
+            </Badge>
           )}
         </div>
       </CardHeader>
@@ -173,27 +200,43 @@ function ChonCauHoi({
         ) : (
           <>
             {nganHang.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                Ngân hàng câu hỏi đang trống — soạn câu hỏi trước rồi quay lại đây.
-              </p>
+              <TrongRong
+                Icon={ListChecks}
+                tieuDe="Ngân hàng câu hỏi đang trống"
+                moTa="Soạn câu hỏi một lần trong ngân hàng, rồi chọn lại cho bất kỳ bài trắc nghiệm nào."
+                hanhDong={
+                  <Link
+                    href="/questions"
+                    className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
+                  >
+                    Tới Ngân hàng câu hỏi
+                  </Link>
+                }
+              />
             ) : (
-              nganHang.map((c) => (
-                <label key={c.id} className="flex items-start gap-2 text-sm">
-                  <Checkbox
-                    className="mt-0.5"
-                    checked={chon.includes(c.id)}
-                    onCheckedChange={(v) =>
-                      setChon((cu) => (v === true ? [...cu, c.id] : cu.filter((x) => x !== c.id)))
-                    }
-                  />
-                  <span className="flex-1">
-                    {c.text}
-                    <span className="text-muted-foreground ml-2 text-xs">
-                      {NHAN_LOAI_CAU_HOI[c.type]} · {c.points}đ
-                    </span>
-                  </span>
-                </label>
-              ))
+              <ul className="flex flex-col gap-0.5">
+                {nganHang.map((c) => (
+                  <li key={c.id}>
+                    <label className="hover:bg-accent flex min-h-11 items-start gap-2.5 rounded-lg px-2 py-2 text-sm transition-colors">
+                      <Checkbox
+                        className="mt-0.5"
+                        checked={chon.includes(c.id)}
+                        onCheckedChange={(v) =>
+                          setChon((cu) =>
+                            v === true ? [...cu, c.id] : cu.filter((x) => x !== c.id),
+                          )
+                        }
+                      />
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="text-pretty">{c.text}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {NHAN_LOAI_CAU_HOI[c.type]} · {c.points}đ
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
             )}
 
             <div className="flex gap-2">

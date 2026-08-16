@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DauTrang, Trang } from "@/components/shell/trang";
+import { CanhBaoTrungLap } from "@/components/submission/canh-bao-trung-lap";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { components } from "@/lib/api/schema";
 import { SoSanhBaiNop } from "./so-sanh-bai-nop";
@@ -39,24 +40,6 @@ export default async function ComparePage({
   // backend vừa giấu.
   if (res.status === 404) notFound();
 
-  // 400 là ca thật, không phải lỗi lập trình: hai bài nộp không cùng một bài tập thì không so
-  // được. Hiện nguyên câu tiếng Việt backend trả về thay vì đẩy người dùng về trang đăng nhập.
-  if (res.status === 400) {
-    const problem: ProblemDetails = await res.json().catch(() => ({}) as ProblemDetails);
-    return (
-      <main className="mx-auto flex min-h-svh max-w-5xl flex-col gap-4 p-4 sm:p-6">
-        <h1 className="text-2xl font-semibold">Không so sánh được</h1>
-        <p className="text-destructive text-sm">
-          {problem.detail ?? "Hai bài nộp này không so sánh được."}
-        </p>
-      </main>
-    );
-  }
-
-  if (!res.ok) redirect("/login");
-
-  const bc: SubmissionComparisonDto = await res.json();
-
   const duongVe =
     assignment && offering
       ? `/assignments/${assignment}/similarity?offering=${offering}`
@@ -64,31 +47,44 @@ export default async function ComparePage({
         ? `/offerings/${offering}/grading`
         : "/dashboard";
 
-  return (
-    <main className="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 p-4 sm:p-6">
-      <div className="flex flex-col gap-1">
-        <Link href={duongVe} className="text-muted-foreground hover:text-foreground text-sm">
-          ← Báo cáo trùng lặp
-        </Link>
-        <h1 className="text-2xl font-semibold">So sánh hai bài nộp</h1>
-      </div>
+  // 400 là ca thật, không phải lỗi lập trình: hai bài nộp không cùng một bài tập thì không so
+  // được. Hiện nguyên câu tiếng Việt backend trả về thay vì đẩy người dùng về trang đăng nhập.
+  if (res.status === 400) {
+    const problem: ProblemDetails = await res.json().catch(() => ({}) as ProblemDetails);
+    return (
+      <Trang>
+        <DauTrang
+          tieuDe="Không so sánh được"
+          quayLai={{ href: duongVe, nhan: "Báo cáo trùng lặp" }}
+        />
+        {/* Đây là lỗi thật của thao tác nên dùng `danger`; khung hổ phách phía dưới dành
+            riêng cho chuyện "trùng lặp không phải kết tội" — trộn hai màu là mất cả hai nghĩa. */}
+        <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3.5 py-3 text-sm text-pretty">
+          {problem.detail ?? "Hai bài nộp này không so sánh được."}
+        </p>
+      </Trang>
+    );
+  }
 
-      {/* Rủi ro #3 của SRS: hệ thống KHÔNG BAO GIỜ tự trừ điểm. Con số ở đây là gợi ý để đọc,
-          không phải kết luận — bài nhập môn dùng chung starter code trùng 70–90% một cách
-          hoàn toàn chính đáng. Bỏ dòng cảnh báo này là mời người dùng coi phần trăm như bằng
-          chứng kỷ luật. */}
-      <div className="border-border rounded-lg border border-l-4 border-l-amber-500 p-3 text-sm">
-        Đây là <strong>gợi ý để đọc kỹ</strong>, không phải kết luận. Hệ thống{" "}
-        <strong>không bao giờ tự trừ điểm</strong> và không tự kết luận sao chép. Mã khởi đầu
-        do chính bạn phát, thư viện chung hay đoạn mẫu trong bài giảng đều làm hai bài trùng
-        cao một cách chính đáng — hãy đọc mã trước khi quyết định.
-      </div>
+  if (!res.ok) redirect("/login");
+
+  const bc: SubmissionComparisonDto = await res.json();
+
+  return (
+    <Trang rong>
+      <DauTrang
+        tieuDe="So sánh hai bài nộp"
+        moTa="Đoạn tô nền hổ phách là phần mã hai bên dùng chung."
+        quayLai={{ href: duongVe, nhan: "Báo cáo trùng lặp" }}
+      />
+
+      <CanhBaoTrungLap />
 
       <SoSanhBaiNop
         bc={bc}
         tenA={a?.trim() || "Bài nộp A"}
         tenB={b?.trim() || "Bài nộp B"}
       />
-    </main>
+    </Trang>
   );
 }

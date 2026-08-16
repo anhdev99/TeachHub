@@ -7,7 +7,9 @@ import Link from "next/link";
  */
 export function Thuonghieu({ href = "/", phu }: { href?: string; phu?: string }) {
   return (
-    <Link href={href} className="flex items-center gap-2.5 min-w-0">
+    // `min-h-11`: ô chữ T chỉ cao 32px, mà đây là đường về trang chủ trên thanh của sinh
+    // viên — nơi cả giao diện được thiết kế cho ngón tay. Thanh cao 56px nên 44px vừa đủ.
+    <Link href={href} className="flex min-h-11 min-w-0 items-center gap-2.5">
       <span
         aria-hidden
         className="bg-primary text-primary-foreground grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold"
