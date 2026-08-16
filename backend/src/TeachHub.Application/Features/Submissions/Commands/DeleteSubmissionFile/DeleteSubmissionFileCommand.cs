@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Learning;
 using TeachHub.Domain.Submissions;
 
 namespace TeachHub.Application.Features.Submissions.Commands.DeleteSubmissionFile;
@@ -25,6 +26,9 @@ public sealed class DeleteSubmissionFileHandler(IAppDbContext db, IFileStorage s
             !await db.Enrollments.AnyAsync(
                 e => e.Id == baiNop.EnrollmentId && e.UserId == request.StudentUserId, ct))
             return Result.NotFound("Không tìm thấy tệp.");
+
+        if (await OfferingLock.DaDongAsync(db, baiNop.OfferingId, ct))
+            return Result.Conflict(OfferingLock.ThongDiep("xóa tệp"));
 
         // Đã nộp chính thức thì tệp là bằng chứng chấm điểm, không xóa được nữa. Muốn thay
         // thì nộp lại — lượt mới giữ nguyên lượt cũ trong lịch sử (Gap #5).

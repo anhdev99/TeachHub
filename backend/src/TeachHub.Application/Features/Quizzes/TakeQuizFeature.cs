@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Learning;
 using TeachHub.Application.Features.Review;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Quizzes;
@@ -36,6 +37,11 @@ public sealed class StartQuizAttemptHandler(IAppDbContext db, TimeProvider clock
     {
         var ghiDanh = await QuizAccess.EnrollmentForQuizAsync(db, request.QuizId, request.UserId, ct);
         if (ghiDanh is null) return Result<TakeAttemptDto>.NotFound("Không tìm thấy bài trắc nghiệm.");
+
+        // Lớp đã kết thúc ⇒ không mở lượt mới VÀ không nối lại lượt dở dang. Cho nối lại thì một
+        // lượt mở trước lúc đóng lớp vẫn nộp được sau đó, tức là cái khoá có một cửa sau.
+        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, ghiDanh.Value, ct))
+            return Result<TakeAttemptDto>.Conflict(OfferingLock.ThongDiep("làm bài trắc nghiệm"));
 
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == request.QuizId, ct);
         var cau = await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct);
@@ -178,6 +184,9 @@ public sealed class SaveQuizAnswersHandler(IAppDbContext db, TimeProvider clock)
             !await db.Enrollments.AnyAsync(e => e.Id == luot.EnrollmentId && e.UserId == request.UserId, ct))
             return Result.NotFound("Không tìm thấy lượt làm bài.");
 
+        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, luot.EnrollmentId, ct))
+            return Result.Conflict(OfferingLock.ThongDiep("lưu bài làm"));
+
         if (luot.Status != QuizAttemptStatus.InProgress)
             return Result.Conflict("Lượt làm này đã nộp rồi.");
 
@@ -223,6 +232,11 @@ public sealed class SubmitQuizAttemptHandler(IAppDbContext db, TimeProvider cloc
         if (luot is null ||
             !await db.Enrollments.AnyAsync(e => e.Id == luot.EnrollmentId && e.UserId == request.UserId, ct))
             return Result<TakeAttemptDto>.NotFound("Không tìm thấy lượt làm bài.");
+
+        // Xem lại một lượt ĐÃ nộp có đường riêng: GET /api/quiz-attempts/{id}. Endpoint này là
+        // đường GHI thuần nên khoá cả khi lượt đã nộp — không có ca đọc nào phải đi qua đây.
+        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, luot.EnrollmentId, ct))
+            return Result<TakeAttemptDto>.Conflict(OfferingLock.ThongDiep("nộp bài trắc nghiệm"));
 
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == luot.QuizId, ct);
         var cau = await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct);

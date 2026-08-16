@@ -18,6 +18,11 @@ public sealed class CompleteLessonCommandHandler(IAppDbContext db, TimeProvider 
 
         if (enrollmentId is null) return Result.NotFound("Không tìm thấy bài học.");
 
+        // Lớp đã kết thúc ⇒ 409, không phải 404: sinh viên biết rõ lớp này có thật và mình có
+        // học, giấu đi chỉ làm họ tưởng hệ thống hỏng.
+        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, enrollmentId.Value, ct))
+            return Result.Conflict(OfferingLock.ThongDiep("đánh dấu hoàn thành"));
+
         var now = clock.GetUtcNow();
 
         // Cập nhật trước, chèn sau. Sinh viên bấm nhanh hai lần là hai transaction song song;

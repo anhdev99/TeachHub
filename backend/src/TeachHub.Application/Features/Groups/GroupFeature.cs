@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Learning;
 using TeachHub.Application.Features.Offerings;
 using TeachHub.Domain.Groups;
 
@@ -259,6 +260,13 @@ public sealed class JoinGroupHandler(IAppDbContext db) : ICommandHandler<JoinGro
 
         // Không học lớp có nhóm này ⇒ 404 chứ không 403: 403 xác nhận nhóm đó có thật.
         if (ghiDanh is null) return Result.NotFound("Không tìm thấy nhóm.");
+
+        // Vào nhóm cũng là một đường GHI của sinh viên vào lớp — cùng nhóm với nộp bài và làm
+        // trắc nghiệm, dù nó nằm ở feature khác. Thiếu dòng này thì sinh viên vẫn đổi được cơ
+        // cấu nhóm của một lớp đã chốt sổ điểm, tức là đổi cả cách chia điểm nhóm sau khi bản
+        // chốt đã ký.
+        if (await OfferingLock.DaDongAsync(db, nhom.OfferingId, ct))
+            return Result.Conflict(OfferingLock.ThongDiep("vào nhóm"));
 
         if (await db.GroupMembers.AnyAsync(m => m.EnrollmentId == ghiDanh, ct))
             return Result.Conflict("Bạn đã ở trong một nhóm của lớp này.");

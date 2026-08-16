@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Learning;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Files;
 using TeachHub.Domain.Submissions;
@@ -28,6 +29,11 @@ public sealed class UploadSubmissionFileHandler(
             db, request.AssignmentId, request.StudentUserId, ct);
 
         if (ghiDanh is null) return Result<SubmissionFileDto>.NotFound("Không tìm thấy bài tập.");
+
+        // 1b — lớp còn nhận bài không. Đặt ngay đây, TRƯỚC khi đọc một byte nào của thân request:
+        // lớp đã đóng thì không có lý do gì để đọc hết một tệp 50 MB rồi mới từ chối.
+        if (await OfferingLock.DaDongAsync(db, ghiDanh.OfferingId, ct))
+            return Result<SubmissionFileDto>.Conflict(OfferingLock.ThongDiep("nộp bài"));
 
         // 2 — slot có tồn tại trong bài tập này không
         var slot = await db.SubmissionSlots

@@ -372,4 +372,35 @@ public class InlineCheckpointQuizTests(TeachHubApiFactory factory)
         var mo = await sv.PostAsJsonAsync($"/api/lesson-components/{bai1.Component}/check", than);
         mo.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
+
+    /// <summary>
+    /// Sinh viên KHÔNG tự bấm "đã xong" một phần trắc nghiệm có câu hỏi được — phải trả lời.
+    ///
+    /// Trước khi có đường chấm, nút đó là cách duy nhất đi tiếp nên phải mở. Giờ đã có đường
+    /// chấm thật thì cửa sau này biến "phần bắt buộc đã hoàn thành" thành một khẳng định rỗng:
+    /// nó mở khoá bài kế tiếp y hệt người làm đúng cả bài.
+    /// </summary>
+    [Fact]
+    public async Task Sinh_vien_KHONG_tu_danh_dau_xong_phan_trac_nghiem_co_cau_hoi()
+    {
+        var (sv, _, componentId) = await SeedAsync();
+
+        var tuBam = await sv.PostAsync($"/api/lesson-components/{componentId}/complete", null);
+        tuBam.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await tuBam.Content.ReadAsStringAsync()).ShouldContain("phải trả lời");
+
+        // Đối chứng dương trên CÙNG endpoint, CÙNG id: trả lời đúng hết rồi thì phần học được
+        // đánh dấu xong. Thiếu vế này thì một lỗi làm hỏng cả đường chấm cũng để test xanh.
+        var cham = await sv.PostAsJsonAsync($"/api/lesson-components/{componentId}/check", new
+        {
+            answers = new object[]
+            {
+                new { index = 0, selected_indexes = new[] { 1 } },
+                new { index = 1, selected_indexes = new[] { 0, 2 } },
+            },
+        });
+        cham.EnsureSuccessStatusCode();
+        (await cham.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("completed").GetBoolean().ShouldBeTrue();
+    }
 }

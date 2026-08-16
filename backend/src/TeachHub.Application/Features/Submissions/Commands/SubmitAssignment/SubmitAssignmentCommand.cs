@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Learning;
 using TeachHub.Domain.Submissions;
 
 namespace TeachHub.Application.Features.Submissions.Commands.SubmitAssignment;
@@ -23,6 +24,12 @@ public sealed class SubmitAssignmentHandler(IAppDbContext db, TimeProvider clock
             db, request.AssignmentId, request.StudentUserId, ct);
 
         if (ghiDanh is null) return Result<SubmissionDto>.NotFound("Không tìm thấy bài tập.");
+
+        // Lớp đã kết thúc ⇒ dừng TRƯỚC mọi phép kiểm khác. Để nó xuống dưới thì sinh viên nộp
+        // sau khi lớp đóng nhận về "Chưa nộp các phần bắt buộc" — một thông báo vừa sai vừa
+        // khiến họ đi tải thêm tệp lên cho một lớp không còn nhận bài.
+        if (await OfferingLock.DaDongAsync(db, ghiDanh.OfferingId, ct))
+            return Result<SubmissionDto>.Conflict(OfferingLock.ThongDiep("nộp bài"));
 
         var nhap = await db.Submissions
             .Include(s => s.Files)

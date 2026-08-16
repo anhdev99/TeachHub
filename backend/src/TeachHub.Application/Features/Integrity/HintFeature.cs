@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Learning;
 using TeachHub.Application.Features.Submissions;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Submissions;
@@ -71,6 +72,12 @@ public sealed class UnlockHintHandler(IAppDbContext db, TimeProvider clock)
             db, goiY.AssignmentId, request.StudentUserId, ct);
 
         if (ghiDanh is null) return Result<HintDto>.NotFound("Không tìm thấy gợi ý.");
+
+        // Lớp đã kết thúc ⇒ không mở thêm gợi ý nào nữa. Gợi ý ĐÃ mở vẫn đọc được bình thường
+        // qua GET /api/assignments/{id}/hints — sinh viên đã trả giá bằng điểm cho nội dung đó,
+        // và khoá luôn đường đọc là lấy lại thứ họ đã mua.
+        if (await OfferingLock.DaDongAsync(db, ghiDanh.OfferingId, ct))
+            return Result<HintDto>.Conflict(OfferingLock.ThongDiep("mở gợi ý"));
 
         var daMo = await db.HintUnlocks
             .SingleOrDefaultAsync(u => u.AssignmentHintId == goiY.Id

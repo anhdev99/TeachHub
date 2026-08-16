@@ -89,6 +89,13 @@ public sealed class CheckInlineQuestionsCommandHandler(IAppDbContext db, ISender
         if (enrollmentId is null)
             return Result<CheckInlineQuestionsResultDto>.NotFound("Không tìm thấy phần học.");
 
+        // Lớp đã kết thúc ⇒ dừng ngay, TRƯỚC cả phép kiểm mở khoá bài học. Chấm ở đây là một
+        // đường GHI: trả lời đúng hết sẽ ghi ComponentProgress. 409 chứ không 404 — trạng thái
+        // lớp là chuyện sinh viên biết rõ, khác hẳn ca không-thuộc-về-mình.
+        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, enrollmentId.Value, ct))
+            return Result<CheckInlineQuestionsResultDto>.Conflict(
+                OfferingLock.ThongDiep("chấm câu hỏi"));
+
         // Có tên trong lớp chưa đủ — bài học phải đã mở khoá. Cùng lý do với việc `my-progress`
         // không gửi nội dung của bài đang khoá: chặn ở một đầu mà để hở đầu kia thì cái khoá
         // không tồn tại. 404 chứ không phải 403, giữ đúng quy ước của dự án.
@@ -144,7 +151,12 @@ public sealed class CheckInlineQuestionsCommandHandler(IAppDbContext db, ISender
         if (dungHet)
         {
             var danhDau = await sender.Send(
-                new CompleteComponentCommand(request.ComponentId, request.UserId), ct);
+                new CompleteComponentCommand(request.ComponentId, request.UserId)
+                {
+                    // Đường DUY NHẤT được phép đánh dấu xong một checkpoint_quiz có câu hỏi:
+                    // tới được đây nghĩa là sinh viên đã trả lời và trả lời ĐÚNG HẾT.
+                    QuaDuongCham = true,
+                }, ct);
 
             daXong = danhDau.IsSuccess;
         }

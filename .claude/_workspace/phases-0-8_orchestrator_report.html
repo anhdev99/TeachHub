@@ -183,45 +183,82 @@ tác tay trên UI thật — đúng như DoD của roadmap dự đoán.</p>
 <code>POST /api/offerings</code> nhận <code>subject_id</code> trong thân yêu cầu, nên về nguyên tắc
 giảng viên B có thể mở lớp trên môn của A. Mã hiện tại lọc đúng, nhưng trước đó không có gì canh.</p>
 
-<h2 id="con-no">5. Còn nợ</h2>
+<h2 id="con-no">5. Đã đóng xong sau khi viết báo cáo lần đầu</h2>
+
+<p class="quiet">Bốn mục dưới đây từng nằm ở phần "còn nợ". Chúng đã được làm xong; giữ lại ở đây
+để ai đọc bản cũ không đi làm lại.</p>
+
+<div class="wrap">
+<table>
+<tr><th>Mục</th><th>Đã làm gì</th></tr>
+<tr><td>Cách ly sinh viên ↔ sinh viên</td><td><code>CrossStudentIsolationTests</code>: 27 dòng × 4 request, phủ 29/30 endpoint sinh viên. Không có lỗ hổng thật.</td></tr>
+<tr><td>Chấm câu hỏi nhúng</td><td><code>POST /api/lesson-components/{id}/check</code> + cờ <code>multi_select</code> trên <code>InlineQuestionDto</code>.</td></tr>
+<tr><td>Đóng lớp</td><td><code>POST /api/offerings/{id}/close</code>, đổi trạng thái và chốt sổ trong cùng một lệnh.</td></tr>
+<tr><td>Test <code>GenerateThumbnailJob</code></td><td>7 ca phủ phần đọc–ghi.</td></tr>
+</table>
+</div>
+
+<h2>6. Lỗ hổng tìm ra sau đó, đã sửa</h2>
+
+<div class="card bug">
+<h3 style="margin-top:0">Hợp đồng API nói dối về giá trị <code>null</code></h3>
+<p style="margin-bottom:0"><code>AddJsonOptions</code> có <code>DefaultIgnoreCondition = WhenWritingNull</code>,
+còn <code>ConfigureHttpJsonOptions</code> (thứ sinh schema) thì không. Tài liệu khai <code>score</code>
+là trường <strong>bắt buộc</strong> kiểu <code>["null","number"]</code>, còn phản hồi thật bỏ hẳn
+khoá. Frontend viết <code>score === null</code> để hỏi "chấm chưa" và biểu thức đó <strong>không bao
+giờ đúng</strong> — nút "Trả bài cho sinh viên" mở khoá trên bài <strong>chưa chấm</strong>.</p>
+</div>
+
+<div class="card bug">
+<h3 style="margin-top:0">Nội dung bài đang khoá vẫn được gửi xuống</h3>
+<p style="margin-bottom:0"><code>my-progress</code> trả về <code>html</code>, <code>file_url</code>,
+<code>ref_id</code> và <code>inline_questions</code> bất kể <code>access == locked</code>. Ổ khoá
+chỉ tồn tại ở giao diện; gọi thẳng API là đọc hết cả môn, nên toàn bộ <code>UnlockEngine</code> chỉ
+là trang trí. Đã tước nội dung ở đường đọc và khoá luôn đường chấm.</p>
+</div>
+
+<div class="card bug">
+<h3 style="margin-top:0"><code>OfferingStatus.Closed</code> không khoá gì cả</h3>
+<p style="margin-bottom:0">Không chỗ nào trong repo đọc tới nó. Đóng lớp xong sinh viên vẫn nộp
+bài, vẫn làm trắc nghiệm, vẫn đánh dấu tiến độ — và bản chốt "tại thời điểm đóng" đối chiếu với một
+sổ điểm còn tiếp tục đổi sau lưng nó. Nay <strong>11 đường ghi của sinh viên</strong> trả 409 kèm
+lý do đọc được. <strong>Không</strong> khoá đường đọc, và <strong>không</strong> khoá giảng viên
+chấm bài — chấm thường diễn ra sau khi lớp kết thúc, chặn giảng viên nghĩa là không ai dám đóng lớp.</p>
+</div>
+
+<div class="card bug">
+<h3 style="margin-top:0">Tự đánh dấu xong bài trắc nghiệm chưa trả lời</h3>
+<p style="margin-bottom:0">Sinh viên bấm "Đánh dấu đã xong" là qua, không cần trả lời câu nào — nên
+"phần bắt buộc đã hoàn thành" không chứng minh được gì và vẫn mở khoá bài kế tiếp. Nay chỉ đường
+chấm mới đánh dấu được, và chỉ khi đúng hết. Vẫn chừa ca dữ liệu cũ không tải được câu hỏi, nếu
+không thì sinh viên bị nhốt lại.</p>
+</div>
+
+<h2 id="con-lai">7. Còn lại</h2>
 
 <div class="card flag">
-<h3 style="margin-top:0">1. Chưa có ma trận cách ly sinh viên ↔ sinh viên</h3>
-<p style="margin-bottom:0"><strong>Đây là mục đáng lo nhất.</strong> Ma trận hiện có chỉ canh hướng
-giảng viên ↔ giảng viên. 25 endpoint <code>Policies.Student</code> nằm ngoài phạm vi, vì giảng viên
-B bị chặn ở tầng policy trước khi handler chạy. Nhưng <strong>sinh viên B qua được tầng policy</strong>
-(cùng vai), nên mỗi handler phải tự lọc <code>enrollment_id</code>/<code>offering_id</code> — và
-hiện không có gì canh việc đó. Một khác biệt khiến nó không phải bản sao của ma trận cũ: khi hai
-client cùng vai Student, nhiều endpoint trả <strong>200 với thân rỗng</strong> chứ không phải 404,
-nên ma trận đó phải khẳng định cả nội dung chứ không chỉ mã trạng thái.</p>
+<h3 style="margin-top:0">CI chạy được nhưng job không được cấp máy</h3>
+<p style="margin-bottom:0">Đã đẩy lên GitHub; workflow kích hoạt nhưng lượt chạy kết thúc sau
+<strong>5 giây với 0 bước</strong> — dấu hiệu giới hạn tài khoản GitHub Actions, không phải lỗi mã.
+Ba lệnh của job frontend đã chạy tay tại máy và qua hết. Cần chủ repo kiểm phần Actions/Billing rồi
+bấm <em>Re-run jobs</em>.</p>
 </div>
 
 <div class="card flag">
-<h3 style="margin-top:0">2. Chưa có endpoint chấm câu hỏi nhúng</h3>
-<p style="margin-bottom:0">Trắc nghiệm nhúng trong bài học hiện được câu hỏi và cho chọn, nhưng
-<strong>không chấm và không lưu</strong> — và màn hình nói thẳng điều đó với sinh viên. Cố ý:
-payload chỉ có <code>{index, text, options}</code>, đáp án đúng không rời máy chủ. Chấm ở client
-thì phải gửi đáp án xuống, tức là cả lớp mở DevTools ra đọc. Kèm theo, khi làm endpoint này phải
-thêm <strong>cờ phân biệt chọn-một / chọn-nhiều</strong> vào <code>InlineQuestionDto</code>: domain
-lưu <code>CorrectIndexes</code> là danh sách nên câu nhiều đáp án có thật, còn DTO hiện không nói
-được câu nào là loại nào — thiếu cờ đó thì câu nhiều đáp án bị chấm sai một cách lặng lẽ.</p>
+<h3 style="margin-top:0">Chưa có đường nộp đồ án cuối môn</h3>
+<p style="margin-bottom:0">Domain đã có <code>SlotOwnerType.FinalAssessment</code> và
+<code>Submission.FinalAssessmentId</code>, controller có endpoint tạo đợt và tạo slot, nhưng
+<strong>không có endpoint nào cho sinh viên nộp</strong>. Là tính năng còn thiếu, không phải lỗi —
+và khi viết nó thì phải nhớ gọi <code>OfferingLock</code>.</p>
 </div>
 
 <div class="card flag">
-<h3 style="margin-top:0">3. Chưa có endpoint đóng lớp</h3>
-<p style="margin-bottom:0">Plan Phase 4b giả định lớp chuyển sang <code>Closed</code> thì tự chốt
-một bản sổ điểm, nhưng repo không có endpoint đổi <code>OfferingStatus</code>. Nên
-<code>TakeGradeSnapshotCommand</code> hiện là hành động tường minh, chưa nối vào việc đóng lớp.
-Đi kèm mục này: thẻ lớp ở <code>offerings/page.tsx</code> in thẳng giá trị enum tiếng Anh cho mọi
-trạng thái khác <code>active</code>, nên sẽ hiện chữ "closed" ngay khi endpoint đóng lớp tồn tại.</p>
-</div>
-
-<div class="card flag">
-<h3 style="margin-top:0">4. Hai chỗ thiếu test</h3>
-<p style="margin-bottom:0"><code>GenerateThumbnailJob</code> chưa có test đầu-cuối phần đọc–ghi
-(CSDL → lưu trữ → ghi <code>thumbnail_path</code>); phần xử lý ảnh và phần luật thì đã có test
-thuần. Ngoài ra CI trên GitHub <strong>chưa từng chạy</strong> — repo có remote thật, nhưng đẩy mã
-lên là hành động hướng ra ngoài nên tôi để lại cho anh quyết.</p>
+<h3 style="margin-top:0">Hai chỗ cố ý để ngỏ</h3>
+<p style="margin-bottom:0"><code>POST /offerings/{id}/my-gamification/sync</code> không bị khoá khi
+lớp đóng: nó tính lại XP từ hoạt động đã có chứ không nhận dữ liệu mới, và giao diện có thể gọi lúc
+mở trang — khoá nó có thể làm hỏng trang gamification sau khi lớp kết thúc. Cần quyết định sản phẩm.
+Và <code>POST /review/items/{id}/answer</code>: hàng đợi ôn tập gắn với người dùng chứ không gắn lớp,
+nên nằm ngoài khái niệm "lớp đã đóng".</p>
 </div>
 
 <h3>Vì sao Phase 9 chưa làm</h3>
