@@ -265,8 +265,8 @@ public sealed class JoinGroupHandler(IAppDbContext db) : ICommandHandler<JoinGro
         // trắc nghiệm, dù nó nằm ở feature khác. Thiếu dòng này thì sinh viên vẫn đổi được cơ
         // cấu nhóm của một lớp đã chốt sổ điểm, tức là đổi cả cách chia điểm nhóm sau khi bản
         // chốt đã ký.
-        if (await OfferingLock.DaDongAsync(db, nhom.OfferingId, ct))
-            return Result.Conflict(OfferingLock.ThongDiep("vào nhóm"));
+        if (await OfferingLock.IsClosedAsync(db, nhom.OfferingId, ct))
+            return Result.Conflict(OfferingLock.ClosedMessage("vào nhóm"));
 
         if (await db.GroupMembers.AnyAsync(m => m.EnrollmentId == ghiDanh, ct))
             return Result.Conflict("Bạn đã ở trong một nhóm của lớp này.");

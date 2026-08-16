@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyOfferingDto } from "@/lib/api/types";
 import { NhapMaLop } from "./nhap-ma-lop";
@@ -27,22 +27,22 @@ export default async function LearnPage() {
   const offerings: MyOfferingDto[] = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Lớp của tôi"
-        moTa="Chọn một lớp để mở trang học."
+    <PageShell>
+      <PageHeader
+        title="Lớp của tôi"
+        description="Chọn một lớp để mở trang học."
         // Khi chưa có lớp nào thì nút này chuyển xuống trạng thái rỗng: đặt cả hai chỗ là
         // hai nút giống hệt nhau trên cùng một màn hình, và người dùng phải đoán xem chúng
         // có làm cùng một việc không.
-        hanhDong={offerings.length > 0 ? <NhapMaLop /> : undefined}
+        actions={offerings.length > 0 ? <NhapMaLop /> : undefined}
       />
 
       {offerings.length === 0 ? (
-        <TrongRong
+        <EmptyState
           Icon={GraduationCap}
-          tieuDe="Bạn chưa vào lớp nào"
-          moTa="Giảng viên đọc mã lớp gồm 6 ký tự trên lớp. Nhập mã đó để vào lớp đầu tiên của bạn."
-          hanhDong={<NhapMaLop />}
+          title="Bạn chưa vào lớp nào"
+          description="Giảng viên đọc mã lớp gồm 6 ký tự trên lớp. Nhập mã đó để vào lớp đầu tiên của bạn."
+          action={<NhapMaLop />}
         />
       ) : (
         <Card>
@@ -78,6 +78,6 @@ export default async function LearnPage() {
           </CardContent>
         </Card>
       )}
-    </Trang>
+    </PageShell>
   );
 }

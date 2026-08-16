@@ -2,9 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace TeachHub.Application.Common;
 
-// Invalid → 400 và PayloadTooLarge → 413 là hai trạng thái các phase sau BẮT BUỘC phải có:
-// Phase 3 dùng Invalid khi thiếu slot bắt buộc, PayloadTooLarge khi file vượt dung lượng slot.
-// Thiếu chúng ở đây thì Phase 3 và 4b không biên dịch được.
+// Invalid → 400 and PayloadTooLarge → 413 are two states the later phases absolutely REQUIRE:
+// Phase 3 uses Invalid when a mandatory slot is missing, and PayloadTooLarge when a file exceeds
+// the slot's size limit. Leave them out here and Phases 3 and 4b will not compile.
 public enum ResultStatus { Ok, Invalid, NotFound, Conflict, Forbidden, Unauthorized, PayloadTooLarge }
 
 public sealed class Result
@@ -33,11 +33,11 @@ public sealed class Result<T>
     public T? Value { get; }
     public string? Error { get; }
 
-    // [MemberNotNullWhen] là BẮT BUỘC, không phải trang trí. Value khai là T? nên nếu thiếu
-    // attribute này, mọi chỗ viết theo khuôn
-    //     if (!kq.IsSuccess) return ToActionResult(kq);
-    //     return File(kq.Value.Content, ...);
-    // đều đứt build với CS8602 vì TreatWarningsAsErrors đang bật.
+    // [MemberNotNullWhen] is MANDATORY here, not decoration. Value is declared as T?, so without
+    // this attribute every call site written in the standard shape
+    //     if (!result.IsSuccess) return ToActionResult(result);
+    //     return File(result.Value.Content, ...);
+    // breaks the build with CS8602, because TreatWarningsAsErrors is switched on.
     [MemberNotNullWhen(true, nameof(Value))]
     public bool IsSuccess => Status == ResultStatus.Ok;
 

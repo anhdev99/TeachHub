@@ -12,11 +12,13 @@ public sealed class XpRuleConfiguration : IEntityTypeConfiguration<XpRule>
     {
         b.HasKey(x => x.Id);
 
-        // Enum xuống DB LUÔN là chuỗi. EF mặc định map ra integer, và khi đó mọi CHECK viết
-        // bằng chuỗi chết ngay lúc apply migration vì so sánh integer = text.
+        // An enum going down to the DB is ALWAYS a string. EF maps to integer by default, and
+        // then every CHECK written with strings dies the moment the migration is applied,
+        // because it compares integer = text.
         b.Property(x => x.EventType).HasConversion<string>().HasMaxLength(32);
 
-        // MinValue so với điểm quiz (thang 10) LẪN số ngày streak, nên KHÔNG kẹp về [0, 10].
+        // MinValue is compared against quiz scores (the 0–10 scale) AND against streak day counts,
+        // so it is NOT clamped to [0, 10].
         b.Property(x => x.MinValue).HasPrecision(5, 2);
 
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
@@ -46,9 +48,10 @@ public sealed class XpEventConfiguration : IEntityTypeConfiguration<XpEvent>
         b.HasOne<Enrollment>().WithMany().HasForeignKey(x => x.EnrollmentId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Bất biến chống cộng trùng phải do DATABASE giữ, không phải do handler nhớ. Không có
-        // unique index này thì mỗi lần đồng bộ lại là một lần cộng thêm, và trò "đánh dấu xong
-        // rồi bỏ đánh dấu" thành máy in XP vô hạn — lỗ hổng số một của mọi hệ gamification.
+        // The anti-double-award invariant has to be held by the DATABASE, not by the handler
+        // remembering it. Without this unique index every re-sync awards the points again, and
+        // the "mark as done, then un-mark it" trick becomes an infinite XP printer — the number
+        // one hole in every gamification system.
         b.HasIndex(x => new { x.EnrollmentId, x.DedupeKey }).IsUnique();
 
         b.HasIndex(x => new { x.EnrollmentId, x.OccurredAt });
@@ -71,11 +74,12 @@ public sealed class BadgeConfiguration : IEntityTypeConfiguration<Badge>
         b.HasOne<AppUser>().WithMany().HasForeignKey(x => x.InstructorId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Conditions là cột jsonb chứa HAI enum. EF dùng JsonValueReaderWriter riêng cho cột
-        // ToJson() và KHÔNG đọc JsonStringEnumConverter của tầng HTTP, nên phải khai
-        // .HasConversion<string>() cho TỪNG enum. Thiếu một dòng thì jsonb lưu {"Metric": 5}:
-        // không lỗi, không test đỏ, nhưng ngày ai đó chèn một giá trị vào giữa BadgeMetric là
-        // toàn bộ điều kiện huy hiệu đã lưu đổi nghĩa — "đạt 100 XP" thành "nộp trễ 100 lần".
+        // Conditions is a jsonb column containing TWO enums. EF uses a dedicated
+        // JsonValueReaderWriter for a ToJson() column and does NOT read the HTTP layer's
+        // JsonStringEnumConverter, so EACH enum needs its own .HasConversion<string>(). Miss one
+        // line and the jsonb stores {"Metric": 5}: no error, no failing test, but the day someone
+        // inserts a value into the middle of BadgeMetric, every stored badge condition changes
+        // meaning — "reach 100 XP" becomes "submit late 100 times".
         b.OwnsMany(x => x.Conditions, c =>
         {
             c.ToJson();
@@ -85,7 +89,7 @@ public sealed class BadgeConfiguration : IEntityTypeConfiguration<Badge>
 
         b.HasIndex(x => new { x.InstructorId, x.Code }).IsUnique();
 
-        // Cùng khuôn với ck_grade_column_key_slug: mã là slug ổn định để giao diện tra cứu.
+        // Same shape as ck_grade_column_key_slug: the code is a stable slug the UI looks up by.
         b.ToTable(t => t.HasCheckConstraint("ck_badges_code_slug", "code ~ '^[a-z0-9_]+$'"));
     }
 }
@@ -101,8 +105,9 @@ public sealed class EarnedBadgeConfiguration : IEntityTypeConfiguration<EarnedBa
         b.HasOne<Enrollment>().WithMany().HasForeignKey(x => x.EnrollmentId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Đã trao thì không trao lại. Trao hai lần cùng một huy hiệu là lỗi hiển thị mà sinh
-        // viên chụp màn hình gửi ngay, và nó cũng làm mọi phép đếm huy hiệu sai theo.
+        // Once awarded, never awarded again. Granting the same badge twice is the kind of display
+        // bug a student screenshots and sends immediately, and it also throws off every badge
+        // count that follows.
         b.HasIndex(x => new { x.EnrollmentId, x.BadgeId }).IsUnique();
     }
 }
@@ -118,8 +123,9 @@ public sealed class OfferingGamificationSettingsConfiguration
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Một lớp có đúng MỘT cấu hình. Không có unique index thì hai lần bấm lưu tạo hai hàng,
-        // và lớp chạy theo hàng nào là tùy câu truy vấn — kể cả cờ hiện tên thật.
+        // A class offering has exactly ONE settings row. Without the unique index, hitting save
+        // twice creates two rows, and which one the class actually runs on depends on the query —
+        // including the flag that reveals students' real names.
         b.HasIndex(x => x.OfferingId).IsUnique();
 
         b.ToTable(t => t.HasCheckConstraint(

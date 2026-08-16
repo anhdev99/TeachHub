@@ -34,15 +34,15 @@ public sealed class ChangePasswordCommandHandler(
         var user = await users.FindByIdAsync(request.UserId.ToString());
         if (user is null) return Result.NotFound("Không tìm thấy tài khoản.");
 
-        var kq = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
-        if (!kq.Succeeded)
-            return Result.Invalid(string.Join(" ", kq.Errors.Select(e => e.Description)));
+        var changeResult = await users.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!changeResult.Succeeded)
+            return Result.Invalid(string.Join(" ", changeResult.Errors.Select(e => e.Description)));
 
         user.MustChangePassword = false;
         await users.UpdateAsync(user);
 
-        // Thu hồi TOÀN BỘ refresh token: đổi mật khẩu mà phiên cũ vẫn sống thì việc đổi
-        // gần như vô nghĩa — người đang chiếm tài khoản vẫn ở nguyên trong đó.
+        // Revoke EVERY refresh token: changing the password while the old sessions stay alive
+        // makes the change nearly pointless — whoever took over the account is still sitting in it.
         await db.RefreshTokens
             .Where(t => t.UserId == user.Id && t.RevokedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, clock.GetUtcNow()), ct);

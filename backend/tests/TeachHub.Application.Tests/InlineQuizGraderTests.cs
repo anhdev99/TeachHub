@@ -4,79 +4,80 @@ using TeachHub.Application.Features.Learning;
 namespace TeachHub.Application.Tests;
 
 /// <summary>
-/// Luật chấm câu hỏi nhúng phải nằm ở ĐÚNG MỘT chỗ, vì nó được đọc từ hai đường: đường trả
-/// payload bài học (cờ <c>multi_select</c>) và đường chấm. Hai bản sao chép sẽ lệch nhau đúng
-/// vào ngày ai đó thêm một đáp án đúng thứ hai cho một câu — và triệu chứng là câu đó chấm sai
-/// cho cả lớp mà không có lỗi nào trong log.
+/// The rule for grading inline questions has to live in EXACTLY ONE place, because it is read
+/// from two directions: the path that returns the lesson payload (the <c>multi_select</c> flag)
+/// and the path that grades. Two copies will drift apart on precisely the day someone adds a
+/// second correct answer to a question — and the symptom is that question grading wrong for the
+/// entire class with no error anywhere in the logs.
 /// </summary>
 public class InlineQuizGraderTests
 {
     [Fact]
-    public void Mot_dap_an_dung_thi_khong_phai_cau_chon_nhieu()
+    public void One_correct_answer_does_not_make_it_a_multi_select_question()
     {
         InlineQuizGrader.IsMultiSelect([1]).ShouldBeFalse();
     }
 
     [Fact]
-    public void Hai_dap_an_dung_tro_len_la_cau_chon_nhieu()
+    public void Two_or_more_correct_answers_make_it_a_multi_select_question()
     {
         InlineQuizGrader.IsMultiSelect([0, 2]).ShouldBeTrue();
     }
 
     [Fact]
-    public void Chon_dung_mot_dap_an_thi_dung()
+    public void Picking_the_one_right_option_is_correct()
     {
         InlineQuizGrader.IsCorrect([1], [1]).ShouldBeTrue();
     }
 
     [Fact]
-    public void Chon_sai_thi_sai()
+    public void Picking_the_wrong_option_is_incorrect()
     {
         InlineQuizGrader.IsCorrect([1], [0]).ShouldBeFalse();
     }
 
     [Fact]
-    public void Cau_chon_mot_ma_chon_hai_phuong_an_la_SAI_chu_khong_phai_dung_mot_nua()
+    public void Selecting_two_options_on_a_single_answer_question_is_WRONG_not_half_right()
     {
-        // Cùng luật với QuizGrader.ChamMotDapAn của Phase 5: nhận bừa phương án đầu tiên là
-        // nới tay cho người chọn hú họa.
+        // The same rule as QuizGrader's single-choice grading in Phase 5: silently accepting the
+        // first option would be going easy on someone guessing blindly.
         InlineQuizGrader.IsCorrect([1], [0, 1]).ShouldBeFalse();
     }
 
     [Fact]
-    public void Cau_chon_nhieu_phai_chon_DU_moi_dap_an_dung()
+    public void A_multi_select_question_requires_EVERY_correct_answer()
     {
         InlineQuizGrader.IsCorrect([0, 2], [0]).ShouldBeFalse();
         InlineQuizGrader.IsCorrect([0, 2], [0, 2]).ShouldBeTrue();
-        // Thứ tự gửi lên không có nghĩa: đây là tập hợp, không phải danh sách.
+        // The order they arrive in means nothing: this is a set, not a list.
         InlineQuizGrader.IsCorrect([0, 2], [2, 0]).ShouldBeTrue();
     }
 
     [Fact]
-    public void Chon_du_dap_an_dung_nhung_thua_mot_phuong_an_sai_thi_van_SAI()
+    public void Picking_every_correct_answer_plus_one_wrong_option_is_still_WRONG()
     {
         InlineQuizGrader.IsCorrect([0, 2], [0, 1, 2]).ShouldBeFalse();
     }
 
     [Fact]
-    public void Khong_tra_loi_thi_sai_chu_khong_no()
+    public void Not_answering_is_incorrect_rather_than_an_explosion()
     {
         InlineQuizGrader.IsCorrect([1], null).ShouldBeFalse();
         InlineQuizGrader.IsCorrect([1], []).ShouldBeFalse();
     }
 
     [Fact]
-    public void Chon_trung_lap_cung_mot_phuong_an_khong_lam_doi_ket_qua()
+    public void Selecting_the_same_option_twice_does_not_change_the_outcome()
     {
-        // Client gửi [1,1] là chuyện xảy ra khi người dùng bấm hai lần; đó vẫn là "chọn ô số 1".
+        // The client sending [1,1] happens when the user double-clicks; that is still "ticked box 1".
         InlineQuizGrader.IsCorrect([1], [1, 1]).ShouldBeTrue();
     }
 
     [Fact]
-    public void Cau_soan_thieu_dap_an_dung_thi_khong_bao_gio_cham_la_dung()
+    public void A_question_authored_without_a_correct_answer_is_never_graded_correct()
     {
-        // Dữ liệu hỏng do soạn thiếu. Chấm "đúng" cho mọi bài làm ở đây là cách âm thầm nhất
-        // để một câu hỏi vô nghĩa mở khoá bài kế tiếp.
+        // Corrupt data from an incomplete authoring pass. Grading every submission "correct" here
+        // is the quietest possible way for a meaningless question to unlock the next lesson.
         InlineQuizGrader.IsCorrect([], []).ShouldBeFalse();
         InlineQuizGrader.IsCorrect([], [0]).ShouldBeFalse();
     }

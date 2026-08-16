@@ -8,27 +8,27 @@ using TeachHub.Domain.Teaching;
 namespace TeachHub.Application.Features.Offerings.Commands.CloseOffering;
 
 /// <param name="Snapshot">
-/// Bản chốt sổ điểm sinh ra bởi CHÍNH lệnh này. <c>null</c> khi lớp chưa từng khởi tạo sổ điểm —
-/// xem <paramref name="SnapshotSkippedReason"/>.
+/// The gradebook snapshot produced by THIS command. <c>null</c> when the offering never had a
+/// gradebook set up at all — see <paramref name="SnapshotSkippedReason"/>.
 /// </param>
 /// <param name="SnapshotSkippedReason">
-/// Vì sao không có bản chốt. Trả về đúng một chữ "closed" rồi im lặng là để giảng viên tự đoán
-/// xem bảng điểm đã được lưu lại hay chưa — và họ sẽ đoán là rồi.
+/// Why there is no snapshot. Returning the single word "closed" and then staying silent leaves the
+/// instructor to guess whether the grade table was saved — and they will guess that it was.
 /// </param>
 public sealed record CloseOfferingResultDto(
     Guid OfferingId, OfferingStatus Status,
     GradeSnapshotDto? Snapshot, string? SnapshotSkippedReason);
 
 /// <summary>
-/// Đóng lớp học phần: <c>Active → Closed</c> VÀ chốt một bản sổ điểm trong CÙNG một lệnh
-/// (plan Phase 4b). Trước đây <c>OfferingStatus</c> có đủ ba giá trị nhưng không endpoint nào
-/// đổi được nó, nên <c>TakeGradeSnapshotCommand</c> không có ai gọi.
+/// Closes a course offering: <c>Active → Closed</c> AND takes a gradebook snapshot in the SAME
+/// command (Phase 4b plan). <c>OfferingStatus</c> used to carry all three values while no endpoint
+/// could actually change it, which left <c>TakeGradeSnapshotCommand</c> with no caller at all.
 ///
-/// Không dựng đường chốt sổ thứ hai: gọi lại đúng command đó, để con số trong bản chốt luôn
-/// bằng con số giảng viên nhìn thấy trên màn hình sổ điểm.
+/// No second snapshot path is built here: this re-calls that exact command, so the numbers inside
+/// the snapshot always equal the numbers the instructor sees on the gradebook screen.
 ///
-/// KHÔNG tự mở transaction — <c>TransactionBehavior</c> đã bọc mọi <c>ICommand</c>, và command
-/// lồng bên trong sẽ đi nhờ transaction đó.
+/// Do NOT open a transaction here — <c>TransactionBehavior</c> already wraps every
+/// <c>ICommand</c>, and the nested command rides along on that transaction.
 /// </summary>
 public sealed record CloseOfferingCommand : ICommand<Result<CloseOfferingResultDto>>
 {

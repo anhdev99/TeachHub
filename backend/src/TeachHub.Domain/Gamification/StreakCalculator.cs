@@ -1,12 +1,14 @@
 namespace TeachHub.Domain.Gamification;
 
 /// <param name="Current">
-/// Số ngày liên tiếp tính tới HÔM NAY (theo giờ của lớp). Còn "sống" nếu hoạt động gần nhất
-/// là hôm nay hoặc hôm qua — xem chú thích ân hạn trong <see cref="StreakCalculator.Compute"/>.
+/// The number of consecutive days up to TODAY (in the class's time zone). Still "alive" if the
+/// most recent activity was today or yesterday — see the grace-period note in
+/// <see cref="StreakCalculator.Compute"/>.
 /// </param>
 /// <param name="Longest">
-/// Kỷ lục dài nhất trong toàn bộ lịch sử. KHÔNG bị xóa khi chuỗi hiện tại đứt: huy hiệu đã
-/// trao theo kỷ lục thì không được phép biến mất chỉ vì sinh viên nghỉ một ngày vì ốm.
+/// The longest run across the entire history. NOT cleared when the current run breaks: a badge
+/// already awarded on the strength of that record must not vanish just because the student took
+/// a day off sick.
 /// </param>
 public sealed record StreakOutcome(int Current, int Longest, DateOnly? LastActiveLocalDate)
 {
@@ -14,24 +16,25 @@ public sealed record StreakOutcome(int Current, int Longest, DateOnly? LastActiv
 }
 
 /// <summary>
-/// Toàn bộ định nghĩa "ngày" của cơ chế streak nằm ở đây, thuần túy, không I/O.
+/// The entire definition of a "day" for the streak mechanism lives here, purely, with no I/O.
 ///
-/// QUYẾT ĐỊNH CỐT LÕI: một "ngày" là một NGÀY LỊCH ĐỊA PHƯƠNG theo múi giờ của lớp
-/// (<c>CourseOffering.TimeZoneId</c>, mặc định <c>Asia/Ho_Chi_Minh</c>), KHÔNG phải ngày UTC và
-/// cũng không phải "24 giờ kể từ lần trước". Hệ quả cụ thể, đã khóa bằng test:
-/// học lúc 23:50 rồi 00:10 hôm sau là HAI ngày (đúng như sinh viên tự đếm), trong khi tính theo
-/// UTC chỉ ra MỘT vì cả hai mốc đều rơi vào 16:50Z và 17:10Z cùng ngày.
-/// Chọn nhầm múi giờ không làm lệch một chút — nó xóa hẳn một ngày khỏi chuỗi, và sinh viên
-/// phát hiện ngay lập tức.
+/// THE CORE DECISION: a "day" is a LOCAL CALENDAR DAY in the class's time zone
+/// (<c>CourseOffering.TimeZoneId</c>, defaulting to <c>Asia/Ho_Chi_Minh</c>), NOT a UTC day and
+/// not "24 hours since the last time" either. The concrete consequence, locked down by tests:
+/// studying at 23:50 and then at 00:10 the next day is TWO days (exactly how the student counts
+/// it), whereas counting in UTC gives ONE because both instants land on 16:50Z and 17:10Z of the
+/// same day. Picking the wrong time zone does not shift things slightly — it erases a whole day
+/// from the run, and students notice immediately.
 /// </summary>
 public static class StreakCalculator
 {
     public const string DefaultTimeZoneId = "Asia/Ho_Chi_Minh";
 
     /// <summary>
-    /// <c>TimeZoneId</c> là chuỗi tự do trong DB nên có thể sai (gõ nhầm, import, đổi tên vùng
-    /// giữa các bản ICU). Ném ngoại lệ ở đây là để MỘT dòng dữ liệu hỏng làm sập trang tiến độ
-    /// của cả lớp; lùi về giờ Việt Nam thì sai lệch nhiều nhất là vài giờ với một lớp ở múi khác.
+    /// <c>TimeZoneId</c> is a free-form string in the DB, so it can be wrong (a typo, an import, a
+    /// zone renamed between ICU releases). Throwing here would let ONE bad row take down the
+    /// progress page for the whole class; falling back to Vietnam time is off by a few hours at
+    /// worst for a class in another zone.
     /// </summary>
     public static TimeZoneInfo ResolveZone(string? timeZoneId)
     {
@@ -43,7 +46,7 @@ public static class StreakCalculator
             }
             catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException)
             {
-                // Rơi xuống mặc định bên dưới.
+                // Fall through to the default below.
             }
         }
 
@@ -53,64 +56,65 @@ public static class StreakCalculator
         }
         catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException)
         {
-            // Máy chủ không có CSDL múi giờ (InvariantGlobalization bật nhầm ở đâu đó).
-            // UTC vẫn cho ra kết quả dùng được thay vì làm hỏng cả tính năng.
+            // The server has no time zone database (InvariantGlobalization switched on somewhere
+            // by mistake). UTC still gives a usable result instead of breaking the whole feature.
             return TimeZoneInfo.Utc;
         }
     }
 
-    /// <summary>Ngày lịch tại địa phương của một mốc thời gian tuyệt đối.</summary>
+    /// <summary>The local calendar date of an absolute instant.</summary>
     public static DateOnly LocalDateOf(DateTimeOffset moment, TimeZoneInfo zone) =>
         DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(moment, zone).DateTime);
 
     /// <summary>
-    /// <paramref name="activityMoments"/> không cần sắp xếp sẵn: thứ tự do câu truy vấn quyết
-    /// định, mà kết quả streak thì không được phép phụ thuộc vào nó.
+    /// <paramref name="activityMoments"/> does not have to be sorted beforehand: the order is
+    /// whatever the query decides, and the streak result must never depend on it.
     ///
-    /// ÂN HẠN TỚI HẾT NGÀY: nếu hôm nay chưa có hoạt động nhưng hôm qua có, chuỗi vẫn được tính
-    /// là còn sống. Không có ân hạn này thì mọi sinh viên mở trang lúc 7 giờ sáng đều thấy
-    /// streak = 0, tưởng mình vừa mất chuỗi, và không ai còn tin con số đó nữa.
+    /// GRACE UNTIL THE END OF THE DAY: if there is no activity today but there was one yesterday,
+    /// the run still counts as alive. Without this grace period every student who opens the page
+    /// at 7 in the morning sees streak = 0, believes they have just lost their run, and nobody
+    /// trusts that number again.
     /// </summary>
     public static StreakOutcome Compute(
         IEnumerable<DateTimeOffset> activityMoments, TimeZoneInfo zone, DateTimeOffset now)
     {
-        // Gom về NGÀY ĐỊA PHƯƠNG trước khi so sánh bất cứ thứ gì. Nhiều hoạt động trong cùng
-        // một ngày chỉ đáng một ngày streak — học chăm gấp đôi không mua thêm được ngày nào.
-        var ngay = new HashSet<DateOnly>();
-        foreach (var thoiDiem in activityMoments) ngay.Add(LocalDateOf(thoiDiem, zone));
+        // Collapse to LOCAL DAYS before comparing anything. Several activities within the same day
+        // are worth exactly one streak day — studying twice as hard does not buy an extra day.
+        var days = new HashSet<DateOnly>();
+        foreach (var moment in activityMoments) days.Add(LocalDateOf(moment, zone));
 
-        if (ngay.Count == 0) return StreakOutcome.None;
+        if (days.Count == 0) return StreakOutcome.None;
 
-        var theoThuTu = ngay.Order().ToList();
-        var homNay = LocalDateOf(now, zone);
+        var ordered = days.Order().ToList();
+        var today = LocalDateOf(now, zone);
 
-        // ── Kỷ lục dài nhất: quét toàn bộ lịch sử ────────────────────────────────────────
-        var daiNhat = 1;
-        var chuoi = 1;
+        // ── Longest record: scan the entire history ───────────────────────────────────────
+        var longest = 1;
+        var run = 1;
 
-        for (var i = 1; i < theoThuTu.Count; i++)
+        for (var i = 1; i < ordered.Count; i++)
         {
-            chuoi = theoThuTu[i] == theoThuTu[i - 1].AddDays(1) ? chuoi + 1 : 1;
-            if (chuoi > daiNhat) daiNhat = chuoi;
+            run = ordered[i] == ordered[i - 1].AddDays(1) ? run + 1 : 1;
+            if (run > longest) longest = run;
         }
 
-        // ── Chuỗi hiện tại: đếm ngược từ mốc neo ─────────────────────────────────────────
-        DateOnly? neo = ngay.Contains(homNay) ? homNay
-                      : ngay.Contains(homNay.AddDays(-1)) ? homNay.AddDays(-1)
-                      : null;
+        // ── Current run: count backwards from the anchor ──────────────────────────────────
+        DateOnly? anchor = days.Contains(today) ? today
+                         : days.Contains(today.AddDays(-1)) ? today.AddDays(-1)
+                         : null;
 
-        var hienTai = 0;
+        var current = 0;
 
-        if (neo is { } moc)
+        if (anchor is { } anchorDay)
         {
-            var d = moc;
-            while (ngay.Contains(d))
+            var d = anchorDay;
+            while (days.Contains(d))
             {
-                hienTai++;
+                current++;
                 d = d.AddDays(-1);
             }
         }
 
-        return new StreakOutcome(hienTai, daiNhat, theoThuTu[^1]);
+        return new StreakOutcome(current, longest, ordered[^1]);
     }
 }

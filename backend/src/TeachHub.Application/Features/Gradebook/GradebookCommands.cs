@@ -7,7 +7,7 @@ using TeachHub.Domain.Grading;
 
 namespace TeachHub.Application.Features.Gradebook;
 
-// ── Cấu hình cột điểm ───────────────────────────────────────────────────────────────────
+// ── Grade column configuration ──────────────────────────────────────────────────────────
 
 public sealed record GradeColumnInput(
     Guid? Id, string Key, string Name, decimal WeightPercent, int OrderIndex,
@@ -33,8 +33,9 @@ public sealed class UpdateGradeColumnsValidator : AbstractValidator<UpdateGradeC
             c.RuleFor(y => y.WeightPercent).InclusiveBetween(0m, 100m);
         });
 
-        // Luật thuần hình dạng trên chính payload — cả bộ cột gửi trong một request nên nó tự
-        // đủ dữ liệu ⇒ thuộc validator, chạy TRƯỚC khi TransactionBehavior mở transaction.
+        // A pure shape rule over the payload itself — the whole set of columns arrives in one
+        // request, so the rule is self-contained ⇒ it belongs in the validator, and it runs BEFORE
+        // TransactionBehavior opens a transaction.
         RuleFor(x => x.Columns)
             .Must(c => c.Sum(y => y.WeightPercent) == 100m)
             .WithMessage(x => $"Tổng trọng số phải bằng 100%, hiện tại là {x.Columns.Sum(y => y.WeightPercent)}%.");

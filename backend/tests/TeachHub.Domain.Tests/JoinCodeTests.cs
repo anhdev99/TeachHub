@@ -6,30 +6,30 @@ namespace TeachHub.Domain.Tests;
 public class JoinCodeTests
 {
     [Fact]
-    public void Ma_gom_6_ky_tu_viet_hoa_hoac_so()
+    public void Code_is_6_uppercase_letters_or_digits()
     {
         JoinCode.Generate().Length.ShouldBe(6);
         JoinCode.Generate().ShouldAllBe(c => char.IsUpper(c) || char.IsDigit(c));
     }
 
     [Fact]
-    public void Ma_khong_chua_ky_tu_de_nham_khi_doc_to_tren_lop()
+    public void Code_excludes_characters_easily_misheard_when_read_aloud_in_class()
     {
-        // Giảng viên sẽ đọc mã này to cho cả lớp gõ theo. 0/O và 1/I/L gây gõ sai
-        // nhiều tới mức đủ làm hỏng cả buổi học đầu tiên.
-        var mau = string.Concat(Enumerable.Range(0, 500).Select(_ => JoinCode.Generate()));
+        // The instructor reads this code out loud for the whole class to type in. 0/O and 1/I/L
+        // cause enough mistyping to ruin an entire first session.
+        var sample = string.Concat(Enumerable.Range(0, 500).Select(_ => JoinCode.Generate()));
 
-        mau.ShouldNotContain("0");
-        mau.ShouldNotContain("O");
-        mau.ShouldNotContain("1");
-        mau.ShouldNotContain("I");
-        mau.ShouldNotContain("L");
+        sample.ShouldNotContain("0");
+        sample.ShouldNotContain("O");
+        sample.ShouldNotContain("1");
+        sample.ShouldNotContain("I");
+        sample.ShouldNotContain("L");
     }
 
     [Fact]
-    public void Ma_sinh_ra_du_phan_tan()
+    public void Generated_codes_are_sufficiently_spread_out()
     {
-        var tap = Enumerable.Range(0, 1000).Select(_ => JoinCode.Generate()).ToHashSet();
-        tap.Count.ShouldBeGreaterThan(995);   // cho phép rất ít va chạm ngẫu nhiên
+        var set = Enumerable.Range(0, 1000).Select(_ => JoinCode.Generate()).ToHashSet();
+        set.Count.ShouldBeGreaterThan(995);   // allow a very small number of random collisions
     }
 }

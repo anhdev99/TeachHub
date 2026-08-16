@@ -4,10 +4,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { EmptyState, PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { SubjectDto } from "@/lib/api/types";
-import { TaoMonMoi } from "./tao-mon-moi";
+import { CreateSubject } from "./create-subject";
 
 export default async function SubjectsPage() {
   const token = (await cookies()).get(COOKIE_ACCESS)?.value;
@@ -22,20 +22,20 @@ export default async function SubjectsPage() {
   const subjects: SubjectDto[] = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Môn học"
-        moTa="Mỗi môn giữ nhiều phiên bản nội dung; lớp học phần ghim vào một phiên bản đã xuất bản."
-        hanhDong={<TaoMonMoi />}
+    <PageShell>
+      <PageHeader
+        title="Môn học"
+        description="Mỗi môn giữ nhiều phiên bản nội dung; lớp học phần ghim vào một phiên bản đã xuất bản."
+        actions={<CreateSubject />}
       />
 
       <Card>
         <CardContent>
           {subjects.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={BookOpen}
-              tieuDe="Chưa có môn học nào"
-              moTa="Tạo môn đầu tiên, soạn nội dung trong một phiên bản nháp, rồi xuất bản để mở lớp."
+              title="Chưa có môn học nào"
+              description="Tạo môn đầu tiên, soạn nội dung trong một phiên bản nháp, rồi xuất bản để mở lớp."
             />
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -58,9 +58,9 @@ export default async function SubjectsPage() {
                       </span>
                     </span>
 
-                    {/* Xanh = có bản đang dùng được để mở lớp; xám = mới chỉ có bản nháp.
-                        Đây là thông tin quyết định "mở lớp được chưa", nên nó phải đọc
-                        được từ danh sách chứ không phải bấm vào mới biết. */}
+                    {/* Green = there is a version usable for opening an offering; grey = drafts
+                        only. This is the fact that decides "can I open an offering yet", so it
+                        has to be readable from the list rather than only after clicking in. */}
                     {s.current_version_id ? (
                       <Badge className="bg-ok-soft text-ok border-ok/25 shrink-0 border">
                         Đã xuất bản
@@ -82,6 +82,6 @@ export default async function SubjectsPage() {
           )}
         </CardContent>
       </Card>
-    </Trang>
+    </PageShell>
   );
 }

@@ -8,17 +8,19 @@ using TeachHub.Domain.Integrity;
 namespace TeachHub.Application.Features.Integrity;
 
 /// <summary>
-/// Tính dấu vân tay Winnowing cho một tệp đã nộp (Phase 6a, Gap #14).
+/// Computes the Winnowing fingerprints of one submitted file (Phase 6a, Gap #14).
 ///
-/// Là <c>ICommand</c> chứ không phải <c>IQuery</c>: nó ghi. Nhờ marker <c>IBaseCommand</c>,
-/// <c>TransactionBehavior</c> bọc sẵn cả cụm "xóa dấu vân tay cũ + ghi dấu vân tay mới" trong
-/// một transaction — nửa chừng thất bại thì tệp mất sạch dấu vân tay và biến mất khỏi mọi báo
-/// cáo trùng lặp mà không có gì báo.
+/// An <c>ICommand</c> and not an <c>IQuery</c>: it writes. Thanks to the <c>IBaseCommand</c>
+/// marker, <c>TransactionBehavior</c> already wraps the whole "delete the old fingerprints +
+/// write the new ones" pair in a single transaction — fail halfway through and the file is left
+/// with no fingerprints at all and disappears from every similarity report with nothing
+/// reporting it.
 ///
-/// Chạy lại được nhiều lần (Hangfire retry, giảng viên bấm "tính lại"): luôn xóa hết dấu vân
-/// tay cũ của đúng tệp đó trước khi ghi. Không xóa thì mỗi lần chạy lại nhân đôi số dòng, và
-/// vì so sánh dùng TẬP (bỏ trùng) nên con số phần trăm vẫn đúng — hỏng âm thầm, chỉ lộ ra khi
-/// bảng phình gấp năm lần.
+/// Safe to run many times over (Hangfire retries, the instructor clicking "recompute"): always
+/// delete every old fingerprint of that exact file before writing. Skip the delete and each
+/// rerun doubles the number of rows, and because the comparison works on SETS (duplicates
+/// dropped) the percentages still come out right — it breaks silently, and only surfaces once
+/// the table has swollen fivefold.
 /// </summary>
 public sealed record ComputeFingerprintsCommand(Guid SubmissionFileId) : ICommand<Result>;
 
@@ -26,19 +28,20 @@ public sealed class ComputeFingerprintsHandler(IAppDbContext db, IFileStorage st
     : ICommandHandler<ComputeFingerprintsCommand, Result>
 {
     /// <summary>
-    /// Nạp cả file nén vào bộ nhớ để đọc nhiều entry mà không mở lại storage hàng chục lần
-    /// (với S3 là hàng chục lượt GET cùng một đối tượng). Trần 32 MB: bài nộp mã nguồn thật
-    /// không bao giờ chạm tới, còn file nặng hơn thế gần như chắc chắn là ảnh, video hoặc
-    /// thư mục build — băm chúng chỉ tốn chỗ.
+    /// Loads the whole archive into memory so that many entries can be read without reopening
+    /// storage dozens of times (on S3 that means dozens of GETs against the same object). The
+    /// 32 MB ceiling: a real source-code submission never comes anywhere near it, and anything
+    /// heavier than that is almost certainly images, video or a build directory — hashing those
+    /// only wastes space.
     /// </summary>
     private const long MaxArchiveBytes = 32L * 1024 * 1024;
 
     private const long MaxEntryBytes = 2L * 1024 * 1024;
 
-    /// <summary>Trần số tệp mã nguồn lấy trong một file nén — chặn bài nộp kèm cả node_modules.</summary>
+    /// <summary>Ceiling on the source files taken out of one archive — stops submissions that ship a whole node_modules.</summary>
     private const int MaxSourceEntries = 200;
 
-    /// <summary>Trần dấu vân tay ghi cho MỘT tệp nộp, chặn tệp sinh tự động hàng trăm nghìn dòng.</summary>
+    /// <summary>Ceiling on the fingerprints written for ONE submitted file; stops generated files hundreds of thousands of lines long.</summary>
     private const int MaxFingerprintsPerFile = 20_000;
 
     public async Task<Result> Handle(ComputeFingerprintsCommand request, CancellationToken ct)
@@ -48,118 +51,121 @@ public sealed class ComputeFingerprintsHandler(IAppDbContext db, IFileStorage st
 
         if (file is null) return Result.NotFound("Không tìm thấy tệp nộp.");
 
-        // Dọn trước, luôn luôn — kể cả khi lát nữa không ghi được gì. Tệp vừa được nộp lại
-        // bằng một bản không có mã nguồn thì dấu vân tay của bản cũ phải biến mất theo, nếu
-        // không báo cáo sẽ so bài hiện tại với nội dung sinh viên đã thay thế.
-        var cu = await db.SourceFingerprints
+        // Clean up first, always — even when nothing ends up being written afterwards. When a
+        // file has just been resubmitted as a version that carries no source code, the old
+        // version's fingerprints have to disappear with it; otherwise the report compares the
+        // current submission against content the student has already replaced.
+        var existing = await db.SourceFingerprints
             .Where(f => f.SubmissionFileId == file.Id).ToListAsync(ct);
 
-        if (cu.Count > 0) db.SourceFingerprints.RemoveRange(cu);
+        if (existing.Count > 0) db.SourceFingerprints.RemoveRange(existing);
 
-        if (file.FilePath is null)                        // nộp bằng link, không có gì để băm
+        if (file.FilePath is null)                        // link submission, nothing to hash
         {
             await db.SaveChangesAsync(ct);
             return Result.Ok();
         }
 
-        var moi = new List<SourceFingerprint>();
+        var computed = new List<SourceFingerprint>();
 
         if (SourceFileTypes.IsSourceCode(file.FileName))
         {
             await using var s = await storage.OpenReadAsync(file.FilePath, ct);
-            moi.AddRange(BamMotTep(file.Id, null, await DocVanBanAsync(s, ct)));
+            computed.AddRange(FingerprintOneFile(file.Id, null, await ReadTextAsync(s, ct)));
         }
-        else if (file.FileTree is { Files.Count: > 0 } cay && file.SizeBytes <= MaxArchiveBytes)
+        else if (file.FileTree is { Files.Count: > 0 } tree && file.SizeBytes <= MaxArchiveBytes)
         {
-            var nguon = cay.Files
+            var sources = tree.Files
                 .Where(f => SourceFileTypes.IsSourceCode(f.Path))
                 .Where(f => f.SizeBytes is > 0 and <= MaxEntryBytes)
                 .OrderBy(f => f.Path)
                 .Take(MaxSourceEntries)
                 .ToList();
 
-            if (nguon.Count > 0)
+            if (sources.Count > 0)
             {
-                await using var goc = await storage.OpenReadAsync(file.FilePath, ct);
-                using var bo = new MemoryStream();
-                await goc.CopyToAsync(bo, ct);
+                await using var archive = await storage.OpenReadAsync(file.FilePath, ct);
+                using var buffer = new MemoryStream();
+                await archive.CopyToAsync(buffer, ct);
 
-                foreach (var e in nguon)
+                foreach (var e in sources)
                 {
-                    if (moi.Count >= MaxFingerprintsPerFile) break;
+                    if (computed.Count >= MaxFingerprintsPerFile) break;
 
-                    bo.Position = 0;
+                    buffer.Position = 0;
 
                     try
                     {
-                        // Đi qua SafeZipReader chứ không tự mở ZipArchive: đường dẫn entry là
-                        // dữ liệu do sinh viên kiểm soát, và bộ luật chặn zip-slip chỉ được
-                        // phép tồn tại ở MỘT chỗ (ADR-005).
-                        var byteEntry = SafeZipReader.ReadEntry(bo, e.Path, ZipLimits.Default, MaxEntryBytes);
-                        moi.AddRange(BamMotTep(file.Id, e.Path, DocVanBan(byteEntry)));
+                        // Go through SafeZipReader instead of opening a ZipArchive here: entry
+                        // paths are data the student controls, and the rule set that blocks
+                        // zip-slip is only allowed to live in ONE place (ADR-005).
+                        var byteEntry = SafeZipReader.ReadEntry(buffer, e.Path, ZipLimits.Default, MaxEntryBytes);
+                        computed.AddRange(FingerprintOneFile(file.Id, e.Path, ReadText(byteEntry)));
                     }
                     catch (UnsafeArchiveException)
                     {
-                        // Entry hỏng hoặc độc hại: bỏ qua ĐÚNG entry đó rồi đi tiếp, không ném.
-                        // Ném ở đây làm Hangfire retry cả file vì một tệp vốn dĩ không bao giờ
-                        // đọc được, và cả bài nộp mất dấu vân tay vì một tệp rác.
+                        // Corrupt or malicious entry: skip THAT entry and carry on, do not throw.
+                        // Throwing here makes Hangfire retry the whole file over one entry that
+                        // was never going to be readable, and the entire submission loses its
+                        // fingerprints because of a single junk file.
                     }
                 }
             }
         }
 
-        if (moi.Count > MaxFingerprintsPerFile) moi = [.. moi.Take(MaxFingerprintsPerFile)];
+        if (computed.Count > MaxFingerprintsPerFile) computed = [.. computed.Take(MaxFingerprintsPerFile)];
 
-        // Add tường minh qua DbSet, không thêm vào collection của entity đang tracked:
-        // Entity.Id tự sinh UUIDv7 lúc khởi tạo nên Id đã khác default, và EF sẽ phát UPDATE
-        // thay vì INSERT.
-        db.SourceFingerprints.AddRange(moi);
+        // Add explicitly through the DbSet, not by adding to the collection of a tracked entity:
+        // Entity.Id generates its UUIDv7 at construction time, so the Id is already non-default
+        // and EF would issue an UPDATE instead of an INSERT.
+        db.SourceFingerprints.AddRange(computed);
         await db.SaveChangesAsync(ct);
 
         return Result.Ok();
     }
 
     /// <summary>
-    /// Chuẩn hóa → k-gram → winnowing, rồi quy chỉ số token về offset ký tự trong mã nguồn gốc
-    /// để màn hình so sánh tô sáng được đúng đoạn.
+    /// Normalize → k-grams → winnowing, then map token indexes back to character offsets in the
+    /// original source so the comparison screen can highlight exactly the right span.
     /// </summary>
-    private static IEnumerable<SourceFingerprint> BamMotTep(
-        Guid submissionFileId, string? entryPath, string noiDung)
+    private static IEnumerable<SourceFingerprint> FingerprintOneFile(
+        Guid submissionFileId, string? entryPath, string content)
     {
-        var token = SourceNormalizer.Tokenize(noiDung);
+        var token = SourceNormalizer.Tokenize(content);
         if (token.Count == 0) yield break;
 
-        var chu = token.Select(t => t.Text).ToList();
+        var words = token.Select(t => t.Text).ToList();
 
-        foreach (var f in Winnowing.Compute(chu))
+        foreach (var f in Winnowing.Compute(words))
         {
-            var dau = token[f.Position];
-            var cuoi = token[Math.Min(f.Position + Winnowing.DefaultK - 1, token.Count - 1)];
+            var start = token[f.Position];
+            var end = token[Math.Min(f.Position + Winnowing.DefaultK - 1, token.Count - 1)];
 
             yield return new SourceFingerprint
             {
                 SubmissionFileId = submissionFileId,
                 EntryPath = entryPath,
                 Hash = f.Hash,
-                Position = dau.Offset,
-                Length = cuoi.Offset + cuoi.Length - dau.Offset,
+                Position = start.Offset,
+                Length = end.Offset + end.Length - start.Offset,
             };
         }
     }
 
-    private static async Task<string> DocVanBanAsync(Stream s, CancellationToken ct)
+    private static async Task<string> ReadTextAsync(Stream s, CancellationToken ct)
     {
-        using var bo = new MemoryStream();
-        await s.CopyToAsync(bo, ct);
-        return DocVanBan(bo.ToArray());
+        using var buffer = new MemoryStream();
+        await s.CopyToAsync(buffer, ct);
+        return ReadText(buffer.ToArray());
     }
 
     /// <summary>
-    /// detectEncodingFromByteOrderMarks: bài nộp từ Windows hay có BOM UTF-8, và không ít bài
-    /// lưu UTF-16. Đọc thẳng bằng UTF-8 thì file UTF-16 ra một chuỗi ký tự NUL xen kẽ — chuỗi
-    /// token vô nghĩa, và bài đó không bao giờ trùng với ai.
+    /// detectEncodingFromByteOrderMarks: submissions coming from Windows often carry a UTF-8
+    /// BOM, and quite a few are saved as UTF-16. Read them straight as UTF-8 and a UTF-16 file
+    /// comes out as a string with NUL characters interleaved — a meaningless token stream, and
+    /// that submission never matches anybody.
     /// </summary>
-    private static string DocVanBan(byte[] bytes)
+    private static string ReadText(byte[] bytes)
     {
         using var ms = new MemoryStream(bytes);
         using var reader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);

@@ -3,14 +3,15 @@ using TeachHub.Application.Features.Enrollments;
 namespace TeachHub.Application.Common;
 
 /// <summary>
-/// Kết quả đọc file danh sách. <c>Headers</c> giữ lại tên cột đọc được để báo lỗi hữu ích:
-/// "không tìm thấy cột MSSV, các cột đọc được là …" thay vì một lỗi mơ hồ.
+/// Result of reading a roster file. <c>Headers</c> keeps the column names that were actually
+/// found so the error can be useful: "no student-id column found, the columns read were …"
+/// instead of a vague failure.
 /// </summary>
 public sealed record RosterReadResult(List<ImportRow> Rows, List<string> Headers, string? Error);
 
 /// <summary>
-/// Cổng đọc file danh sách sinh viên. Application không biết ClosedXML tồn tại — nhờ vậy
-/// test handler chỉ cần một implementation giả, không cần dựng file .xlsx.
+/// Port for reading a student roster file. Application has no idea ClosedXML exists — which is
+/// why a handler test only needs a fake implementation instead of building a real .xlsx.
 /// </summary>
 public interface IEnrollmentReader
 {

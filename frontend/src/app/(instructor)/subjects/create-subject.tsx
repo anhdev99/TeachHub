@@ -15,35 +15,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api/fetcher";
 
-export function TaoMonMoi() {
+export function CreateSubject() {
   const router = useRouter();
-  const [mo, setMo] = useState(false);
+  const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [loi, setLoi] = useState<string | null>(null);
-  const [dangGui, setDangGui] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  async function luu() {
-    setLoi(null);
-    setDangGui(true);
+  async function save() {
+    setError(null);
+    setSubmitting(true);
     try {
       await apiFetch("/api/subjects", {
         method: "POST",
         body: JSON.stringify({ code: code.trim().toUpperCase(), name: name.trim() }),
       });
-      setMo(false);
+      setOpen(false);
       setCode("");
       setName("");
       router.refresh();
     } catch (e) {
-      setLoi(e instanceof Error ? e.message : "Không tạo được môn học.");
+      setError(e instanceof Error ? e.message : "Không tạo được môn học.");
     } finally {
-      setDangGui(false);
+      setSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={mo} onOpenChange={setMo}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>Tạo môn học</Button>
       </DialogTrigger>
@@ -74,18 +74,18 @@ export function TaoMonMoi() {
             />
           </div>
 
-          {/* `detail` của ProblemDetails đã là câu tiếng Việt viết sẵn cho người dùng —
-              hiện nguyên văn, không quy về "Đã có lỗi xảy ra". */}
-          {loi && (
+          {/* The `detail` field of ProblemDetails is already a Vietnamese sentence written for
+              the user — show it verbatim, never collapse it to "Something went wrong". */}
+          {error && (
             <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm">
-              {loi}
+              {error}
             </p>
           )}
         </div>
 
         <DialogFooter>
-          <Button onClick={luu} disabled={dangGui || !code.trim() || !name.trim()}>
-            {dangGui ? "Đang tạo…" : "Tạo"}
+          <Button onClick={save} disabled={submitting || !code.trim() || !name.trim()}>
+            {submitting ? "Đang tạo…" : "Tạo"}
           </Button>
         </DialogFooter>
       </DialogContent>

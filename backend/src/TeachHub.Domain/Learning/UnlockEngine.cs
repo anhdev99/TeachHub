@@ -18,9 +18,9 @@ public sealed record Progress(HashSet<Guid> CompletedLessons, HashSet<Guid> Comp
 }
 
 /// <summary>
-/// Hàm thuần, không I/O. Tách khỏi database để test được mọi tổ hợp mở khóa trong mili-giây —
-/// đây là loại logic mà sai một ca biên là sinh viên bị kẹt không học tiếp được, và bạn
-/// sẽ nhận tin nhắn lúc 11 giờ đêm.
+/// Pure function, no I/O. Kept away from the database so that every unlock combination is testable
+/// in milliseconds — this is the kind of logic where getting one edge case wrong leaves a student
+/// stuck, unable to carry on with the course, and you get the message about it at 11pm.
 /// </summary>
 public static class UnlockEngine
 {
@@ -34,23 +34,23 @@ public static class UnlockEngine
             return result;
         }
 
-        var moKhoa = true;
+        var unlocked = true;
         foreach (var lesson in chapter.Lessons)
         {
-            result[lesson.Id] = moKhoa ? LessonAccess.Unlocked : LessonAccess.Locked;
+            result[lesson.Id] = unlocked ? LessonAccess.Unlocked : LessonAccess.Locked;
 
-            // Chỉ bài được đánh dấu bắt buộc mới có quyền chặn bài kế tiếp.
-            if (moKhoa && lesson.IsRequiredToUnlockNext && !IsComplete(lesson, progress))
-                moKhoa = false;
+            // Only a lesson explicitly marked as required is allowed to block the next one.
+            if (unlocked && lesson.IsRequiredToUnlockNext && !IsComplete(lesson, progress))
+                unlocked = false;
         }
 
         return result;
     }
 
     /// <summary>
-    /// Bài nào đang chặn <paramref name="lessonId"/>, hoặc null nếu bài đó đang mở.
-    /// Giao diện dùng cái này để ghi "Hoàn thành 'Bài 2 — Hooks' để mở bài này" thay vì
-    /// chỉ hiện một ổ khóa câm.
+    /// Which lesson is blocking <paramref name="lessonId"/>, or null if that lesson is unlocked.
+    /// The UI uses this to write "Complete 'Lesson 2 — Hooks' to unlock this one" instead of just
+    /// showing a mute padlock.
     /// </summary>
     public static LessonNode? BlockingLesson(ChapterNode chapter, Guid lessonId, Progress progress)
     {
@@ -58,7 +58,7 @@ public static class UnlockEngine
 
         foreach (var lesson in chapter.Lessons)
         {
-            if (lesson.Id == lessonId) return null;   // tới nơi mà chưa bị chặn ⇒ đang mở
+            if (lesson.Id == lessonId) return null;   // reached it without being blocked ⇒ unlocked
 
             if (lesson.IsRequiredToUnlockNext && !IsComplete(lesson, progress))
                 return lesson;
@@ -75,9 +75,9 @@ public static class UnlockEngine
 
     public static decimal CompletionPercent(ChapterNode chapter, Progress progress)
     {
-        if (chapter.Lessons.Count == 0) return 0m;   // chương rỗng: 0%, không chia cho không
+        if (chapter.Lessons.Count == 0) return 0m;   // empty chapter: 0%, no division by zero
 
-        var xong = chapter.Lessons.Count(l => IsComplete(l, progress));
-        return Math.Round(xong * 100m / chapter.Lessons.Count, 1);
+        var completed = chapter.Lessons.Count(l => IsComplete(l, progress));
+        return Math.Round(completed * 100m / chapter.Lessons.Count, 1);
     }
 }

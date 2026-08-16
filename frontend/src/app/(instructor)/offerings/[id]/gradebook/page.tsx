@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { AssignmentDto, FinalAssessmentDto, GradebookDto } from "@/lib/api/types";
 import { SoDiem } from "./so-diem";
@@ -35,12 +35,12 @@ export default async function GradebookPage({ params }: { params: Promise<{ id: 
 
   return (
     // `rong`: sổ điểm là bảng nhiều cột, đây đúng là màn hình cần bề ngang. Bề rộng do
-    // <Trang> quyết định chứ không phải mỗi trang tự khai một kiểu.
-    <Trang rong>
-      <DauTrang
-        quayLai={{ href: `/offerings/${id}`, nhan: "Lớp học phần" }}
-        tieuDe="Sổ điểm"
-        moTa={
+    // <PageShell> quyết định chứ không phải mỗi trang tự khai một kiểu.
+    <PageShell wide>
+      <PageHeader
+        backTo={{ href: `/offerings/${id}`, label: "Lớp học phần" }}
+        title="Sổ điểm"
+        description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="font-mono text-xs">{so.subject_code}</span>
             <span aria-hidden>·</span>
@@ -59,6 +59,6 @@ export default async function GradebookPage({ params }: { params: Promise<{ id: 
           ...cuoiMon.map((f) => ({ type: "final_assessment" as const, id: f.id, title: f.title })),
         ]}
       />
-    </Trang>
+    </PageShell>
   );
 }

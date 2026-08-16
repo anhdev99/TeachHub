@@ -24,24 +24,26 @@ public sealed record SubmissionDto(
     List<SubmissionFileDto> Files)
 {
     /// <summary>
-    /// <paramref name="thayDiem"/> = false thì điểm, nhận xét và điểm từng tiêu chí bị che.
-    /// Luật này nằm ở tầng Application chứ không ở controller là chủ ý: cùng một DTO được
-    /// ba màn hình dùng lại, và nếu luật nằm ở controller thì màn hình thứ hai gọi thẳng
-    /// query sẽ lộ điểm mà không ai nhận ra.
+    /// When <paramref name="canSeeGrade"/> is false, the score, the feedback and the per-criterion
+    /// rubric scores are all blanked out. Keeping this rule in the Application layer instead of in
+    /// the controller is deliberate: the very same DTO is reused by three screens, and with the
+    /// rule sitting in the controller, the second screen — the one calling the query directly —
+    /// would leak the grades and nobody would notice.
     /// </summary>
-    public static SubmissionDto From(Submission s, bool thayDiem = true) => new(
+    public static SubmissionDto From(Submission s, bool canSeeGrade = true) => new(
         s.Id, s.AssignmentId, s.FinalAssessmentId, s.OfferingId, s.GroupId,
         s.AttemptNo, s.IsCurrent, s.Status, s.SubmittedAt, s.IsLate,
-        thayDiem ? s.Score : null,
-        thayDiem ? s.Feedback : null,
-        thayDiem ? s.RubricScores : [],
+        canSeeGrade ? s.Score : null,
+        canSeeGrade ? s.Feedback : null,
+        canSeeGrade ? s.RubricScores : [],
         [.. s.Files.OrderBy(f => f.UploadedAt).Select(SubmissionFileDto.From)]);
 }
 
 /// <summary>
-/// Quyền chạm vào một bài nộp. Sinh viên chỉ thấy bài của CHÍNH MÌNH; giảng viên thấy bài
-/// của lớp mình dạy. Cả hai ca không thoả đều trả 404 chứ không 403 — 403 xác nhận id có
-/// tồn tại, và một sinh viên dò id tuần tự sẽ đếm được bài nộp của cả lớp.
+/// Who is allowed to touch a submission. A student only ever sees THEIR OWN work; an instructor
+/// sees the work of the offerings they teach. Both failing cases return 404, never 403 — a 403
+/// confirms that the id exists, and a student walking ids in sequence could count the submissions
+/// of the whole class that way.
 /// </summary>
 public static class SubmissionAccess
 {
@@ -53,14 +55,15 @@ public static class SubmissionAccess
                  db.Subjects.Any(sub => sub.Id == o.SubjectId && sub.InstructorId == userId))), ct);
 
     /// <summary>
-    /// Người gọi có được thấy điểm và nhận xét của bài này không.
+    /// Whether the caller is allowed to see this submission's score and feedback.
     ///
-    /// Giảng viên: luôn thấy. Sinh viên: CHỈ sau khi giảng viên bấm "Trả bài". Đây không
-    /// phải chi tiết nhỏ — giảng viên chấm rải rác nhiều ngày, và nếu điểm hiện ngay khi
-    /// vừa chấm thì người được chấm trước sẽ so bì với người chưa được chấm. Hai trạng thái
-    /// <c>Graded</c> và <c>Returned</c> tách biệt chính là để giải quyết chuyện đó.
+    /// Instructor: always. Student: ONLY after the instructor has pressed "Trả bài" (return the
+    /// work). This is not a minor detail — an instructor grades in bursts spread over several
+    /// days, and if the score showed up the instant it was entered, the students graded early
+    /// would start comparing themselves with the ones not graded yet. Keeping <c>Graded</c> and
+    /// <c>Returned</c> as two separate states is exactly what solves that.
     /// </summary>
-    public static async Task<bool> ThayDiemAsync(
+    public static async Task<bool> CanSeeGradeAsync(
         IAppDbContext db, Submission s, Guid userId, CancellationToken ct)
     {
         if (s.Status == SubmissionStatus.Returned) return true;
@@ -70,9 +73,9 @@ public static class SubmissionAccess
     }
 
     /// <summary>
-    /// Enrollment của sinh viên trong lớp đang chạy bài tập này, hoặc null nếu không thuộc lớp.
-    /// Suy ra từ token, KHÔNG BAO GIỜ nhận từ client: nhận từ client thì đổi một GUID trong
-    /// body là nộp đè lên bài của bạn cùng lớp.
+    /// The student's enrollment in the offering that runs this assignment, or null when they are
+    /// not in that offering. Derived from the token, NEVER accepted from the client: accept it
+    /// from the client and changing a single GUID in the body submits on top of a classmate's work.
     /// </summary>
     public static Task<EnrollmentRef?> EnrollmentForAssignmentAsync(
         IAppDbContext db, Guid assignmentId, Guid userId, CancellationToken ct) =>

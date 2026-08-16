@@ -1,10 +1,10 @@
 namespace TeachHub.Domain.Gamification;
 
 /// <summary>
-/// Loại sự kiện được thưởng XP. Enum này là hợp đồng giữa bảng quy tắc (dữ liệu) và nơi phát
-/// hiện sự kiện (handler) — THÊM giá trị vào CUỐI, không bao giờ chèn vào giữa: xuống DB nó
-/// lưu bằng CHUỖI nên chèn giữa không làm hỏng dữ liệu, nhưng chèn giữa vẫn làm mọi bảng liệt
-/// kê theo thứ tự khai báo đổi nghĩa trên giao diện.
+/// The kinds of event that earn XP. This enum is the contract between the rule table (data) and
+/// the places that detect events (handlers) — ADD values at the END, never insert in the middle:
+/// it is persisted to the DB as a STRING so inserting in the middle does not corrupt data, but it
+/// does change the meaning of every list rendered in declaration order in the UI.
 /// </summary>
 public enum XpEventType
 {
@@ -16,40 +16,42 @@ public enum XpEventType
 }
 
 /// <summary>
-/// MỘT dòng trong bảng quy tắc XP — là DỮ LIỆU, không phải mã. Giảng viên sửa được số điểm và
-/// ngưỡng giữa kỳ mà không cần deploy; đó là toàn bộ lý do engine không được chứa con số nào.
+/// ONE row of the XP rule table — it is DATA, not code. An instructor can change the points and
+/// the thresholds mid-term without a deploy; that is the entire reason the engine must not contain
+/// a single number of its own.
 /// </summary>
 public sealed class XpRuleSpec
 {
     public required XpEventType EventType { get; set; }
 
-    /// <summary>Số XP cộng khi quy tắc này áp dụng. Luôn dương — không có XP âm ở MVP.</summary>
+    /// <summary>XP awarded when this rule applies. Always positive — there is no negative XP in the MVP.</summary>
     public required int Points { get; set; }
 
     /// <summary>
-    /// Ngưỡng tối thiểu của <see cref="XpEventInput.Value"/> để quy tắc có hiệu lực, hiểu là
-    /// "từ … trở lên" (>=). null = không xét giá trị. Ví dụ: quiz từ 8.0 điểm trở lên.
+    /// Minimum <see cref="XpEventInput.Value"/> for the rule to take effect, read as
+    /// "at least" (&gt;=). null = the value is not considered. Example: a quiz scoring 8.0 or above.
     /// </summary>
     public decimal? MinValue { get; set; }
 
-    /// <summary>Số lần tối đa được cộng XP cho loại sự kiện này trong MỘT ngày. null = không trần.</summary>
+    /// <summary>Maximum number of XP awards for this event type within ONE day. null = no cap.</summary>
     public int? DailyCap { get; set; }
 
     /// <summary>
-    /// Tắt quy tắc phải có hiệu lực ngay giữa kỳ mà KHÔNG cần xóa nó: xóa là mất luôn lời giải
-    /// thích vì sao sinh viên từng được cộng theo quy tắc đó.
+    /// Disabling a rule has to take effect immediately mid-term WITHOUT deleting it: deleting it
+    /// also destroys the explanation of why a student was ever awarded under that rule.
     /// </summary>
     public bool IsEnabled { get; set; } = true;
 }
 
 /// <param name="Value">
-/// Giá trị đi kèm sự kiện để so với ngưỡng — điểm quiz đã chuẩn hóa thang 10, số ngày streak…
-/// Luôn <c>decimal</c>, không bao giờ <c>double</c>: mọi con số so với ngưỡng điểm trong hệ
-/// thống này đều là decimal, trộn kiểu là mở đường cho 7.9999999 không qua nổi ngưỡng 8.
+/// The value carried by the event, compared against the threshold — a quiz score normalized onto
+/// the 0–10 scale, a streak length in days, and so on. Always <c>decimal</c>, never <c>double</c>:
+/// every number compared against a score threshold in this system is a decimal, and mixing the
+/// types opens the door to 7.9999999 failing to clear a threshold of 8.
 /// </param>
 /// <param name="AwardedTodayForType">
-/// Số lần loại sự kiện này ĐÃ được cộng XP trong ngày địa phương hiện tại. Người gọi đếm và
-/// truyền vào — engine thuần, không truy vấn.
+/// How many times this event type has ALREADY been awarded XP during the current local day. The
+/// caller counts and passes it in — the engine is pure and issues no queries.
 /// </param>
 public sealed record XpEventInput(XpEventType Type, decimal? Value = null, int AwardedTodayForType = 0);
 
@@ -61,14 +63,14 @@ public sealed record XpAward(int Points, XpRuleSpec? Rule, string? SkipReason)
 }
 
 /// <summary>
-/// Quy đổi (sự kiện + bảng quy tắc) → số XP. Hàm thuần, không I/O, không đọc đồng hồ.
+/// Turns (event + rule table) into an XP amount. Pure functions, no I/O, no reading the clock.
 /// </summary>
 public static class XpRuleEngine
 {
     /// <summary>
-    /// Bộ GIEO cho một lớp mới — vẫn là dữ liệu, ghi xuống bảng <c>xp_rules</c> rồi sửa được.
-    /// Nó tồn tại chỉ để ngày đầu mở lớp không phải là một bảng trống mà giảng viên chưa biết
-    /// điền gì. KHÔNG hàm nào khác trong engine đọc tới nó.
+    /// The SEED set for a new class — still data, written into the <c>xp_rules</c> table and
+    /// editable afterwards. It exists only so that day one of a new class is not an empty table
+    /// the instructor has no idea how to fill in. NO other function in the engine reads it.
     /// </summary>
     public static IReadOnlyList<XpRuleSpec> SeedRules() =>
     [
@@ -82,25 +84,25 @@ public static class XpRuleEngine
 
     public static XpAward Evaluate(XpEventInput input, IReadOnlyList<XpRuleSpec> rules)
     {
-        // Bậc ngưỡng CAO NHẤT thỏa mãn thắng thế; KHÔNG cộng dồn các bậc. Quiz 9.5 điểm với
-        // bảng {≥8 → 20, ≥9 → 30} phải nhận đúng 30, không phải 50 — cộng dồn là cách một
-        // bảng hai bậc âm thầm biến thành bảng ba bậc mà không ai khai ra.
+        // The HIGHEST satisfied threshold tier wins; tiers are NOT added together. A quiz scoring
+        // 9.5 against a table of {≥8 → 20, ≥9 → 30} must get exactly 30, not 50 — summing is how a
+        // two-tier table quietly turns into a three-tier one that nobody ever declared.
         //
-        // ThenByDescending(Points) rồi ThenBy(EventType) làm kết quả TẤT ĐỊNH khi có hai dòng
-        // trùng ngưỡng (giảng viên bấm lưu hai lần): không có nó thì cùng một sinh viên đọc
-        // hai lần ra hai con số khác nhau tùy thứ tự truy vấn trả về.
-        var apDung = rules
+        // ThenByDescending(Points) followed by ThenBy(EventType) makes the result DETERMINISTIC
+        // when two rows share a threshold (the instructor hit save twice): without it the same
+        // student reads two different numbers depending on the order the query happened to return.
+        var applicable = rules
             .Where(r => r.IsEnabled && r.EventType == input.Type)
-            .Where(r => r.MinValue is not { } nguong || (input.Value is { } v && v >= nguong))
+            .Where(r => r.MinValue is not { } threshold || (input.Value is { } v && v >= threshold))
             .OrderByDescending(r => r.MinValue ?? decimal.MinValue)
             .ThenByDescending(r => r.Points)
             .FirstOrDefault();
 
-        if (apDung is null) return XpAward.None();
+        if (applicable is null) return XpAward.None();
 
-        if (apDung.DailyCap is { } tran && input.AwardedTodayForType >= tran)
-            return XpAward.None($"Đã đạt trần {tran} lần cộng XP trong ngày cho loại sự kiện này.");
+        if (applicable.DailyCap is { } cap && input.AwardedTodayForType >= cap)
+            return XpAward.None($"Đã đạt trần {cap} lần cộng XP trong ngày cho loại sự kiện này.");
 
-        return new XpAward(apDung.Points, apDung, null);
+        return new XpAward(applicable.Points, applicable, null);
     }
 }

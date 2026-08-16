@@ -5,22 +5,25 @@ namespace TeachHub.Domain.Grading;
 public enum GradeSourceType { Assignment, Quiz, FinalAssessment }
 
 /// <summary>
-/// Cột điểm của MỘT lớp. Được SAO CHÉP từ <see cref="GradeSchemeTemplate"/> lúc mở lớp rồi
-/// sống độc lập: sửa mẫu ở học kỳ sau KHÔNG được đổi cột điểm của lớp đã dạy xong.
+/// A grade column of ONE class. It is COPIED from <see cref="GradeSchemeTemplate"/> when the
+/// class is opened and then lives on its own: editing the template in a later term must NOT
+/// change the grade columns of a class that has already been taught.
 ///
-/// Cùng nguyên tắc với ADR-004 (lớp ghim SubjectVersion). Nếu cột chỉ là con trỏ tới mẫu thì
-/// đổi mẫu từ 20/30/50 sang 30/20/50 sẽ đổi luôn bảng điểm đã nộp của kỳ trước — không ai bấm
-/// nút nào, và không có gì trong hệ thống nói cho bạn biết.
+/// Same principle as ADR-004 (a class pins its SubjectVersion). If the column were only a
+/// pointer to the template, changing that template from 20/30/50 to 30/20/50 would also change
+/// the already-submitted gradebook of the previous term — nobody pressed a button, and nothing
+/// in the system would tell you.
 /// </summary>
 public class GradeColumn : Entity
 {
     public required Guid OfferingId { get; set; }
 
     /// <summary>
-    /// Slug ổn định (<c>thuong_ky</c>, <c>cuoi_mon</c>). Mẫu xuất Excel, điều kiện điểm sàn và
-    /// thư viện lý do điểm cộng đều nối vào cột bằng KEY này, không bằng Id: chúng thuộc về
-    /// giảng viên còn cột thuộc về lớp, nên nối bằng id thì mỗi mẫu chỉ dùng được cho đúng
-    /// một lớp — tức là tính năng coi như không tồn tại.
+    /// A stable slug (<c>thuong_ky</c>, <c>cuoi_mon</c>). Excel export templates, minimum-score
+    /// conditions and the bonus-reason library all link to the column through this KEY, never
+    /// through the Id: they belong to the instructor while the column belongs to the class, so
+    /// linking by id would make each template usable in exactly one class — which is the same
+    /// as the feature not existing.
     /// </summary>
     public required string Key { get; set; }
 
@@ -37,11 +40,11 @@ public class GradeColumnSource : Entity
     public required GradeSourceType SourceType { get; set; }
     public required Guid SourceId { get; set; }
 
-    /// <summary>Trọng số của nguồn này TRONG cột, chỉ dùng khi Kind = WeightedAverage. Null = chia đều.</summary>
+    /// <summary>Weight of this source WITHIN the column, used only when Kind = WeightedAverage. Null = split evenly.</summary>
     public decimal? WeightWithinColumn { get; set; }
 }
 
-/// <summary>Điểm của một sinh viên ở một cột. KHÔNG lưu điểm tổng ở đâu cả (ADR-006).</summary>
+/// <summary>One student's score in one column. The final total is stored NOWHERE (ADR-006).</summary>
 public class GradeRecord : Entity
 {
     public required Guid EnrollmentId { get; set; }
@@ -49,9 +52,9 @@ public class GradeRecord : Entity
     public decimal? Score { get; set; }
 
     /// <summary>
-    /// true = giảng viên đã sửa tay ô này, và việc chấm lại một bài trong cột KHÔNG được ghi đè.
-    /// Thiếu cờ này thì điểm giảng viên điều chỉnh sẽ âm thầm biến mất khi chấm lại, và không
-    /// ai phát hiện cho tới lúc sinh viên hỏi.
+    /// true = the instructor edited this cell by hand, and re-grading a submission inside the
+    /// column must NOT overwrite it. Without this flag an instructor's adjusted score silently
+    /// disappears on the next re-grade, and nobody notices until the student asks.
     /// </summary>
     public bool IsManualOverride { get; set; }
 
@@ -60,8 +63,8 @@ public class GradeRecord : Entity
 }
 
 /// <summary>
-/// Thư viện bộ cột mẫu của MỘT giảng viên. Gắn vào giảng viên chứ không vào môn học:
-/// soạn một lần, dùng cho mọi môn và mọi học kỳ về sau.
+/// The library of column-set templates of ONE instructor. It hangs off the instructor, not off
+/// the subject: write it once, use it for every subject and every term thereafter.
 /// </summary>
 public class GradeSchemeTemplate : Entity
 {
@@ -83,9 +86,9 @@ public class GradeSchemeTemplateItem : Entity
 }
 
 /// <summary>
-/// Bộ cột mặc định khi giảng viên chưa soạn mẫu nào. Hai cột là cách chia phổ biến nhất ở
-/// đại học Việt Nam, và có sẵn một bộ chạy được quan trọng hơn là bắt người dùng cấu hình
-/// trước khi thấy sổ điểm lần đầu.
+/// The default column set for an instructor who has not written a template yet. Two columns is
+/// the most common split in Vietnamese universities, and shipping a set that already works
+/// matters more than forcing the user to configure one before they ever see a gradebook.
 /// </summary>
 public static class GradeColumnFactory
 {

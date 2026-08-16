@@ -20,8 +20,8 @@ public sealed class CompleteLessonCommandHandler(IAppDbContext db, TimeProvider 
 
         // Lớp đã kết thúc ⇒ 409, không phải 404: sinh viên biết rõ lớp này có thật và mình có
         // học, giấu đi chỉ làm họ tưởng hệ thống hỏng.
-        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, enrollmentId.Value, ct))
-            return Result.Conflict(OfferingLock.ThongDiep("đánh dấu hoàn thành"));
+        if (await OfferingLock.IsClosedForEnrollmentAsync(db, enrollmentId.Value, ct))
+            return Result.Conflict(OfferingLock.ClosedMessage("đánh dấu hoàn thành"));
 
         var now = clock.GetUtcNow();
 

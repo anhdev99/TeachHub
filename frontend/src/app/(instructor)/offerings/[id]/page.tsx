@@ -17,9 +17,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { CuonNgang, DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { HorizontalScroll, PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
 import { DongLop } from "./dong-lop";
-import { ngayGio } from "@/lib/dinh-dang";
+import { formatDateTime } from "@/lib/format";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type {
   AssignmentDto, EnrollmentDto, OfferingDto, ToGradeItemDto,
@@ -63,11 +63,11 @@ export default async function OfferingDetailPage({
   const baiTap: AssignmentDto[] = resBaiTap.ok ? await resBaiTap.json() : [];
 
   return (
-    <Trang>
-      <DauTrang
-        quayLai={{ href: "/offerings", nhan: "Lớp học phần" }}
-        tieuDe={lop.subject_name}
-        moTa={
+    <PageShell>
+      <PageHeader
+        backTo={{ href: "/offerings", label: "Lớp học phần" }}
+        title={lop.subject_name}
+        description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="font-mono text-xs">{lop.subject_code}</span>
             <span aria-hidden>·</span>
@@ -78,7 +78,7 @@ export default async function OfferingDetailPage({
             <span>{lop.enrollment_count} sinh viên</span>
           </span>
         }
-        hanhDong={
+        actions={
           <>
             <DongLop lop={lop} />
             <TaoBaiTap subjectVersionId={lop.subject_version_id} />
@@ -99,7 +99,7 @@ export default async function OfferingDetailPage({
             <span className="text-muted-foreground text-xs">
               hết hạn{" "}
               <time dateTime={lop.join_code_expires_at}>
-                {ngayGio(lop.join_code_expires_at)}
+                {formatDateTime(lop.join_code_expires_at)}
               </time>
             </span>
           )}
@@ -109,12 +109,12 @@ export default async function OfferingDetailPage({
       {/* Trung tâm điều hướng của lớp. Bản cũ là một hàng link gạch chân — nhìn không ra
           chỗ nào đang có việc, và mọi mục trông quan trọng như nhau. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <TheDieuHuong
+        <NavCard
           href={`/offerings/${id}/grading`}
           Icon={PenLine}
-          tieuDe="Bài nộp & chấm điểm"
-          moTa={`${baiNop.length} bài đã nộp`}
-          nhan={
+          title="Bài nộp & chấm điểm"
+          description={`${baiNop.length} bài đã nộp`}
+          badge={
             chuaCham > 0 ? (
               <Badge className="bg-warn-soft text-warn border-warn/25 shrink-0 border">
                 {chuaCham} chờ chấm
@@ -126,23 +126,23 @@ export default async function OfferingDetailPage({
             ) : undefined
           }
         />
-        <TheDieuHuong
+        <NavCard
           href={`/offerings/${id}/gradebook`}
           Icon={Table2}
-          tieuDe="Sổ điểm"
-          moTa="Cột điểm, trọng số, điểm cộng, xuất bảng"
+          title="Sổ điểm"
+          description="Cột điểm, trọng số, điểm cộng, xuất bảng"
         />
-        <TheDieuHuong
+        <NavCard
           href={`/offerings/${id}/groups`}
           Icon={Users}
-          tieuDe="Chia nhóm"
-          moTa="Chia ngẫu nhiên hoặc kéo-thả từng sinh viên"
+          title="Chia nhóm"
+          description="Chia ngẫu nhiên hoặc kéo-thả từng sinh viên"
         />
-        <TheDieuHuong
+        <NavCard
           href={`/offerings/${id}/quizzes`}
           Icon={ListChecks}
-          tieuDe="Trắc nghiệm"
-          moTa="Bài trắc nghiệm riêng của lớp này"
+          title="Trắc nghiệm"
+          description="Bài trắc nghiệm riêng của lớp này"
         />
       </div>
 
@@ -158,11 +158,11 @@ export default async function OfferingDetailPage({
         </CardHeader>
         <CardContent>
           {baiTap.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={FileText}
-              tieuDe="Chưa có bài tập nào"
-              moTa="Bài tập thuộc về phiên bản nội dung mà lớp này đang ghim, nên mọi lớp dùng cùng phiên bản đều thấy nó."
-              hanhDong={<TaoBaiTap subjectVersionId={lop.subject_version_id} />}
+              title="Chưa có bài tập nào"
+              description="Bài tập thuộc về phiên bản nội dung mà lớp này đang ghim, nên mọi lớp dùng cùng phiên bản đều thấy nó."
+              action={<TaoBaiTap subjectVersionId={lop.subject_version_id} />}
             />
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -183,7 +183,7 @@ export default async function OfferingDetailPage({
                             <span aria-hidden>·</span>
                             <span className="inline-flex items-center gap-1">
                               <CalendarClock className="size-3.5 shrink-0" aria-hidden />
-                              Hạn <time dateTime={a.due_at}>{ngayGio(a.due_at)}</time>
+                              Hạn <time dateTime={a.due_at}>{formatDateTime(a.due_at)}</time>
                             </span>
                           </>
                         )}
@@ -219,14 +219,14 @@ export default async function OfferingDetailPage({
         </CardHeader>
         <CardContent>
           {sinhVien.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={Users}
-              tieuDe="Chưa nhập danh sách sinh viên"
-              moTa="Nhập danh sách từ tệp Excel, hoặc đưa mã tham gia lớp cho sinh viên tự vào."
+              title="Chưa nhập danh sách sinh viên"
+              description="Nhập danh sách từ tệp Excel, hoặc đưa mã tham gia lớp cho sinh viên tự vào."
             />
           ) : (
             // Bảng rộng cuộn trong khối riêng, không phải cả trang cuộn ngang.
-            <CuonNgang>
+            <HorizontalScroll>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -255,26 +255,26 @@ export default async function OfferingDetailPage({
                   ))}
                 </TableBody>
               </Table>
-            </CuonNgang>
+            </HorizontalScroll>
           )}
         </CardContent>
       </Card>
-    </Trang>
+    </PageShell>
   );
 }
 
-function TheDieuHuong({
+function NavCard({
   href,
   Icon,
-  tieuDe,
-  moTa,
-  nhan,
+  title,
+  description,
+  badge,
 }: {
   href: string;
   Icon: React.ComponentType<{ className?: string }>;
-  tieuDe: string;
-  moTa: string;
-  nhan?: React.ReactNode;
+  title: string;
+  description: string;
+  badge?: React.ReactNode;
 }) {
   return (
     <Link
@@ -285,10 +285,10 @@ function TheDieuHuong({
         <Icon className="size-4" />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate font-medium">{tieuDe}</span>
-        <span className="text-muted-foreground truncate text-sm">{moTa}</span>
+        <span className="truncate font-medium">{title}</span>
+        <span className="text-muted-foreground truncate text-sm">{description}</span>
       </span>
-      {nhan}
+      {badge}
       <ChevronRight
         className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
         aria-hidden

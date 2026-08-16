@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Trỏ vào biến do next/font sinh ra trong layout.tsx. Trước đây dòng đầu viết
-     `--font-sans: var(--font-sans)` — tự trỏ vào chính nó nên phân giải ra rỗng, và cả giao
-     diện rơi về serif mặc định của trình duyệt dù Geist vẫn được tải về. */
+  /* Point at the variables next/font generates in layout.tsx. This line used to read
+     `--font-sans: var(--font-sans)` — pointing at itself, so it resolved to nothing and the
+     entire UI fell back to the browser's default serif even though Geist was downloaded. */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
@@ -29,9 +29,9 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
-  /* Màu ngữ nghĩa — sinh ra `text-ok`, `bg-ok-soft`, `border-warn`, `text-danger`…
-     Dùng những lớp này cho TRẠNG THÁI (đã chấm, quá hạn, trùng lặp), không dùng
-     `text-green-600` gõ thẳng: màu gõ thẳng không đổi theo chế độ tối. */
+  /* Semantic colors — these generate `text-ok`, `bg-ok-soft`, `border-warn`, `text-danger`…
+     Use these classes for STATUS (graded, overdue, similar), never a hard-coded
+     `text-green-600`: hard-coded colors do not follow dark mode. */
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
@@ -61,10 +61,11 @@
 }
 
 :root {
-  /* ── Nền và chữ ────────────────────────────────────────────────────────────────────────
-   * Nền trắng NGÀ (hơi ấm) chứ không phải #fff. Giảng viên nhìn sổ điểm hàng giờ liền; trắng
-   * tinh trên màn hình sáng là nguồn mỏi mắt, và nó cũng làm thẻ trắng biến mất vào nền —
-   * đúng lý do bản cũ trông phẳng lì. Ngà cho thẻ trắng nổi lên mà không cần vẽ thêm viền. */
+  /* ── Background and text ───────────────────────────────────────────────────────────────
+   * An IVORY (slightly warm) background rather than #fff. Instructors stare at a gradebook
+   * for hours; pure white on a bright display is a source of eye strain, and it also makes
+   * white cards vanish into the background — exactly why the old version looked so flat.
+   * Ivory lets a white card rise off the page without needing an extra border. */
   --background: oklch(0.985 0.004 85);
   --foreground: oklch(0.22 0.004 85);
 
@@ -73,10 +74,10 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.22 0.004 85);
 
-  /* ── Màu chủ đạo: xanh mực ─────────────────────────────────────────────────────────────
-   * Dùng cho hành động chính và mục đang chọn. CỐ Ý không phải xanh lá: xanh lá đã mang
-   * nghĩa "đúng / đã đạt" trong sản phẩm chấm điểm, dùng nó làm màu thương hiệu thì nút
-   * "Xoá" màu xanh lá đọc như một lời khen. */
+  /* ── Primary color: ink blue ───────────────────────────────────────────────────────────
+   * Used for the primary action and the selected item. DELIBERATELY not green: in a grading
+   * product green already means "correct / passed", so making it the brand color turns a
+   * green "Xoá" button into something that reads like praise. */
   --primary: oklch(0.44 0.088 253);
   --primary-foreground: oklch(0.99 0.003 85);
 
@@ -92,11 +93,12 @@
   --input: oklch(0.895 0.006 85);
   --ring: oklch(0.44 0.088 253);
 
-  /* ── Màu NGỮ NGHĨA ─────────────────────────────────────────────────────────────────────
-   * Tách khỏi màu thương hiệu. Trạng thái bài nộp phải đọc được bằng một cái liếc mắt, và
-   * nếu nó dùng chung biến với màu chủ đạo thì đổi màu thương hiệu là đổi luôn nghĩa của
-   * "đã chấm". Mỗi màu có bản `-soft` để làm nền nhãn — chữ đậm trên nền nhạt cùng sắc độ
-   * đủ tương phản mà không hét vào mặt người dùng như nhãn nền đặc. */
+  /* ── SEMANTIC colors ───────────────────────────────────────────────────────────────────
+   * Kept separate from the brand color. Submission status has to be readable at a glance,
+   * and if it shared a variable with the primary color then rebranding would silently change
+   * what "graded" means. Each color has a `-soft` variant for badge backgrounds — bold text
+   * on a pale background of the same hue has enough contrast without shouting at the user
+   * the way a solid-fill badge does. */
   --ok: oklch(0.50 0.098 152);
   --ok-soft: oklch(0.945 0.035 152);
   --warn: oklch(0.55 0.105 75);
@@ -113,8 +115,8 @@
   --radius: 0.625rem;
 
   /* ── Sidebar ───────────────────────────────────────────────────────────────────────────
-   * Đậm hơn nền một bậc để phân định vùng điều hướng với vùng nội dung mà không cần đường
-   * kẻ đậm. */
+   * One step darker than the background, so the navigation area separates from the content
+   * area without needing a heavy dividing rule. */
   --sidebar: oklch(0.965 0.005 85);
   --sidebar-foreground: oklch(0.30 0.006 85);
   --sidebar-primary: oklch(0.44 0.088 253);
@@ -126,8 +128,8 @@
 }
 
 .dark {
-  /* Nền tối ngả xanh mực cùng họ với màu chủ đạo, không phải xám trung tính: xám thuần cạnh
-     một màu nhấn có sắc độ luôn trông như bị bạc màu. */
+  /* A dark background tinted toward the same ink blue as the primary color, not a neutral
+     gray: pure gray next to a saturated accent always looks washed out. */
   --background: oklch(0.165 0.008 260);
   --foreground: oklch(0.94 0.004 85);
 
@@ -136,8 +138,9 @@
   --popover: oklch(0.21 0.010 260);
   --popover-foreground: oklch(0.94 0.004 85);
 
-  /* Sáng hơn hẳn bản nền sáng: xanh mực #2C5282 trên nền tối tụt xuống dưới ngưỡng tương
-     phản đọc được, nên chế độ tối phải dùng bậc sáng hơn chứ không phải cùng một giá trị. */
+  /* Noticeably lighter than the light-mode value: ink blue #2C5282 on a dark background
+     falls below the readable contrast threshold, so dark mode needs a lighter step rather
+     than the same value reused. */
   --primary: oklch(0.70 0.105 250);
   --primary-foreground: oklch(0.17 0.02 260);
 
@@ -188,9 +191,9 @@
   }
 }
 /*
- * Shiki phát ra màu sáng inline và màu tối dưới dạng biến --shiki-dark (xem
- * components/submission/xem-ma-nguon.tsx). Không có quy tắc này thì ở chế độ tối khối mã
- * giữ nguyên bảng màu sáng: chữ gần như không đọc được trên nền tối.
+ * Shiki emits the light colors inline and the dark ones as --shiki-dark variables (see
+ * components/submission/source-viewer.tsx). Without this rule, code blocks keep the light
+ * palette in dark mode: the text is nearly unreadable against a dark background.
  */
 .dark .shiki,
 .dark .shiki span {
@@ -199,32 +202,35 @@
 }
 
 /*
- * Đoạn trùng lặp trong màn hình so sánh hai bài nộp (decoration của Shiki).
+ * Matched ranges on the submission comparison screen (Shiki decorations).
  *
- * Phải đặt SAU và phải cụ thể hơn quy tắc `.dark .shiki span` bên trên, vì `--shiki-dark-bg`
- * được Shiki đặt trên thẻ <pre> và biến CSS thì DI TRUYỀN xuống mọi thẻ con — nên quy tắc kia
- * sơn nền của cả khối mã đè lên đúng ô mình vừa tô, và ở chế độ tối phần tô sáng biến mất
- * sạch. Cả hai đều !important nên thứ quyết định là độ cụ thể: thêm `.th-trung` là đủ thắng.
+ * This must come AFTER and be more specific than the `.dark .shiki span` rule above, because
+ * Shiki sets `--shiki-dark-bg` on the <pre> tag and CSS variables are INHERITED by every
+ * descendant — so that rule paints the whole code block's background over the very cells we
+ * just highlighted, and in dark mode the highlight disappears completely. Both are
+ * !important, so specificity is what decides: adding `.th-match` is enough to win.
  *
- * Shiki gắn lớp này lên thẻ token khi đoạn tô nằm gọn trong một token, còn khi đoạn phủ cả
- * dòng thì gộp vào thẻ dòng thành `class="line th-trung"` — bộ chọn theo lớp bắt được cả hai.
+ * Shiki puts this class on the token element when the range fits inside a single token, and
+ * folds it into the line element as `class="line th-match"` when the range spans a whole
+ * line — a class selector catches both.
  *
- * MÀU VÀNG HỔ PHÁCH, KHÔNG PHẢI ĐỎ, và đây là quyết định nội dung chứ không phải thẩm mỹ:
- * đỏ là màu của lỗi và của kết tội, trong khi cả màn hình được viết để nói rằng đây chỉ là
- * gợi ý để đọc và hệ thống không bao giờ tự kết luận sao chép (Rủi ro #3 của SRS). Tô đỏ là
- * nói ngược lại dòng cảnh báo ngay phía trên nó. Vàng cũng khớp với viền cảnh báo amber-500
- * đang dùng ở trang báo cáo trùng lặp.
+ * AMBER, NOT RED, and this is an editorial decision rather than an aesthetic one: red is the
+ * color of errors and of accusations, while the entire screen is written to say this is only
+ * a hint to go read the code and that the system never concludes plagiarism on its own (SRS
+ * Risk #3). Painting it red contradicts the disclaimer sitting directly above it. Amber also
+ * matches the amber-500 alert border already used on the similarity report page.
  *
- * Nền để trong suốt một phần để màu chữ của bộ tô cú pháp bên dưới vẫn đọc được — tô đặc thì
- * mã nguồn không còn đọc nổi, mà đọc mã mới là toàn bộ mục đích của màn hình này. Hai giá trị
- * sáng/tối khai TƯỜNG MINH: nền tối cần đậm hơn mới thấy, dùng chung một giá trị thì một
- * trong hai chế độ gần như không nhìn ra chỗ nào được tô.
+ * The background is left partly transparent so the syntax highlighter's text colors
+ * underneath stay readable — a solid fill makes the source unreadable, and reading the source
+ * is the entire point of this screen. The light and dark values are declared EXPLICITLY: the
+ * dark background needs a stronger tint to be visible at all, and sharing one value leaves
+ * the highlight nearly invisible in one of the two modes.
  */
-.shiki span.th-trung {
+.shiki span.th-match {
   background-color: oklch(0.83 0.13 82 / 0.35) !important;
   border-radius: 2px;
 }
 
-.dark .shiki span.th-trung {
+.dark .shiki span.th-match {
   background-color: oklch(0.77 0.15 70 / 0.32) !important;
 }

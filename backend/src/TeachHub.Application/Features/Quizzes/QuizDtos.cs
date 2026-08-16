@@ -32,21 +32,22 @@ public sealed record QuizDto(
     QuizConfigDto Config, int QuestionCount, decimal TotalPoints,
     List<QuizQuestionDto> Questions)
 {
-    public static QuizDto From(Quiz q, List<QuizQuestion> cau) => new(
+    public static QuizDto From(Quiz q, List<QuizQuestion> questions) => new(
         q.Id, q.SubjectVersionId, q.OfferingId, q.Title, q.Description,
         new QuizConfigDto(q.Config.IsGraded, q.Config.TimeLimitMinutes, q.Config.MaxAttempts,
                           q.Config.ShuffleQuestions, q.Config.ShuffleOptions,
                           q.Config.ShowExplanationAfterSubmit),
-        cau.Count, cau.Sum(c => c.Points),
-        [.. cau.Select(QuizQuestionDto.From)]);
+        questions.Count, questions.Sum(c => c.Points),
+        [.. questions.Select(QuizQuestionDto.From)]);
 }
 
-// ── Phía sinh viên: KHÔNG bao giờ kèm đáp án đúng ───────────────────────────────────────
+// ── Student side: NEVER carries the correct answers ─────────────────────────────────────
 
 /// <summary>
-/// Phương án hiện cho sinh viên. Cố ý KHÔNG có <c>IsCorrect</c>: chỉ cần một lần lỡ trả
-/// trường đó là cả lớp mở DevTools ra xem đáp án, và không có gì trong hệ thống báo động.
-/// Đây là lý do phía sinh viên dùng DTO riêng chứ không tái sử dụng <see cref="QuestionOptionDto"/>.
+/// An option as shown to a student. Deliberately has NO <c>IsCorrect</c>: one single slip that
+/// returns that field and the whole class opens DevTools to read the answer key, with nothing
+/// in the system raising an alarm.
+/// This is why the student side uses its own DTO instead of reusing <see cref="QuestionOptionDto"/>.
 /// </summary>
 public sealed record TakeOptionDto(Guid Id, string Text);
 
@@ -63,7 +64,7 @@ public sealed record TakeAttemptDto(
     decimal? RawScore, decimal? MaxScore, decimal? NormalizedScore,
     List<QuestionReviewDto> Review);
 
-/// <summary>Chỉ trả về SAU khi đã nộp, và chỉ khi quiz bật hiện giải thích.</summary>
+/// <summary>Only returned AFTER submission, and only when the quiz has explanations turned on.</summary>
 public sealed record QuestionReviewDto(
     Guid QuestionId, bool IsCorrect, decimal Earned, decimal Max,
     string? Explanation, List<Guid> CorrectOptionIds, List<string> AcceptedAnswers);

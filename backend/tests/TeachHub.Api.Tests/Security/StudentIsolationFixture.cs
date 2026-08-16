@@ -16,7 +16,7 @@ using TeachHub.Infrastructure.Persistence;
 namespace TeachHub.Api.Tests.Security;
 
 /// <summary>Một "thế giới" hoàn chỉnh của một sinh viên: lớp riêng, dữ liệu học tập riêng.</summary>
-public sealed class TheGioiSinhVien
+public sealed class StudentWorld
 {
     /// <summary>Nhãn để đọc thông báo lỗi cho dễ ("a" / "b").</summary>
     public required string Nhan { get; init; }
@@ -63,8 +63,8 @@ public sealed class TheGioiSinhVien
 /// </summary>
 public sealed class StudentIsolationFixture : TeachHubApiFactory
 {
-    public TheGioiSinhVien A { get; private set; } = null!;
-    public TheGioiSinhVien B { get; private set; } = null!;
+    public StudentWorld A { get; private set; } = null!;
+    public StudentWorld B { get; private set; } = null!;
 
     private const string MatKhauSv = "Sinh@123";
 
@@ -80,7 +80,7 @@ public sealed class StudentIsolationFixture : TeachHubApiFactory
 
     // ── Dựng một thế giới ──────────────────────────────────────────────────────────────
 
-    private async Task<TheGioiSinhVien> DungTheGioiAsync(HttpClient gv, string nhan)
+    private async Task<StudentWorld> DungTheGioiAsync(HttpClient gv, string nhan)
     {
         var id = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -289,7 +289,7 @@ public sealed class StudentIsolationFixture : TeachHubApiFactory
 
         await ChayAsync(sv, HttpMethod.Post, $"/api/offerings/{offeringId}/my-gamification/sync", null);
 
-        return new TheGioiSinhVien { Nhan = nhan, Sv = sv, MaLop = maLop, Id = id };
+        return new StudentWorld { Nhan = nhan, Sv = sv, MaLop = maLop, Id = id };
     }
 
     // ── Hạ tầng seed ───────────────────────────────────────────────────────────────────
@@ -562,7 +562,7 @@ public sealed class StudentIsolationFixture : TeachHubApiFactory
     // ── Thay placeholder ───────────────────────────────────────────────────────────────
 
     /// <summary>Thay <c>{offeringId}</c>… trong template URL bằng id thật của thế giới đã cho.</summary>
-    public static string Resolve(string template, TheGioiSinhVien tg)
+    public static string Resolve(string template, StudentWorld tg)
     {
         var url = ThayId(template, tg);
 
@@ -578,7 +578,7 @@ public sealed class StudentIsolationFixture : TeachHubApiFactory
     /// thân JSON đầy dấu <c>{</c> của chính cú pháp JSON nên phép kiểm "còn ngoặc là còn
     /// placeholder" sẽ báo động ở mọi dòng.
     /// </summary>
-    public static string ResolveBody(string body, TheGioiSinhVien tg)
+    public static string ResolveBody(string body, StudentWorld tg)
     {
         var s = ThayId(body, tg);
 
@@ -593,7 +593,7 @@ public sealed class StudentIsolationFixture : TeachHubApiFactory
         return s;
     }
 
-    private static string ThayId(string s, TheGioiSinhVien tg)
+    private static string ThayId(string s, StudentWorld tg)
     {
         foreach (var (khoa, giaTri) in tg.Id)
             s = s.Replace($"{{{khoa}}}", giaTri, StringComparison.Ordinal);

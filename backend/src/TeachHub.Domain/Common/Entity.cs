@@ -1,8 +1,8 @@
 namespace TeachHub.Domain.Common;
 
 /// <summary>
-/// Base của mọi entity. Id sinh ở tầng ứng dụng (không để DB sinh) bằng UUIDv7
-/// để vừa có tính duy nhất toàn cục vừa tăng dần theo thời gian — xem ADR trong
+/// Base class of every entity. The Id is generated in the application layer (never by the DB)
+/// as a UUIDv7, so it is both globally unique and time-ordered — see the ADR in
 /// docs/architecture/00-tech-stack-decisions.html §1.
 /// </summary>
 public abstract class Entity
@@ -15,7 +15,7 @@ public abstract class Entity
     public override int GetHashCode() => HashCode.Combine(GetType(), Id);
 }
 
-/// <summary>Nội dung dạy học dùng xóa mềm để không phá dữ liệu bài nộp cũ.</summary>
+/// <summary>Teaching content uses soft delete so that old submission data is not destroyed.</summary>
 public interface ISoftDeletable
 {
     bool IsDeleted { get; set; }

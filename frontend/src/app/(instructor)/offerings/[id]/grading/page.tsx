@@ -4,10 +4,10 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
-import { diem, khoangCach, ngayGio } from "@/lib/dinh-dang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
+import { formatScore, formatRelative, formatDateTime } from "@/lib/format";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
-import { NHAN_TRANG_THAI_NOP, type ToGradeItemDto } from "@/lib/api/types";
+import { SUBMISSION_STATUS_LABELS, type ToGradeItemDto } from "@/lib/api/types";
 
 export default async function GradingListPage({
   params,
@@ -31,20 +31,20 @@ export default async function GradingListPage({
   const daXuLy = ds.filter((s) => s.status !== "submitted");
 
   return (
-    <Trang>
-      <DauTrang
-        quayLai={{ href: `/offerings/${id}`, nhan: "Lớp học phần" }}
-        tieuDe="Bài nộp"
-        moTa={`${chuaCham.length} bài chưa chấm trên tổng ${ds.length} bài đã nộp.`}
+    <PageShell>
+      <PageHeader
+        backTo={{ href: `/offerings/${id}`, label: "Lớp học phần" }}
+        title="Bài nộp"
+        description={`${chuaCham.length} bài chưa chấm trên tổng ${ds.length} bài đã nộp.`}
       />
 
       {ds.length === 0 ? (
         <Card>
           <CardContent>
-            <TrongRong
+            <EmptyState
               Icon={Inbox}
-              tieuDe="Chưa có bài nộp nào"
-              moTa="Bài sinh viên nộp sẽ xuất hiện ở đây, bài chưa chấm nằm trên cùng."
+              title="Chưa có bài nộp nào"
+              description="Bài sinh viên nộp sẽ xuất hiện ở đây, bài chưa chấm nằm trên cùng."
             />
           </CardContent>
         </Card>
@@ -81,12 +81,12 @@ export default async function GradingListPage({
           )}
         </>
       )}
-    </Trang>
+    </PageShell>
   );
 }
 
 function NhanTrangThai({ status }: { status: ToGradeItemDto["status"] }) {
-  const nhan = NHAN_TRANG_THAI_NOP[status];
+  const nhan = SUBMISSION_STATUS_LABELS[status];
 
   if (status === "graded" || status === "returned") {
     return <Badge className="bg-ok-soft text-ok border-ok/25 shrink-0 border">{nhan}</Badge>;
@@ -129,8 +129,8 @@ function DanhSach({ ds, offeringId }: { ds: ToGradeItemDto[]; offeringId: string
                   <>
                     <span aria-hidden>·</span>
                     {/* Tương đối để trả lời "có gấp không"; mốc chính xác giữ trong title. */}
-                    <time dateTime={s.submitted_at} title={ngayGio(s.submitted_at)}>
-                      {khoangCach(s.submitted_at)}
+                    <time dateTime={s.submitted_at} title={formatDateTime(s.submitted_at)}>
+                      {formatRelative(s.submitted_at)}
                     </time>
                   </>
                 )}
@@ -146,7 +146,7 @@ function DanhSach({ ds, offeringId }: { ds: ToGradeItemDto[]; offeringId: string
                 null, nên trường này về tới đây là `undefined`, và phép so sánh chặt sẽ cho
                 qua rồi in ra dấu "—" ở đúng những bài chưa có điểm. */}
             {s.score != null && (
-              <span className="shrink-0 text-sm font-medium tabular-nums">{diem(s.score)}</span>
+              <span className="shrink-0 text-sm font-medium tabular-nums">{formatScore(s.score)}</span>
             )}
             <NhanTrangThai status={s.status} />
             <ChevronRight

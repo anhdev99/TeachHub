@@ -5,12 +5,12 @@ public enum ConditionOperator { LessThan, LessOrEqual }
 public enum CapAction { CapFinalAt }
 
 /// <summary>
-/// Điều kiện điểm sàn của lớp (jsonb trên CourseOffering).
-/// Ví dụ có thật: "Cuối môn &lt; 4.0 → điểm tổng tối đa 3.9".
+/// A class's minimum-score condition (jsonb on CourseOffering).
+/// A real example: "final exam &lt; 4.0 → total score capped at 3.9".
 /// </summary>
 public sealed class GradeCondition
 {
-    /// <summary>Nối bằng KEY của cột, không bằng Id — đổi cột vẫn giữ được ý nghĩa điều kiện.</summary>
+    /// <summary>Links by the column's KEY, not by Id — the condition keeps its meaning when the column is replaced.</summary>
     public required string ColumnKey { get; set; }
 
     public ConditionOperator Op { get; set; } = ConditionOperator.LessThan;
@@ -26,9 +26,10 @@ public sealed class GradeCondition
 }
 
 /// <summary>
-/// <c>Score</c> = điểm sau khi áp điều kiện. <c>UnknownColumnKeys</c> = những điều kiện trỏ tới
-/// cột không tồn tại: bị bỏ qua nhưng PHẢI hiện cảnh báo, vì im lặng ở đây nghĩa là quy định
-/// điểm sàn của môn không có hiệu lực mà không ai biết.
+/// <c>Score</c> = the score after the conditions have been applied. <c>UnknownColumnKeys</c> =
+/// conditions pointing at a column that does not exist: they are skipped, but a warning MUST be
+/// shown, because staying silent here means the subject's minimum-score rule is not in force and
+/// nobody knows it.
 /// </summary>
 public sealed record ConditionOutcome(decimal Score, IReadOnlyList<string> UnknownColumnKeys);
 
@@ -42,34 +43,34 @@ public static class GradeConditionEvaluator
     {
         if (conditions.Count == 0) return new(total, []);
 
-        var khongTonTai = new List<string>();
-        decimal? tran = null;
+        var unknownKeys = new List<string>();
+        decimal? cap = null;
 
-        foreach (var dk in conditions)
+        foreach (var condition in conditions)
         {
-            var cot = columns.FirstOrDefault(c => c.Key == dk.ColumnKey);
-            if (cot is null)
+            var column = columns.FirstOrDefault(c => c.Key == condition.ColumnKey);
+            if (column is null)
             {
-                khongTonTai.Add(dk.ColumnKey);
+                unknownKeys.Add(condition.ColumnKey);
                 continue;
             }
 
-            var diemCot = columnScores.TryGetValue(cot.Id, out var v) ? v : 0m;
+            var columnScore = columnScores.TryGetValue(column.Id, out var v) ? v : 0m;
 
-            var dinh = dk.Op switch
+            var triggered = condition.Op switch
             {
-                ConditionOperator.LessThan => diemCot < dk.Threshold,
-                ConditionOperator.LessOrEqual => diemCot <= dk.Threshold,
+                ConditionOperator.LessThan => columnScore < condition.Threshold,
+                ConditionOperator.LessOrEqual => columnScore <= condition.Threshold,
                 _ => false,
             };
 
-            if (!dinh) continue;
+            if (!triggered) continue;
 
-            // Nhiều điều kiện cùng đúng → lấy mức chặn THẤP NHẤT. Quy định điểm sàn là điều
-            // kiện cần, không phải điều kiện được chọn lấy cái dễ chịu nhất.
-            tran = tran is { } daCo ? Math.Min(daCo, dk.ActionValue) : dk.ActionValue;
+            // Several conditions triggering at once → take the LOWEST cap. A minimum-score rule
+            // is a requirement to be met, not a menu you get to pick the mildest option from.
+            cap = cap is { } existing ? Math.Min(existing, condition.ActionValue) : condition.ActionValue;
         }
 
-        return new(tran is { } muc ? Math.Min(total, muc) : total, khongTonTai);
+        return new(cap is { } capValue ? Math.Min(total, capValue) : total, unknownKeys);
     }
 }

@@ -2,7 +2,7 @@ using MediatR;
 
 namespace TeachHub.Application.Common.Messaging;
 
-/// <summary>Marker không generic để TransactionBehavior nhận diện được command.</summary>
+/// <summary>Non-generic marker so that TransactionBehavior can recognise a command.</summary>
 public interface IBaseCommand;
 
 public interface ICommand<out TResponse> : IRequest<TResponse>, IBaseCommand;

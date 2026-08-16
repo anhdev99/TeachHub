@@ -16,8 +16,8 @@ using TeachHub.Domain.Teaching;
 namespace TeachHub.Application.Common;
 
 /// <summary>
-/// Cổng truy cập dữ liệu. Handler viết LINQ trực tiếp trên các DbSet này (ADR-002:
-/// không dùng Repository generic). Mỗi phase sau sẽ bổ sung thêm DbSet vào đây.
+/// The data access port. Handlers write LINQ directly against these DbSets (ADR-002: no
+/// generic Repository). Each later phase adds further DbSets here.
 /// </summary>
 public interface IAppDbContext
 {
@@ -25,7 +25,7 @@ public interface IAppDbContext
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<InstructorInvite> InstructorInvites { get; }
 
-    // Phase 1 — nội dung dạy học
+    // Phase 1 — teaching content
     DbSet<Subject> Subjects { get; }
     DbSet<SubjectVersion> SubjectVersions { get; }
     DbSet<Chapter> Chapters { get; }
@@ -34,13 +34,13 @@ public interface IAppDbContext
     DbSet<Assignment> Assignments { get; }
     DbSet<Quiz> Quizzes { get; }
 
-    // Phase 2 — lớp học phần và tiến độ học
+    // Phase 2 — course offerings and learning progress
     DbSet<CourseOffering> CourseOfferings { get; }
     DbSet<Enrollment> Enrollments { get; }
     DbSet<LessonProgress> LessonProgresses { get; }
     DbSet<ComponentProgress> ComponentProgresses { get; }
 
-    // Phase 3 — bài tập và nộp bài
+    // Phase 3 — assignments and submissions
     DbSet<Rubric> Rubrics { get; }
     DbSet<RubricCriterion> RubricCriteria { get; }
     DbSet<AssignmentHint> AssignmentHints { get; }
@@ -48,13 +48,13 @@ public interface IAppDbContext
     DbSet<Submission> Submissions { get; }
     DbSet<SubmissionFile> SubmissionFiles { get; }
 
-    // Phase 4a — chấm điểm và làm việc nhóm
+    // Phase 4a — grading and group work
     DbSet<StudentGroup> StudentGroups { get; }
     DbSet<GroupMember> GroupMembers { get; }
     DbSet<GradeAuditLog> GradeAuditLogs { get; }
     DbSet<FinalAssessment> FinalAssessments { get; }
 
-    // Phase 4b — sổ điểm động
+    // Phase 4b — dynamic gradebook
     DbSet<GradeColumn> GradeColumns { get; }
     DbSet<GradeColumnSource> GradeColumnSources { get; }
     DbSet<GradeRecord> GradeRecords { get; }
@@ -66,13 +66,13 @@ public interface IAppDbContext
     DbSet<GradeExportItem> GradeExportItems { get; }
     DbSet<GradeSnapshot> GradeSnapshots { get; }
 
-    // Phase 5 — trắc nghiệm
+    // Phase 5 — quizzes
     DbSet<QuizQuestion> QuizQuestions { get; }
     DbSet<QuestionOption> QuestionOptions { get; }
     DbSet<QuizItem> QuizItems { get; }
     DbSet<QuizAttempt> QuizAttempts { get; }
 
-    // Phase 6 — liêm chính học thuật & chấm nâng cao
+    // Phase 6 — academic integrity & advanced grading
     DbSet<SourceFingerprint> SourceFingerprints { get; }
     DbSet<HintUnlock> HintUnlocks { get; }
     DbSet<SubmissionMemberScore> SubmissionMemberScores { get; }
@@ -84,7 +84,7 @@ public interface IAppDbContext
     DbSet<EarnedBadge> EarnedBadges { get; }
     DbSet<OfferingGamificationSettings> OfferingGamificationSettings { get; }
 
-    // Phase 8 — ôn tập ngắt quãng
+    // Phase 8 — spaced repetition
     DbSet<ReviewQueueItem> ReviewQueueItems { get; }
     DbSet<ReviewGenerationMark> ReviewGenerationMarks { get; }
 

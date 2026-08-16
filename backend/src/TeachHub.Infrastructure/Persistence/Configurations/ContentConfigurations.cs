@@ -15,15 +15,15 @@ public sealed class SubjectConfiguration : IEntityTypeConfiguration<Subject>
         b.Property(x => x.Code).HasMaxLength(20).IsRequired();
         b.Property(x => x.Name).HasMaxLength(300).IsRequired();
 
-        // Gap #1: instructor_id là FK thật tới bảng người dùng, không phải Guid trôi nổi.
+        // Gap #1: instructor_id is a real FK to the users table, not a free-floating Guid.
         b.HasOne<AppUser>().WithMany().HasForeignKey(x => x.InstructorId)
          .OnDelete(DeleteBehavior.Restrict);
 
-        // Mỗi giảng viên không được có hai môn trùng mã. Partial index vì bản xóa mềm
-        // vẫn nằm lại trong bảng và không được chiếm chỗ mã đó.
+        // An instructor must not have two subjects with the same code. A partial index, because
+        // soft-deleted rows stay in the table and must not keep that code occupied.
         b.HasIndex(x => new { x.InstructorId, x.Code })
          .IsUnique()
-         .HasFilter("NOT is_deleted");   // SQL thô: tên cột snake_case
+         .HasFilter("NOT is_deleted");   // raw SQL: column names in snake_case
 
         b.HasMany(x => x.Versions).WithOne().HasForeignKey(v => v.SubjectId)
          .OnDelete(DeleteBehavior.Cascade);
@@ -40,11 +40,11 @@ public sealed class SubjectVersionConfiguration : IEntityTypeConfiguration<Subje
         b.Property(x => x.VersionLabel).HasMaxLength(50).IsRequired();
         b.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
 
-        // syllabus_json của SRS → jsonb có kiểu, không phải chuỗi.
-        // Danh sách complex LỒNG BÊN TRONG cột ToJson() phải khai tường minh bằng OwnsMany:
-        // EF không suy ra được và mô hình sẽ không dựng nổi ("Unable to determine the
-        // relationship represented by navigation 'Syllabus.Outcomes'"). List<string> thì
-        // không cần vì đó là primitive collection.
+        // The SRS syllabus_json → typed jsonb, not a string.
+        // A complex list NESTED INSIDE a ToJson() column has to be declared explicitly with
+        // OwnsMany: EF cannot infer it and the model then fails to build ("Unable to determine
+        // the relationship represented by navigation 'Syllabus.Outcomes'"). A List<string> needs
+        // none of this, because that is a primitive collection.
         b.OwnsOne(x => x.Syllabus, s =>
         {
             s.ToJson();
@@ -102,18 +102,18 @@ public sealed class LessonComponentConfiguration : IEntityTypeConfiguration<Less
         b.HasKey(x => x.Id);
         b.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
 
-        // config_json của SRS → jsonb có kiểu.
-        // ComponentConfig KHÔNG chứa enum nào; ngày nào thêm enum vào đây thì phải khai
-        // .HasConversion<string>() cho riêng nó — EF dùng JsonValueReaderWriter riêng cho
-        // cột ToJson() và KHÔNG đọc JsonStringEnumConverter của ASP.NET Core.
+        // The SRS config_json → typed jsonb.
+        // ComponentConfig contains NO enum today; the day one is added here it MUST get its own
+        // .HasConversion<string>() — EF uses a dedicated JsonValueReaderWriter for a ToJson()
+        // column and does NOT read the ASP.NET Core JsonStringEnumConverter.
         b.OwnsOne(x => x.Config, c =>
         {
             c.ToJson();
-            c.OwnsMany(cfg => cfg.InlineQuestions);   // xem ghi chú ở SubjectVersionConfiguration
+            c.OwnsMany(cfg => cfg.InlineQuestions);   // see the note in SubjectVersionConfiguration
         });
 
-        // RefId cố ý KHÔNG khai FK: nó trỏ tới Assignment HOẶC Quiz tuỳ Type.
-        // Ràng buộc nhất quán do SubjectVersionCloner và validator giữ.
+        // RefId deliberately declares NO FK: it points at either an Assignment OR a Quiz,
+        // depending on Type. Consistency is enforced by SubjectVersionCloner and the validators.
         b.HasIndex(x => new { x.LessonId, x.OrderIndex });
     }
 }
@@ -128,11 +128,11 @@ public sealed class AssignmentConfiguration : IEntityTypeConfiguration<Assignmen
         b.Property(x => x.MaxScore).HasPrecision(5, 2);
         b.Property(x => x.LatePenaltyPercentPerDay).HasPrecision(5, 2);
 
-        // GroupConfig CHỨA enum AllocationMode, nên phải khai .HasConversion<string>()
-        // cho riêng nó: EF dùng JsonValueReaderWriter cho cột ToJson() và KHÔNG đọc
-        // JsonStringEnumConverter cấu hình ở tầng HTTP. Thiếu dòng này thì jsonb lưu
-        // {"AllocationMode": 1} — không lỗi, không test đỏ, chỉ là dữ liệu đổi nghĩa
-        // vào ngày ai đó chèn một giá trị vào giữa enum.
+        // GroupConfig DOES contain the AllocationMode enum, so it needs its own
+        // .HasConversion<string>(): EF uses JsonValueReaderWriter for a ToJson() column and does
+        // NOT read the JsonStringEnumConverter configured at the HTTP layer. Without this line
+        // the jsonb stores {"AllocationMode": 1} — no error, no failing test, just data that
+        // changes meaning the day someone inserts a value into the middle of the enum.
         b.OwnsOne(x => x.GroupConfig, g =>
         {
             g.ToJson();
@@ -145,8 +145,8 @@ public sealed class AssignmentConfiguration : IEntityTypeConfiguration<Assignmen
         b.HasOne<SubjectVersion>().WithMany().HasForeignKey(x => x.SubjectVersionId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Rubric thuộc giảng viên và dùng chung giữa nhiều bài tập, nên xóa bài tập
-        // không được đụng tới rubric.
+        // A rubric belongs to the instructor and is shared across many assignments, so deleting
+        // an assignment must not touch the rubric.
         b.HasOne<Rubric>().WithMany().HasForeignKey(x => x.RubricId)
          .OnDelete(DeleteBehavior.Restrict);
 
@@ -167,16 +167,16 @@ public sealed class QuizConfiguration : IEntityTypeConfiguration<Quiz>
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Config KHÔNG chứa enum nào; ngày nào thêm enum vào đây thì phải khai
-        // .HasConversion<string>() cho riêng nó — EF dùng JsonValueReaderWriter cho cột
-        // ToJson() và không đọc JsonStringEnumConverter của tầng HTTP.
+        // Config contains NO enum today; the day one is added here it MUST get its own
+        // .HasConversion<string>() — EF uses JsonValueReaderWriter for a ToJson() column and
+        // does not read the HTTP layer's JsonStringEnumConverter.
         b.OwnsOne(x => x.Config, c => c.ToJson());
 
         b.HasMany(x => x.Items).WithOne().HasForeignKey(i => i.QuizId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Gap #3: đúng MỘT trong hai chủ sở hữu. Bỏ CHECK thì một quiz thuộc cả phiên bản môn
-        // lẫn một lớp, và clone version sẽ nhân đôi nó.
+        // Gap #3: exactly ONE of the two owners. Drop the CHECK and a quiz can belong to both a
+        // subject version and a class offering, and cloning the version will duplicate it.
         b.ToTable(t => t.HasCheckConstraint("ck_quizzes_owner", """
             (subject_version_id IS NOT NULL AND offering_id IS NULL) OR
             (subject_version_id IS NULL     AND offering_id IS NOT NULL)

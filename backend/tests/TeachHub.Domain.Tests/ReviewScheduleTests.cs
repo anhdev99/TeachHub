@@ -4,218 +4,223 @@ using TeachHub.Domain.Review;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Thang ôn tập ngắt quãng: 3 ngày → 1 tuần → 2 tuần → thuộc. Trả lời sai ở BẤT KỲ bậc nào
-/// đều quay về đầu chu kỳ.
+/// The spaced-repetition ladder: 3 days -> 1 week -> 2 weeks -> mastered. A wrong answer at ANY
+/// rung sends the item back to the start of the cycle.
 ///
-/// Đây là luật đắt nhất của Phase 8 và cũng là luật KHÔNG kiểm được bằng mắt trên giao diện:
-/// muốn thấy một mục đi hết thang bằng tay thì phải chờ 24 ngày thật. Vì thế toàn bộ luật là
-/// hàm thuần nhận <c>now</c>, và cả file này chạy dưới 20 ms.
+/// This is the most expensive rule in Phase 8 and also the one that CANNOT be checked by eye in
+/// the UI: watching a single item walk the whole ladder by hand would take 24 real days. That is
+/// why the entire rule is a pure function taking <c>now</c>, and why this whole file runs in
+/// under 20 ms.
 /// </summary>
 public class ReviewScheduleTests
 {
-    // Mốc cố định, có offset +07: nếu luật lỡ dùng DateTime thay vì DateTimeOffset thì phép
-    // cộng ngày sẽ lệch đúng 7 tiếng và test này bắt được ngay.
-    private static readonly DateTimeOffset Moc = new(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+    // A fixed instant carrying a +07 offset: if the rule ever used DateTime instead of
+    // DateTimeOffset, the day arithmetic would be off by exactly 7 hours and this test catches it.
+    private static readonly DateTimeOffset Start = new(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
 
-    // ── Bậc đầu tiên ─────────────────────────────────────────────────────────────────────
-
-    [Fact]
-    public void Muc_moi_sinh_tu_cau_tra_loi_sai_co_han_on_sau_3_ngay()
-    {
-        var kq = ReviewSchedule.Start(Moc);
-
-        kq.Stage.ShouldBe(ReviewStage.ThreeDays);
-        kq.NextReviewAt.ShouldBe(Moc.AddDays(3));
-        kq.IsMastered.ShouldBeFalse();
-    }
-
-    // ── Thang đủ bốn bậc ─────────────────────────────────────────────────────────────────
+    // -- First rung ----------------------------------------------------------------------
 
     [Fact]
-    public void Thang_on_tap_di_du_3_ngay_roi_1_tuan_roi_2_tuan_roi_thuoc()
+    public void An_item_born_from_a_wrong_answer_is_due_for_review_in_3_days()
     {
-        var bac1 = ReviewSchedule.Start(Moc);
-        bac1.NextReviewAt.ShouldBe(Moc.AddDays(3));
+        var result = ReviewSchedule.Start(Start);
 
-        var onLan1 = bac1.NextReviewAt!.Value;
-        var bac2 = ReviewSchedule.Next(bac1.Stage, traLoiDung: true, onLan1);
-        bac2.Stage.ShouldBe(ReviewStage.OneWeek);
-        bac2.NextReviewAt.ShouldBe(onLan1.AddDays(7));
-
-        var onLan2 = bac2.NextReviewAt!.Value;
-        var bac3 = ReviewSchedule.Next(bac2.Stage, traLoiDung: true, onLan2);
-        bac3.Stage.ShouldBe(ReviewStage.TwoWeeks);
-        bac3.NextReviewAt.ShouldBe(onLan2.AddDays(14));
-
-        var onLan3 = bac3.NextReviewAt!.Value;
-        var bac4 = ReviewSchedule.Next(bac3.Stage, traLoiDung: true, onLan3);
-        bac4.Stage.ShouldBe(ReviewStage.Mastered);
-        bac4.IsMastered.ShouldBeTrue();
-
-        // Thuộc rồi thì KHÔNG còn hạn ôn — đây là thứ giữ mục ra khỏi hàng đợi. Để lại một
-        // ngày cũ ở đây là mục thuộc rồi vẫn hiện lên "Ôn tập hôm nay" mãi mãi.
-        bac4.NextReviewAt.ShouldBeNull();
+        result.Stage.ShouldBe(ReviewStage.ThreeDays);
+        result.NextReviewAt.ShouldBe(Start.AddDays(3));
+        result.IsMastered.ShouldBeFalse();
     }
 
-    // ── Trả lời sai: quay về đầu chu kỳ ──────────────────────────────────────────────────
+    // -- The full four-rung ladder -------------------------------------------------------
+
+    [Fact]
+    public void The_ladder_walks_3_days_then_1_week_then_2_weeks_then_mastered()
+    {
+        var rung1 = ReviewSchedule.Start(Start);
+        rung1.NextReviewAt.ShouldBe(Start.AddDays(3));
+
+        var review1 = rung1.NextReviewAt!.Value;
+        var rung2 = ReviewSchedule.Next(rung1.Stage, traLoiDung: true, review1);
+        rung2.Stage.ShouldBe(ReviewStage.OneWeek);
+        rung2.NextReviewAt.ShouldBe(review1.AddDays(7));
+
+        var review2 = rung2.NextReviewAt!.Value;
+        var rung3 = ReviewSchedule.Next(rung2.Stage, traLoiDung: true, review2);
+        rung3.Stage.ShouldBe(ReviewStage.TwoWeeks);
+        rung3.NextReviewAt.ShouldBe(review2.AddDays(14));
+
+        var review3 = rung3.NextReviewAt!.Value;
+        var rung4 = ReviewSchedule.Next(rung3.Stage, traLoiDung: true, review3);
+        rung4.Stage.ShouldBe(ReviewStage.Mastered);
+        rung4.IsMastered.ShouldBeTrue();
+
+        // Once mastered there is NO next review date — that is what keeps the item out of the
+        // queue. Leaving an old date here means a mastered item shows up under "Review today"
+        // forever.
+        rung4.NextReviewAt.ShouldBeNull();
+    }
+
+    // -- A wrong answer: back to the start of the cycle -----------------------------------
 
     [Theory]
     [InlineData(ReviewStage.ThreeDays)]
     [InlineData(ReviewStage.OneWeek)]
     [InlineData(ReviewStage.TwoWeeks)]
-    public void Tra_loi_sai_o_BAT_KY_bac_nao_deu_quay_ve_3_ngay(ReviewStage bacHienTai)
+    public void A_wrong_answer_at_ANY_rung_returns_to_3_days(ReviewStage currentStage)
     {
-        var kq = ReviewSchedule.Next(bacHienTai, traLoiDung: false, Moc);
+        var result = ReviewSchedule.Next(currentStage, traLoiDung: false, Start);
 
-        kq.Stage.ShouldBe(ReviewStage.ThreeDays);
-        kq.NextReviewAt.ShouldBe(Moc.AddDays(3));
+        result.Stage.ShouldBe(ReviewStage.ThreeDays);
+        result.NextReviewAt.ShouldBe(Start.AddDays(3));
     }
 
     [Fact]
-    public void Tra_loi_sai_o_bac_CUOI_khong_thanh_thuoc_ma_ve_lai_3_ngay()
+    public void A_wrong_answer_at_the_LAST_rung_does_not_master_it_but_returns_to_3_days()
     {
-        // Ca dễ viết sai nhất: bậc cuối cộng thêm một nấc là "thuộc", nên một nhánh switch
-        // thiếu điều kiện đúng/sai sẽ cho sinh viên "thuộc" đúng lúc họ vừa trả lời sai.
-        var kq = ReviewSchedule.Next(ReviewStage.TwoWeeks, traLoiDung: false, Moc);
+        // The easiest case to get wrong: one step past the last rung is "mastered", so a switch
+        // branch missing the correct/incorrect condition hands the student "mastered" at exactly
+        // the moment they answered wrong.
+        var result = ReviewSchedule.Next(ReviewStage.TwoWeeks, traLoiDung: false, Start);
 
-        kq.Stage.ShouldBe(ReviewStage.ThreeDays);
-        kq.IsMastered.ShouldBeFalse();
-        kq.NextReviewAt.ShouldBe(Moc.AddDays(3));
+        result.Stage.ShouldBe(ReviewStage.ThreeDays);
+        result.IsMastered.ShouldBeFalse();
+        result.NextReviewAt.ShouldBe(Start.AddDays(3));
     }
 
     [Fact]
-    public void Sai_lai_mot_khai_niem_da_thuoc_thi_quay_ve_dau_chu_ky()
+    public void Getting_an_already_mastered_concept_wrong_returns_to_the_start_of_the_cycle()
     {
-        // Học môn sau mà sai lại khái niệm cũ là chuyện có thật, và đó chính là lý do
-        // ReviewQueueItem gắn với user_id chứ không gắn với enrollment_id (Gap #2).
-        var kq = ReviewSchedule.Next(ReviewStage.Mastered, traLoiDung: false, Moc);
+        // Getting an old concept wrong while taking a later subject really happens, and that is
+        // precisely why ReviewQueueItem hangs off user_id rather than enrollment_id (Gap #2).
+        var result = ReviewSchedule.Next(ReviewStage.Mastered, traLoiDung: false, Start);
 
-        kq.Stage.ShouldBe(ReviewStage.ThreeDays);
-        kq.NextReviewAt.ShouldBe(Moc.AddDays(3));
+        result.Stage.ShouldBe(ReviewStage.ThreeDays);
+        result.NextReviewAt.ShouldBe(Start.AddDays(3));
     }
 
     [Fact]
-    public void Da_thuoc_ma_tra_loi_dung_them_lan_nua_van_la_thuoc()
+    public void Answering_correctly_once_more_after_mastery_stays_mastered()
     {
-        var kq = ReviewSchedule.Next(ReviewStage.Mastered, traLoiDung: true, Moc);
+        var result = ReviewSchedule.Next(ReviewStage.Mastered, traLoiDung: true, Start);
 
-        kq.Stage.ShouldBe(ReviewStage.Mastered);
-        kq.NextReviewAt.ShouldBeNull();
+        result.Stage.ShouldBe(ReviewStage.Mastered);
+        result.NextReviewAt.ShouldBeNull();
     }
 
-    // ── Lịch tính từ lúc TRẢ LỜI, không từ hạn cũ ────────────────────────────────────────
+    // -- The schedule counts from the ANSWER, not from the old due date --------------------
 
     [Fact]
-    public void On_muon_thi_lich_ke_tiep_tinh_tu_luc_tra_loi_chu_khong_tu_han_cu()
+    public void Reviewing_late_schedules_the_next_one_from_the_answer_not_from_the_old_due_date()
     {
-        // Sinh viên bỏ quên hàng đợi 10 ngày rồi mới ôn. Tính mốc kế tiếp từ hạn cũ
-        // (Moc+3+7) là ép họ ôn lại chỉ 4 hôm sau — nén lịch đúng lúc họ đang học chậm.
-        var onMuon = Moc.AddDays(13);
+        // The student ignores the queue for 10 days and only then reviews. Computing the next
+        // date from the old due date (Start+3+7) would force them to review again just 4 days
+        // later — compressing the schedule exactly when they are already falling behind.
+        var lateReview = Start.AddDays(13);
 
-        var kq = ReviewSchedule.Next(ReviewStage.ThreeDays, traLoiDung: true, onMuon);
+        var result = ReviewSchedule.Next(ReviewStage.ThreeDays, traLoiDung: true, lateReview);
 
-        kq.NextReviewAt.ShouldBe(onMuon.AddDays(7));
+        result.NextReviewAt.ShouldBe(lateReview.AddDays(7));
     }
 
-    // ── Mục trong hàng đợi ───────────────────────────────────────────────────────────────
+    // -- Queue items ---------------------------------------------------------------------
 
     [Fact]
-    public void Muc_moi_gan_voi_NGUOI_HOC_va_dem_ngay_mot_lan_sai()
+    public void A_new_item_belongs_to_the_LEARNER_and_already_counts_one_wrong_answer()
     {
-        var nguoiHoc = Guid.CreateVersion7();
-        var cauHoi = Guid.CreateVersion7();
-        var luotLam = Guid.CreateVersion7();
+        var learner = Guid.CreateVersion7();
+        var question = Guid.CreateVersion7();
+        var attempt = Guid.CreateVersion7();
 
-        var muc = ReviewQueueItem.Create(nguoiHoc, cauHoi, luotLam, Moc);
+        var item = ReviewQueueItem.Create(learner, question, attempt, Start);
 
-        muc.UserId.ShouldBe(nguoiHoc);
-        muc.QuestionId.ShouldBe(cauHoi);
-        muc.SourceQuizAttemptId.ShouldBe(luotLam);
-        muc.Stage.ShouldBe(ReviewStage.ThreeDays);
-        muc.Status.ShouldBe(ReviewItemStatus.Pending);
-        muc.NextReviewAt.ShouldBe(Moc.AddDays(3));
+        item.UserId.ShouldBe(learner);
+        item.QuestionId.ShouldBe(question);
+        item.SourceQuizAttemptId.ShouldBe(attempt);
+        item.Stage.ShouldBe(ReviewStage.ThreeDays);
+        item.Status.ShouldBe(ReviewItemStatus.Pending);
+        item.NextReviewAt.ShouldBe(Start.AddDays(3));
 
-        // Mục tồn tại VÌ một câu trả lời sai — đếm từ 0 là làm mất chính sự kiện sinh ra nó.
-        muc.WrongCount.ShouldBe(1);
-        muc.CorrectCount.ShouldBe(0);
-    }
-
-    [Fact]
-    public void Muc_chi_den_han_khi_da_qua_moc_next_review_at()
-    {
-        var muc = ReviewQueueItem.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Moc);
-
-        muc.IsDue(Moc).ShouldBeFalse();
-        muc.IsDue(Moc.AddDays(2).AddHours(23)).ShouldBeFalse();
-        muc.IsDue(Moc.AddDays(3)).ShouldBeTrue();
-        muc.IsDue(Moc.AddDays(30)).ShouldBeTrue();
+        // The item exists BECAUSE of a wrong answer — starting the count at 0 loses the very
+        // event that created it.
+        item.WrongCount.ShouldBe(1);
+        item.CorrectCount.ShouldBe(0);
     }
 
     [Fact]
-    public void Muc_da_thuoc_khong_bao_gio_vao_hang_doi_nua()
+    public void An_item_is_due_only_once_next_review_at_has_passed()
     {
-        var muc = ReviewQueueItem.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Moc);
+        var item = ReviewQueueItem.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Start);
 
-        muc.ApplyAnswer(dung: true, Moc.AddDays(3));
-        muc.ApplyAnswer(dung: true, Moc.AddDays(10));
-        muc.ApplyAnswer(dung: true, Moc.AddDays(24));
-
-        muc.Stage.ShouldBe(ReviewStage.Mastered);
-        muc.Status.ShouldBe(ReviewItemStatus.Mastered);
-        muc.NextReviewAt.ShouldBeNull();
-        muc.CorrectCount.ShouldBe(3);
-
-        // Dù đẩy thời gian đi bao xa cũng không đến hạn nữa.
-        muc.IsDue(Moc.AddYears(5)).ShouldBeFalse();
+        item.IsDue(Start).ShouldBeFalse();
+        item.IsDue(Start.AddDays(2).AddHours(23)).ShouldBeFalse();
+        item.IsDue(Start.AddDays(3)).ShouldBeTrue();
+        item.IsDue(Start.AddDays(30)).ShouldBeTrue();
     }
 
     [Fact]
-    public void Tra_loi_sai_dua_muc_da_thuoc_tro_lai_trang_thai_cho_on()
+    public void A_mastered_item_never_enters_the_queue_again()
     {
-        var muc = ReviewQueueItem.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Moc);
-        muc.ApplyAnswer(dung: true, Moc.AddDays(3));
-        muc.ApplyAnswer(dung: true, Moc.AddDays(10));
-        muc.ApplyAnswer(dung: true, Moc.AddDays(24));
+        var item = ReviewQueueItem.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Start);
 
-        var saiLai = Moc.AddDays(100);
-        muc.ApplyAnswer(dung: false, saiLai);
+        item.ApplyAnswer(dung: true, Start.AddDays(3));
+        item.ApplyAnswer(dung: true, Start.AddDays(10));
+        item.ApplyAnswer(dung: true, Start.AddDays(24));
 
-        muc.Stage.ShouldBe(ReviewStage.ThreeDays);
-        muc.Status.ShouldBe(ReviewItemStatus.Pending);
-        muc.NextReviewAt.ShouldBe(saiLai.AddDays(3));
-        muc.WrongCount.ShouldBe(2);          // một lần lúc sinh ra, một lần vừa rồi
-        muc.LastReviewedAt.ShouldBe(saiLai);
+        item.Stage.ShouldBe(ReviewStage.Mastered);
+        item.Status.ShouldBe(ReviewItemStatus.Mastered);
+        item.NextReviewAt.ShouldBeNull();
+        item.CorrectCount.ShouldBe(3);
+
+        // No matter how far the clock is pushed, it never comes due again.
+        item.IsDue(Start.AddYears(5)).ShouldBeFalse();
     }
 
-    // ── Kịch bản nghiệm thu của plan, viết thành một test ────────────────────────────────
+    [Fact]
+    public void A_wrong_answer_returns_a_mastered_item_to_the_pending_state()
+    {
+        var item = ReviewQueueItem.Create(Guid.CreateVersion7(), Guid.CreateVersion7(), null, Start);
+        item.ApplyAnswer(dung: true, Start.AddDays(3));
+        item.ApplyAnswer(dung: true, Start.AddDays(10));
+        item.ApplyAnswer(dung: true, Start.AddDays(24));
+
+        var wrongAgain = Start.AddDays(100);
+        item.ApplyAnswer(dung: false, wrongAgain);
+
+        item.Stage.ShouldBe(ReviewStage.ThreeDays);
+        item.Status.ShouldBe(ReviewItemStatus.Pending);
+        item.NextReviewAt.ShouldBe(wrongAgain.AddDays(3));
+        item.WrongCount.ShouldBe(2);          // one at creation, one just now
+        item.LastReviewedAt.ShouldBe(wrongAgain);
+    }
+
+    // -- The plan's acceptance scenario, written as a test ---------------------------------
 
     [Fact]
-    public void Nghiem_thu_sai_3_cau_thi_3_muc_vao_hang_doi_va_thang_chay_dung()
+    public void Acceptance_three_wrong_answers_enqueue_three_items_and_the_ladder_runs_correctly()
     {
-        var nguoiHoc = Guid.CreateVersion7();
-        var luotLam = Guid.CreateVersion7();
-        var cauSai = new[] { Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7() };
+        var learner = Guid.CreateVersion7();
+        var attempt = Guid.CreateVersion7();
+        var wrongQuestions = new[] { Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7() };
 
-        var hangDoi = cauSai
-            .Select(c => ReviewQueueItem.Create(nguoiHoc, c, luotLam, Moc))
+        var queue = wrongQuestions
+            .Select(q => ReviewQueueItem.Create(learner, q, attempt, Start))
             .ToList();
 
-        // 3 mục vào hàng đợi với hạn ôn = +3 ngày.
-        hangDoi.Count.ShouldBe(3);
-        hangDoi.ShouldAllBe(m => m.NextReviewAt == Moc.AddDays(3));
+        // 3 items enter the queue with a due date of +3 days.
+        queue.Count.ShouldBe(3);
+        queue.ShouldAllBe(i => i.NextReviewAt == Start.AddDays(3));
 
-        // Đẩy thời gian 3 ngày → cả 3 xuất hiện ở "Ôn tập hôm nay".
-        var sauBaNgay = Moc.AddDays(3);
-        hangDoi.Count(m => m.IsDue(sauBaNgay)).ShouldBe(3);
+        // Push the clock 3 days -> all 3 appear under "Review today".
+        var threeDaysLater = Start.AddDays(3);
+        queue.Count(i => i.IsDue(threeDaysLater)).ShouldBe(3);
 
-        // Trả lời ĐÚNG → lịch sau là 1 tuần.
-        hangDoi[0].ApplyAnswer(dung: true, sauBaNgay);
-        hangDoi[0].Stage.ShouldBe(ReviewStage.OneWeek);
-        hangDoi[0].NextReviewAt.ShouldBe(sauBaNgay.AddDays(7));
+        // Answering CORRECTLY -> the next schedule is 1 week out.
+        queue[0].ApplyAnswer(dung: true, threeDaysLater);
+        queue[0].Stage.ShouldBe(ReviewStage.OneWeek);
+        queue[0].NextReviewAt.ShouldBe(threeDaysLater.AddDays(7));
 
-        // Trả lời SAI → quay lại 3 ngày.
-        hangDoi[1].ApplyAnswer(dung: false, sauBaNgay);
-        hangDoi[1].Stage.ShouldBe(ReviewStage.ThreeDays);
-        hangDoi[1].NextReviewAt.ShouldBe(sauBaNgay.AddDays(3));
+        // Answering WRONG -> back to 3 days.
+        queue[1].ApplyAnswer(dung: false, threeDaysLater);
+        queue[1].Stage.ShouldBe(ReviewStage.ThreeDays);
+        queue[1].NextReviewAt.ShouldBe(threeDaysLater.AddDays(3));
     }
 }

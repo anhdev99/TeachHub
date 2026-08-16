@@ -4,14 +4,14 @@ using TeachHub.Domain.Content;
 
 namespace TeachHub.Domain.Assessments;
 
-/// <summary>Exam CHƯA hỗ trợ ở MVP nên cố ý không có trong enum — xem validator.</summary>
+/// <summary>Exam is NOT supported in the MVP, so it is deliberately absent from the enum — see the validator.</summary>
 public enum FinalAssessmentType { Quiz, FinalProject }
 
 /// <summary>
-/// Đợt chấm cuối môn. Tái sử dụng NGUYÊN VẸN <see cref="SubmissionSlot"/>,
-/// <c>Submission</c> và màn hình chấm của Phase 3 — chỉ khác <c>owner_type</c>.
-/// Dựng một hệ thống nộp bài thứ hai cho bài tập lớn là cách chắc chắn nhất để hai chỗ
-/// hành xử lệch nhau sau vài lần sửa.
+/// End-of-course assessment. Reuses <see cref="SubmissionSlot"/>, <c>Submission</c> and the
+/// Phase 3 grading screen UNCHANGED — only <c>owner_type</c> differs. Standing up a second
+/// submission system just for the final project is the surest way to make the two of them
+/// behave differently after a few rounds of edits.
 /// </summary>
 public class FinalAssessment : Entity
 {
@@ -21,13 +21,15 @@ public class FinalAssessment : Entity
     public string? Description { get; set; }
 
     /// <summary>
-    /// Gap #7: SRS để weight_percent ở CẢ đây LẪN GradeColumn — hai nguồn sự thật sẽ lệch
-    /// nhau. Trọng số chỉ tồn tại ở GradeColumn; ở đây chỉ giữ con trỏ tới cột.
+    /// Gap #7: the SRS puts weight_percent BOTH here AND on GradeColumn — two sources of truth
+    /// that are going to drift apart. The weight lives only on GradeColumn; this field holds
+    /// nothing but a pointer to the column.
     ///
-    /// Nullable, khác với plan ghi <c>required</c>: lúc tạo đợt cuối môn lớp có thể chưa
-    /// có cột điểm nào (sổ điểm là Phase 4b), nên bắt buộc ngay từ đầu là bài toán con gà
-    /// quả trứng — không tạo được đợt, mà cũng không có chỗ nào để tạo cột trước.
-    /// Giao diện nhắc gắn cột; điểm chấm ra chỉ chảy vào sổ khi đã gắn.
+    /// Nullable, unlike the <c>required</c> the plan calls for: at the time the final assessment
+    /// is created the class may not have a single grade column yet (the gradebook is Phase 4b),
+    /// so requiring one up front is a chicken-and-egg problem — you cannot create the assessment,
+    /// and there is nowhere to create the column first either. The UI prompts to attach a column;
+    /// the resulting scores only flow into the gradebook once one is attached.
     /// </summary>
     public Guid? GradeColumnId { get; set; }
 

@@ -20,25 +20,26 @@ public sealed class SubmitAssignmentHandler(IAppDbContext db, TimeProvider clock
 
         if (assignment is null) return Result<SubmissionDto>.NotFound("Không tìm thấy bài tập.");
 
-        var ghiDanh = await SubmissionAccess.EnrollmentForAssignmentAsync(
+        var enrollment = await SubmissionAccess.EnrollmentForAssignmentAsync(
             db, request.AssignmentId, request.StudentUserId, ct);
 
-        if (ghiDanh is null) return Result<SubmissionDto>.NotFound("Không tìm thấy bài tập.");
+        if (enrollment is null) return Result<SubmissionDto>.NotFound("Không tìm thấy bài tập.");
 
-        // Lớp đã kết thúc ⇒ dừng TRƯỚC mọi phép kiểm khác. Để nó xuống dưới thì sinh viên nộp
-        // sau khi lớp đóng nhận về "Chưa nộp các phần bắt buộc" — một thông báo vừa sai vừa
-        // khiến họ đi tải thêm tệp lên cho một lớp không còn nhận bài.
-        if (await OfferingLock.DaDongAsync(db, ghiDanh.OfferingId, ct))
-            return Result<SubmissionDto>.Conflict(OfferingLock.ThongDiep("nộp bài"));
+        // The offering has ended ⇒ stop BEFORE every other check. Push this further down and a
+        // student submitting after the offering closed gets back "Chưa nộp các phần bắt buộc" —
+        // a message that is both wrong and sends them off to upload more files to an offering
+        // that no longer accepts any work.
+        if (await OfferingLock.IsClosedAsync(db, enrollment.OfferingId, ct))
+            return Result<SubmissionDto>.Conflict(OfferingLock.ClosedMessage("nộp bài"));
 
-        var nhap = await db.Submissions
+        var draft = await db.Submissions
             .Include(s => s.Files)
             .SingleOrDefaultAsync(s => s.AssignmentId == request.AssignmentId
-                                    && s.EnrollmentId == ghiDanh.EnrollmentId
+                                    && s.EnrollmentId == enrollment.EnrollmentId
                                     && s.IsCurrent
                                     && s.Status == SubmissionStatus.Draft, ct);
 
-        if (nhap is null) return Result<SubmissionDto>.Invalid("Chưa có tệp nào được tải lên.");
+        if (draft is null) return Result<SubmissionDto>.Invalid("Chưa có tệp nào được tải lên.");
 
         var now = clock.GetUtcNow();
 
@@ -46,34 +47,35 @@ public sealed class SubmitAssignmentHandler(IAppDbContext db, TimeProvider clock
             return Result<SubmissionDto>.Forbidden(
                 $"Bài tập đã hết hạn lúc {assignment.DueAt:dd/MM/yyyy HH:mm} và không nhận nộp trễ.");
 
-        var daCo = nhap.Files
+        var present = draft.Files
             .GroupBy(f => f.SlotKey)
             .Select(g => (g.Key, g.Count()))
             .ToList();
 
-        if (!assignment.CanBeSubmittedWith(daCo))
+        if (!assignment.CanBeSubmittedWith(present))
         {
-            // Nêu đích danh phần còn thiếu. Chỉ nói "chưa đủ điều kiện" là sinh viên bấm
-            // lại năm lần rồi nhắn tin hỏi.
-            var thieu = assignment.MissingRequiredSlots(daCo).Select(s => s.Label);
-            return Result<SubmissionDto>.Invalid($"Chưa nộp các phần bắt buộc: {string.Join(", ", thieu)}.");
+            // Name the missing parts explicitly. Just saying "not eligible yet" means the student
+            // clicks the button five more times and then messages to ask why.
+            var missing = assignment.MissingRequiredSlots(present).Select(s => s.Label);
+            return Result<SubmissionDto>.Invalid($"Chưa nộp các phần bắt buộc: {string.Join(", ", missing)}.");
         }
 
-        // Nộp lại: mọi bản trước chuyển sang lịch sử, KHÔNG xóa (Gap #5). Không tự gọi
-        // BeginTransactionAsync — TransactionBehavior đã bọc sẵn mọi ICommand (ADR-010),
-        // nên hạ cờ is_current và đóng dấu bản mới hoặc cùng vào, hoặc cùng không.
-        var truoc = await db.Submissions
+        // Resubmission: every earlier version moves into the history, it is NEVER deleted
+        // (Gap #5). Do not call BeginTransactionAsync here — TransactionBehavior already wraps
+        // every ICommand (ADR-010), so clearing the is_current flag and stamping the new version
+        // either both land or neither does.
+        var previous = await db.Submissions
             .Where(s => s.AssignmentId == request.AssignmentId
-                     && s.EnrollmentId == ghiDanh.EnrollmentId
-                     && s.IsCurrent && s.Id != nhap.Id)
+                     && s.EnrollmentId == enrollment.EnrollmentId
+                     && s.IsCurrent && s.Id != draft.Id)
             .ToListAsync(ct);
 
-        foreach (var t in truoc) t.IsCurrent = false;
+        foreach (var p in previous) p.IsCurrent = false;
 
-        nhap.MarkSubmitted(now, assignment.DueAt);
+        draft.MarkSubmitted(now, assignment.DueAt);
 
         await db.SaveChangesAsync(ct);
 
-        return Result<SubmissionDto>.Ok(SubmissionDto.From(nhap));
+        return Result<SubmissionDto>.Ok(SubmissionDto.From(draft));
     }
 }

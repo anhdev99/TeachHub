@@ -13,12 +13,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CuonNgang, TrongRong } from "@/components/shell/trang";
-import { XemMaNguon } from "@/components/submission/xem-ma-nguon";
+import { HorizontalScroll, EmptyState } from "@/components/shell/page-shell";
+import { SourceViewer } from "@/components/submission/source-viewer";
 import { apiFetch } from "@/lib/api/fetcher";
-import { diem, khoangCach, ngayGio } from "@/lib/dinh-dang";
+import { formatScore, formatRelative, formatDateTime } from "@/lib/format";
 import {
-  NHAN_TRANG_THAI_NOP,
+  SUBMISSION_STATUS_LABELS,
   type GroupDto, type RubricDto, type SubmissionDto,
   type SubmissionFileDto, type SubmissionStatus,
 } from "@/lib/api/types";
@@ -141,7 +141,7 @@ export function TrangChamBai({
       {/* ── Bài này là bài nào, nộp lúc nào, đang ở trạng thái gì ────────────────────── */}
       <div className="border-border bg-card flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border px-3.5 py-3 text-sm">
         <Badge className={`border ${MAU_TRANG_THAI[bai.status]}`}>
-          {NHAN_TRANG_THAI_NOP[bai.status]}
+          {SUBMISSION_STATUS_LABELS[bai.status]}
         </Badge>
         {bai.is_late && (
           <Badge className="bg-danger-soft text-danger border-danger/25 border">Trễ hạn</Badge>
@@ -154,9 +154,9 @@ export function TrangChamBai({
             <time
               className="text-muted-foreground"
               dateTime={bai.submitted_at}
-              title={ngayGio(bai.submitted_at)}
+              title={formatDateTime(bai.submitted_at)}
             >
-              nộp {khoangCach(bai.submitted_at)}
+              nộp {formatRelative(bai.submitted_at)}
             </time>
           </>
         )}
@@ -165,7 +165,7 @@ export function TrangChamBai({
             cả bài chưa có điểm và dòng này hiện "Điểm hiện tại: —" trên một bài chưa chấm. */}
         {typeof bai.score === "number" && (
           <span className="ml-auto font-medium tabular-nums">
-            Điểm hiện tại: <span className="text-ok">{diem(bai.score)}</span>
+            Điểm hiện tại: <span className="text-ok">{formatScore(bai.score)}</span>
           </span>
         )}
       </div>
@@ -205,7 +205,7 @@ export function TrangChamBai({
 
             {slotKeys.length > 1 && (
               // Nhiều phần nộp thì đây là bộ chuyển; một phần thì nút đơn độc chỉ là nhiễu.
-              <CuonNgang>
+              <HorizontalScroll>
                 <div className="flex gap-1.5">
                   {slotKeys.map((k) => {
                     const chon = slotDangXem === k;
@@ -229,22 +229,22 @@ export function TrangChamBai({
                     );
                   })}
                 </div>
-              </CuonNgang>
+              </HorizontalScroll>
             )}
           </CardHeader>
 
           <CardContent className="flex min-w-0 flex-col gap-4">
             {bai.files.length === 0 ? (
-              <TrongRong
+              <EmptyState
                 Icon={Inbox}
-                tieuDe="Bài nộp này không có tệp nào"
-                moTa="Sinh viên có thể đã nộp bằng đường liên kết, hoặc phần nộp đã bị xóa sau khi nộp."
+                title="Bài nộp này không có tệp nào"
+                description="Sinh viên có thể đã nộp bằng đường liên kết, hoặc phần nộp đã bị xóa sau khi nộp."
               />
             ) : fileCuaSlot.length === 0 ? (
-              <TrongRong
+              <EmptyState
                 Icon={FolderTree}
-                tieuDe="Chọn một phần để xem nội dung"
-                moTa="Mỗi phần nộp là một ô riêng ở thanh phía trên."
+                title="Chọn một phần để xem nội dung"
+                description="Mỗi phần nộp là một ô riêng ở thanh phía trên."
               />
             ) : (
               fileCuaSlot.map((f) => (
@@ -282,7 +282,7 @@ export function TrangChamBai({
                   <SelectContent>
                     {rubrics.map((r) => (
                       <SelectItem key={r.id} value={r.id}>
-                        {r.name} ({diem(r.max_points)}đ)
+                        {r.name} ({formatScore(r.max_points)}đ)
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -322,7 +322,7 @@ export function TrangChamBai({
                           className="h-11 w-20 text-center tabular-nums"
                         />
                         <span className="text-muted-foreground w-9 text-sm tabular-nums">
-                          /{diem(c.max_points)}
+                          /{formatScore(c.max_points)}
                         </span>
                       </span>
                     </div>
@@ -336,9 +336,9 @@ export function TrangChamBai({
                       vuotTran ? "text-danger" : ""
                     }`}
                   >
-                    {diem(tong)}{" "}
+                    {formatScore(tong)}{" "}
                     <span className="text-muted-foreground text-sm font-normal">
-                      / {diem(rubric.max_points)}
+                      / {formatScore(rubric.max_points)}
                     </span>
                   </span>
                 </div>
@@ -448,7 +448,7 @@ function XemTepNop({ submissionId, file }: { submissionId: string; file: Submiss
 
       {(data?.entries.length ?? 0) > 0 ? (
         <div className="flex min-w-0 flex-col gap-3 lg:flex-row">
-          <CuonNgang>
+          <HorizontalScroll>
             <ul className="border-border flex shrink-0 flex-col gap-0.5 rounded-lg border p-1.5 lg:w-56">
               {data!.entries.map((e) => {
                 const chon = dangXem === e.path;
@@ -470,16 +470,16 @@ function XemTepNop({ submissionId, file }: { submissionId: string; file: Submiss
                 );
               })}
             </ul>
-          </CuonNgang>
+          </HorizontalScroll>
 
           <div className="min-w-0 flex-1">
             {dangXem ? (
-              <XemMaNguon submissionId={submissionId} fileId={file.id} path={dangXem} />
+              <SourceViewer submissionId={submissionId} fileId={file.id} path={dangXem} />
             ) : (
-              <TrongRong
+              <EmptyState
                 Icon={FileCode}
-                tieuDe="Chọn một tệp để đọc"
-                moTa="Nội dung hiện ở đây, có tô màu cú pháp."
+                title="Chọn một tệp để đọc"
+                description="Nội dung hiện ở đây, có tô màu cú pháp."
               />
             )}
           </div>

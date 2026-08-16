@@ -25,11 +25,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CuonNgang, TrongRong } from "@/components/shell/trang";
-import { diem } from "@/lib/dinh-dang";
+import { HorizontalScroll, EmptyState } from "@/components/shell/page-shell";
+import { formatScore } from "@/lib/format";
 import { apiFetch } from "@/lib/api/fetcher";
 import {
-  NHAN_QUY_TAC_GOP, type AggregationKind, type GradebookDto, type GradeColumnDto,
+  AGGREGATION_KIND_LABELS, type AggregationKind, type GradebookDto, type GradeColumnDto,
 } from "@/lib/api/types";
 import { CapDiemCong } from "./cap-diem-cong";
 
@@ -111,11 +111,11 @@ export function SoDiem({
     return (
       <Card>
         <CardContent>
-          <TrongRong
+          <EmptyState
             Icon={Table2}
-            tieuDe="Lớp này chưa có cột điểm nào"
-            moTa="Tạo bộ cột mặc định để bắt đầu — tên cột, trọng số và quy tắc gộp sửa lại được bất cứ lúc nào."
-            hanhDong={
+            title="Lớp này chưa có cột điểm nào"
+            description="Tạo bộ cột mặc định để bắt đầu — tên cột, trọng số và quy tắc gộp sửa lại được bất cứ lúc nào."
+            action={
               <Button
                 className="min-h-11"
                 disabled={khoiTao.isPending}
@@ -180,20 +180,20 @@ export function SoDiem({
       {so.rows.length === 0 ? (
         <Card>
           <CardContent>
-            <TrongRong
+            <EmptyState
               Icon={Users}
-              tieuDe="Lớp chưa có sinh viên nào"
-              moTa="Cột điểm đã sẵn sàng. Nhập danh sách sinh viên cho lớp là bảng này có hàng để nhập."
+              title="Lớp chưa có sinh viên nào"
+              description="Cột điểm đã sẵn sàng. Nhập danh sách sinh viên cho lớp là bảng này có hàng để nhập."
             />
           </CardContent>
         </Card>
       ) : (
-        // `overflow-hidden` là bắt buộc, không phải trang trí: <CuonNgang> có `-mx-1` nên
+        // `overflow-hidden` là bắt buộc, không phải trang trí: <HorizontalScroll> có `-mx-1` nên
         // vùng cuộn thò ra ngoài khung 4px mỗi bên. Không cắt thì đúng dải 4px đó hiện phần
         // nội dung đang cuộn qua NGAY BÊN TRÁI cột ghim — trông như chữ chồng lên nhau.
         <div className="bg-card border-border overflow-hidden rounded-xl border">
           {/* Bảng rộng cuộn trong KHỐI RIÊNG (quy tắc §5), không phải cả trang cuộn ngang. */}
-          <CuonNgang>
+          <HorizontalScroll>
             {/* border-separate chứ không border-collapse: với border-collapse, đường kẻ của
                 ô `position: sticky` bị trình duyệt vẽ vào lớp bảng chứ không đi theo ô, nên
                 cột ghim mất viền ngay khi bắt đầu cuộn. */}
@@ -217,7 +217,7 @@ export function SoDiem({
                     >
                       {c.name}
                       <span className="text-muted-foreground block text-xs font-normal">
-                        {c.weight_percent}% · {NHAN_QUY_TAC_GOP[c.kind]}
+                        {c.weight_percent}% · {AGGREGATION_KIND_LABELS[c.kind]}
                       </span>
                     </th>
                   ))}
@@ -299,7 +299,7 @@ export function SoDiem({
                                 className="text-ok text-xs font-medium tabular-nums"
                                 title="Điểm cộng đã cấp vào cột này"
                               >
-                                +{diem(o!.bonus)}
+                                +{formatScore(o!.bonus)}
                               </span>
                             )}
                           </div>
@@ -309,13 +309,13 @@ export function SoDiem({
 
                     <td className="border-border border-b px-2 py-1.5 tabular-nums">
                       {h.bonus_to_final > 0 ? (
-                        <span className="text-ok font-medium">+{diem(h.bonus_to_final)}</span>
+                        <span className="text-ok font-medium">+{formatScore(h.bonus_to_final)}</span>
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
                     </td>
                     <td className="border-border border-b px-2 py-1.5 text-base font-semibold tabular-nums">
-                      {diem(h.final_score)}
+                      {formatScore(h.final_score)}
                     </td>
                     <td className="border-border border-b px-1 py-1.5">
                       <CapDiemCong
@@ -332,7 +332,7 @@ export function SoDiem({
                 ))}
               </tbody>
             </table>
-          </CuonNgang>
+          </HorizontalScroll>
         </div>
       )}
 
@@ -438,7 +438,7 @@ function HangCot({
         <Select value={c.kind} onValueChange={(v) => onDoi({ kind: v as AggregationKind })}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {Object.entries(NHAN_QUY_TAC_GOP).map(([k, nhan]) => (
+            {Object.entries(AGGREGATION_KIND_LABELS).map(([k, nhan]) => (
               <SelectItem key={k} value={k}>{nhan}</SelectItem>
             ))}
           </SelectContent>
@@ -571,7 +571,7 @@ function CauHinhCot({
         Kéo tay cầm để đổi thứ tự cột. Thứ tự chỉ được ghi lại khi bấm “Lưu”.
       </p>
 
-      <DndContext id="keo-cot-diem" sensors={sensors} collisionDetection={closestCenter} onDragEnd={keoXong}>
+      <DndContext id="keo-cot-formatScore" sensors={sensors} collisionDetection={closestCenter} onDragEnd={keoXong}>
         <SortableContext items={cot.map((c) => c.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-2">
             {cot.map((c) => (

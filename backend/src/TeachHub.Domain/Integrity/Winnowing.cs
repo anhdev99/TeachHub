@@ -1,39 +1,40 @@
 namespace TeachHub.Domain.Integrity;
 
-/// <summary>Một dấu vân tay: giá trị băm của một k-gram và vị trí k-gram đó trong chuỗi token.</summary>
+/// <summary>One fingerprint: the hash of a k-gram plus the position of that k-gram in the token sequence.</summary>
 public readonly record struct Fingerprint(long Hash, int Position);
 
 /// <summary>
-/// Thuật toán Winnowing (Schleimer, Wilkerson, Aiken — 2003): chọn một tập con nhỏ nhưng
-/// ĐẢM BẢO của các k-gram để đại diện cho cả tệp.
+/// The Winnowing algorithm (Schleimer, Wilkerson, Aiken — 2003): picks a small but GUARANTEED
+/// subset of the k-grams to stand in for the whole file.
 ///
-/// Vì sao không băm hết mọi k-gram: một bài 500 dòng ra khoảng 4000 token, tức 4000 k-gram.
-/// Nhân với 40 sinh viên × 8 bài tập × nhiều học kỳ thì bảng <c>source_fingerprints</c> phình
-/// tới hàng chục triệu dòng, và Gap #14 (index trên hash) cũng không cứu nổi truy vấn so sánh.
-/// Winnowing giữ lại khoảng 2/(w+1) số k-gram mà vẫn bảo đảm: mọi đoạn giống nhau dài từ
-/// (w + k − 1) token trở lên CHẮC CHẮN sinh ra ít nhất một dấu vân tay chung.
+/// Why not hash every k-gram: a 500-line submission yields roughly 4000 tokens, that is 4000
+/// k-grams. Multiply by 40 students × 8 assignments × several semesters and the
+/// <c>source_fingerprints</c> table swells to tens of millions of rows, at which point not even
+/// Gap #14 (an index on hash) can rescue the comparison query. Winnowing keeps about 2/(w+1) of
+/// the k-grams while still guaranteeing this: any matching stretch of (w + k − 1) tokens or more
+/// is CERTAIN to produce at least one shared fingerprint.
 ///
-/// Hàm thuần, không I/O.
+/// Pure function, no I/O.
 /// </summary>
 public static class Winnowing
 {
-    /// <summary>Số token trong một k-gram. Tăng k làm giảm báo động giả, nhưng bỏ sót đoạn chép ngắn.</summary>
+    /// <summary>Tokens per k-gram. Raising k cuts false alarms, but misses short copied stretches.</summary>
     public const int DefaultK = 5;
 
-    /// <summary>Kích thước cửa sổ chọn cực tiểu.</summary>
+    /// <summary>Size of the window the minimum is picked from.</summary>
     public const int DefaultWindow = 4;
 
     private const ulong FnvOffset = 0xCBF29CE484222325UL;
     private const ulong FnvPrime = 0x100000001B3UL;
 
-    /// <summary>Cơ số của hàm băm đa thức. Số lẻ để phép nhân mod 2^64 không mất bit thấp.</summary>
-    private const ulong CoSo = 1_000_003UL;
+    /// <summary>Base of the polynomial hash. Odd, so multiplication mod 2^64 does not lose the low bits.</summary>
+    private const ulong Base = 1_000_003UL;
 
     /// <summary>
-    /// FNV-1a 64-bit. TUYỆT ĐỐI KHÔNG dùng <c>string.GetHashCode()</c>: từ .NET Core 3.0 nó
-    /// được ngẫu nhiên hóa theo từng tiến trình. Dùng nó thì dấu vân tay lưu hôm nay không
-    /// khớp dấu vân tay tính lại sau lần khởi động sau — bảng đầy dữ liệu mà mọi phép so sánh
-    /// đều ra 0%, không có exception nào, không có log nào để lần ra.
+    /// FNV-1a 64-bit. NEVER use <c>string.GetHashCode()</c>: since .NET Core 3.0 it is randomized
+    /// per process. Use it and the fingerprints stored today will not match the fingerprints
+    /// recomputed after the next restart — a table full of data where every comparison comes out
+    /// at 0%, with no exception and no log line to trace it from.
     /// </summary>
     public static long HashToken(string token)
     {
@@ -48,17 +49,18 @@ public static class Winnowing
         return unchecked((long)h);
     }
 
-    /// <summary>Băm một k-gram trực tiếp. Dùng để đối chiếu với bản rolling trong test.</summary>
+    /// <summary>Hashes one k-gram directly. Used to cross-check the rolling version in tests.</summary>
     public static long HashKGram(IReadOnlyList<string> kgram)
     {
         ulong h = 0;
-        foreach (var t in kgram) h = unchecked(h * CoSo + (ulong)HashToken(t));
+        foreach (var t in kgram) h = unchecked(h * Base + (ulong)HashToken(t));
         return unchecked((long)h);
     }
 
     /// <summary>
-    /// Băm mọi k-gram bằng rolling hash: O(n) thay vì O(n·k). Phép trừ và phép nhân đều chạy
-    /// mod 2^64 nhờ <c>unchecked</c>, nên kết quả trùng khít với <see cref="HashKGram"/>.
+    /// Hashes every k-gram with a rolling hash: O(n) instead of O(n·k). Both the subtraction and
+    /// the multiplication run mod 2^64 thanks to <c>unchecked</c>, so the result lines up exactly
+    /// with <see cref="HashKGram"/>.
     /// </summary>
     public static IReadOnlyList<long> KGramHashes(IReadOnlyList<string> tokens, int k = DefaultK)
     {
@@ -70,58 +72,59 @@ public static class Winnowing
         var v = new ulong[tokens.Count];
         for (var i = 0; i < tokens.Count; i++) v[i] = unchecked((ulong)HashToken(tokens[i]));
 
-        ulong luyThua = 1;                                   // CoSo^(k-1)
-        for (var i = 0; i < k - 1; i++) luyThua = unchecked(luyThua * CoSo);
+        ulong power = 1;                                     // Base^(k-1)
+        for (var i = 0; i < k - 1; i++) power = unchecked(power * Base);
 
-        var kq = new long[tokens.Count - k + 1];
+        var result = new long[tokens.Count - k + 1];
 
         ulong h = 0;
-        for (var i = 0; i < k; i++) h = unchecked(h * CoSo + v[i]);
-        kq[0] = unchecked((long)h);
+        for (var i = 0; i < k; i++) h = unchecked(h * Base + v[i]);
+        result[0] = unchecked((long)h);
 
-        for (var i = 1; i < kq.Length; i++)
+        for (var i = 1; i < result.Length; i++)
         {
-            h = unchecked((h - v[i - 1] * luyThua) * CoSo + v[i + k - 1]);
-            kq[i] = unchecked((long)h);
+            h = unchecked((h - v[i - 1] * power) * Base + v[i + k - 1]);
+            result[i] = unchecked((long)h);
         }
 
-        return kq;
+        return result;
     }
 
     /// <summary>
-    /// Chọn dấu vân tay theo cửa sổ trượt: mỗi cửa sổ lấy giá trị băm nhỏ nhất; hòa thì lấy
-    /// vị trí PHẢI NHẤT. Chọn phải-nhất là chi tiết bắt buộc của thuật toán gốc — nó khiến
-    /// hai cửa sổ liền nhau thường chọn trúng cùng một k-gram, nhờ đó bỏ được bản trùng và
-    /// giảm số dấu vân tay xuống. Đổi thành trái-nhất thì số dòng ghi xuống DB tăng vọt mà
-    /// khả năng phát hiện không hơn.
+    /// Picks fingerprints with a sliding window: each window contributes its smallest hash; on a
+    /// tie, take the RIGHTMOST position. Picking the rightmost is a mandatory detail of the
+    /// original algorithm — it makes two adjacent windows usually land on the same k-gram, which
+    /// is how the duplicate gets dropped and the fingerprint count comes down. Switch it to
+    /// leftmost and the number of rows written to the DB shoots up without any gain in detection.
     /// </summary>
     public static IReadOnlyList<Fingerprint> Compute(
         IReadOnlyList<string> tokens, int k = DefaultK, int w = DefaultWindow)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(w, 1);
 
-        var bam = KGramHashes(tokens, k);
-        if (bam.Count == 0) return [];
+        var hashes = KGramHashes(tokens, k);
+        if (hashes.Count == 0) return [];
 
-        // Tệp ngắn hơn một cửa sổ vẫn phải sinh dấu vân tay. Bỏ qua hẳn thì mọi hàm ngắn đều
-        // vô hình với hệ thống, và chép một hàm ngắn là cách né dễ nhất còn lại.
-        var cuaSo = Math.Min(w, bam.Count);
+        // A file shorter than one window still has to produce fingerprints. Skip it entirely and
+        // every short function becomes invisible to the system, and copying a short function is
+        // the easiest remaining way to slip through.
+        var window = Math.Min(w, hashes.Count);
 
-        var kq = new List<Fingerprint>();
-        var daChon = -1;
+        var result = new List<Fingerprint>();
+        var selected = -1;
 
-        for (var i = 0; i + cuaSo <= bam.Count; i++)
+        for (var i = 0; i + window <= hashes.Count; i++)
         {
             var min = i;
-            for (var j = i + 1; j < i + cuaSo; j++)
-                if (bam[j] <= bam[min]) min = j;             // <= ⇒ phải nhất khi hòa
+            for (var j = i + 1; j < i + window; j++)
+                if (hashes[j] <= hashes[min]) min = j;       // <= ⇒ rightmost on a tie
 
-            if (min == daChon) continue;
+            if (min == selected) continue;
 
-            daChon = min;
-            kq.Add(new Fingerprint(bam[min], min));
+            selected = min;
+            result.Add(new Fingerprint(hashes[min], min));
         }
 
-        return kq;
+        return result;
     }
 }

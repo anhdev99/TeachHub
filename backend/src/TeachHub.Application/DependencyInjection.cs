@@ -16,16 +16,17 @@ public static class DependencyInjection
         {
             cfg.RegisterServicesFromAssembly(assembly);
 
-            // Thứ tự khai báo = thứ tự chạy, từ ngoài vào trong.
-            // TransactionBehavior đăng ký ở Infrastructure, SAU hai cái này.
+            // Declaration order = execution order, outermost first.
+            // TransactionBehavior is registered in Infrastructure, AFTER these two.
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 
         services.AddValidatorsFromAssembly(assembly);
 
-        // Cloner cố ý là lớp thường chứ không phải MediatR handler: nó là bước nhân bản cơ học,
-        // Phase 4b sẽ dùng lại. Phần điều phối và kiểm quyền nằm ở command handler.
+        // The cloner is deliberately a plain class rather than a MediatR handler: it is the
+        // mechanical copying step, and Phase 4b reuses it. Orchestration and permission checks
+        // live in the command handler.
         services.AddScoped<SubjectVersionCloner>();
 
         return services;

@@ -3,8 +3,8 @@ using TeachHub.Domain.Common;
 namespace TeachHub.Domain.Groups;
 
 /// <summary>
-/// Nhóm gắn vào LỚP HỌC PHẦN chứ không vào bài tập. Nhờ vậy "dùng lại nhóm của bài trước"
-/// (SRS mục 5.5) là miễn phí — không phải nhân bản nhóm cho từng bài tập.
+/// A group hangs off the COURSE OFFERING, not off the assignment. That makes "reuse the groups
+/// from the previous assignment" (SRS section 5.5) free — no cloning groups per assignment.
 /// </summary>
 public class StudentGroup : Entity
 {
@@ -18,8 +18,8 @@ public class GroupMember : Entity
     public Guid GroupId { get; set; }
 
     /// <summary>
-    /// Trỏ tới enrollment, KHÔNG phải user: một sinh viên học lại môn ở kỳ sau là một
-    /// enrollment khác, và nhóm của kỳ này không được dính sang kỳ đó.
+    /// Points at the enrollment, NOT at the user: a student retaking the subject in a later term
+    /// is a different enrollment, and this term's groups must not bleed into that one.
     /// </summary>
     public required Guid EnrollmentId { get; set; }
 }

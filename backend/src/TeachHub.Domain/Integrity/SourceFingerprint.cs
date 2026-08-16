@@ -3,41 +3,44 @@ using TeachHub.Domain.Common;
 namespace TeachHub.Domain.Integrity;
 
 /// <summary>
-/// Một dấu vân tay Winnowing của một tệp mã nguồn đã nộp (Gap #14).
+/// One Winnowing fingerprint of one submitted source file (Gap #14).
 ///
-/// Bảng này chỉ chứa số, không chứa mã nguồn. Đó là chủ ý: dấu vân tay không khôi phục ngược
-/// ra mã được, nên kể cả khi bảng bị lộ thì bài của sinh viên vẫn không bị lộ.
+/// This table holds only numbers, never source code. That is intentional: a fingerprint cannot be
+/// reversed back into code, so even if the table leaks, the students' submissions do not.
 ///
-/// Không lưu kèm <c>SubmissionId</c> hay <c>AssignmentId</c> dù truy vấn so sánh luôn cần cả
-/// hai: mọi dữ liệu chép lại là một chỗ có thể lệch khi sinh viên nộp lại bài. Truy vấn join
-/// qua <c>submission_files → submissions</c> — hai lần join trên khóa chính, rẻ hơn nhiều so
-/// với một ngày đi tìm vì sao báo cáo trùng lặp hiện bài của bài tập khác.
+/// It deliberately does not also store <c>SubmissionId</c> or <c>AssignmentId</c>, even though the
+/// comparison query always needs both: every piece of copied data is a place that can drift out of
+/// sync when a student resubmits. The query joins through
+/// <c>submission_files → submissions</c> — two joins on primary keys, far cheaper than a day spent
+/// working out why the similarity report is showing submissions from a different assignment.
 /// </summary>
 public class SourceFingerprint : Entity
 {
     public required Guid SubmissionFileId { get; set; }
 
     /// <summary>
-    /// Đường dẫn tệp bên trong file nén, null nếu sinh viên nộp thẳng một tệp mã nguồn.
-    /// Thiếu trường này thì màn hình so sánh biết "hai bài trùng 80%" nhưng không chỉ ra được
-    /// tệp nào bên trong file zip trùng với tệp nào — tức là giảng viên vẫn phải tự dò tay.
+    /// Path of the file inside the archive, null when the student submitted a single source file
+    /// directly. Without this field the comparison screen knows "these two submissions match 80%"
+    /// but cannot point out which file inside the zip matches which — meaning the instructor still
+    /// has to hunt for it by hand.
     /// </summary>
     public string? EntryPath { get; set; }
 
-    /// <summary>Giá trị băm k-gram. <c>bigint</c> dưới DB, có index (Gap #14).</summary>
+    /// <summary>The k-gram hash value. <c>bigint</c> in the DB, indexed (Gap #14).</summary>
     public long Hash { get; set; }
 
     /// <summary>
-    /// Vị trí (offset ký tự) của k-gram trong mã nguồn GỐC, không phải chỉ số token.
+    /// Position (character offset) of the k-gram in the ORIGINAL source, not the token index.
     ///
-    /// Winnowing làm việc trên chuỗi token đã chuẩn hóa nên nó trả về chỉ số token; tầng ứng
-    /// dụng quy đổi ngược về offset ký tự trước khi ghi xuống. Lưu chỉ số token thì màn hình
-    /// so sánh cạnh nhau không tô sáng được gì cả: nó có mã nguồn thật trong tay, còn bảng
-    /// token thì không ai lưu — muốn dựng lại phải chuẩn hóa lại chính xác cùng một phiên bản
-    /// thuật toán, tức là màn hình hiển thị bị khóa cứng vào chi tiết của bộ tách token.
+    /// Winnowing works on the normalized token sequence, so it returns token indexes; the
+    /// application tier converts them back to character offsets before writing them down. Store
+    /// token indexes instead and the side-by-side comparison screen can highlight nothing at all:
+    /// it holds the real source code, while nobody stores the token table — rebuilding it would
+    /// mean re-normalizing with exactly the same version of the algorithm, which locks the display
+    /// screen hard to the internals of the tokenizer.
     /// </summary>
     public int Position { get; set; }
 
-    /// <summary>Số ký tự k-gram này phủ trong mã nguồn gốc — đầu kia của đoạn cần tô sáng.</summary>
+    /// <summary>How many characters this k-gram covers in the original source — the other end of the stretch to highlight.</summary>
     public int Length { get; set; }
 }

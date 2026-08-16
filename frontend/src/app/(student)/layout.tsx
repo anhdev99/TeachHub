@@ -1,23 +1,24 @@
 import { redirect } from "next/navigation";
-import { ThanhTrenSv } from "@/components/shell/thanh-tren-sv";
-import { chuDau, layNguoiDung } from "@/lib/api/me";
+import { StudentTopbar } from "@/components/shell/student-topbar";
+import { getCurrentUser, initialOf } from "@/lib/api/me";
 
 /**
- * Khung chung cho vai sinh viên. Tối giản có chủ đích: SRS mục 9 nói sinh viên chủ yếu xem
- * trên điện thoại, nên mọi pixel chiều dọc dành cho điều hướng là pixel lấy đi của nội dung.
- * Không có sidebar — sinh viên chỉ có vài đường đi, và tất cả đều xuất phát từ trang lớp.
+ * The shared frame for the student role. Deliberately minimal: SRS §9 says students mostly
+ * view this on a phone, so every vertical pixel spent on navigation is a pixel taken from the
+ * content. No sidebar — a student has only a handful of destinations, and all of them start
+ * from the class page.
  *
- * KHÔNG chặn theo vai ở đây. Giảng viên mở link bài học của lớp mình là việc hợp lệ và hay
- * xảy ra (xem sinh viên đang thấy gì); phần API vẫn tự kiểm quyền trên từng endpoint, nên
- * chặn ở đây chỉ tạo ra một ngõ cụt không có lý do.
+ * Do NOT gate by role here. An instructor opening a lesson link for their own class is
+ * legitimate and common (checking what students actually see); the API still enforces
+ * permissions on every endpoint, so blocking here only creates a dead end for no reason.
  */
 export default async function StudentLayout({ children }: LayoutProps<"/">) {
-  const me = await layNguoiDung();
+  const me = await getCurrentUser();
   if (!me) redirect("/login");
 
   return (
     <div className="flex min-h-svh flex-col">
-      <ThanhTrenSv ten={me.full_name ?? "Sinh viên"} chu={chuDau(me.full_name)} />
+      <StudentTopbar name={me.full_name ?? "Sinh viên"} initial={initialOf(me.full_name)} />
       {children}
     </div>
   );

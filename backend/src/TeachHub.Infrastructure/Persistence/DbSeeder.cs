@@ -7,7 +7,7 @@ namespace TeachHub.Infrastructure.Persistence;
 
 public static class DbSeeder
 {
-    /// <summary>Chỉ áp migration, không tạo tài khoản nào — dùng khi tắt seed.</summary>
+    /// <summary>Applies migrations only, creates no accounts — used when seeding is turned off.</summary>
     public static async Task MigrateOnlyAsync(this IServiceProvider services)
     {
         using var scope = services.CreateScope();

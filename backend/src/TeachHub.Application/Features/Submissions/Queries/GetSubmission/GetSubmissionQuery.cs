@@ -21,7 +21,7 @@ public sealed class GetSubmissionHandler(IAppDbContext db)
             .SingleAsync(x => x.Id == request.SubmissionId, ct);
 
         return Result<SubmissionDto>.Ok(
-            SubmissionDto.From(s, await SubmissionAccess.ThayDiemAsync(db, s, request.UserId, ct)));
+            SubmissionDto.From(s, await SubmissionAccess.CanSeeGradeAsync(db, s, request.UserId, ct)));
     }
 }
 

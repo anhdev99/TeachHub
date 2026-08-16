@@ -4,15 +4,16 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { EmptyState, PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { OfferingDto } from "@/lib/api/types";
 
 /**
- * Nhãn trạng thái lớp. `active` là trạng thái thường ngày nên KHÔNG tô màu — tô hết mọi
- * dòng thì màu không còn phân biệt được gì, và cái đáng chú ý ("đã đóng") chìm nghỉm.
+ * The offering's status badge. `active` is the everyday state, so it does NOT get a loud
+ * color — tinting every row leaves the color unable to distinguish anything, and the one that
+ * actually deserves attention ("đã đóng") drowns.
  */
-function NhanTrangThai({ status }: { status: OfferingDto["status"] }) {
+function StatusBadge({ status }: { status: OfferingDto["status"] }) {
   if (status === "active") {
     return (
       <Badge className="bg-ok-soft text-ok border-ok/25 shrink-0 border">Đang chạy</Badge>
@@ -43,20 +44,20 @@ export default async function OfferingsPage() {
   const offerings: OfferingDto[] = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Lớp học phần"
-        moTa="Mỗi lớp ghim vào một phiên bản nội dung đã xuất bản của môn học."
+    <PageShell>
+      <PageHeader
+        title="Lớp học phần"
+        description="Mỗi lớp ghim vào một phiên bản nội dung đã xuất bản của môn học."
       />
 
       <Card>
         <CardContent>
           {offerings.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={GraduationCap}
-              tieuDe="Chưa mở lớp nào"
-              moTa="Lớp học phần mở từ một phiên bản môn học đã xuất bản. Soạn nội dung và xuất bản trước."
-              hanhDong={
+              title="Chưa mở lớp nào"
+              description="Lớp học phần mở từ một phiên bản môn học đã xuất bản. Soạn nội dung và xuất bản trước."
+              action={
                 <Link
                   href="/subjects"
                   className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
@@ -76,8 +77,8 @@ export default async function OfferingsPage() {
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="truncate font-medium">{o.subject_name}</span>
                       <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
-                        {/* Mã môn và mã lớp là ĐỊNH DANH, không phải văn xuôi — font-mono
-                            để chúng thẳng cột với nhau giữa các dòng. */}
+                        {/* The subject code and class code are IDENTIFIERS, not prose —
+                            font-mono keeps them aligned column-wise across rows. */}
                         <span className="font-mono text-xs">{o.subject_code}</span>
                         <span aria-hidden>·</span>
                         <span className="font-mono text-xs">{o.class_code}</span>
@@ -88,7 +89,7 @@ export default async function OfferingsPage() {
                       </span>
                     </span>
 
-                    <NhanTrangThai status={o.status} />
+                    <StatusBadge status={o.status} />
                     <ChevronRight
                       className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
                       aria-hidden
@@ -100,6 +101,6 @@ export default async function OfferingsPage() {
           )}
         </CardContent>
       </Card>
-    </Trang>
+    </PageShell>
   );
 }

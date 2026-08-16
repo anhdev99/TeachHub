@@ -5,9 +5,10 @@ using TeachHub.Domain.Teaching;
 namespace TeachHub.Application.Features.Offerings;
 
 /// <param name="SubjectCode">
-/// Mã và tên môn lấy kèm ngay trong truy vấn. Không có hai trường này thì danh sách lớp chỉ
-/// hiện "DA24TIN01 · HK1 2026-2027" — giảng viên dạy bốn môn không đọc ra đó là lớp môn nào,
-/// và giao diện buộc phải gọi thêm một vòng /api/subjects rồi tự ghép.
+/// The subject code and name are fetched by the same query. Without these two fields the offering
+/// list only shows "DA24TIN01 · HK1 2026-2027" — an instructor teaching four subjects cannot tell
+/// which subject that offering belongs to, and the UI is forced into an extra round trip to
+/// /api/subjects and has to stitch the data together itself.
 /// </param>
 public sealed record OfferingDto(
     Guid Id,
@@ -25,9 +26,10 @@ public sealed record OfferingDto(
     DateTimeOffset CreatedAt);
 
 /// <summary>
-/// Lớp học phần thuộc về giảng viên GIÁN TIẾP qua Subject.InstructorId. Gom phép kiểm về một
-/// chỗ vì mọi handler của Phase 2 đều cần nó — mỗi bản sao chép thủ công là một chỗ có thể
-/// quên điều kiện, mà quên một chỗ là lộ danh sách sinh viên của lớp người khác.
+/// A course offering belongs to an instructor INDIRECTLY, through Subject.InstructorId. The check
+/// is gathered into one place because every Phase 2 handler needs it — each hand-copied version is
+/// one more place where the condition can be forgotten, and forgetting it in a single spot leaks
+/// another instructor's student roster.
 /// </summary>
 public static class OfferingOwnership
 {

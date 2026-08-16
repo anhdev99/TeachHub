@@ -18,25 +18,27 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
 
-// TimeProvider tiêm khắp nơi: mọi logic phụ thuộc thời gian (hạn nộp, phạt trễ,
-// streak, lịch ôn tập) phải test được mà không cần Thread.Sleep.
+// TimeProvider is injected everywhere: every piece of time-dependent logic (due dates, late
+// penalties, streaks, spaced-repetition schedules) must be testable without Thread.Sleep.
 builder.Services.AddSingleton(TimeProvider.System);
 
-// PHẢI CẤU HÌNH CẢ HAI CHỖ — mỗi cái lo một nửa, thiếu cái nào cũng hỏng một nửa:
-//  · AddJsonOptions            → cách MVC serialize phản hồi THẬT lúc chạy
-//  · ConfigureHttpJsonOptions  → cách Microsoft.AspNetCore.OpenApi sinh SCHEMA trong /openapi/v1.json
-// Chúng đọc hai IOptions khác nhau và KHÔNG kế thừa nhau.
+// BOTH PLACES MUST BE CONFIGURED — each covers one half, and missing either breaks that half:
+//  · AddJsonOptions            → how MVC serializes the ACTUAL response at runtime
+//  · ConfigureHttpJsonOptions  → how Microsoft.AspNetCore.OpenApi generates the SCHEMA in /openapi/v1.json
+// They read two different IOptions and do NOT inherit from one another.
 builder.Services.AddControllers(o =>
     {
-        // API này chỉ nói JSON. Bỏ StringOutputFormatter đi thì mỗi endpoint khai đúng một
-        // content-type trong OpenAPI, thay vì kèm thêm text/plain — client TypeScript sinh ra
-        // sẽ có union thừa và người dùng phải tự đoán nhánh nào là thật.
-        // Không dùng [Produces("application/json")] để đạt việc này: attribute đó ép content-type
-        // cho CẢ phản hồi lỗi và làm 4xx/5xx mất nhãn application/problem+json theo RFC 9457.
+        // This API speaks JSON only. Removing StringOutputFormatter makes every endpoint declare
+        // exactly one content-type in OpenAPI instead of also advertising text/plain — otherwise
+        // the generated TypeScript client gets a spurious union and the caller has to guess which
+        // branch is real.
+        // Do NOT use [Produces("application/json")] to achieve this: that attribute forces the
+        // content-type on error responses TOO, which strips the RFC 9457 application/problem+json
+        // label off every 4xx/5xx.
         o.OutputFormatters.RemoveType<Microsoft.AspNetCore.Mvc.Formatters.StringOutputFormatter>();
 
-        // Formatter JSON còn khai bí danh cũ "text/json". Bỏ nốt để mỗi endpoint chỉ có
-        // đúng một content-type trong tài liệu.
+        // The JSON formatter still advertises the legacy "text/json" alias. Drop it as well so
+        // each endpoint carries exactly one content-type in the documentation.
         foreach (var f in o.OutputFormatters.OfType<Microsoft.AspNetCore.Mvc.Formatters.SystemTextJsonOutputFormatter>())
             f.SupportedMediaTypes.Remove("text/json");
         foreach (var f in o.InputFormatters.OfType<Microsoft.AspNetCore.Mvc.Formatters.SystemTextJsonInputFormatter>())
@@ -44,27 +46,29 @@ builder.Services.AddControllers(o =>
     })
     .AddJsonOptions(o =>
     {
-        // snake_case để khớp đúng hợp đồng API trong SRS mục 7
+        // snake_case to match the API contract exactly as specified in SRS section 7
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
 
-        // ⛔ KHÔNG đặt `DefaultIgnoreCondition = WhenWritingNull` ở đây. Đã từng có, và nó
-        // làm hợp đồng API nói dối.
+        // ⛔ Do NOT set `DefaultIgnoreCondition = WhenWritingNull` here. It was here once, and it
+        // made the API contract lie.
         //
-        // Chỗ này cấu hình serializer LÚC CHẠY, còn `ConfigureHttpJsonOptions` bên dưới mới
-        // là thứ sinh schema trong /openapi/v1.json — hai IOptions khác nhau, không kế thừa.
-        // Đặt cờ ở một bên: schema khai `score` là trường BẮT BUỘC kiểu ["null","number"],
-        // trong khi phản hồi thật BỎ HẲN khoá đó khi bài chưa chấm.
+        // This block configures the RUNTIME serializer, while `ConfigureHttpJsonOptions` below is
+        // what generates the schema in /openapi/v1.json — two different IOptions, no inheritance
+        // between them. Setting the flag on one side only: the schema declares `score` as a
+        // REQUIRED field of type ["null","number"], while the actual response DROPS the key
+        // entirely when the submission has not been graded.
         //
-        // Hậu quả không nằm ở chỗ thiếu vài byte. `openapi-typescript` sinh ra
-        // `score: number | null` nên frontend viết `score === null` để hỏi "chấm chưa" —
-        // và biểu thức đó KHÔNG BAO GIỜ đúng, vì giá trị thực là `undefined`. TypeScript
-        // biên dịch sạch, không có lỗi nào lúc chạy. Ca đã bắt được: nút "Trả bài cho sinh
-        // viên" mở khoá trên một bài CHƯA CHẤM, tức là trả bài không điểm cho sinh viên.
+        // The damage is not a few missing bytes. `openapi-typescript` generates
+        // `score: number | null`, so the frontend writes `score === null` to ask "has this been
+        // graded?" — and that expression is NEVER true, because the real value is `undefined`.
+        // TypeScript compiles cleanly; nothing fails at runtime. Case actually caught: the
+        // "Return to student" button unlocked on an UNGRADED submission, i.e. it handed the
+        // submission back to the student with no grade on it.
         //
-        // Bản chốt là schema: `null` mang nghĩa "chưa có giá trị", khác hẳn "không có
-        // trường này". Muốn giấu một trường thì đánh dấu trên chính DTO đó, đừng đặt luật
-        // toàn cục làm lệch mọi endpoint.
+        // The schema is the binding artifact: `null` means "no value yet", which is a different
+        // statement from "this field does not exist". If a field needs hiding, mark it on that
+        // DTO itself — do not set a global rule that skews every endpoint.
     });
 
 builder.Services.ConfigureHttpJsonOptions(o =>
@@ -81,11 +85,12 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddApplication();
 builder.Services.AddOpenApi(o =>
 {
-    // .NET 10 khai mọi số là type: ["integer","string"] kèm pattern, vì System.Text.Json
-    // CÓ THỂ đọc số từ chuỗi. Hệ quả: openapi-typescript sinh ra `order_index: number | string`
-    // cho mọi trường số, và frontend phải Number(...) ở khắp nơi hoặc chịu lỗi biên dịch —
-    // với sổ điểm ở Phase 4b thì đó là hàng chục chỗ. API này luôn TRẢ VỀ số thật, nên bỏ
-    // biến thể "string" khỏi tài liệu. Giữ nguyên cờ Null để trường nullable vẫn đúng.
+    // .NET 10 declares every number as type: ["integer","string"] plus a pattern, because
+    // System.Text.Json CAN parse a number out of a string. Consequence: openapi-typescript
+    // generates `order_index: number | string` for every numeric field, and the frontend has to
+    // Number(...) everywhere or eat compile errors — for the Phase 4b gradebook that is dozens of
+    // call sites. This API always RETURNS real numbers, so strip the "string" variant out of the
+    // documentation. Keep the Null flag intact so nullable fields stay correct.
     o.AddSchemaTransformer((schema, _, _) =>
     {
         if (schema.Type is { } t
@@ -99,9 +104,10 @@ builder.Services.AddOpenApi(o =>
     });
 });
 
-// Đăng ký NGAY TỪ PHASE 0, dù mãi Phase 3 mới nộp bài: Phase 1 đã gắn
-// [EnableRateLimiting("upload")] lên endpoint upload bài giảng. Attribute không có
-// bộ đăng ký tương ứng là metadata trơ — không chặn gì, và cũng không báo lỗi gì.
+// Registered AS EARLY AS PHASE 0, even though submissions only arrive in Phase 3: Phase 1
+// already put [EnableRateLimiting("upload")] on the lesson-material upload endpoint. An
+// attribute with no matching registered limiter is inert metadata — it throttles nothing, and
+// it reports no error either.
 builder.Services.AddRateLimiter(o =>
 {
     o.AddFixedWindowLimiter("upload", w =>
@@ -111,8 +117,8 @@ builder.Services.AddRateLimiter(o =>
         w.QueueLimit = 0;
     });
 
-    // register và bootstrap là hai endpoint ẩn danh DUY NHẤT ghi vào bảng người dùng,
-    // còn invites/{token} là chỗ dò token. Cả ba phải có trần.
+    // register and bootstrap are the ONLY two anonymous endpoints that write to the users table,
+    // and invites/{token} is where tokens can be probed. All three need a ceiling.
     o.AddFixedWindowLimiter("auth", w =>
     {
         w.PermitLimit = 20;
@@ -137,38 +143,40 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// SAU xác thực (cần biết người gọi là ai). Chặn mọi request của người còn cờ
-// MustChangePassword, trừ hai đường thoát change-password và logout.
+// AFTER authentication (we need to know who the caller is). Blocks every request from a user
+// who still carries the MustChangePassword flag, except the two escape hatches change-password
+// and logout.
 app.UseMiddleware<MustChangePasswordMiddleware>();
 
 app.MapControllers();
 
-// Fallback policy áp cho MỌI endpoint không khai báo gì về authorization, kể cả
-// MapHealthChecks và MapOpenApi. Quên .AllowAnonymous() cho /health thì load balancer
-// đọc 401 là "service chết" và rút container ra khỏi vòng phục vụ.
-app.MapOpenApi().AllowAnonymous();          // ở mọi môi trường: CI cần nó để sinh client TS
+// The fallback policy applies to EVERY endpoint that declares nothing about authorization,
+// including MapHealthChecks and MapOpenApi. Forget .AllowAnonymous() on /health and the load
+// balancer reads the 401 as "service is dead" and pulls the container out of rotation.
+app.MapOpenApi().AllowAnonymous();          // in every environment: CI needs it to generate the TS client
 if (app.Environment.IsDevelopment())
-    app.MapScalarApiReference().AllowAnonymous();   // UI duyệt API tại /scalar/v1
+    app.MapScalarApiReference().AllowAnonymous();   // API browser UI at /scalar/v1
 
 app.MapHealthChecks("/health").AllowAnonymous();
 
-// Dashboard Hangfire là middleware chứ không phải action nên không có class để gắn
-// [Authorize]; RequireAuthorization trên endpoint routing là cách duy nhất đúng ở đây.
+// The Hangfire dashboard is middleware rather than an action, so there is no class to put
+// [Authorize] on; RequireAuthorization on endpoint routing is the only correct hook here.
 if (app.Configuration.GetValue("Hangfire:Enabled", true))
 {
     app.MapHangfireDashboard("/jobs").RequireAuthorization(Policies.Instructor);
 
-    // Job ôn tập ngắt quãng chạy 1 giờ sáng mỗi ngày (Phase 8). AddOrUpdate là idempotent
-    // nên khởi động lại ứng dụng không nhân bản lịch — dùng Enqueue ở đây sẽ tạo một job
-    // MỚI mỗi lần deploy, và sau vài tháng dashboard đầy job trùng nhau.
+    // The spaced-repetition job runs at 1 AM every day (Phase 8). AddOrUpdate is idempotent, so
+    // restarting the application does not duplicate the schedule — using Enqueue here would
+    // create a NEW job on every deploy, and after a few months the dashboard fills up with
+    // duplicates of the same job.
     app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<ReviewQueueJob>(
         ReviewQueueJob.RecurringJobId, j => j.RunAsync(CancellationToken.None), Cron.Daily(1));
 }
 
-// CHỈ seed ở Development/Testing. Ở Production dùng POST /api/auth/bootstrap để tạo
-// giảng viên đầu tiên — seed tài khoản có mật khẩu công khai lên máy chủ thật là
-// cách nhanh nhất để mất toàn bộ điểm số của mọi lớp.
-// Seed:Enabled cho phép test dựng host trên hệ thống thật sự trống để kiểm bootstrap.
+// Seed in Development/Testing ONLY. In Production use POST /api/auth/bootstrap to create the
+// first instructor — seeding an account with a publicly known password onto a real server is
+// the fastest way to lose every grade of every class.
+// Seed:Enabled lets tests spin up the host against a genuinely empty system to exercise bootstrap.
 if (!app.Environment.IsProduction() && app.Configuration.GetValue("Seed:Enabled", true))
     await app.Services.SeedAsync();
 else
@@ -176,5 +184,5 @@ else
 
 app.Run();
 
-// Cho phép WebApplicationFactory<Program> nhìn thấy host này.
+// Makes this host visible to WebApplicationFactory<Program>.
 public partial class Program;

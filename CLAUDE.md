@@ -144,5 +144,23 @@ httpOnly, `redirect()` trong server component, `params` kiểu `Promise` trong c
 
 ## Ngôn ngữ
 
-Tài liệu, chú thích code, tên test và thông báo lỗi trả cho người dùng: **tiếng Việt**.
-Tên kiểu/biến/hàm và commit message: tiếng Anh.
+Ranh giới là **ai đọc dòng đó**, không phải nó nằm ở tầng nào.
+
+| Người đọc | Ngôn ngữ | Gồm những gì |
+|---|---|---|
+| Giảng viên / sinh viên | **Tiếng Việt** | Nhãn nút, tiêu đề, `placeholder`, `aria-label`, thông báo lỗi trả về từ API (`Result.Invalid("…")`), nội dung `toast` |
+| Lập trình viên | **Tiếng Anh** | Chú thích code, XML doc, tên test, tên kiểu/biến/hàm, thông điệp commit |
+
+Sản phẩm phục vụ người Việt nên **mọi thứ hiển thị ra màn hình đều là tiếng Việt** — kể cả câu lỗi
+kỹ thuật, vì người đọc nó là giảng viên chứ không phải lập trình viên. Ngược lại, không có dòng chú
+thích nào lọt tới người dùng, nên chúng viết tiếng Anh.
+
+Cách phân biệt khi phân vân: **chuỗi đó có khả năng xuất hiện trên màn hình không?** Có thì tiếng
+Việt. Chuỗi trong `Result.Conflict(...)` là tiếng Việt vì nó đi thẳng vào `detail` của ProblemDetails
+và hiện trong `toast`; chuỗi trong `log.LogWarning(...)` là tiếng Anh vì nó chỉ vào log.
+
+Tên test **cũng là tiếng Anh** — chỉ lập trình viên đọc tên test. Dùng dấu gạch dưới để câu vẫn đọc
+được: `Locked_lesson_sends_no_content`, `Closed_offering_blocks_submission`.
+
+> Đây là quy ước **đổi ngày 17/08/2026**. Trước đó chú thích và tên test viết tiếng Việt; nếu gặp
+> file còn theo lối cũ thì đó là chưa chuyển xong, không phải cố ý.

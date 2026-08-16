@@ -9,6 +9,6 @@ public interface IFileStorage
     Task<Stream> OpenReadAsync(string path, CancellationToken ct);
     Task DeleteAsync(string path, CancellationToken ct);
 
-    /// <summary>URL tạm để trình duyệt tải trực tiếp, không đi qua API.</summary>
+    /// <summary>Short-lived URL letting the browser download directly, bypassing the API.</summary>
     Task<Uri> GetPresignedUrlAsync(string path, TimeSpan lifetime, CancellationToken ct);
 }

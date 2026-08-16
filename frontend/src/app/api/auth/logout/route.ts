@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { xoaToken } from "@/lib/api/server";
+import { clearTokens } from "@/lib/api/server";
 
 export async function POST() {
-  await xoaToken();
+  await clearTokens();
   return NextResponse.json({ ok: true });
 }

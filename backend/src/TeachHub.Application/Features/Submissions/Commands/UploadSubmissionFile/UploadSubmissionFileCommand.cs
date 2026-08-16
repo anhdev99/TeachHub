@@ -9,8 +9,9 @@ using TeachHub.Domain.Submissions;
 namespace TeachHub.Application.Features.Submissions.Commands.UploadSubmissionFile;
 
 /// <summary>
-/// Nhận <see cref="Stream"/> chứ không nhận IFormFile: IFormFile kéo Microsoft.AspNetCore.Http
-/// vào tầng Application và biến mọi test handler thành bài dựng HTTP giả. Controller mở stream.
+/// Takes a <see cref="Stream"/>, not an IFormFile: IFormFile drags Microsoft.AspNetCore.Http into
+/// the Application layer and turns every handler test into an exercise in faking HTTP. The
+/// controller is what opens the stream.
 /// </summary>
 public sealed record UploadSubmissionFileCommand(
     Guid AssignmentId, string SlotKey, string FileName, long SizeBytes,
@@ -23,19 +24,21 @@ public sealed class UploadSubmissionFileHandler(
     public async Task<Result<SubmissionFileDto>> Handle(
         UploadSubmissionFileCommand request, CancellationToken ct)
     {
-        // Thứ tự kiểm tra là cố ý: dừng ngay khi hỏng, không đọc tiếp thân request.
-        // 1 — sinh viên có thuộc lớp đang chạy bài tập này không
-        var ghiDanh = await SubmissionAccess.EnrollmentForAssignmentAsync(
+        // The order of these checks is deliberate: bail out the moment something is wrong, without
+        // reading any further into the request body.
+        // 1 — is the student enrolled in the offering that runs this assignment
+        var enrollment = await SubmissionAccess.EnrollmentForAssignmentAsync(
             db, request.AssignmentId, request.StudentUserId, ct);
 
-        if (ghiDanh is null) return Result<SubmissionFileDto>.NotFound("Không tìm thấy bài tập.");
+        if (enrollment is null) return Result<SubmissionFileDto>.NotFound("Không tìm thấy bài tập.");
 
-        // 1b — lớp còn nhận bài không. Đặt ngay đây, TRƯỚC khi đọc một byte nào của thân request:
-        // lớp đã đóng thì không có lý do gì để đọc hết một tệp 50 MB rồi mới từ chối.
-        if (await OfferingLock.DaDongAsync(db, ghiDanh.OfferingId, ct))
-            return Result<SubmissionFileDto>.Conflict(OfferingLock.ThongDiep("nộp bài"));
+        // 1b — is the offering still accepting work. It goes right here, BEFORE reading a single
+        // byte of the request body: once the offering is closed there is no reason to read a whole
+        // 50 MB file only to reject it afterwards.
+        if (await OfferingLock.IsClosedAsync(db, enrollment.OfferingId, ct))
+            return Result<SubmissionFileDto>.Conflict(OfferingLock.ClosedMessage("nộp bài"));
 
-        // 2 — slot có tồn tại trong bài tập này không
+        // 2 — does the slot exist on this assignment
         var slot = await db.SubmissionSlots
             .SingleOrDefaultAsync(s => s.AssignmentId == request.AssignmentId
                                     && s.SlotKey == request.SlotKey, ct);
@@ -43,18 +46,19 @@ public sealed class UploadSubmissionFileHandler(
         if (slot is null)
             return Result<SubmissionFileDto>.NotFound($"Bài tập này không có phần nộp “{request.SlotKey}”.");
 
-        // 3 — phần mở rộng có nằm trong danh sách nhận không (Accepts dùng GetExtension nên
-        //     "bai.zip.exe" trả ".exe" và bị chặn ngay ở đây)
+        // 3 — is the extension on the accepted list (Accepts goes through GetExtension, so
+        //     "bai.zip.exe" yields ".exe" and gets blocked right here)
         if (!slot.Accepts(request.FileName))
             return Result<SubmissionFileDto>.Invalid(
                 $"Phần “{slot.Label}” chỉ nhận {string.Join(", ", slot.AcceptedFileTypes)}.");
 
-        // 4 — dung lượng theo hạn mức riêng của slot (hạn mức pipeline đã chặn ở Kestrel)
+        // 4 — size against the slot's own limit (the pipeline-wide limit is already enforced by
+        //     Kestrel)
         if (request.SizeBytes > slot.MaxFileSizeBytes)
             return Result<SubmissionFileDto>.PayloadTooLarge(
                 $"Tệp nặng {request.SizeBytes / 1024 / 1024} MB, vượt giới hạn {slot.MaxFileSizeMb} MB của phần “{slot.Label}”.");
 
-        var baiNop = await LayHoacTaoBanNhapAsync(request.AssignmentId, ghiDanh, ct);
+        var baiNop = await LayHoacTaoBanNhapAsync(request.AssignmentId, enrollment, ct);
 
         // 5 — slot còn chỗ không
         var daCo = baiNop.Files.Count(f => f.SlotId == slot.Id);

@@ -24,23 +24,24 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 /**
- * Tài khoản bấm-một-phát khi phát triển.
+ * One-tap accounts for development.
  *
- * ⚠️ CHỈ hiện khi `NODE_ENV === "development"`. Đây là mật khẩu viết thẳng trong mã nguồn —
- * ở production nó là một danh sách tài khoản mời mọi người vào thử. `process.env.NODE_ENV`
- * được Next thay bằng hằng số lúc build, nên ở bản production cả khối này bị loại khỏi bundle
- * chứ không phải chỉ ẩn bằng CSS: người xem mã nguồn trang cũng không thấy gì.
+ * ⚠️ Shown ONLY when `NODE_ENV === "development"`. These are passwords written directly into
+ * the source — in production this would be a list of accounts inviting anyone to walk in.
+ * Next replaces `process.env.NODE_ENV` with a constant at build time, so in a production
+ * build this whole block is dropped from the bundle rather than merely hidden with CSS:
+ * someone reading the page source sees nothing either.
  *
- * Chỉ dùng cho dữ liệu dev. Thêm tài khoản thật vào đây là biến tiện lợi thành lỗ hổng.
+ * Dev data only. Adding a real account here turns a convenience into a vulnerability.
  */
-const TAI_KHOAN_DEV = [
-  { nhan: "Giảng viên", email: "instructor@teachhub.local", password: "Teach@123" },
-  { nhan: "Sinh viên", email: "dung@sv.edu.vn", password: "Sv@12345" },
+const DEV_ACCOUNTS = [
+  { label: "Giảng viên", email: "instructor@teachhub.local", password: "Teach@123" },
+  { label: "Sinh viên", email: "dung@sv.edu.vn", password: "Sv@12345" },
 ] as const;
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loiChung, setLoiChung] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     register,
@@ -50,10 +51,10 @@ export default function LoginPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   async function onSubmit(values: FormValues) {
-    setLoiChung(null);
+    setFormError(null);
 
-    // Gọi BFF của Next chứ không gọi thẳng .NET: token phải được đặt vào cookie
-    // httpOnly ở phía máy chủ, trình duyệt không bao giờ chạm vào nó (ADR-007).
+    // Call Next's BFF rather than .NET directly: the token has to be written into an
+    // httpOnly cookie on the server, and the browser never touches it (ADR-007).
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -62,7 +63,7 @@ export default function LoginPage() {
 
     if (!res.ok) {
       const problem = await res.json().catch(() => null);
-      setLoiChung(problem?.detail ?? "Đăng nhập không thành công.");
+      setFormError(problem?.detail ?? "Đăng nhập không thành công.");
       return;
     }
 
@@ -72,9 +73,10 @@ export default function LoginPage() {
   }
 
   return (
-    // Hai cột từ lg: bên trái là bảng hiệu, bên phải là form. Bản cũ đặt một hộp nhỏ giữa
-    // trang trắng mênh mông — thứ đầu tiên người dùng thấy, và nó không nói được sản phẩm này
-    // là gì. Dưới lg thì chỉ còn cột form, không nhét bảng hiệu vào màn hình điện thoại.
+    // Two columns from lg up: branding on the left, the form on the right. The old version
+    // put a small box in the middle of a vast white page — the first thing a user ever sees,
+    // and it said nothing about what this product is. Below lg only the form column remains;
+    // we do not cram the branding panel onto a phone screen.
     <main className="grid min-h-svh lg:grid-cols-2">
       <section className="bg-primary text-primary-foreground relative hidden flex-col justify-between overflow-hidden p-10 lg:flex">
         <div className="flex items-center gap-2.5">
@@ -94,7 +96,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Trang trí: hai vòng tròn mờ. `aria-hidden` vì chúng không mang thông tin nào. */}
+        {/* Decoration: two faint circles. `aria-hidden` because they carry no information. */}
         <div
           aria-hidden
           className="bg-primary-foreground/5 pointer-events-none absolute -right-24 -bottom-32 size-96 rounded-full"
@@ -112,8 +114,8 @@ export default function LoginPage() {
       <section className="flex items-center justify-center p-4 sm:p-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          {/* Bảng hiệu thu nhỏ, chỉ hiện khi cột trái bị ẩn — nếu không thì logo xuất hiện
-              hai lần trên cùng một màn hình. */}
+          {/* Compact branding, shown only when the left column is hidden — otherwise the
+              logo appears twice on the same screen. */}
           <span className="bg-primary text-primary-foreground mb-2 grid size-9 place-items-center rounded-lg text-sm font-bold lg:hidden">
             T
           </span>
@@ -143,15 +145,15 @@ export default function LoginPage() {
               )}
             </div>
 
-            {loiChung && (
-              // Lỗi chung có nền và viền chứ không phải một dòng chữ đỏ trần: sau khi bấm
-              // "Đăng nhập" mắt người dùng đang ở nút, một dòng chữ mảnh phía trên rất dễ bị
-              // bỏ qua và họ bấm lại lần nữa.
+            {formError && (
+              // The form-level error gets a background and a border instead of being a bare
+              // red line: right after pressing "Đăng nhập" the user's eyes are on the button,
+              // and a thin line of text above it is easy to miss — so they press again.
               <p
                 role="alert"
                 className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm"
               >
-                {loiChung}
+                {formError}
               </p>
             )}
 
@@ -165,23 +167,24 @@ export default function LoginPage() {
                   Chỉ có ở máy phát triển — bấm để vào thẳng:
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {TAI_KHOAN_DEV.map((tk) => (
+                  {DEV_ACCOUNTS.map((account) => (
                     <Button
-                      key={tk.email}
+                      key={account.email}
                       type="button"
                       variant="outline"
                       size="sm"
                       disabled={isSubmitting}
-                      // Điền vào form RỒI submit, không gọi thẳng `onSubmit`: như vậy ô email
-                      // và mật khẩu hiện đúng thứ vừa dùng, nên khi cần thử một tài khoản khác
-                      // thì sửa tại chỗ được thay vì gõ lại từ đầu.
+                      // Fill the form and THEN submit, rather than calling `onSubmit`
+                      // directly: that way the email and password fields show exactly what
+                      // was used, so trying a different account means editing in place
+                      // instead of typing everything again.
                       onClick={() => {
-                        setValue("email", tk.email);
-                        setValue("password", tk.password);
+                        setValue("email", account.email);
+                        setValue("password", account.password);
                         void handleSubmit(onSubmit)();
                       }}
                     >
-                      {tk.nhan}
+                      {account.label}
                     </Button>
                   ))}
                 </div>

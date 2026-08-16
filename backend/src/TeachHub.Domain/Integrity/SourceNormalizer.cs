@@ -1,52 +1,57 @@
 namespace TeachHub.Domain.Integrity;
 
 /// <summary>
-/// Một token đã chuẩn hóa, kèm vị trí trong văn bản GỐC. Giữ vị trí gốc là bắt buộc cho màn
-/// hình so sánh cạnh nhau: sau chuẩn hóa mọi tên biến đều là "V", nên nếu không nhớ token này
-/// đến từ ký tự nào thì không tô sáng lại được đoạn trùng trên mã nguồn thật.
+/// A normalized token together with its position in the ORIGINAL text. Keeping the original
+/// position is mandatory for the side-by-side comparison screen: after normalization every
+/// variable name is just "V", so without remembering which characters this token came from there
+/// is no way to highlight the matching stretch back on the real source code.
 /// </summary>
 public readonly record struct SourceToken(string Text, int Offset, int Length);
 
 /// <summary>
-/// Chuẩn hóa mã nguồn thành chuỗi token trước khi băm. ĐÂY LÀ TOÀN BỘ GIÁ TRỊ của cơ chế
-/// phát hiện trùng lặp.
+/// Normalizes source code into a token sequence before hashing. THIS IS THE ENTIRE VALUE of the
+/// plagiarism-detection mechanism.
 ///
-/// Không chuẩn hóa thì chỉ cần đổi tên biến, sửa chú thích và bấm auto-format là qua mặt được,
-/// và ta có một tính năng tạo cảm giác an toàn giả — tệ hơn hẳn không có tính năng nào, vì
-/// giảng viên sẽ tin vào con số nó đưa ra và ngừng đọc bài bằng mắt.
+/// Without normalization, renaming variables, editing comments and hitting auto-format is enough
+/// to get past it, and we end up with a feature that creates a false sense of safety — strictly
+/// worse than having no feature at all, because the instructor will trust the number it reports
+/// and stop reading submissions with their own eyes.
 ///
-/// Bốn phép chuẩn hóa, theo đúng thứ tự quan trọng:
-/// 1. Bỏ chú thích (một dòng, nhiều dòng, kiểu <c>#</c>).
-/// 2. Bỏ khoảng trắng và xuống dòng.
-/// 3. Quy mọi định danh về MỘT token chung <c>V</c>, nhưng GIỮ NGUYÊN từ khóa.
-/// 4. Quy mọi chuỗi ký tự về <c>S</c> và mọi con số về <c>N</c>.
+/// Four normalization steps, in order of importance:
+/// 1. Strip comments (single-line, multi-line, and the <c>#</c> kind).
+/// 2. Strip whitespace and line breaks.
+/// 3. Fold every identifier into ONE shared token <c>V</c>, but KEEP KEYWORDS AS THEY ARE.
+/// 4. Fold every string literal into <c>S</c> and every number into <c>N</c>.
 ///
-/// Vì sao phải giữ từ khóa: quy cả từ khóa về "V" thì <c>if (a) b(); else c();</c> và
-/// <c>int x = y + z;</c> trông giống nhau tới mức mọi bài đều trùng nhau — danh sách cảnh báo
-/// dài tới mức không ai đọc nữa, tức là mất luôn tính năng theo một đường khác.
+/// Why keywords must be kept: fold keywords into "V" as well and <c>if (a) b(); else c();</c> and
+/// <c>int x = y + z;</c> look alike to the point where every submission matches every other one —
+/// the warning list grows so long that nobody reads it any more, which loses the feature by a
+/// different route.
 ///
-/// Hàm thuần, không I/O, không phụ thuộc ngôn ngữ lập trình cụ thể. Bộ luật cố tình phủ chung
-/// họ C (C/C++/C#/Java/JS/TS) và Python thay vì dựng một parser riêng cho từng ngôn ngữ:
-/// tách token theo lối này đã đủ để nhận ra bài chép, còn parser riêng là chi phí bảo trì
-/// nhân với số ngôn ngữ mà sinh viên nộp.
+/// Pure function, no I/O, not tied to any one programming language. The rule set deliberately
+/// covers the C family (C/C++/C#/Java/JS/TS) and Python together rather than building a separate
+/// parser per language: splitting tokens this way is already enough to spot a copied submission,
+/// while a dedicated parser is a maintenance cost multiplied by the number of languages students
+/// submit in.
 /// </summary>
 public static class SourceNormalizer
 {
-    /// <summary>Mọi tên biến, tên hàm, tên lớp đều thành token này.</summary>
+    /// <summary>Every variable name, function name and class name becomes this token.</summary>
     public const string IdentifierToken = "V";
 
-    /// <summary>Mọi hằng số — số nguyên, số thực, hex — đều thành token này.</summary>
+    /// <summary>Every constant — integer, floating point, hex — becomes this token.</summary>
     public const string NumberToken = "N";
 
-    /// <summary>Mọi chuỗi ký tự đều thành token này: đổi lời chào trong printf không né được.</summary>
+    /// <summary>Every string literal becomes this token: changing the greeting in a printf is no escape.</summary>
     public const string StringToken = "S";
 
     /// <summary>
-    /// Từ khóa của họ C và Python gộp làm một. Nhận nhầm một định danh thành từ khóa (ví dụ
-    /// biến tên <c>string</c>) chỉ làm token đó cụ thể hơn một chút, không phá kết quả — vì
-    /// cả hai bài đều được chuẩn hóa bằng đúng bộ luật này.
+    /// Keywords of the C family and of Python merged into one set. Mistaking an identifier for a
+    /// keyword (a variable named <c>string</c>, say) only makes that one token slightly more
+    /// specific, it does not break the result — because both submissions are normalized with this
+    /// very same rule set.
     /// </summary>
-    private static readonly HashSet<string> TuKhoa = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
     {
         "if", "else", "elif", "for", "while", "do", "switch", "case", "default", "break",
         "continue", "return", "goto", "foreach", "in", "of", "is", "as", "with", "yield",
@@ -63,14 +68,14 @@ public static class SourceNormalizer
         "delegate", "event", "out", "ref", "params",
     };
 
-    /// <summary>Chuỗi token đã chuẩn hóa — đây là đầu vào của <see cref="Winnowing"/>.</summary>
+    /// <summary>The normalized token sequence — this is the input to <see cref="Winnowing"/>.</summary>
     public static IReadOnlyList<string> Normalize(string? source) =>
         [.. Tokenize(source).Select(t => t.Text)];
 
     public static IReadOnlyList<SourceToken> Tokenize(string? source)
     {
-        var kq = new List<SourceToken>();
-        if (string.IsNullOrEmpty(source)) return kq;
+        var result = new List<SourceToken>();
+        if (string.IsNullOrEmpty(source)) return result;
 
         var n = source.Length;
         var i = 0;
@@ -81,10 +86,11 @@ public static class SourceNormalizer
 
             if (char.IsWhiteSpace(c)) { i++; continue; }
 
-            // ── Chú thích ────────────────────────────────────────────────────────────────
-            // '#' nuốt cả dòng nên chỉ thị tiền xử lý của C (#include, #define) cũng biến mất.
-            // Cố ý: đó là phần khung giống hệt nhau ở mọi bài, giữ lại chỉ làm mọi bài trùng
-            // nhau thêm mà không mang thông tin gì về việc ai chép của ai.
+            // ── Comments ─────────────────────────────────────────────────────────────────
+            // '#' swallows the whole line, so C preprocessor directives (#include, #define)
+            // disappear too. Deliberate: that is boilerplate identical across every submission,
+            // and keeping it only makes every submission match every other one further without
+            // carrying any information about who copied from whom.
             if (c == '#' || (c == '/' && i + 1 < n && source[i + 1] == '/'))
             {
                 while (i < n && source[i] != '\n') i++;
@@ -95,75 +101,77 @@ public static class SourceNormalizer
             {
                 i += 2;
                 while (i + 1 < n && !(source[i] == '*' && source[i + 1] == '/')) i++;
-                i = Math.Min(n, i + 2);          // chú thích không đóng ⇒ nuốt tới hết file
+                i = Math.Min(n, i + 2);          // unclosed comment ⇒ swallow to end of file
                 continue;
             }
 
-            // ── Chuỗi ký tự ──────────────────────────────────────────────────────────────
+            // ── String literals ──────────────────────────────────────────────────────────
             if (c is '"' or '\'')
             {
-                var dau = i;
-                i = BoQuaChuoi(source, i);
-                kq.Add(new SourceToken(StringToken, dau, i - dau));
+                var start = i;
+                i = SkipString(source, i);
+                result.Add(new SourceToken(StringToken, start, i - start));
                 continue;
             }
 
-            // ── Số ───────────────────────────────────────────────────────────────────────
+            // ── Numbers ──────────────────────────────────────────────────────────────────
             if (char.IsAsciiDigit(c))
             {
-                var dau = i;
-                i = BoQuaSo(source, i);
-                kq.Add(new SourceToken(NumberToken, dau, i - dau));
+                var start = i;
+                i = SkipNumber(source, i);
+                result.Add(new SourceToken(NumberToken, start, i - start));
                 continue;
             }
 
-            // ── Định danh / từ khóa ──────────────────────────────────────────────────────
+            // ── Identifiers / keywords ───────────────────────────────────────────────────
             if (c == '_' || char.IsLetter(c))
             {
-                var dau = i;
+                var start = i;
                 while (i < n && (source[i] == '_' || char.IsLetterOrDigit(source[i]))) i++;
 
-                var chu = source[dau..i].ToLowerInvariant();
-                kq.Add(new SourceToken(
-                    TuKhoa.Contains(chu) ? chu : IdentifierToken, dau, i - dau));
+                var word = source[start..i].ToLowerInvariant();
+                result.Add(new SourceToken(
+                    Keywords.Contains(word) ? word : IdentifierToken, start, i - start));
                 continue;
             }
 
-            // ── Dấu câu và toán tử ───────────────────────────────────────────────────────
-            // MỖI KÝ TỰ một token, không gộp "==" hay "+=" thành một. Gộp hay không gộp đều
-            // đúng miễn là hai bài dùng chung một luật; tách từng ký tự thì không có bảng
-            // toán tử nào phải bảo trì theo từng ngôn ngữ mới.
-            kq.Add(new SourceToken(source[i].ToString(), i, 1));
+            // ── Punctuation and operators ────────────────────────────────────────────────
+            // ONE TOKEN PER CHARACTER, no merging of "==" or "+=" into a single token. Merging
+            // or not merging is equally correct as long as both submissions follow the same
+            // rule; splitting per character means there is no operator table to maintain for
+            // each new language.
+            result.Add(new SourceToken(source[i].ToString(), i, 1));
             i++;
         }
 
-        return kq;
+        return result;
     }
 
-    /// <summary>Trả về chỉ số ngay SAU chuỗi ký tự bắt đầu tại <paramref name="i"/>.</summary>
-    private static int BoQuaChuoi(string s, int i)
+    /// <summary>Returns the index just AFTER the string literal starting at <paramref name="i"/>.</summary>
+    private static int SkipString(string s, int i)
     {
         var n = s.Length;
-        var nhay = s[i];
+        var quote = s[i];
 
-        // Ba dấu nháy (docstring Python, raw string C#). Quét ngây thơ theo từng dấu nháy sẽ
-        // hiểu """abc""" thành chuỗi rỗng + định danh abc + chuỗi rỗng, và MỌI token sau đó
-        // trong file bị lệch — hai bài giống hệt nhau sẽ ra 0% trùng.
-        if (i + 2 < n && s[i + 1] == nhay && s[i + 2] == nhay)
+        // Triple quotes (Python docstring, C# raw string). A naive scan quote by quote would read
+        // """abc""" as empty string + identifier abc + empty string, and EVERY token after that
+        // point in the file shifts — two identical submissions would come out at 0% similar.
+        if (i + 2 < n && s[i + 1] == quote && s[i + 2] == quote)
         {
             i += 3;
-            while (i + 2 < n && !(s[i] == nhay && s[i + 1] == nhay && s[i + 2] == nhay)) i++;
+            while (i + 2 < n && !(s[i] == quote && s[i + 1] == quote && s[i + 2] == quote)) i++;
             return i + 2 < n ? i + 3 : n;
         }
 
         i++;
         while (i < n)
         {
-            if (s[i] == '\\') { i += 2; continue; }        // ký tự thoát: '\'' , "\""
-            if (s[i] == nhay) return i + 1;
+            if (s[i] == '\\') { i += 2; continue; }        // escape sequence: '\'' , "\""
+            if (s[i] == quote) return i + 1;
 
-            // Chuỗi không đóng trước khi hết dòng: dừng tại đây thay vì nuốt hết phần còn lại
-            // của file. Thường là dấu nháy lẻ trong chú thích tiếng Việt không dấu ("don't").
+            // String left unclosed before the end of the line: stop here instead of swallowing
+            // the whole rest of the file. Usually a stray apostrophe inside an unaccented
+            // Vietnamese comment ("don't").
             if (s[i] == '\n') return i;
 
             i++;
@@ -172,8 +180,8 @@ public static class SourceNormalizer
         return n;
     }
 
-    /// <summary>Trả về chỉ số ngay SAU hằng số bắt đầu tại <paramref name="i"/>.</summary>
-    private static int BoQuaSo(string s, int i)
+    /// <summary>Returns the index just AFTER the numeric constant starting at <paramref name="i"/>.</summary>
+    private static int SkipNumber(string s, int i)
     {
         var n = s.Length;
 
@@ -181,15 +189,16 @@ public static class SourceNormalizer
         {
             var c = s[i];
 
-            // Dấu mũ có dấu: 3.14e-2, 1E+9. Không xử lý riêng thì "e" kết thúc con số và
-            // "-2" tách thành toán tử trừ — chuỗi token lệch so với cùng con số viết kiểu khác.
+            // Signed exponent: 3.14e-2, 1E+9. Without handling it specially, "e" would end the
+            // number and "-2" would split off as a minus operator — a token sequence that no
+            // longer lines up with the same number written a different way.
             if ((c is 'e' or 'E') && i + 2 < n && s[i + 1] is '+' or '-' && char.IsAsciiDigit(s[i + 2]))
             {
                 i += 2;
                 continue;
             }
 
-            // Chấp nhận chữ cái để nuốt trọn 0xFF, 100L, 1_000, 3.14f.
+            // Letters are accepted so that 0xFF, 100L, 1_000 and 3.14f are swallowed whole.
             if (char.IsLetterOrDigit(c) || c is '.' or '_') { i++; continue; }
 
             break;
@@ -200,12 +209,13 @@ public static class SourceNormalizer
 }
 
 /// <summary>
-/// Tệp nào đáng đem đi băm. Băm cả ảnh và PDF thì bảng fingerprint phình lên vì dữ liệu nhị
-/// phân vô nghĩa, và hai bài nộp cùng một ảnh đề bài sẽ bị chấm trùng 100%.
+/// Which files are worth hashing at all. Hashing images and PDFs too would bloat the fingerprint
+/// table with meaningless binary data, and two submissions containing the same assignment-brief
+/// image would be scored as 100% identical.
 /// </summary>
 public static class SourceFileTypes
 {
-    private static readonly HashSet<string> Duoi = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> Extensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".c", ".h", ".cpp", ".cc", ".cxx", ".hpp", ".hh", ".cs", ".java", ".kt", ".kts",
         ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".go", ".rs", ".php", ".rb",
@@ -214,6 +224,6 @@ public static class SourceFileTypes
 
     public static bool IsSourceCode(string? fileName) =>
         !string.IsNullOrWhiteSpace(fileName)
-        && Path.GetExtension(fileName) is { Length: > 0 } duoi
-        && Duoi.Contains(duoi);
+        && Path.GetExtension(fileName) is { Length: > 0 } ext
+        && Extensions.Contains(ext);
 }

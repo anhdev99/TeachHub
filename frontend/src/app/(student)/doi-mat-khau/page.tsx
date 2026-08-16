@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trang } from "@/components/shell/trang";
+import { PageShell } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +59,7 @@ export default function DoiMatKhauPage() {
   }
 
   return (
-    <Trang>
+    <PageShell>
       <Card className="mx-auto w-full max-w-md">
         <CardHeader>
           <span className="bg-primary/10 text-primary mb-1 grid size-9 place-items-center rounded-lg">
@@ -168,6 +168,6 @@ export default function DoiMatKhauPage() {
           </form>
         </CardContent>
       </Card>
-    </Trang>
+    </PageShell>
   );
 }

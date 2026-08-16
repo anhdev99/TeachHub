@@ -12,39 +12,46 @@ public sealed class ReviewQueueItemConfiguration : IEntityTypeConfiguration<Revi
     {
         b.HasKey(x => x.Id);
 
-        // Enum xuống DB LUÔN là chuỗi. Mặc định của EF là integer, và mọi CHECK constraint bên
-        // dưới viết bằng chuỗi sẽ chết ngay lúc apply migration vì so sánh integer với text.
+        // An enum going down to the DB is ALWAYS a string. EF's default is integer, and every
+        // CHECK constraint below is written with strings, so they would die the moment the
+        // migration is applied, comparing integer with text.
         b.Property(x => x.Stage).HasConversion<string>().HasMaxLength(32);
         b.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
 
-        // Gap #2: khóa ngoại trỏ thẳng tới NGƯỜI DÙNG, không đi qua enrollment. Đây là khác biệt
-        // có chủ ý so với mọi bảng dữ liệu học tập khác của dự án — đừng "sửa cho nhất quán".
+        // Gap #2: the foreign key points straight at the USER, not through an enrollment. This is
+        // a deliberate difference from every other learning-data table in the project — do not
+        // "fix it for consistency".
         b.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Câu hỏi bị gỡ khỏi ngân hàng thì mục ôn tập của nó cũng hết nghĩa: không còn gì để hỏi.
+        // Once a question is removed from the bank its review item is meaningless too: there is
+        // nothing left to ask.
         b.HasOne<QuizQuestion>().WithMany().HasForeignKey(x => x.QuestionId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // SetNull chứ KHÔNG Cascade: đây chỉ là vết nguồn. Xóa một quiz cũ mà kéo theo hàng đợi
-        // ôn tập là xóa lịch sử kiến thức của sinh viên vì một thao tác dọn dẹp của giảng viên.
+        // SetNull and NOT Cascade: this is only a provenance trace. Deleting an old quiz and
+        // dragging the review queue with it would erase a student's knowledge history because of
+        // an instructor's housekeeping.
         b.HasOne<QuizAttempt>().WithMany().HasForeignKey(x => x.SourceQuizAttemptId)
          .OnDelete(DeleteBehavior.SetNull);
 
-        // Một người + một câu hỏi = đúng MỘT mục. Không có ràng buộc này thì mỗi lần sai lại
-        // một câu sẽ đẻ thêm một mục, và sinh viên phải ôn cùng một câu năm lần trong một ngày.
+        // One user + one question = exactly ONE item. Without this constraint, every time the same
+        // question is answered wrong again it spawns another item, and the student has to review
+        // the very same question five times in one day.
         b.HasIndex(x => new { x.UserId, x.QuestionId }).IsUnique();
 
-        // Truy vấn "Ôn tập hôm nay" chạy mỗi lần sinh viên mở trang chủ. HasFilter nhận SQL THÔ:
-        // tên cột phải snake_case, còn giá trị phải khớp ĐÚNG tên enum C# vì cột lưu chuỗi.
+        // The "today's review" query runs every time a student opens the home page. HasFilter
+        // takes RAW SQL: column names must be snake_case, and the values must match the C# enum
+        // names EXACTLY, because the column stores strings.
         b.HasIndex(x => new { x.UserId, x.NextReviewAt }).HasFilter("status = 'Pending'");
 
-        // Job quét hằng ngày đếm theo hạn trên toàn hệ thống, không theo từng người.
+        // The daily sweep job counts by due date across the whole system, not per user.
         b.HasIndex(x => x.NextReviewAt).HasFilter("status = 'Pending'");
 
-        // Bất biến do DATABASE giữ, không do handler nhớ: trạng thái, bậc và hạn ôn phải luôn
-        // đi cùng nhau. Một hàng Status='Pending' mà NextReviewAt IS NULL sẽ nằm vĩnh viễn trong
-        // hàng đợi: không bao giờ đến hạn, cũng không bao giờ biến mất, và không có lỗi nào báo.
+        // An invariant held by the DATABASE, not by the handler remembering it: status, stage and
+        // due date must always travel together. A row with Status='Pending' but NextReviewAt IS
+        // NULL sits in the queue forever: never coming due, never going away, and never reporting
+        // an error.
         b.ToTable(t =>
         {
             t.HasCheckConstraint("ck_review_queue_items_stage_status", """
@@ -67,10 +74,11 @@ public sealed class ReviewGenerationMarkConfiguration : IEntityTypeConfiguration
         b.HasOne<QuizAttempt>().WithMany().HasForeignKey(x => x.QuizAttemptId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Unique là toàn bộ lý do bảng này tồn tại — nó phải là lớp chặn CUỐI, không chỉ là một
-        // phép kiểm trong handler. Hai lần chạy job chồng nhau (retry của Hangfire gối lên lần
-        // chạy đang dở) sẽ cùng thấy "chưa có dấu" rồi cùng nạp; unique index bắt lần thứ hai
-        // ngã ở SaveChanges và transaction của nó rollback trọn vẹn.
+        // The unique index is the entire reason this table exists — it has to be the LAST line of
+        // defence, not just a check inside the handler. Two overlapping job runs (a Hangfire retry
+        // landing on top of a run still in progress) will both see "no mark yet" and both load;
+        // the unique index makes the second one fail at SaveChanges, and its transaction rolls
+        // back cleanly.
         b.HasIndex(x => x.QuizAttemptId).IsUnique();
     }
 }

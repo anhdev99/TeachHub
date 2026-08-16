@@ -12,9 +12,9 @@ public sealed class LoginValidator : AbstractValidator<LoginCommand>
 {
     public LoginValidator()
     {
-        // Thông báo lỗi trả cho người dùng viết tiếng Việt (quy ước dự án). Thông báo mặc
-        // định của FluentValidation là tiếng Anh và thư viện không có gói ngôn ngữ tiếng Việt,
-        // nên phải khai tường minh ở từng luật.
+        // Error messages returned to the user are written in Vietnamese (project convention).
+        // FluentValidation's default messages are English and the library ships no Vietnamese
+        // language pack, so every rule has to spell its message out explicitly.
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Chưa nhập email.")
             .EmailAddress().WithMessage("Email không đúng định dạng.");
@@ -30,8 +30,8 @@ public sealed class LoginHandler(UserManager<AppUser> users, ITokenService token
     {
         var user = await users.FindByEmailAsync(request.Email);
 
-        // Một thông báo duy nhất cho cả hai trường hợp. Tách ra thành "email không tồn tại"
-        // và "sai mật khẩu" là biếu không cho kẻ tấn công một công cụ dò danh sách email.
+        // A single message for both cases. Splitting it into "this email does not exist" and
+        // "wrong password" hands an attacker a free tool for enumerating the list of emails.
         if (user is null || !await users.CheckPasswordAsync(user, request.Password))
             return Result<TokenPair>.Unauthorized("Email hoặc mật khẩu không đúng.");
 

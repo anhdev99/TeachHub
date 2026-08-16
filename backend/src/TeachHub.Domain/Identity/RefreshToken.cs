@@ -3,8 +3,8 @@ using TeachHub.Domain.Common;
 namespace TeachHub.Domain.Identity;
 
 /// <summary>
-/// Refresh token xoay vòng: mỗi lần dùng sẽ bị thu hồi và phát hành token mới.
-/// Lưu SHA-256 chứ không lưu token thật — rò rỉ DB không cho phép mạo danh.
+/// Rotating refresh token: every use revokes it and issues a new one.
+/// Stores the SHA-256, not the real token — a DB leak must not enable impersonation.
 /// </summary>
 public class RefreshToken : Entity
 {

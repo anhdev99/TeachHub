@@ -9,15 +9,16 @@ using TeachHub.Domain.Submissions;
 namespace TeachHub.Application.Features.Integrity;
 
 /// <param name="Content">
-/// NULL khi gợi ý chưa mở. Đây là ranh giới bảo mật, không phải tối ưu băng thông: gửi kèm
-/// nội dung rồi để giao diện che đi thì mở DevTools là đọc được toàn bộ gợi ý mà không mất
-/// điểm nào, và cả cơ chế trừ điểm của Gap #11 trở thành trang trí.
+/// NULL while the hint is still locked. This is a security boundary, not a bandwidth
+/// optimisation: ship the content along and let the UI hide it, and opening DevTools reads
+/// every hint without losing a single point, turning the whole Gap #11 deduction mechanism
+/// into decoration.
 /// </param>
 public sealed record HintDto(
     Guid Id, int OrderIndex, decimal PenaltyPercent,
     bool IsUnlocked, string? Content, DateTimeOffset? UnlockedAt);
 
-// ── Sinh viên xem danh sách gợi ý ───────────────────────────────────────────────────────
+// ── Student lists the hints ─────────────────────────────────────────────────────────────
 
 public sealed record GetMyHintsQuery(Guid AssignmentId, Guid StudentUserId)
     : IQuery<Result<List<HintDto>>>;
@@ -27,34 +28,34 @@ public sealed class GetMyHintsHandler(IAppDbContext db)
 {
     public async Task<Result<List<HintDto>>> Handle(GetMyHintsQuery request, CancellationToken ct)
     {
-        var ghiDanh = await SubmissionAccess.EnrollmentForAssignmentAsync(
+        var enrollment = await SubmissionAccess.EnrollmentForAssignmentAsync(
             db, request.AssignmentId, request.StudentUserId, ct);
 
-        // Không học lớp chạy bài tập này ⇒ 404, không bao giờ 403.
-        if (ghiDanh is null) return Result<List<HintDto>>.NotFound("Không tìm thấy bài tập.");
+        // Not enrolled in the offering that runs this assignment ⇒ 404, never 403.
+        if (enrollment is null) return Result<List<HintDto>>.NotFound("Không tìm thấy bài tập.");
 
-        var goiY = await db.AssignmentHints.AsNoTracking()
+        var hints = await db.AssignmentHints.AsNoTracking()
             .Where(h => h.AssignmentId == request.AssignmentId)
             .OrderBy(h => h.OrderIndex)
             .ToListAsync(ct);
 
-        var daMo = await db.HintUnlocks.AsNoTracking()
-            .Where(u => u.EnrollmentId == ghiDanh.EnrollmentId
-                     && goiY.Select(h => h.Id).Contains(u.AssignmentHintId))
+        var unlocked = await db.HintUnlocks.AsNoTracking()
+            .Where(u => u.EnrollmentId == enrollment.EnrollmentId
+                     && hints.Select(h => h.Id).Contains(u.AssignmentHintId))
             .ToDictionaryAsync(u => u.AssignmentHintId, ct);
 
-        return Result<List<HintDto>>.Ok([.. goiY.Select(h =>
+        return Result<List<HintDto>>.Ok([.. hints.Select(h =>
         {
-            var mo = daMo.GetValueOrDefault(h.Id);
+            var unlock = unlocked.GetValueOrDefault(h.Id);
 
             return new HintDto(
                 h.Id, h.OrderIndex, h.PenaltyPercent,
-                mo is not null, mo is null ? null : h.Content, mo?.UnlockedAt);
+                unlock is not null, unlock is null ? null : h.Content, unlock?.UnlockedAt);
         })]);
     }
 }
 
-// ── Sinh viên mở một gợi ý ──────────────────────────────────────────────────────────────
+// ── Student unlocks one hint ────────────────────────────────────────────────────────────
 
 public sealed record UnlockHintCommand(Guid HintId, Guid StudentUserId) : ICommand<Result<HintDto>>;
 
@@ -63,48 +64,50 @@ public sealed class UnlockHintHandler(IAppDbContext db, TimeProvider clock)
 {
     public async Task<Result<HintDto>> Handle(UnlockHintCommand request, CancellationToken ct)
     {
-        var goiY = await db.AssignmentHints.AsNoTracking()
+        var hint = await db.AssignmentHints.AsNoTracking()
             .SingleOrDefaultAsync(h => h.Id == request.HintId, ct);
 
-        if (goiY is null) return Result<HintDto>.NotFound("Không tìm thấy gợi ý.");
+        if (hint is null) return Result<HintDto>.NotFound("Không tìm thấy gợi ý.");
 
-        var ghiDanh = await SubmissionAccess.EnrollmentForAssignmentAsync(
-            db, goiY.AssignmentId, request.StudentUserId, ct);
+        var enrollment = await SubmissionAccess.EnrollmentForAssignmentAsync(
+            db, hint.AssignmentId, request.StudentUserId, ct);
 
-        if (ghiDanh is null) return Result<HintDto>.NotFound("Không tìm thấy gợi ý.");
+        if (enrollment is null) return Result<HintDto>.NotFound("Không tìm thấy gợi ý.");
 
-        // Lớp đã kết thúc ⇒ không mở thêm gợi ý nào nữa. Gợi ý ĐÃ mở vẫn đọc được bình thường
-        // qua GET /api/assignments/{id}/hints — sinh viên đã trả giá bằng điểm cho nội dung đó,
-        // và khoá luôn đường đọc là lấy lại thứ họ đã mua.
-        if (await OfferingLock.DaDongAsync(db, ghiDanh.OfferingId, ct))
-            return Result<HintDto>.Conflict(OfferingLock.ThongDiep("mở gợi ý"));
+        // Offering already finished ⇒ no further hints may be unlocked. Hints ALREADY unlocked
+        // stay readable as usual through GET /api/assignments/{id}/hints — the student has paid
+        // for that content in points, and locking the read path too takes back what they bought.
+        if (await OfferingLock.IsClosedAsync(db, enrollment.OfferingId, ct))
+            return Result<HintDto>.Conflict(OfferingLock.ClosedMessage("mở gợi ý"));
 
-        var daMo = await db.HintUnlocks
-            .SingleOrDefaultAsync(u => u.AssignmentHintId == goiY.Id
-                                    && u.EnrollmentId == ghiDanh.EnrollmentId, ct);
+        var alreadyUnlocked = await db.HintUnlocks
+            .SingleOrDefaultAsync(u => u.AssignmentHintId == hint.Id
+                                    && u.EnrollmentId == enrollment.EnrollmentId, ct);
 
-        // Mở lại gợi ý đã mở là chuyện bình thường (bấm hai lần, tải lại trang) và KHÔNG được
-        // trừ điểm lần nữa. Trả Ok với nội dung thay vì Conflict: sinh viên không làm gì sai,
-        // và một thông báo lỗi ở đây chỉ khiến họ tưởng mất điểm thêm lần nữa.
-        if (daMo is not null)
+        // Unlocking an already-unlocked hint is perfectly normal (double click, page reload) and
+        // must NOT deduct points a second time. Return Ok with the content rather than Conflict:
+        // the student did nothing wrong, and an error message here only makes them think they
+        // have lost points all over again.
+        if (alreadyUnlocked is not null)
             return Result<HintDto>.Ok(new HintDto(
-                goiY.Id, goiY.OrderIndex, daMo.PenaltyPercentApplied,
-                true, goiY.Content, daMo.UnlockedAt));
+                hint.Id, hint.OrderIndex, alreadyUnlocked.PenaltyPercentApplied,
+                true, hint.Content, alreadyUnlocked.UnlockedAt));
 
-        // "Gợi ý MỞ DẦN" (SRS UC-09): phải mở hết các gợi ý trước đó. Cho nhảy thẳng tới gợi
-        // ý cuối — thường là gợi ý lộ nhiều nhất — thì thang gợi ý không còn là một thang.
-        var idTruoc = await db.AssignmentHints.AsNoTracking()
-            .Where(h => h.AssignmentId == goiY.AssignmentId && h.OrderIndex < goiY.OrderIndex)
+        // "PROGRESSIVE hints" (SRS UC-09): every earlier hint must be unlocked first. Allow a
+        // jump straight to the last hint — usually the one that gives away the most — and the
+        // hint ladder stops being a ladder.
+        var earlierIds = await db.AssignmentHints.AsNoTracking()
+            .Where(h => h.AssignmentId == hint.AssignmentId && h.OrderIndex < hint.OrderIndex)
             .Select(h => h.Id)
             .ToListAsync(ct);
 
-        if (idTruoc.Count > 0)
+        if (earlierIds.Count > 0)
         {
-            var soDaMo = await db.HintUnlocks
-                .CountAsync(u => u.EnrollmentId == ghiDanh.EnrollmentId
-                              && idTruoc.Contains(u.AssignmentHintId), ct);
+            var unlockedCount = await db.HintUnlocks
+                .CountAsync(u => u.EnrollmentId == enrollment.EnrollmentId
+                              && earlierIds.Contains(u.AssignmentHintId), ct);
 
-            if (soDaMo < idTruoc.Count)
+            if (unlockedCount < earlierIds.Count)
                 return Result<HintDto>.Invalid("Hãy mở lần lượt các gợi ý trước đó.");
         }
 
@@ -112,33 +115,34 @@ public sealed class UnlockHintHandler(IAppDbContext db, TimeProvider clock)
 
         db.HintUnlocks.Add(new HintUnlock
         {
-            AssignmentHintId = goiY.Id,
-            EnrollmentId = ghiDanh.EnrollmentId,
+            AssignmentHintId = hint.Id,
+            EnrollmentId = enrollment.EnrollmentId,
             UnlockedAt = now,
 
-            // Chốt mức phạt tại đây. Đọc lại từ AssignmentHint lúc chấm thì giảng viên sửa
-            // mức phạt sau đó sẽ đổi ngược điều kiện mà sinh viên đã chấp nhận trên màn hình.
-            PenaltyPercentApplied = goiY.PenaltyPercent,
+            // Freeze the penalty right here. Read it back off AssignmentHint at grading time and
+            // an instructor who edits the penalty afterwards retroactively changes the terms the
+            // student accepted on screen.
+            PenaltyPercentApplied = hint.PenaltyPercent,
         });
 
-        // HintsUsed trên bài nộp hiện hành chỉ là con số hiển thị cho màn hình chấm. Nguồn
-        // chân lý để trừ điểm luôn là bảng hint_unlocks — nó có đủ ai/lúc nào/trừ bao nhiêu,
-        // còn một con số đếm thì không giải thích được gì khi bị chất vấn.
-        var hienHanh = await db.Submissions
-            .SingleOrDefaultAsync(s => s.AssignmentId == goiY.AssignmentId
-                                    && s.EnrollmentId == ghiDanh.EnrollmentId
+        // HintsUsed on the current submission is nothing but a number to display on the grading
+        // screen. The source of truth for the deduction is always the hint_unlocks table — it
+        // holds who/when/how much, whereas a bare counter explains nothing when challenged.
+        var current = await db.Submissions
+            .SingleOrDefaultAsync(s => s.AssignmentId == hint.AssignmentId
+                                    && s.EnrollmentId == enrollment.EnrollmentId
                                     && s.IsCurrent, ct);
 
-        if (hienHanh is not null) hienHanh.HintsUsed += 1;
+        if (current is not null) current.HintsUsed += 1;
 
         await db.SaveChangesAsync(ct);
 
         return Result<HintDto>.Ok(new HintDto(
-            goiY.Id, goiY.OrderIndex, goiY.PenaltyPercent, true, goiY.Content, now));
+            hint.Id, hint.OrderIndex, hint.PenaltyPercent, true, hint.Content, now));
     }
 }
 
-// ── Giảng viên xem ai đã mở gợi ý nào ───────────────────────────────────────────────────
+// ── Instructor sees who unlocked which hint ─────────────────────────────────────────────
 
 public sealed record HintUnlockLogDto(
     Guid HintId, int OrderIndex, Guid EnrollmentId, string StudentName,
@@ -157,18 +161,19 @@ public sealed class GetHintUnlockLogHandler(IAppDbContext db)
                 db, request.OfferingId, request.InstructorId, ct))
             return Result<List<HintUnlockLogDto>>.NotFound("Không tìm thấy lớp học phần.");
 
-        // Lọc theo CẢ bài tập LẪN lớp ngay trong câu truy vấn: cùng một bài tập chạy ở nhiều
-        // lớp, và lọc sau khi nạp là kéo nhật ký của lớp khác qua mạng trước khi bỏ đi.
-        var ds = await (from u in db.HintUnlocks.AsNoTracking()
-                        join h in db.AssignmentHints.AsNoTracking() on u.AssignmentHintId equals h.Id
-                        join e in db.Enrollments.AsNoTracking() on u.EnrollmentId equals e.Id
-                        where h.AssignmentId == request.AssignmentId && e.OfferingId == request.OfferingId
-                        orderby u.UnlockedAt descending
-                        select new HintUnlockLogDto(
-                            h.Id, h.OrderIndex, e.Id, e.FullName,
-                            u.PenaltyPercentApplied, u.UnlockedAt))
-                       .ToListAsync(ct);
+        // Filter on BOTH the assignment AND the offering inside the query itself: the same
+        // assignment runs in several offerings, and filtering after loading means pulling
+        // another offering's log across the network only to throw it away.
+        var rows = await (from u in db.HintUnlocks.AsNoTracking()
+                          join h in db.AssignmentHints.AsNoTracking() on u.AssignmentHintId equals h.Id
+                          join e in db.Enrollments.AsNoTracking() on u.EnrollmentId equals e.Id
+                          where h.AssignmentId == request.AssignmentId && e.OfferingId == request.OfferingId
+                          orderby u.UnlockedAt descending
+                          select new HintUnlockLogDto(
+                              h.Id, h.OrderIndex, e.Id, e.FullName,
+                              u.PenaltyPercentApplied, u.UnlockedAt))
+                         .ToListAsync(ct);
 
-        return Result<List<HintUnlockLogDto>>.Ok(ds);
+        return Result<List<HintUnlockLogDto>>.Ok(rows);
     }
 }

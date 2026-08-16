@@ -24,7 +24,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api/fetcher";
 import {
-  NHAN_LOAI_COMPONENT,
+  COMPONENT_TYPE_LABELS,
   type CheckInlineQuestionsResultDto,
   type InlineQuestionDto,
   type LessonComponentType,
@@ -34,7 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 
 /** Icon cho từng loại phần — đọc loại bằng một cái liếc thay vì phải đọc nhãn chữ. */
-const ICON_LOAI: Record<LessonComponentType, React.ComponentType<{ className?: string }>> = {
+const COMPONENT_TYPE_ICONS: Record<LessonComponentType, React.ComponentType<{ className?: string }>> = {
   recap: RotateCcw,
   hook: Sparkles,
   checkpoint_quiz: ListChecks,
@@ -315,7 +315,7 @@ export function PhanBaiHoc({
   onHoanThanh: (componentId: string) => void;
 }) {
   const router = useRouter();
-  const Icon = ICON_LOAI[phan.type];
+  const Icon = COMPONENT_TYPE_ICONS[phan.type];
 
   // Rút ra biến cục bộ để TypeScript thu hẹp được kiểu bên trong closure của onClick —
   // `phan.ref_id` là thuộc tính nên phép thu hẹp không sống sót qua ranh giới hàm, và cách
@@ -343,7 +343,7 @@ export function PhanBaiHoc({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs font-medium">
           <Icon className="size-3.5" />
-          {NHAN_LOAI_COMPONENT[phan.type]}
+          {COMPONENT_TYPE_LABELS[phan.type]}
         </span>
 
         {phan.is_required && !phan.completed && (

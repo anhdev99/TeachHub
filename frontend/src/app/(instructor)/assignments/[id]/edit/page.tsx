@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { AssignmentDto } from "@/lib/api/types";
 import { SoanBaiTap } from "./soan-bai-tap";
@@ -25,14 +25,14 @@ export default async function AssignmentEditPage({
   const bai: AssignmentDto = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe={bai.title}
-        moTa={bai.description ?? "Bài tập chưa có mô tả."}
-        quayLai={{ href: "/offerings", nhan: "Lớp học phần" }}
+    <PageShell>
+      <PageHeader
+        title={bai.title}
+        description={bai.description ?? "Bài tập chưa có mô tả."}
+        backTo={{ href: "/offerings", label: "Lớp học phần" }}
       />
 
       <SoanBaiTap banDau={bai} />
-    </Trang>
+    </PageShell>
   );
 }

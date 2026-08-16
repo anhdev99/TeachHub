@@ -1,51 +1,55 @@
 namespace TeachHub.Domain.Grading;
 
 /// <param name="PercentDeducted">
-/// Tỉ lệ THẬT SỰ bị trừ, đã kẹp ở 100%. Không báo cáo con số thô 150%: nó gợi ý rằng điểm có
-/// thể xuống âm, trong khi hệ thống không bao giờ để chuyện đó xảy ra.
+/// The percentage ACTUALLY deducted, already clamped at 100%. It does not report the raw 150%:
+/// that would suggest the score can go negative, which the system never allows to happen.
 /// </param>
 public sealed record LatePenalty(
     int DaysLate, decimal PercentDeducted, decimal PenaltyPoints, decimal FinalScore);
 
 /// <summary>
-/// Phạt nộp trễ theo <c>Assignment.LatePenaltyPercentPerDay</c>. Hàm thuần: nhận mốc thời gian
-/// từ ngoài (TimeProvider của tầng gọi) chứ không đọc <c>DateTimeOffset.UtcNow</c> — nếu không
-/// thì kiểm một ca "trễ 3 ngày" phải chờ ba ngày thật trôi qua.
+/// Late-submission penalty driven by <c>Assignment.LatePenaltyPercentPerDay</c>. A pure function:
+/// it takes the timestamps from outside (the calling layer's TimeProvider) instead of reading
+/// <c>DateTimeOffset.UtcNow</c> — otherwise testing a "3 days late" case would mean waiting three
+/// real days.
 /// </summary>
 public static class LatePenaltyCalculator
 {
     /// <summary>
-    /// Số ngày trễ, LÀM TRÒN LÊN — trễ một phút cũng là trễ một ngày. Làm tròn xuống thì cả
-    /// lớp nộp lúc 00:05 và không ai bị phạt gì, tức là hạn nộp không còn ý nghĩa.
+    /// Days late, ROUNDED UP — one minute late is still a full day late. Round down instead and
+    /// the whole class submits at 00:05 and nobody is penalized at all, which means the deadline
+    /// no longer means anything.
     /// </summary>
     public static int DaysLate(DateTimeOffset? dueAt, DateTimeOffset? submittedAt)
     {
-        if (dueAt is not { } han || submittedAt is not { } nop) return 0;
+        if (dueAt is not { } due || submittedAt is not { } submitted) return 0;
 
-        var tre = nop - han;
-        if (tre <= TimeSpan.Zero) return 0;
+        var late = submitted - due;
+        if (late <= TimeSpan.Zero) return 0;
 
-        // Tính bằng SỐ NGUYÊN ticks, không dùng Math.Ceiling(tre.TotalDays).
-        // TotalDays là double: 24 giờ chẵn có thể ra 1.0000000000000002 tùy phép trừ, và lúc
-        // đó sinh viên nộp đúng 24 giờ sau hạn bị phạt gấp đôi người nộp sau đó một giây.
-        var (nguyen, du) = Math.DivRem(tre.Ticks, TimeSpan.TicksPerDay);
+        // Computed in INTEGER ticks, not with Math.Ceiling(late.TotalDays).
+        // TotalDays is a double: an exact 24 hours can come out as 1.0000000000000002 depending on
+        // the subtraction, and then a student who submits exactly 24 hours after the deadline is
+        // penalized twice as hard as one who submits a second later.
+        var (wholeDays, remainder) = Math.DivRem(late.Ticks, TimeSpan.TicksPerDay);
 
-        return (int)(nguyen + (du > 0 ? 1 : 0));
+        return (int)(wholeDays + (remainder > 0 ? 1 : 0));
     }
 
     public static LatePenalty Apply(
         decimal score, decimal percentPerDay, DateTimeOffset? dueAt, DateTimeOffset? submittedAt)
     {
-        var soNgay = DaysLate(dueAt, submittedAt);
+        var days = DaysLate(dueAt, submittedAt);
 
-        // Kẹp ở [0, 100] LÀ chỗ giữ cho điểm không bao giờ âm. 30%/ngày × 5 ngày = 150%, và
-        // một cột điểm âm sẽ kéo điểm tổng kết xuống dưới cả sinh viên không nộp gì cả.
-        var tyLe = Math.Clamp(percentPerDay * soNgay, 0m, 100m);
+        // Clamping to [0, 100] IS what keeps the score from ever going negative. 30%/day × 5 days
+        // = 150%, and a negative column score would drag the final total below that of a student
+        // who submitted nothing at all.
+        var percent = Math.Clamp(percentPerDay * days, 0m, 100m);
 
-        var cuoi = Math.Round(
-            Math.Max(0m, score * (1m - tyLe / 100m)), 2, MidpointRounding.AwayFromZero);
+        var finalScore = Math.Round(
+            Math.Max(0m, score * (1m - percent / 100m)), 2, MidpointRounding.AwayFromZero);
 
         return new LatePenalty(
-            soNgay, tyLe, Math.Round(score - cuoi, 2, MidpointRounding.AwayFromZero), cuoi);
+            days, percent, Math.Round(score - finalScore, 2, MidpointRounding.AwayFromZero), finalScore);
     }
 }

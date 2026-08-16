@@ -1,9 +1,10 @@
 import type { components } from "./schema";
 
 /**
- * Bí danh cho các schema sinh tự động từ /openapi/v1.json. Luôn dẫn xuất từ `components`
- * chứ không gõ tay lại: mỗi lần backend đổi DTO, chạy `pnpm gen:api` là TypeScript báo lỗi
- * ngay tại chỗ dùng sai — đó là toàn bộ lý do tồn tại của bước sinh client.
+ * Aliases for the schemas generated from /openapi/v1.json. Always derive them from
+ * `components` rather than retyping them by hand: whenever the backend changes a DTO, running
+ * `pnpm gen:api` makes TypeScript flag the error right at the place that uses it wrongly —
+ * which is the entire reason the client-generation step exists.
  */
 export type SubjectDto = components["schemas"]["SubjectDto"];
 export type SubjectVersionDto = components["schemas"]["SubjectVersionDto"];
@@ -13,12 +14,13 @@ export type LessonComponentDto = components["schemas"]["LessonComponentDto"];
 export type SubjectVersionStatus = components["schemas"]["SubjectVersionStatus"];
 export type LessonComponentType = components["schemas"]["LessonComponentType"];
 
-// Phase 2 — lớp học phần và trải nghiệm học
+// Phase 2 — class offerings and the learning experience
 export type OfferingDto = components["schemas"]["OfferingDto"];
 /**
- * Kết quả đóng lớp. `snapshot` là `null` khi lớp chưa có cột điểm nào để chốt — lúc đó
- * `snapshot_skipped_reason` mang câu giải thích đọc được, và giao diện PHẢI hiện nó ra:
- * đóng lớp mà lặng lẽ không chốt bản nào là đúng thứ người ta chỉ phát hiện khi cần đối chiếu.
+ * Result of closing an offering. `snapshot` is `null` when the class has no grade column to
+ * freeze yet — in that case `snapshot_skipped_reason` carries a human-readable explanation,
+ * and the UI MUST show it: closing a class while silently taking no snapshot is exactly the
+ * kind of thing people only discover when they need the record to compare against.
  */
 export type CloseOfferingResultDto = components["schemas"]["CloseOfferingResultDto"];
 export type EnrollmentDto = components["schemas"]["EnrollmentDto"];
@@ -27,13 +29,15 @@ export type MyProgressDto = components["schemas"]["MyProgressDto"];
 export type MyChapterDto = components["schemas"]["MyChapterDto"];
 export type MyLessonDto = components["schemas"]["MyLessonDto"];
 export type MyComponentDto = components["schemas"]["MyComponentDto"];
-/** Câu hỏi nhúng của phần `checkpoint_quiz`, CỐ Ý không kèm đáp án đúng — xem phan-bai-hoc.tsx. */
+/** Inline question of a `checkpoint_quiz` component, DELIBERATELY without the correct
+ * answers — see lesson-component.tsx. */
 export type InlineQuestionDto = components["schemas"]["InlineQuestionDto"];
 export type InlineAnswerDto = components["schemas"]["InlineAnswerDto"];
 /**
- * Kết quả chấm câu hỏi nhúng. `correct_indexes` và `explanation` CHỈ có ở đây — tức là sau
- * khi sinh viên đã trả lời. Chúng cố ý vắng mặt trong `InlineQuestionDto` lúc tải bài, vì
- * gửi đáp án xuống rồi ẩn trên giao diện nghĩa là cả lớp mở DevTools ra đọc.
+ * Result of grading inline questions. `correct_indexes` and `explanation` appear ONLY here —
+ * that is, only after the student has answered. They are deliberately absent from
+ * `InlineQuestionDto` when the lesson loads, because shipping the answers down and hiding
+ * them in the UI just means the whole class reads them in DevTools.
  */
 export type CheckInlineQuestionsResultDto =
   components["schemas"]["CheckInlineQuestionsResultDto"];
@@ -41,7 +45,7 @@ export type InlineQuestionResultDto = components["schemas"]["InlineQuestionResul
 export type LessonAccess = components["schemas"]["LessonAccess"];
 export type LessonContentType = components["schemas"]["LessonContentType"];
 
-// Phase 3 — bài tập và nộp bài
+// Phase 3 — assignments and submissions
 export type AssignmentDto = components["schemas"]["AssignmentDto"];
 export type SubmissionSlotDto = components["schemas"]["SubmissionSlotDto"];
 export type SubmissionDto = components["schemas"]["SubmissionDto"];
@@ -52,7 +56,7 @@ export type FileTreeDto = components["schemas"]["FileTreeDto"];
 export type FileProcessingStatus = components["schemas"]["FileProcessingStatus"];
 export type SubmissionStatus = components["schemas"]["SubmissionStatus"];
 
-// Phase 4a — chấm điểm, nhóm, đợt cuối môn, dashboard
+// Phase 4a — grading, groups, final assessment, dashboard
 export type GroupDto = components["schemas"]["GroupDto"];
 export type GroupMemberDto = components["schemas"]["GroupMemberDto"];
 export type ToGradeItemDto = components["schemas"]["ToGradeItemDto"];
@@ -61,7 +65,7 @@ export type FinalAssessmentDto = components["schemas"]["FinalAssessmentDto"];
 export type InstructorDashboardDto = components["schemas"]["InstructorDashboardDto"];
 export type RubricDto = components["schemas"]["RubricDto"];
 
-// Phase 4b — sổ điểm động
+// Phase 4b — dynamic gradebook
 export type GradebookDto = components["schemas"]["GradebookDto"];
 export type GradeColumnDto = components["schemas"]["GradeColumnDto"];
 export type GradeRowDto = components["schemas"]["GradeRowDto"];
@@ -73,7 +77,7 @@ export type GradeExportTemplateDto = components["schemas"]["GradeExportTemplateD
 export type AggregationKind = components["schemas"]["AggregationKind"];
 export type BonusTarget = components["schemas"]["BonusTarget"];
 
-// Phase 5 — trắc nghiệm
+// Phase 5 — quizzes
 export type QuizDto = components["schemas"]["QuizDto"];
 export type QuizQuestionDto = components["schemas"]["QuizQuestionDto"];
 export type MyQuizDto = components["schemas"]["MyQuizDto"];
@@ -82,14 +86,14 @@ export type TakeQuestionDto = components["schemas"]["TakeQuestionDto"];
 export type TakeAnswerDto = components["schemas"]["TakeAnswerDto"];
 export type QuestionType = components["schemas"]["QuestionType"];
 
-export const NHAN_LOAI_CAU_HOI: Record<QuestionType, string> = {
+export const QUESTION_TYPE_LABELS: Record<QuestionType, string> = {
   single_choice: "Chọn một",
   multiple_choice: "Chọn nhiều",
   true_false: "Đúng / Sai",
   fill_blank: "Điền khuyết",
 };
 
-export const NHAN_QUY_TAC_GOP: Record<AggregationKind, string> = {
+export const AGGREGATION_KIND_LABELS: Record<AggregationKind, string> = {
   manual: "Nhập tay",
   average: "Trung bình",
   weighted_average: "Trung bình có trọng số",
@@ -100,7 +104,7 @@ export const NHAN_QUY_TAC_GOP: Record<AggregationKind, string> = {
   best_n_of_m: "Lấy N tốt nhất",
 };
 
-export const NHAN_TRANG_THAI_NOP: Record<SubmissionStatus, string> = {
+export const SUBMISSION_STATUS_LABELS: Record<SubmissionStatus, string> = {
   draft: "Bản nháp",
   submitted: "Đã nộp",
   grading: "Đang chấm",
@@ -108,13 +112,13 @@ export const NHAN_TRANG_THAI_NOP: Record<SubmissionStatus, string> = {
   returned: "Đã trả bài",
 };
 
-export const NHAN_TRANG_THAI: Record<SubjectVersionStatus, string> = {
+export const VERSION_STATUS_LABELS: Record<SubjectVersionStatus, string> = {
   draft: "Bản nháp",
   published: "Đã xuất bản",
   archived: "Đã lưu trữ",
 };
 
-export const NHAN_LOAI_COMPONENT: Record<LessonComponentType, string> = {
+export const COMPONENT_TYPE_LABELS: Record<LessonComponentType, string> = {
   recap: "Ôn lại",
   hook: "Dẫn nhập",
   checkpoint_quiz: "Trắc nghiệm nhanh",
@@ -125,5 +129,5 @@ export const NHAN_LOAI_COMPONENT: Record<LessonComponentType, string> = {
   custom_note: "Ghi chú",
 };
 
-/** Tám loại component; hai loại đầu bảng phải trỏ tới một bản ghi có sẵn. */
-export const LOAI_CAN_REF: LessonComponentType[] = ["assignment", "quiz"];
+/** Of the eight component types, these two must point at an existing record. */
+export const TYPES_REQUIRING_REF: LessonComponentType[] = ["assignment", "quiz"];

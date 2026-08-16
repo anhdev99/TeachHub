@@ -8,8 +8,8 @@ public sealed class ValidationExceptionHandler(IProblemDetailsService problemDet
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext ctx, Exception exception, CancellationToken ct)
     {
-        // Trả false cho mọi exception khác: handler này chỉ nhận đúng phần việc của nó,
-        // phần còn lại để pipeline xử lý lỗi mặc định lo (và trả 500).
+        // Return false for every other exception: this handler takes only the job that belongs
+        // to it and leaves the rest to the default error-handling pipeline (which answers 500).
         if (exception is not ValidationException ex) return false;
 
         var errors = ex.Errors

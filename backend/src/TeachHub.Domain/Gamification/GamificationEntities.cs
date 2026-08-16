@@ -3,9 +3,10 @@ using TeachHub.Domain.Common;
 namespace TeachHub.Domain.Gamification;
 
 /// <summary>
-/// MỘT dòng bảng quy tắc XP của MỘT lớp học phần. Con số nằm ở đây chứ không nằm trong mã:
-/// hard-code "hoàn thành bài = 10 XP" nghĩa là mỗi lần giảng viên muốn đổi động lực của lớp
-/// đều phải deploy lại, nên thực tế sẽ không ai đổi và cơ chế chết dần.
+/// ONE row of the XP rule table of ONE course offering. The numbers live here and not in code:
+/// hard-coding "finishing a lesson = 10 XP" means every time an instructor wants to change the
+/// incentives of a class it takes a redeploy, so in practice nobody ever changes it and the
+/// whole mechanism withers away.
 /// </summary>
 public class XpRule : Entity, IAuditable
 {
@@ -13,10 +14,10 @@ public class XpRule : Entity, IAuditable
     public required XpEventType EventType { get; set; }
     public required int Points { get; set; }
 
-    /// <summary>Ngưỡng "từ … trở lên" của giá trị đi kèm sự kiện. null = không xét.</summary>
+    /// <summary>"At least" threshold on the value carried by the event. null = not considered.</summary>
     public decimal? MinValue { get; set; }
 
-    /// <summary>Số lần tối đa được cộng trong MỘT ngày địa phương. null = không trần.</summary>
+    /// <summary>Maximum number of awards within ONE local day. null = no cap.</summary>
     public int? DailyCap { get; set; }
 
     public bool IsEnabled { get; set; } = true;
@@ -32,17 +33,18 @@ public class XpRule : Entity, IAuditable
 }
 
 /// <summary>
-/// Sổ cái XP: mỗi hàng là MỘT lần cộng đã xảy ra. Tổng XP của một người học luôn là tổng của
-/// sổ cái này, không bao giờ là một con số ghi đè — có sổ cái thì trả lời được câu hỏi
-/// "vì sao tôi có 240 XP", không có thì không.
+/// The XP ledger: every row is ONE award that actually happened. A learner's total XP is always
+/// the sum of this ledger, never a single overwritten number — with a ledger you can answer
+/// "why do I have 240 XP", without one you cannot.
 ///
-/// Đây là dữ liệu học tập của sinh viên: KHÔNG BAO GIỜ xóa, kể cả xóa mềm.
+/// This is a student's learning record: NEVER delete it, not even a soft delete.
 /// </summary>
 public class XpEvent : Entity
 {
     /// <summary>
-    /// Gap #2: trỏ tới enrollment chứ không tới user. Cùng một người học lại môn này kỳ sau là
-    /// một enrollment khác — trỏ vào user thì XP hai kỳ nhập vào nhau và bảng xếp hạng sai.
+    /// Gap #2: points at the enrollment, not at the user. The same person retaking this course
+    /// next term is a different enrollment — point it at the user and the XP of two terms bleeds
+    /// together and the leaderboard is wrong.
     /// </summary>
     public required Guid EnrollmentId { get; set; }
 
@@ -50,47 +52,47 @@ public class XpEvent : Entity
     public required int Points { get; set; }
 
     /// <summary>
-    /// Khóa chống cộng trùng, ví dụ <c>"lesson:{lessonId}"</c>, <c>"quiz_attempt:{attemptId}"</c>,
-    /// <c>"streak:7"</c>. Có unique index <c>(enrollment_id, dedupe_key)</c> ở DB canh giữ.
+    /// The de-duplication key, e.g. <c>"lesson:{lessonId}"</c>, <c>"quiz_attempt:{attemptId}"</c>,
+    /// <c>"streak:7"</c>. Guarded by a unique index <c>(enrollment_id, dedupe_key)</c> in the DB.
     ///
-    /// Không có nó thì mỗi lần đồng bộ lại là một lần cộng thêm, và trò "đánh dấu xong rồi bỏ
-    /// đánh dấu" thành máy in XP vô hạn — lỗ hổng số một của mọi hệ thống gamification.
+    /// Without it, every re-sync is another award, and the "mark complete then unmark it" trick
+    /// becomes an infinite XP printer — the number one hole in every gamification system.
     /// </summary>
     public required string DedupeKey { get; set; }
 
     /// <summary>
-    /// Thời điểm HOẠT ĐỘNG thật sự xảy ra (nộp bài, hoàn thành bài học), KHÔNG phải thời điểm
-    /// ghi nhận. Streak đọc chính cột này: lấy thời điểm ghi nhận thì một sinh viên học đều cả
-    /// tuần rồi mở trang một lần sẽ chỉ có streak = 1.
+    /// When the ACTIVITY actually happened (submitting work, finishing a lesson), NOT when it was
+    /// recorded. Streaks read exactly this column: take the recording time instead and a student
+    /// who studied every day of the week but opened the page only once ends up with streak = 1.
     /// </summary>
     public required DateTimeOffset OccurredAt { get; set; }
 
-    /// <summary>Id nguồn (bài học, bài nộp, lượt quiz) — chỉ để truy vết, cố ý không khai FK.</summary>
+    /// <summary>Id of the source (lesson, submission, quiz attempt) — for tracing only, deliberately not declared as an FK.</summary>
     public Guid? SourceId { get; set; }
 }
 
 /// <summary>
-/// Huy hiệu thuộc GIẢNG VIÊN chứ không thuộc một lớp — cùng khuôn với ngân hàng câu hỏi:
-/// soạn một lần, dùng cho mọi lớp và mọi học kỳ.
+/// A badge belongs to the INSTRUCTOR, not to a single class — same shape as the question bank:
+/// author it once, use it for every class and every term.
 /// </summary>
 public class Badge : Entity, IAuditable
 {
     public required Guid InstructorId { get; set; }
 
-    /// <summary>Mã slug ổn định (<c>[a-z0-9_]+</c>) — giao diện chọn biểu tượng theo mã này.</summary>
+    /// <summary>A stable slug code (<c>[a-z0-9_]+</c>) — the UI picks the icon from this code.</summary>
     public required string Code { get; set; }
 
     public required string Name { get; set; }
     public string? Description { get; set; }
 
-    /// <summary>Một emoji làm biểu tượng. Ảnh thật là việc của Phase sau, emoji đủ dùng và rẻ.</summary>
+    /// <summary>A single emoji as the icon. Real images are a later Phase's job; an emoji is enough and cheap.</summary>
     public string? Icon { get; set; }
 
     public BadgeLogic Logic { get; set; } = BadgeLogic.All;
 
     /// <summary>
-    /// Điều kiện khai báo dạng DỮ LIỆU, lưu jsonb. Rỗng = chưa khai xong ⇒ không bao giờ được
-    /// trao (<see cref="BadgeEvaluator.IsEarned"/> đóng theo hướng an toàn).
+    /// The conditions declared as DATA, stored as jsonb. Empty = not finished being declared ⇒
+    /// never awarded (<see cref="BadgeEvaluator.IsEarned"/> fails closed).
     /// </summary>
     public List<BadgeCondition> Conditions { get; set; } = [];
 
@@ -102,7 +104,7 @@ public class Badge : Entity, IAuditable
     public BadgeSpec ToSpec() => new(Id, Code, Logic, Conditions);
 }
 
-/// <summary>Một lần trao huy hiệu. Đã trao thì không thu lại — có unique (enrollment, badge).</summary>
+/// <summary>One award of a badge. Once awarded it is never taken back — has a unique (enrollment, badge).</summary>
 public class EarnedBadge : Entity
 {
     public required Guid BadgeId { get; set; }
@@ -111,16 +113,17 @@ public class EarnedBadge : Entity
 }
 
 /// <summary>
-/// MẶC ĐỊNH LÀ ẨN DANH, và đó là một quyết định nghiệp vụ chứ không phải mặc định cho tiện:
-/// bảng xếp hạng công khai tên thật tạo động lực cho nhóm dẫn đầu nhưng làm nản lòng nhóm
-/// cuối — vốn là nhóm cần động lực nhất. Đổi giá trị mặc định ở đây là đổi chính sách.
+/// ANONYMOUS BY DEFAULT, and that is a business decision rather than a default chosen for
+/// convenience: a leaderboard with real names motivates the group at the top but discourages the
+/// group at the bottom — precisely the group that needs the motivation most. Changing the default
+/// value here is changing policy.
 /// </summary>
 public enum LeaderboardVisibility { Anonymous, RealNames }
 
 /// <summary>
-/// Cấu hình động lực học tập của MỘT lớp. Tách thành entity riêng thay vì thêm cột vào
-/// <c>CourseOffering</c>: lớp học phần là bảng nóng nhất hệ thống, mỗi cột thêm vào đó là một
-/// cột mọi truy vấn khác phải kéo theo.
+/// The learning-motivation settings of ONE class. A separate entity instead of extra columns on
+/// <c>CourseOffering</c>: the course offering is the hottest table in the system, and every column
+/// added to it is a column every other query has to drag along.
 /// </summary>
 public class OfferingGamificationSettings : Entity, IAuditable
 {
@@ -130,13 +133,13 @@ public class OfferingGamificationSettings : Entity, IAuditable
 
     public LeaderboardVisibility LeaderboardVisibility { get; set; } = LeaderboardVisibility.Anonymous;
 
-    /// <summary>Số hạng hiển thị trên bảng xếp hạng. Không phải toàn lớp — top ngắn tạo động lực hơn.</summary>
+    /// <summary>How many ranks the leaderboard shows. Not the whole class — a short top list motivates more.</summary>
     public int LeaderboardSize { get; set; } = 10;
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? UpdatedAt { get; set; }
 
-    /// <summary>Cấu hình mặc định của một lớp chưa từng được cấu hình — ẩn danh, đang bật.</summary>
+    /// <summary>Default settings for a class that has never been configured — anonymous, enabled.</summary>
     public static OfferingGamificationSettings DefaultFor(Guid offeringId) =>
         new() { OfferingId = offeringId };
 }

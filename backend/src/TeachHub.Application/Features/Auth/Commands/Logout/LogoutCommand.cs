@@ -14,9 +14,10 @@ public sealed class LogoutCommandHandler(IAppDbContext db, TimeProvider clock)
 {
     public async Task<Result> Handle(LogoutCommand request, CancellationToken ct)
     {
-        // Chỉ thu hồi refresh token; access token còn hiệu lực tới khi hết hạn (tối đa 30 phút).
-        // Thu hồi access token đòi một danh sách đen tra ở mọi request — cái giá đó không đáng
-        // cho một hệ thống có access token sống ngắn như vậy.
+        // Only the refresh tokens are revoked; an access token stays valid until it expires
+        // (30 minutes at most). Revoking access tokens would require a blacklist consulted on
+        // every request — a price not worth paying for a system whose access tokens are this
+        // short-lived.
         await db.RefreshTokens
             .Where(t => t.UserId == request.UserId && t.RevokedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, clock.GetUtcNow()), ct);

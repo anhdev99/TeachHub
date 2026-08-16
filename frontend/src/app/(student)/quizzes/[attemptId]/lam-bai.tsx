@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { apiFetch } from "@/lib/api/fetcher";
-import { diem } from "@/lib/dinh-dang";
+import { formatScore } from "@/lib/format";
 import type { TakeAnswerDto, TakeAttemptDto } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -182,7 +182,7 @@ export function LamBai({ banDau }: { banDau: TakeAttemptDto }) {
             // khen ngược, tô đỏ là tự đặt ra một mức trượt không tồn tại. Đúng/Sai từng câu
             // bên dưới đã mang màu rồi.
             <span className="border-border ml-auto rounded-lg border px-2.5 py-1 text-sm font-semibold tabular-nums">
-              {diem(luot.raw_score)}/{diem(luot.max_score)} → {diem(luot.normalized_score)} điểm
+              {formatScore(luot.raw_score)}/{formatScore(luot.max_score)} → {formatScore(luot.normalized_score)} điểm
             </span>
           )}
         </div>
@@ -236,7 +236,7 @@ export function LamBai({ banDau }: { banDau: TakeAttemptDto }) {
                 {q.text}
               </CardTitle>
               <Badge variant="outline" className="shrink-0 tabular-nums">
-                {diem(q.points)} điểm
+                {formatScore(q.points)} điểm
               </Badge>
             </CardHeader>
 
@@ -314,7 +314,7 @@ export function LamBai({ banDau }: { banDau: TakeAttemptDto }) {
                     ) : (
                       <X className="size-4 shrink-0" aria-hidden />
                     )}
-                    {xemLai.is_correct ? "Đúng" : "Sai"} · {diem(xemLai.earned)}/{diem(xemLai.max)}{" "}
+                    {xemLai.is_correct ? "Đúng" : "Sai"} · {formatScore(xemLai.earned)}/{formatScore(xemLai.max)}{" "}
                     điểm
                   </span>
                   {xemLai.accepted_answers.length > 0 && (

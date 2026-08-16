@@ -9,18 +9,20 @@ namespace TeachHub.Application.Features.Learning.Commands.CompleteComponent;
 public sealed record CompleteComponentCommand(Guid ComponentId, Guid UserId) : ICommand<Result>
 {
     /// <summary>
-    /// Lệnh này đến từ ĐƯỜNG CHẤM (<c>CheckInlineQuestionsCommand</c>) chứ không phải từ nút
-    /// "Đánh dấu đã xong" của sinh viên.
+    /// This command came from the GRADING PATH (<c>CheckInlineQuestionsCommand</c>) and not from
+    /// the student's "Đánh dấu đã xong" button.
     ///
-    /// Chỉ có nó mới được phép đánh dấu xong một phần <c>checkpoint_quiz</c>: sinh viên tự bấm
-    /// xong một bài trắc nghiệm mà chưa trả lời câu nào thì "phần bắt buộc đã hoàn thành" không
-    /// chứng minh được gì, và nó mở khoá bài kế tiếp y như người làm đúng cả bài.
+    /// Only that path may mark a <c>checkpoint_quiz</c> component as done: when a student clicks
+    /// done on a quiz without having answered a single question, "the required component is
+    /// complete" proves nothing at all, and it unlocks the next lesson exactly as for someone who
+    /// answered the whole thing correctly.
     ///
-    /// An toàn khi để ở đây vì controller dựng lệnh hoàn toàn phía máy chủ — id lấy từ route,
-    /// người dùng lấy từ claim, KHÔNG bind thân request. Nếu ngày nào lệnh này được model-bind
-    /// từ body thì phải bỏ cờ này ra, nếu không sinh viên tự gửi <c>true</c> là qua mặt được.
+    /// Safe to keep here because the controller builds the command entirely server-side — the id
+    /// comes from the route, the user from the claim, NOTHING is bound from the request body. If
+    /// this command is ever model-bound from a body, this flag has to come out, otherwise a student
+    /// sending <c>true</c> themselves walks straight past the check.
     /// </summary>
-    public bool QuaDuongCham { get; init; }
+    public bool FromGradingPath { get; init; }
 }
 
 public sealed class CompleteComponentCommandHandler(IAppDbContext db, TimeProvider clock)
@@ -33,8 +35,8 @@ public sealed class CompleteComponentCommandHandler(IAppDbContext db, TimeProvid
 
         if (enrollmentId is null) return Result.NotFound("Không tìm thấy phần học.");
 
-        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, enrollmentId.Value, ct))
-            return Result.Conflict(OfferingLock.ThongDiep("đánh dấu hoàn thành"));
+        if (await OfferingLock.IsClosedForEnrollmentAsync(db, enrollmentId.Value, ct))
+            return Result.Conflict(OfferingLock.ClosedMessage("đánh dấu hoàn thành"));
 
         // Trắc nghiệm nhúng CÓ CÂU HỎI thì chỉ đường chấm mới đánh dấu xong được.
         //
@@ -45,7 +47,7 @@ public sealed class CompleteComponentCommandHandler(IAppDbContext db, TimeProvid
         // Điều kiện `InlineQuestions.Count > 0` KHÔNG thừa: dữ liệu cũ có phần checkpoint_quiz
         // không tải được câu hỏi (soạn trước khi có `inline_questions`). Chặn cả những phần đó
         // là nhốt sinh viên lại — không có câu nào để trả lời thì không có cách nào đi tiếp.
-        if (!request.QuaDuongCham)
+        if (!request.FromGradingPath)
         {
             var coCauHoi = await db.LessonComponents.AsNoTracking()
                 .AnyAsync(c => c.Id == request.ComponentId

@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { QuizQuestionDto } from "@/lib/api/types";
-import { NganHangCauHoi } from "./ngan-hang-cau-hoi";
+import { QuestionBank } from "./question-bank";
 
 export default async function QuestionsPage() {
   const token = (await cookies()).get(COOKIE_ACCESS)?.value;
@@ -15,16 +15,16 @@ export default async function QuestionsPage() {
   });
   if (!res.ok) redirect("/login");
 
-  const cau: QuizQuestionDto[] = await res.json();
+  const questions: QuizQuestionDto[] = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Ngân hàng câu hỏi"
-        moTa="Câu hỏi thuộc về bạn chứ không thuộc một môn — dùng lại được cho mọi bài trắc nghiệm của mọi lớp."
+    <PageShell>
+      <PageHeader
+        title="Ngân hàng câu hỏi"
+        description="Câu hỏi thuộc về bạn chứ không thuộc một môn — dùng lại được cho mọi bài trắc nghiệm của mọi lớp."
       />
 
-      <NganHangCauHoi banDau={cau} />
-    </Trang>
+      <QuestionBank initial={questions} />
+    </PageShell>
   );
 }

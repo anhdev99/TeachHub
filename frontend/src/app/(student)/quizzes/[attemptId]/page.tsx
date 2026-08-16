@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { TakeAttemptDto } from "@/lib/api/types";
 import { LamBai } from "./lam-bai";
@@ -29,16 +29,16 @@ export default async function TakeQuizPage({
   const luot: TakeAttemptDto = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe={luot.title}
-        moTa={luot.description}
-        quayLai={
-          offering ? { href: `/learn/${offering}/quizzes`, nhan: "Trắc nghiệm" } : undefined
+    <PageShell>
+      <PageHeader
+        title={luot.title}
+        description={luot.description}
+        backTo={
+          offering ? { href: `/learn/${offering}/quizzes`, label: "Trắc nghiệm" } : undefined
         }
       />
 
       <LamBai banDau={luot} />
-    </Trang>
+    </PageShell>
   );
 }

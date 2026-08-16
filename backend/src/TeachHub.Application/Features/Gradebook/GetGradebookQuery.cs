@@ -8,8 +8,8 @@ using TeachHub.Domain.Submissions;
 namespace TeachHub.Application.Features.Gradebook;
 
 /// <param name="Provisional">
-/// Xem điểm tạm tính: bài chưa chấm bị LOẠI khỏi mẫu số thay vì tính 0. Chỉ đổi cách xem,
-/// tuyệt đối không đổi dữ liệu — xem ghi chú trong handler.
+/// Provisional view: ungraded work is EXCLUDED from the denominator instead of counting as 0.
+/// It only changes what is displayed, it must never change the data — see the note in the handler.
 /// </param>
 public sealed record GetGradebookQuery(Guid OfferingId, Guid InstructorId, bool Provisional = false)
     : IQuery<Result<GradebookDto>>;
@@ -22,7 +22,7 @@ public sealed class GetGradebookHandler(IAppDbContext db)
         if (!await OfferingOwnership.OwnsOfferingAsync(db, request.OfferingId, request.InstructorId, ct))
             return Result<GradebookDto>.NotFound("Không tìm thấy lớp học phần.");
 
-        var lop = await db.CourseOfferings.AsNoTracking()
+        var offering = await db.CourseOfferings.AsNoTracking()
             .Where(o => o.Id == request.OfferingId)
             .Select(o => new
             {
@@ -33,199 +33,201 @@ public sealed class GetGradebookHandler(IAppDbContext db)
             })
             .SingleAsync(ct);
 
-        // AsNoTracking ở MỌI truy vấn chỉ-đọc, và biến thể "tạm tính" dựng OBJECT MỚI chứ không
-        // sửa entity đang tracked. GradeAggregation là owned entity có setter: sửa nó rồi để
-        // một SaveChangesAsync bất kỳ trong cùng scope chạy là ghi đè vĩnh viễn cách tính điểm
-        // của cả lớp — không thông báo, không log, không ai lần ra nguyên nhân.
-        var cot = await db.GradeColumns.AsNoTracking()
+        // AsNoTracking on EVERY read-only query, and the "provisional" variant builds a NEW OBJECT
+        // instead of mutating a tracked entity. GradeAggregation is an owned entity with setters:
+        // mutate it, then let any SaveChangesAsync in the same scope run, and you have permanently
+        // overwritten how the whole class is graded — no notice, no log, nobody able to trace it.
+        var columns = await db.GradeColumns.AsNoTracking()
             .Include(c => c.Sources)
             .Where(c => c.OfferingId == request.OfferingId)
             .OrderBy(c => c.OrderIndex)
             .ToListAsync(ct);
 
-        // Chế độ "tạm tính" dựng BẢN SAO của quy tắc gộp, không sửa Aggregation của cột.
-        // Aggregation là owned entity có setter: sửa nó rồi để một SaveChangesAsync bất kỳ
-        // trong cùng scope chạy là ghi đè vĩnh viễn cách tính điểm của cả lớp.
-        var quyTac = cot.ToDictionary(c => c.Id, c => new GradeAggregation
+        // "Provisional" mode builds a COPY of the aggregation rule, it never touches the column's
+        // Aggregation. Aggregation is an owned entity with setters: mutate it, then let any
+        // SaveChangesAsync in the same scope run, and the whole class's grading is overwritten for good.
+        var rules = columns.ToDictionary(c => c.Id, c => new GradeAggregation
         {
             Kind = c.Aggregation.Kind,
             N = c.Aggregation.N,
             TreatMissingAsZero = !request.Provisional && c.Aggregation.TreatMissingAsZero,
         });
 
-        var sv = await db.Enrollments.AsNoTracking()
+        var students = await db.Enrollments.AsNoTracking()
             .Where(e => e.OfferingId == request.OfferingId)
             .OrderBy(e => e.FullName)
             .Select(e => new { e.Id, e.StudentCode, e.FullName, e.ClassName })
             .ToListAsync(ct);
 
-        var cotIds = cot.Select(c => c.Id).ToList();
+        var columnIds = columns.Select(c => c.Id).ToList();
 
-        var oDiem = await db.GradeRecords.AsNoTracking()
-            .Where(r => cotIds.Contains(r.GradeColumnId))
+        var gradeRecords = await db.GradeRecords.AsNoTracking()
+            .Where(r => columnIds.Contains(r.GradeColumnId))
             .ToListAsync(ct);
 
-        var diemCong = await db.BonusPoints.AsNoTracking()
+        var bonusPoints = await db.BonusPoints.AsNoTracking()
             .Where(b => b.OfferingId == request.OfferingId)
             .ToListAsync(ct);
 
-        // Điểm từ các nguồn: đọc thang điểm gốc CÙNG LÚC với đọc điểm. Gõ
-        // new SourceScore(diem, 10m) ở đây là vô hiệu hóa toàn bộ phần chuẩn hóa, và bài
-        // rubric thang 20 sẽ vào cột nguyên xi rồi bị kẹp ở 10 — sai theo hướng nới tay.
-        var nguon = cot.SelectMany(c => c.Sources).ToList();
-        var idBaiTap = nguon.Where(s => s.SourceType == GradeSourceType.Assignment).Select(s => s.SourceId).ToList();
-        var idCuoiMon = nguon.Where(s => s.SourceType == GradeSourceType.FinalAssessment).Select(s => s.SourceId).ToList();
+        // Scores coming from the sources: read the original max scale AT THE SAME TIME as the
+        // scores. Typing new SourceScore(score, 10m) here disables normalization altogether, and a
+        // rubric graded on a 20-point scale lands in the column as-is and is then clamped at 10 —
+        // wrong, and wrong on the lenient side.
+        var sources = columns.SelectMany(c => c.Sources).ToList();
+        var assignmentIds = sources.Where(s => s.SourceType == GradeSourceType.Assignment).Select(s => s.SourceId).ToList();
+        var finalAssessmentIds = sources.Where(s => s.SourceType == GradeSourceType.FinalAssessment).Select(s => s.SourceId).ToList();
 
-        var tranBaiTap = await db.Assignments.AsNoTracking()
-            .Where(a => idBaiTap.Contains(a.Id))
+        var assignmentMaxScores = await db.Assignments.AsNoTracking()
+            .Where(a => assignmentIds.Contains(a.Id))
             .ToDictionaryAsync(a => a.Id, a => a.MaxScore, ct);
 
-        var tranCuoiMon = await db.FinalAssessments.AsNoTracking()
-            .Where(f => idCuoiMon.Contains(f.Id))
+        var finalAssessmentMaxScores = await db.FinalAssessments.AsNoTracking()
+            .Where(f => finalAssessmentIds.Contains(f.Id))
             .ToDictionaryAsync(f => f.Id, f => f.MaxScore, ct);
 
-        // Nguồn Quiz (Phase 5). QuizAttempt đã lưu sẵn NormalizedScore trên thang 10 nên
-        // thang gốc ở đây là 10 — chuẩn hóa làm MỘT lần lúc chấm, không làm lại lần thứ hai.
-        var idQuiz = nguon.Where(s => s.SourceType == GradeSourceType.Quiz).Select(s => s.SourceId).ToList();
+        // Quiz sources (Phase 5). QuizAttempt already stores NormalizedScore on the 10-point scale,
+        // so the original scale here is 10 — normalize ONCE at grading time, never a second time.
+        var quizIds = sources.Where(s => s.SourceType == GradeSourceType.Quiz).Select(s => s.SourceId).ToList();
 
-        var diemQuiz = await db.QuizAttempts.AsNoTracking()
-            .Where(a => idQuiz.Contains(a.QuizId) && a.NormalizedScore != null)
+        var quizScores = await db.QuizAttempts.AsNoTracking()
+            .Where(a => quizIds.Contains(a.QuizId) && a.NormalizedScore != null)
             .Select(a => new { a.QuizId, a.EnrollmentId, a.NormalizedScore })
             .ToListAsync(ct);
 
-        var baiNop = await db.Submissions.AsNoTracking()
+        var submissions = await db.Submissions.AsNoTracking()
             .Where(s => s.OfferingId == request.OfferingId && s.IsCurrent && s.Score != null)
             .Select(s => new { s.Id, s.AssignmentId, s.FinalAssessmentId, s.EnrollmentId, s.GroupId, s.Score })
             .ToListAsync(ct);
 
-        // Điểm riêng từng thành viên nhóm (UC-10b, Phase 6b). Đọc ở đây chứ không tính lại
-        // luật ở nơi khác: MemberScoring.Resolve là bản DUY NHẤT của quy tắc "điểm riêng
-        // thắng thế điểm chung", và mỗi bản chép lại là một chỗ sẽ lệch.
-        var idBaiNop = baiNop.Select(s => s.Id).ToList();
+        // Per-member scores on group work (UC-10b, Phase 6b). Read here rather than re-deriving the
+        // rule somewhere else: MemberScoring.Resolve is the ONLY copy of the "an individual score
+        // beats the shared score" rule, and every duplicate of it is one more place that will drift.
+        var submissionIds = submissions.Select(s => s.Id).ToList();
 
-        var diemRieng = await db.SubmissionMemberScores.AsNoTracking()
-            .Where(m => idBaiNop.Contains(m.SubmissionId))
+        var memberScores = await db.SubmissionMemberScores.AsNoTracking()
+            .Where(m => submissionIds.Contains(m.SubmissionId))
             .ToListAsync(ct);
 
-        // Bài nhóm: điểm của nhóm là điểm của mọi thành viên (mặc định MVP).
-        var thanhVien = await db.GroupMembers.AsNoTracking()
+        // Group work: the group's score is every member's score (the MVP default).
+        var groupMembers = await db.GroupMembers.AsNoTracking()
             .Where(m => db.StudentGroups.Any(g => g.Id == m.GroupId && g.OfferingId == request.OfferingId))
             .Select(m => new { m.GroupId, m.EnrollmentId })
             .ToListAsync(ct);
 
-        var caiDat = new GradebookSettings
+        var settings = new GradebookSettings
         {
-            DefaultTarget = lop.BonusDefaultTarget,
-            DefaultColumnId = lop.BonusDefaultColumnId,
-            MaxBonusPerStudent = lop.BonusMaxPointsPerStudent,
+            DefaultTarget = offering.BonusDefaultTarget,
+            DefaultColumnId = offering.BonusDefaultColumnId,
+            MaxBonusPerStudent = offering.BonusMaxPointsPerStudent,
         };
 
-        // Cast sang kiểu nullable rồi ?? [] là CẦN THIẾT dù property khai non-nullable: hàng
-        // tạo TRƯỚC migration này có grade_conditions = NULL trong DB, và EF materialize cột
-        // jsonb rỗng thành null chứ không thành danh sách rỗng. Lỗi chỉ xuất hiện trên
-        // database đã có dữ liệu — chạy trên DB trống thì không bao giờ gặp.
-        var dieuKien = (IReadOnlyList<GradeCondition>?)lop.GradeConditions ?? [];
-        var keyLa = new HashSet<string>();
-        var hang = new List<GradeRowDto>(sv.Count);
+        // Casting to a nullable type and then ?? [] is NECESSARY even though the property is
+        // declared non-nullable: rows created BEFORE this migration have grade_conditions = NULL in
+        // the DB, and EF materializes an empty jsonb column as null, not as an empty list. The bug
+        // only shows up on a database that already holds data — you never hit it on an empty DB.
+        var conditions = (IReadOnlyList<GradeCondition>?)offering.GradeConditions ?? [];
+        var unknownKeys = new HashSet<string>();
+        var rows = new List<GradeRowDto>(students.Count);
 
-        foreach (var e in sv)
+        foreach (var e in students)
         {
-            var soDiemCong = BonusLedger.Build(
-                diemCong.Where(b => b.EnrollmentId == e.Id).Select(b => b.ToEntry()), caiDat);
+            var bonusLedger = BonusLedger.Build(
+                bonusPoints.Where(b => b.EnrollmentId == e.Id).Select(b => b.ToEntry()), settings);
 
-            var diemThoTheoCot = new Dictionary<Guid, decimal>();
-            var o = new List<GradeCellDto>(cot.Count);
+            var rawScoreByColumn = new Dictionary<Guid, decimal>();
+            var cells = new List<GradeCellDto>(columns.Count);
 
-            foreach (var c in cot)
+            foreach (var c in columns)
             {
-                var ghi = oDiem.FirstOrDefault(r => r.EnrollmentId == e.Id && r.GradeColumnId == c.Id);
+                var record = gradeRecords.FirstOrDefault(r => r.EnrollmentId == e.Id && r.GradeColumnId == c.Id);
 
-                var nguonCuaCot = c.Sources.Select(s => new SourceScore(
-                    DiemCuaNguon(s, e.Id),
+                var columnSources = c.Sources.Select(s => new SourceScore(
+                    ScoreOfSource(s, e.Id),
                     s.SourceType switch
                     {
-                        GradeSourceType.Assignment => tranBaiTap.GetValueOrDefault(s.SourceId, 10m),
-                        GradeSourceType.FinalAssessment => tranCuoiMon.GetValueOrDefault(s.SourceId, 10m),
-                        _ => 10m,                       // Quiz đã chuẩn hóa sẵn về thang 10
+                        GradeSourceType.Assignment => assignmentMaxScores.GetValueOrDefault(s.SourceId, 10m),
+                        GradeSourceType.FinalAssessment => finalAssessmentMaxScores.GetValueOrDefault(s.SourceId, 10m),
+                        _ => 10m,                       // Quiz is already normalized to the 10-point scale
                     },
                     s.WeightWithinColumn)).ToList();
 
-                var suaTay = ghi?.IsManualOverride ?? false;
+                var manualOverride = record?.IsManualOverride ?? false;
 
-                var tho = suaTay || quyTac[c.Id].Kind == AggregationKind.Manual
-                    ? Math.Clamp(ghi?.Score ?? 0m, 0m, caiDat.MaxScore)
-                    : GradeAggregator.Apply(quyTac[c.Id], nguonCuaCot, caiDat.MaxScore);
+                var rawScore = manualOverride || rules[c.Id].Kind == AggregationKind.Manual
+                    ? Math.Clamp(record?.Score ?? 0m, 0m, settings.MaxScore)
+                    : GradeAggregator.Apply(rules[c.Id], columnSources, settings.MaxScore);
 
-                diemThoTheoCot[c.Id] = tho;
+                rawScoreByColumn[c.Id] = rawScore;
 
-                o.Add(new GradeCellDto(
-                    c.Id, tho,
-                    GradebookCalculator.ColumnScore(c, tho, soDiemCong, caiDat),
-                    ghi?.IsManualOverride ?? false,
-                    soDiemCong.ForColumn(c.Id)));
+                cells.Add(new GradeCellDto(
+                    c.Id, rawScore,
+                    GradebookCalculator.ColumnScore(c, rawScore, bonusLedger, settings),
+                    record?.IsManualOverride ?? false,
+                    bonusLedger.ForColumn(c.Id)));
             }
 
-            var tong = GradebookCalculator.FinalScore(cot, diemThoTheoCot, soDiemCong, dieuKien, caiDat);
+            var finalScore = GradebookCalculator.FinalScore(columns, rawScoreByColumn, bonusLedger, conditions, settings);
 
-            // Cảnh báo điều kiện trỏ tới cột không tồn tại: im lặng ở đây nghĩa là quy định
-            // điểm sàn của môn không có hiệu lực mà không ai biết.
+            // Warn about conditions pointing at a column that does not exist: staying silent here
+            // means the subject's minimum-score rule is not in effect and nobody knows it.
             foreach (var k in GradeConditionEvaluator
-                         .Apply(tong, cot, o.ToDictionary(x => x.ColumnId, x => x.Score), dieuKien)
+                         .Apply(finalScore, columns, cells.ToDictionary(x => x.ColumnId, x => x.Score), conditions)
                          .UnknownColumnKeys)
-                keyLa.Add(k);
+                unknownKeys.Add(k);
 
-            hang.Add(new GradeRowDto(
-                e.Id, e.StudentCode, e.FullName, e.ClassName, o, soDiemCong.ToFinalTotal, tong));
+            rows.Add(new GradeRowDto(
+                e.Id, e.StudentCode, e.FullName, e.ClassName, cells, bonusLedger.ToFinalTotal, finalScore));
 
             continue;
 
-            decimal? DiemCuaNguon(GradeColumnSource s, Guid enrollmentId)
+            decimal? ScoreOfSource(GradeColumnSource s, Guid enrollmentId)
             {
-                // Quiz: lấy lượt CAO NHẤT của sinh viên. Quiz cho làm nhiều lần chính là để
-                // học lại cho tới khi nắm được; lấy lượt cuối thì một lần bấm nhầm xóa sạch
-                // kết quả tốt trước đó.
+                // Quiz: take the student's HIGHEST attempt. The whole point of allowing several
+                // attempts is to let them keep re-learning until it sticks; taking the last attempt
+                // means one misclick wipes out a good earlier result.
                 if (s.SourceType == GradeSourceType.Quiz)
-                    return diemQuiz.Where(x => x.QuizId == s.SourceId && x.EnrollmentId == enrollmentId)
-                                   .Select(x => x.NormalizedScore).Max();
+                    return quizScores.Where(x => x.QuizId == s.SourceId && x.EnrollmentId == enrollmentId)
+                                     .Select(x => x.NormalizedScore).Max();
 
-                var nhomCuaToi = thanhVien.Where(m => m.EnrollmentId == enrollmentId)
-                                          .Select(m => m.GroupId).ToList();
+                var myGroupIds = groupMembers.Where(m => m.EnrollmentId == enrollmentId)
+                                             .Select(m => m.GroupId).ToList();
 
-                var bn = baiNop.FirstOrDefault(x =>
+                var submission = submissions.FirstOrDefault(x =>
                     (s.SourceType == GradeSourceType.Assignment
                         ? x.AssignmentId == s.SourceId
                         : x.FinalAssessmentId == s.SourceId)
                     && (x.EnrollmentId == enrollmentId
-                        || (x.GroupId != null && nhomCuaToi.Contains(x.GroupId.Value))));
+                        || (x.GroupId != null && myGroupIds.Contains(x.GroupId.Value))));
 
-                if (bn is null) return null;
+                if (submission is null) return null;
 
-                // Bài NHÓM có điểm riêng cho chính sinh viên này thì điểm riêng thắng thế.
-                // Không kiểm ở đây thì giảng viên chấm riêng một thành viên xong mở sổ điểm
-                // vẫn thấy điểm chung, và sẽ tin là thao tác chấm riêng không có tác dụng.
-                if (bn.GroupId is not null)
+                // If a GROUP submission carries a per-member score for this very student, that
+                // per-member score wins. Skip this check and an instructor who has just graded one
+                // member individually still sees the shared score in the gradebook, and will
+                // conclude that grading a member individually does nothing.
+                if (submission.GroupId is not null)
                 {
-                    var rieng = diemRieng.FirstOrDefault(
-                        m => m.SubmissionId == bn.Id && m.EnrollmentId == enrollmentId);
+                    var memberScore = memberScores.FirstOrDefault(
+                        m => m.SubmissionId == submission.Id && m.EnrollmentId == enrollmentId);
 
-                    if (rieng is not null) return rieng.Score;
+                    if (memberScore is not null) return memberScore.Score;
                 }
 
-                return bn.Score;
+                return submission.Score;
             }
         }
 
-        var hopLe = GradebookCalculator.ValidateColumns(cot);
+        var weights = GradebookCalculator.ValidateColumns(columns);
 
         return Result<GradebookDto>.Ok(new GradebookDto(
-            lop.Id, lop.ClassCode, lop.Code, lop.Name,
-            [.. cot.Select(ChuyenCot)],
-            hang,
-            [.. dieuKien.Select(d => new GradeConditionDto(d.ColumnKey, d.Op, d.Threshold, d.Action, d.ActionValue))],
-            lop.BonusDefaultTarget, lop.BonusDefaultColumnId, lop.BonusMaxPointsPerStudent,
-            hopLe.IsValid, hopLe.Error, [.. keyLa]));
+            offering.Id, offering.ClassCode, offering.Code, offering.Name,
+            [.. columns.Select(ToColumnDto)],
+            rows,
+            [.. conditions.Select(d => new GradeConditionDto(d.ColumnKey, d.Op, d.Threshold, d.Action, d.ActionValue))],
+            offering.BonusDefaultTarget, offering.BonusDefaultColumnId, offering.BonusMaxPointsPerStudent,
+            weights.IsValid, weights.Error, [.. unknownKeys]));
 
-        GradeColumnDto ChuyenCot(GradeColumn c) => new(
+        GradeColumnDto ToColumnDto(GradeColumn c) => new(
             c.Id, c.Key, c.Name, c.WeightPercent, c.OrderIndex,
             c.Aggregation.Kind, c.Aggregation.N, c.Aggregation.TreatMissingAsZero,
             [.. c.Sources.Select(s => new GradeColumnSourceDto(

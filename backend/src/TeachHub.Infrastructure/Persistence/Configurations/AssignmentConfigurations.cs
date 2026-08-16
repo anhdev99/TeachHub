@@ -19,14 +19,14 @@ public sealed class RubricConfiguration : IEntityTypeConfiguration<Rubric>
         b.HasKey(x => x.Id);
         b.Property(x => x.Name).HasMaxLength(300).IsRequired();
 
-        // Gap #1: instructor_id là FK thật, không phải Guid trôi nổi.
+        // Gap #1: instructor_id is a real FK, not a free-floating Guid.
         b.HasOne<AppUser>().WithMany().HasForeignKey(x => x.InstructorId)
          .OnDelete(DeleteBehavior.Restrict);
 
         b.HasMany(x => x.Criteria).WithOne().HasForeignKey(c => c.RubricId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // MaxPoints là property tính toán từ Criteria — không có cột tương ứng.
+        // MaxPoints is computed from Criteria — it has no backing column.
         b.Ignore(x => x.MaxPoints);
 
         b.HasIndex(x => new { x.InstructorId, x.IsTemplate });
@@ -41,9 +41,9 @@ public sealed class RubricCriterionConfiguration : IEntityTypeConfiguration<Rubr
         b.Property(x => x.Description).HasMaxLength(500).IsRequired();
         b.Property(x => x.MaxPoints).HasPrecision(5, 2);
 
-        // Các mức mô tả → jsonb. CriterionLevel không chứa enum nào; ngày nào thêm enum
-        // vào đây thì phải khai .HasConversion<string>() cho riêng nó — EF dùng
-        // JsonValueReaderWriter cho cột ToJson() và KHÔNG đọc JsonStringEnumConverter.
+        // The level descriptions → jsonb. CriterionLevel contains no enum today; the day one is
+        // added here it MUST get its own .HasConversion<string>() — EF uses JsonValueReaderWriter
+        // for a ToJson() column and does NOT read JsonStringEnumConverter.
         b.OwnsMany(x => x.Levels, l =>
         {
             l.ToJson();
@@ -79,17 +79,18 @@ public sealed class SubmissionSlotConfiguration : IEntityTypeConfiguration<Submi
         b.HasOne<Assignment>().WithMany(a => a.Slots)
          .HasForeignKey(x => x.AssignmentId).OnDelete(DeleteBehavior.Cascade);
 
-        // final_assessment_id chưa có bảng đích: FinalAssessment thuộc Phase 4a. Cột và
-        // CHECK constraint dựng sẵn từ bây giờ để Phase 4a chỉ phải thêm đúng một FK,
-        // không phải migrate lại một bảng đã có bài nộp thật.
+        // final_assessment_id has no target table yet: FinalAssessment belongs to Phase 4a. The
+        // column and the CHECK constraint are put in place now so Phase 4a only has to add one
+        // single FK, instead of re-migrating a table that already holds real submissions.
         b.OwnsOne(x => x.RequiredStructure, r => r.ToJson());
 
         b.Ignore(x => x.AcceptsZip);
         b.Ignore(x => x.MaxFileSizeBytes);
 
-        // Giá trị trong CHECK phải khớp ĐÚNG tên enum C# vì cột lưu chuỗi qua
-        // HasConversion<string>(). Viết 'assignment' snake_case ở đây thì migration vẫn
-        // chạy trót lọt nhưng MỌI lệnh INSERT bị chặn — và chỉ lộ ra lúc tạo slot đầu tiên.
+        // The values inside the CHECK must match the C# enum names EXACTLY, because the column
+        // stores strings via HasConversion<string>(). Writing 'assignment' in snake_case here
+        // still lets the migration apply cleanly, but then EVERY INSERT is rejected — and that
+        // only surfaces when the first slot is created.
         b.ToTable(t => t.HasCheckConstraint("ck_submission_slots_owner", """
             (owner_type = 'Assignment'      AND assignment_id IS NOT NULL AND final_assessment_id IS NULL) OR
             (owner_type = 'FinalAssessment' AND final_assessment_id IS NOT NULL AND assignment_id IS NULL)
@@ -110,7 +111,7 @@ public sealed class SubmissionConfiguration : IEntityTypeConfiguration<Submissio
         b.Property(x => x.Score).HasPrecision(5, 2);
 
         b.HasOne<Assignment>().WithMany().HasForeignKey(x => x.AssignmentId)
-         .OnDelete(DeleteBehavior.Restrict);   // KHÔNG cascade: bài nộp là bằng chứng chấm điểm
+         .OnDelete(DeleteBehavior.Restrict);   // NO cascade: a submission is grading evidence
         b.HasOne<FinalAssessment>().WithMany().HasForeignKey(x => x.FinalAssessmentId)
          .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
@@ -123,10 +124,10 @@ public sealed class SubmissionConfiguration : IEntityTypeConfiguration<Submissio
         b.HasMany(x => x.Files).WithOne().HasForeignKey(f => f.SubmissionId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // rubric_scores_json: Dictionary không phải primitive collection mà EF map sẵn,
-        // nên đi qua converter tường minh. ValueComparer là BẮT BUỘC — thiếu nó thì EF so
-        // sánh Dictionary bằng tham chiếu, không phát hiện thay đổi nội dung, và điểm rubric
-        // sửa xong không được ghi xuống DB mà cũng không có lỗi nào.
+        // rubric_scores_json: a Dictionary is not one of the primitive collections EF maps out of
+        // the box, so it goes through an explicit converter. The ValueComparer is MANDATORY —
+        // without it EF compares the Dictionary by reference, never notices a change to its
+        // contents, and an edited rubric score is simply not written to the DB, with no error.
         b.Property(x => x.RubricScores)
          .HasColumnType("jsonb")
          .HasConversion(
@@ -143,10 +144,11 @@ public sealed class SubmissionConfiguration : IEntityTypeConfiguration<Submissio
             (owner_type = 'FinalAssessment' AND final_assessment_id IS NOT NULL AND assignment_id IS NULL)
             """));
 
-        // Bất biến "mỗi người nộp chỉ có đúng MỘT bản hiện hành" do database giữ, không do
-        // handler nhớ. Thiếu index này thì một cú double-click nút "Nộp chính thức" tạo hai
-        // hàng is_current, và sổ điểm lấy Single() sẽ ném exception giữa buổi chấm.
-        // HasFilter nhận SQL THÔ nên tên cột viết snake_case.
+        // The invariant "each submitter has exactly ONE current version" is enforced by the
+        // database, not by the handler remembering to. Without this index a double-click on the
+        // "submit for grading" button creates two is_current rows, and the gradebook's Single()
+        // throws in the middle of a grading session.
+        // HasFilter takes RAW SQL, so column names are written in snake_case.
         b.HasIndex(x => new { x.AssignmentId, x.FinalAssessmentId, x.EnrollmentId, x.GroupId })
          .IsUnique()
          .HasFilter("is_current")
@@ -173,8 +175,8 @@ public sealed class SubmissionFileConfiguration : IEntityTypeConfiguration<Submi
         b.HasOne(x => x.Slot).WithMany()
          .HasForeignKey(x => x.SlotId).OnDelete(DeleteBehavior.Restrict);
 
-        // file_tree_json → jsonb có kiểu. Danh sách complex LỒNG bên trong cột ToJson()
-        // phải khai tường minh bằng OwnsMany, EF không suy ra được.
+        // file_tree_json → typed jsonb. A complex list NESTED inside a ToJson() column has to be
+        // declared explicitly with OwnsMany; EF cannot infer it.
         b.OwnsOne(x => x.FileTree, t =>
         {
             t.ToJson();

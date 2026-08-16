@@ -197,7 +197,7 @@ public sealed class CrossStudentIsolationTests(StudentIsolationFixture fx)
 
     private static async Task NguoiNgoaiBiChanAsync(
         string method, string template, string? body, KyVong kyVong,
-        TheGioiSinhVien keGoi, TheGioiSinhVien nanNhan)
+        StudentWorld keGoi, StudentWorld nanNhan)
     {
         var url = StudentIsolationFixture.Resolve(template, nanNhan);
 
@@ -234,7 +234,7 @@ public sealed class CrossStudentIsolationTests(StudentIsolationFixture fx)
     /// chứ không lần theo từng khoá DTO: rò rỉ hay nằm ở đúng những trường mà người viết test
     /// không nghĩ tới, và một khoá mới thêm ở phase sau sẽ không có ai kiểm.
     /// </summary>
-    private static void KhongLanDuLieuCua(string than, TheGioiSinhVien nanNhan, string boiCanh)
+    private static void KhongLanDuLieuCua(string than, StudentWorld nanNhan, string boiCanh)
     {
         foreach (var (khoa, giaTri) in nanNhan.Id)
             than.Contains(giaTri, StringComparison.OrdinalIgnoreCase).ShouldBeFalse(
@@ -258,7 +258,7 @@ public sealed class CrossStudentIsolationTests(StudentIsolationFixture fx)
     }
 
     private static async Task ChinhChuDiLotAsync(
-        string method, string template, string? body, TheGioiSinhVien chinhChu)
+        string method, string template, string? body, StudentWorld chinhChu)
     {
         var url = StudentIsolationFixture.Resolve(template, chinhChu);
 
@@ -371,7 +371,7 @@ public sealed class CrossStudentIsolationTests(StudentIsolationFixture fx)
     }
 
     /// <summary>Hàng tệp còn nằm trong bài nộp hiện hành của chính chủ hay không.</summary>
-    private static async Task<bool> TepConTonTaiAsync(TheGioiSinhVien tg, string fileId)
+    private static async Task<bool> TepConTonTaiAsync(StudentWorld tg, string fileId)
     {
         var cua = await tg.Sv.GetFromJsonAsync<JsonElement>(
             $"/api/assignments/{tg.Id["assignmentId"]}/my-submission");

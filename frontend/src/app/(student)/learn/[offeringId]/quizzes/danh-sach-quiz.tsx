@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrongRong } from "@/components/shell/trang";
+import { EmptyState } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
-import { diem } from "@/lib/dinh-dang";
+import { formatScore } from "@/lib/format";
 import type { MyQuizDto, TakeAttemptDto } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
@@ -30,10 +30,10 @@ export function DanhSachQuiz({
 
   if (banDau.length === 0) {
     return (
-      <TrongRong
+      <EmptyState
         Icon={ClipboardList}
-        tieuDe="Lớp này chưa có bài trắc nghiệm nào"
-        moTa="Bài trắc nghiệm sẽ hiện ở đây ngay khi giảng viên mở."
+        title="Lớp này chưa có bài trắc nghiệm nào"
+        description="Bài trắc nghiệm sẽ hiện ở đây ngay khi giảng viên mở."
       />
     );
   }
@@ -96,7 +96,7 @@ export function DanhSachQuiz({
                   )}
                 >
                   <Trophy className="size-3.5 shrink-0" aria-hidden />
-                  Cao nhất {diem(q.best_normalized_score)}
+                  Cao nhất {formatScore(q.best_normalized_score)}
                 </span>
               )}
             </div>

@@ -85,11 +85,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     {
         base.OnModelCreating(b);
 
-        // ASP.NET Core Identity đặt tên 7 bảng của nó TƯỜNG MINH bằng ToTable("AspNetUsers"),
-        // và cấu hình tường minh luôn thắng convention. Vì thế UseSnakeCaseNamingConvention()
-        // đổi được tên cột, khoá chính và khoá ngoại, nhưng KHÔNG đổi được tên bảng — schema
-        // sẽ lẫn lộn "AspNetUsers" với cột "normalized_email". Đổi lại đúng 7 bảng đó ở đây
-        // để toàn bộ schema thống nhất snake_case (quy ước §5 của tài liệu kiến trúc).
+        // ASP.NET Core Identity names its 7 tables EXPLICITLY via ToTable("AspNetUsers"), and
+        // explicit configuration always beats convention. That is why UseSnakeCaseNamingConvention()
+        // does rename columns, primary keys and foreign keys, but does NOT rename tables — the
+        // schema would end up mixing "AspNetUsers" with a "normalized_email" column. Rename those
+        // exact 7 tables here so the whole schema stays consistently snake_case (architecture
+        // document, convention §5).
         b.Entity<AppUser>().ToTable("asp_net_users");
         b.Entity<AppRole>().ToTable("asp_net_roles");
         b.Entity<IdentityUserRole<Guid>>().ToTable("asp_net_user_roles");
@@ -111,7 +112,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
         }
         foreach (var e in ChangeTracker.Entries<ISoftDeletable>().Where(x => x.State == EntityState.Deleted))
         {
-            e.State = EntityState.Modified;      // xóa mềm — không bao giờ DELETE nội dung dạy học
+            e.State = EntityState.Modified;      // soft delete — never DELETE teaching content
             e.Entity.IsDeleted = true;
             e.Entity.DeletedAt = now;
         }

@@ -13,7 +13,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { diem as dinhDangDiem } from "@/lib/dinh-dang";
+import { formatScore as dinhDangDiem } from "@/lib/format";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { BonusReasonTemplateDto, BonusTarget, GradeColumnDto } from "@/lib/api/types";
 
@@ -40,7 +40,7 @@ export function CapDiemCong({
   onXong: () => void;
 }) {
   const [mo, setMo] = useState(false);
-  const [diem, setDiem] = useState("0.5");
+  const [formatScore, setDiem] = useState("0.5");
   const [lyDo, setLyDo] = useState("");
   const [target, setTarget] = useState<BonusTarget>(macDinhTarget);
   const [columnId, setColumnId] = useState<string | null>(macDinhColumnId ?? cot[0]?.id ?? null);
@@ -60,7 +60,7 @@ export function CapDiemCong({
           enrollment_id: enrollmentId,
           target,
           target_column_id: target === "grade_column" ? columnId : null,
-          points: Number(diem),
+          points: Number(formatScore),
           // Lý do gửi lên là VĂN BẢN, không phải chỉ template_id: bản ghi phải giữ được câu
           // chữ tại thời điểm cấp, kể cả khi sau này nhãn template bị sửa hoặc bị ẩn.
           reason: lyDo,
@@ -68,7 +68,7 @@ export function CapDiemCong({
         }),
       }),
     onSuccess: () => {
-      toast.success(`Đã cộng ${diem} cho ${tenSinhVien}.`);
+      toast.success(`Đã cộng ${formatScore} cho ${tenSinhVien}.`);
       setMo(false);
       setLyDo("");
       setTemplateId(null);
@@ -78,7 +78,7 @@ export function CapDiemCong({
   });
 
   const cotDich = cot.find((c) => c.id === columnId) ?? null;
-  const soDiem = Number(diem);
+  const soDiem = Number(formatScore);
   const hopLe = Number.isFinite(soDiem) && soDiem > 0;
 
   /**
@@ -145,7 +145,7 @@ export function CapDiemCong({
             <Label htmlFor="bonus_points">Điểm</Label>
             <Input
               id="bonus_points" type="number" step="0.25" min={0.25} max={10}
-              className="w-20 tabular-nums" value={diem}
+              className="w-20 tabular-nums" value={formatScore}
               onChange={(e) => setDiem(e.target.value)}
             />
           </div>

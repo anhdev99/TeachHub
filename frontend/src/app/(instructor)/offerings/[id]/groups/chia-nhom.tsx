@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrongRong } from "@/components/shell/trang";
+import { EmptyState } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { EnrollmentDto, GroupDto, GroupMemberDto } from "@/lib/api/types";
 
@@ -325,10 +325,10 @@ export function ChiaNhom({
       {dangHien.length === 0 && chuaCoNhom.length === 0 ? (
         <Card>
           <CardContent>
-            <TrongRong
+            <EmptyState
               Icon={Users}
-              tieuDe="Lớp chưa có sinh viên nào để chia"
-              moTa="Nhập danh sách sinh viên cho lớp trước, rồi quay lại đây chia nhóm."
+              title="Lớp chưa có sinh viên nào để chia"
+              description="Nhập danh sách sinh viên cho lớp trước, rồi quay lại đây chia nhóm."
             />
           </CardContent>
         </Card>

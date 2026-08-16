@@ -5,19 +5,19 @@ import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, GripVertical, Paperclip, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { ICON_LOAI } from "@/components/noi-dung/loai-phan";
+import { COMPONENT_TYPE_ICONS } from "@/components/content/component-icons";
 import { apiFetch } from "@/lib/api/fetcher";
 import {
-  LOAI_CAN_REF,
-  NHAN_LOAI_COMPONENT,
+  TYPES_REQUIRING_REF,
+  COMPONENT_TYPE_LABELS,
   type LessonComponentType,
   type LessonDto,
 } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
 /** Tám loại component của SRS; loại cần ref_id bị loại khỏi menu nhanh vì phải chọn bản ghi đích. */
-const LOAI_THEM_NHANH = (Object.keys(NHAN_LOAI_COMPONENT) as LessonComponentType[]).filter(
-  (t) => !LOAI_CAN_REF.includes(t),
+const LOAI_THEM_NHANH = (Object.keys(COMPONENT_TYPE_LABELS) as LessonComponentType[]).filter(
+  (t) => !TYPES_REQUIRING_REF.includes(t),
 );
 
 /**
@@ -34,7 +34,7 @@ const LOAI_THEM_NHANH = (Object.keys(NHAN_LOAI_COMPONENT) as LessonComponentType
  *    biết nhìn đâu. Nay chúng chỉ hiện khi rê chuột hoặc khi focus bàn phím — `focus-within`
  *    là bắt buộc, thiếu nó thì người dùng bàn phím không bao giờ tới được nút xoá.
  */
-export function TheBai({
+export function LessonCard({
   bai,
   suaDuoc,
   chapterId,
@@ -126,15 +126,15 @@ export function TheBai({
         {bai.components.length > 0 && (
           <span className="hidden shrink-0 items-center gap-1 sm:flex">
             {bai.components.slice(0, 5).map((c) => {
-              const Icon = ICON_LOAI[c.type];
+              const Icon = COMPONENT_TYPE_ICONS[c.type];
               return (
                 <span
                   key={c.id}
-                  title={NHAN_LOAI_COMPONENT[c.type]}
+                  title={COMPONENT_TYPE_LABELS[c.type]}
                   className="bg-muted text-muted-foreground grid size-5 place-items-center rounded"
                 >
                   <Icon className="size-3" />
-                  <span className="sr-only">{NHAN_LOAI_COMPONENT[c.type]}</span>
+                  <span className="sr-only">{COMPONENT_TYPE_LABELS[c.type]}</span>
                 </span>
               );
             })}
@@ -169,7 +169,7 @@ export function TheBai({
           ) : (
             <ul className="mb-1.5 flex flex-col">
               {bai.components.map((c) => {
-                const Icon = ICON_LOAI[c.type];
+                const Icon = COMPONENT_TYPE_ICONS[c.type];
                 return (
                   <li
                     key={c.id}
@@ -180,14 +180,14 @@ export function TheBai({
                       {c.order_index + 1}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm">
-                      {NHAN_LOAI_COMPONENT[c.type]}
+                      {COMPONENT_TYPE_LABELS[c.type]}
                     </span>
 
                     {suaDuoc && (
                       <button
                         type="button"
                         onClick={() => xoaComponent.mutate(c.id)}
-                        aria-label={`Xoá phần ${NHAN_LOAI_COMPONENT[c.type]}`}
+                        aria-label={`Xoá phần ${COMPONENT_TYPE_LABELS[c.type]}`}
                         className="text-muted-foreground hover:text-danger hover:bg-danger-soft grid size-6 shrink-0 place-items-center rounded opacity-0 transition-colors group-hover/phan:opacity-100 focus-visible:opacity-100"
                       >
                         <Trash2 className="size-3.5" aria-hidden />
@@ -205,7 +205,7 @@ export function TheBai({
           {suaDuoc && (
             <div className="flex flex-wrap items-center gap-1">
               {LOAI_THEM_NHANH.map((t) => {
-                const Icon = ICON_LOAI[t];
+                const Icon = COMPONENT_TYPE_ICONS[t];
                 return (
                   <button
                     key={t}
@@ -216,7 +216,7 @@ export function TheBai({
                   >
                     <Plus className="size-3" aria-hidden />
                     <Icon className="size-3" aria-hidden />
-                    {NHAN_LOAI_COMPONENT[t]}
+                    {COMPONENT_TYPE_LABELS[t]}
                   </button>
                 );
               })}

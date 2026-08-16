@@ -19,9 +19,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrongRong } from "@/components/shell/trang";
+import { EmptyState } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
-import { diem, khoangCach, ngayGio } from "@/lib/dinh-dang";
+import { formatScore, formatRelative, formatDateTime } from "@/lib/format";
 import type { AssignmentDto, SubmissionSlotDto } from "@/lib/api/types";
 
 const DINH_DANG_GOI_Y = [".zip", ".pdf", ".docx", ".jpg", ".jpeg", ".png", ".mp4"];
@@ -242,9 +242,9 @@ export function SoanBaiTap({ banDau }: { banDau: AssignmentDto }) {
                 // render là hàm không thuần, React Compiler chặn — và bản thân chuỗi tương đối
                 // đã nói rõ ("2 ngày trước" so với "trong 2 ngày"), tô thêm màu chỉ là lặp lại.
                 <span className="flex flex-wrap items-baseline gap-x-1.5">
-                  <time dateTime={bai.due_at}>{ngayGio(bai.due_at)}</time>
+                  <time dateTime={bai.due_at}>{formatDateTime(bai.due_at)}</time>
                   <span className="text-muted-foreground text-xs">
-                    ({khoangCach(bai.due_at)})
+                    ({formatRelative(bai.due_at)})
                   </span>
                 </span>
               ) : (
@@ -257,7 +257,7 @@ export function SoanBaiTap({ banDau }: { banDau: AssignmentDto }) {
                 <>
                   Nhận bài trễ, trừ{" "}
                   <span className="tabular-nums">
-                    {diem(bai.late_penalty_percent_per_day)}%
+                    {formatScore(bai.late_penalty_percent_per_day)}%
                   </span>{" "}
                   mỗi ngày
                 </>
@@ -267,7 +267,7 @@ export function SoanBaiTap({ banDau }: { banDau: AssignmentDto }) {
             </MucThietLap>
 
             <MucThietLap nhan="Điểm tối đa">
-              <span className="tabular-nums">{diem(bai.max_score)}</span>
+              <span className="tabular-nums">{formatScore(bai.max_score)}</span>
             </MucThietLap>
 
             <MucThietLap nhan="Bộ tiêu chí chấm">
@@ -312,7 +312,7 @@ export function SoanBaiTap({ banDau }: { banDau: AssignmentDto }) {
                     <span className="min-w-0 text-sm text-pretty">{g.content}</span>
                   </span>
                   <Badge className="bg-warn-soft text-warn border-warn/25 shrink-0 border tabular-nums">
-                    −{diem(g.penalty_percent)}%
+                    −{formatScore(g.penalty_percent)}%
                   </Badge>
                 </li>
               ))}
@@ -361,11 +361,11 @@ export function SoanBaiTap({ banDau }: { banDau: AssignmentDto }) {
           )}
 
           {bai.slots.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={FileUp}
-              tieuDe="Chưa có phần nộp nào"
-              moTa="Sinh viên không nộp được bài cho tới khi bạn thêm ít nhất một phần. Mẫu gợi ý tạo sẵn các phần thường dùng."
-              hanhDong={
+              title="Chưa có phần nộp nào"
+              description="Sinh viên không nộp được bài cho tới khi bạn thêm ít nhất một phần. Mẫu gợi ý tạo sẵn các phần thường dùng."
+              action={
                 <Button
                   className="min-h-11"
                   disabled={dungMau.isPending}

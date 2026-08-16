@@ -9,54 +9,55 @@ public class ThumbnailPolicyTests
     [InlineData("so-do.png")]
     [InlineData("ANH.JPG")]
     [InlineData("bia.jpeg")]
-    public void Nhan_dung_phan_mo_rong_anh(string ten) =>
-        ThumbnailPolicy.IsImage(ten).ShouldBeTrue();
+    public void Recognizes_image_extensions(string fileName) =>
+        ThumbnailPolicy.IsImage(fileName).ShouldBeTrue();
 
     [Theory]
     [InlineData("bai-nop.zip")]
     [InlineData("bao-cao.pdf")]
     [InlineData("khong-co-duoi")]
     [InlineData("")]
-    public void Khong_phai_anh_thi_khong_tao_thumbnail(string ten) =>
-        ThumbnailPolicy.IsImage(ten).ShouldBeFalse();
+    public void Non_images_get_no_thumbnail(string fileName) =>
+        ThumbnailPolicy.IsImage(fileName).ShouldBeFalse();
 
     [Fact]
-    public void Duoi_kep_tinh_theo_phan_mo_rong_that()
+    public void A_double_extension_is_judged_by_the_real_extension()
     {
-        // "anh.png.exe" là .exe chứ không phải ảnh. Nhận nhầm ở đây nghĩa là đưa một tệp
-        // thực thi vào bộ giải mã ảnh của job nền — chỗ không ai ngờ tới nhất.
+        // "anh.png.exe" is an .exe, not an image. Misclassifying it here means feeding an
+        // executable to the background job's image decoder — the last place anyone would look.
         ThumbnailPolicy.IsImage("anh.png.exe").ShouldBeFalse();
     }
 
     [Fact]
-    public void Anh_kich_thuoc_thuong_gap_thi_cho_giai_ma()
+    public void Images_of_ordinary_size_are_allowed_through_the_decoder()
     {
-        // Ảnh chụp màn hình 4K vẫn phải qua được — giới hạn là để chặn bom nén, không phải
-        // để chặn ảnh thật của sinh viên.
+        // A 4K screenshot still has to pass — the limit exists to stop decompression bombs,
+        // not to stop real student images.
         ThumbnailPolicy.IsWithinPixelLimit(3840, 2160).ShouldBeTrue();
     }
 
     [Fact]
-    public void Bom_giai_nen_bi_chan_TRUOC_khi_giai_ma()
+    public void A_decompression_bomb_is_blocked_BEFORE_decoding()
     {
-        // Một PNG 10 KB khai 40000×40000 px nở ra 6.4 GB bộ nhớ và giết cả worker. Chặn theo
-        // SỐ ĐIỂM ẢNH đọc từ header, không theo dung lượng tệp: dung lượng tệp không nói gì
-        // về kích thước sau khi giải nén.
+        // A 10 KB PNG declaring 40000x40000 px expands to 6.4 GB of memory and kills the whole
+        // worker. Block on the PIXEL COUNT read from the header, not on file size: file size says
+        // nothing about the size after decompression.
         ThumbnailPolicy.IsWithinPixelLimit(40_000, 40_000).ShouldBeFalse();
     }
 
     [Fact]
-    public void Kich_thuoc_am_hoac_bang_khong_bi_tu_choi()
+    public void Negative_or_zero_dimensions_are_rejected()
     {
-        // Header hỏng khai 0 px: không có gì để thu nhỏ, và phép chia trong bộ giải mã sẽ nổ.
+        // A corrupt header declaring 0 px: there is nothing to shrink, and the division inside
+        // the decoder will blow up.
         ThumbnailPolicy.IsWithinPixelLimit(0, 100).ShouldBeFalse();
         ThumbnailPolicy.IsWithinPixelLimit(100, -1).ShouldBeFalse();
     }
 
     [Fact]
-    public void Nhan_dieu_kien_bien_dung_bang_gioi_han()
+    public void Accepts_the_boundary_case_exactly_at_the_limit()
     {
-        // Đúng bằng trần vẫn được nhận — trần là "tối đa", không phải "nhỏ hơn".
+        // Exactly at the ceiling is still accepted — the ceiling is "at most", not "less than".
         ThumbnailPolicy.IsWithinPixelLimit(ThumbnailPolicy.MaxPixels, 1).ShouldBeTrue();
         ThumbnailPolicy.IsWithinPixelLimit(ThumbnailPolicy.MaxPixels + 1, 1).ShouldBeFalse();
     }

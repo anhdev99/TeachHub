@@ -9,17 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
 import {
-  NHAN_TRANG_THAI,
+  VERSION_STATUS_LABELS,
   type ChapterDto,
   type SubjectDto,
   type SubjectVersionDto,
 } from "@/lib/api/types";
-import { KhoiChuong } from "./khoi-chuong";
+import { ChapterBlock } from "./chapter-block";
 
-export function TrinhSoanThao({
+export function VersionEditor({
   subject,
   version,
 }: {
@@ -67,13 +67,13 @@ export function TrinhSoanThao({
   return (
     // `rong`: đây là bàn làm việc soạn nội dung, không phải trang để đọc. Khung hẹp làm
     // một chương 20 bài phải cuộn dài gấp đôi trong khi nửa màn hình bỏ trống.
-    <Trang rong>
-      <DauTrang
-        quayLai={{
+    <PageShell wide>
+      <PageHeader
+        backTo={{
           href: `/subjects/${subject.id}/versions`,
-          nhan: `${subject.code} · ${subject.name}`,
+          label: `${subject.code} · ${subject.name}`,
         }}
-        tieuDe={
+        title={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {version.version_label}
             {/* Trạng thái nằm NGAY CẠNH tiêu đề chứ không ở một góc khác của trang: câu
@@ -86,16 +86,16 @@ export function TrinhSoanThao({
                   : "bg-ok-soft text-ok border-ok/25 border"
               }
             >
-              {NHAN_TRANG_THAI[version.status]}
+              {VERSION_STATUS_LABELS[version.status]}
             </Badge>
           </span>
         }
-        moTa={
+        description={
           suaDuoc
             ? "Bản nháp — thêm chương, bài học và kéo-thả để sắp thứ tự."
             : "Phiên bản đã khoá. Muốn sửa thì tạo một bản nháp mới từ đây."
         }
-        hanhDong={
+        actions={
           !suaDuoc && (
             <Button asChild variant="outline">
               <Link href={`/subjects/${subject.id}/versions`}>
@@ -139,10 +139,10 @@ export function TrinhSoanThao({
       ) : chuong.length === 0 ? (
         <Card>
           <CardContent>
-            <TrongRong
+            <EmptyState
               Icon={Layers}
-              tieuDe="Phiên bản này chưa có chương nào"
-              moTa={
+              title="Phiên bản này chưa có chương nào"
+              description={
                 suaDuoc
                   ? "Chương là khung ngoài cùng: chương chứa bài học, bài học chứa các phần. Thêm chương đầu tiên ở ô bên dưới."
                   : "Bản đã xuất bản này trống. Tạo một phiên bản mới nếu muốn bổ sung nội dung."
@@ -153,7 +153,7 @@ export function TrinhSoanThao({
       ) : (
         <div className="flex flex-col gap-2">
           {chuong.map((c) => (
-            <KhoiChuong key={c.id} chuong={c} suaDuoc={suaDuoc} versionId={version.id} />
+            <ChapterBlock key={c.id} chuong={c} suaDuoc={suaDuoc} versionId={version.id} />
           ))}
         </div>
       )}
@@ -187,6 +187,6 @@ export function TrinhSoanThao({
           </Button>
         </div>
       )}
-    </Trang>
+    </PageShell>
   );
 }

@@ -4,18 +4,20 @@ using TeachHub.Domain.Integrity;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Phát hiện trùng lặp mã nguồn (Phase 6a). Toàn bộ giá trị của thuật toán này nằm ở bước
-/// CHUẨN HÓA: không bỏ chú thích và không quy mọi tên biến về một token thì chỉ cần đổi tên
-/// biến là qua mặt được, và ta có một tính năng tạo cảm giác an toàn giả — tệ hơn hẳn so với
-/// không có tính năng nào, vì giảng viên sẽ tin vào con số nó đưa ra.
+/// Source code similarity detection (Phase 6a). The entire value of this algorithm lives in the
+/// NORMALIZATION step: without stripping comments and collapsing every identifier to one token,
+/// renaming a variable is enough to slip past it, and we ship a feature that manufactures a false
+/// sense of safety — strictly worse than having no feature at all, because the instructor will
+/// believe the number it reports.
 ///
-/// Cả file chạy dưới 100 ms, không I/O.
+/// The whole file runs in under 100 ms, with no I/O.
 /// </summary>
 public class SourceSimilarityTests
 {
-    // Hai bài Java làm CÙNG một việc bằng CÙNG một cách; bài thứ hai chỉ đổi tên lớp, tên hàm,
-    // tên biến, đổi chú thích và gộp dòng. Đây chính là kịch bản chép bài thật ngoài đời.
-    private const string JavaGoc = """
+    // Two Java submissions doing the SAME thing the SAME way; the second only renames the class,
+    // the method and the variables, rewrites the comments and joins some lines. This is exactly
+    // what real-world copying looks like.
+    private const string JavaOriginal = """
         public class Solution {
             // tinh tong mang
             public static int total(int[] numbers) {
@@ -28,7 +30,7 @@ public class SourceSimilarityTests
         }
         """;
 
-    private const string JavaDoiTenBien = """
+    private const string JavaRenamedIdentifiers = """
         public class Bai1 {
             /* cong don cac phan tu cua mang
                (viet lai cho de hieu) */
@@ -40,7 +42,7 @@ public class SourceSimilarityTests
         }
         """;
 
-    private const string PythonKhacHan = """
+    private const string PythonCompletelyDifferent = """
         def is_prime(n):
             # kiem tra so nguyen to
             if n < 2:
@@ -51,32 +53,33 @@ public class SourceSimilarityTests
             return True
         """;
 
-    private static List<long> Van(string nguon) =>
-        [.. Winnowing.Compute(SourceNormalizer.Normalize(nguon)).Select(f => f.Hash)];
+    private static List<long> Fingerprints(string source) =>
+        [.. Winnowing.Compute(SourceNormalizer.Normalize(source)).Select(f => f.Hash)];
 
-    // ── Chuẩn hóa ────────────────────────────────────────────────────────────────────────
+    // -- Normalization --------------------------------------------------------------------
 
     [Fact]
-    public void Doi_ten_bien_va_ten_ham_KHONG_lam_thay_doi_chuoi_token()
+    public void Renaming_variables_and_methods_does_NOT_change_the_token_stream()
     {
-        // Đây là bài kiểm tra quan trọng nhất của cả Phase 6a. Nếu nó đỏ thì mọi con số
-        // similarity phía sau đều vô nghĩa.
-        SourceNormalizer.Normalize(JavaGoc)
-            .ShouldBe(SourceNormalizer.Normalize(JavaDoiTenBien));
+        // This is the single most important check in all of Phase 6a. If it goes red, every
+        // similarity number downstream is meaningless.
+        SourceNormalizer.Normalize(JavaOriginal)
+            .ShouldBe(SourceNormalizer.Normalize(JavaRenamedIdentifiers));
     }
 
     [Fact]
-    public void Tu_khoa_duoc_giu_nguyen_con_dinh_danh_thanh_mot_token_chung()
+    public void Keywords_are_preserved_while_identifiers_collapse_to_one_shared_token()
     {
-        // Quy CẢ từ khóa về một token thì "if (a) b(); else c();" và "int x = y + z;" trông
-        // giống nhau tới mức mọi bài đều trùng nhau — cảnh báo nhiều tới mức không ai đọc nữa.
-        var token = SourceNormalizer.Normalize("if (soLuong > 0) tong = tong + 1;");
+        // Collapsing keywords TOO would make "if (a) b(); else c();" and "int x = y + z;" look
+        // alike enough that every submission matches every other — so many warnings that nobody
+        // reads them any more.
+        var tokens = SourceNormalizer.Normalize("if (soLuong > 0) tong = tong + 1;");
 
-        token.ShouldBe(["if", "(", "V", ">", "N", ")", "V", "=", "V", "+", "N", ";"]);
+        tokens.ShouldBe(["if", "(", "V", ">", "N", ")", "V", "=", "V", "+", "N", ";"]);
     }
 
     [Fact]
-    public void Chu_thich_mot_dong_va_nhieu_dong_bi_bo_het()
+    public void Single_line_and_multi_line_comments_are_all_stripped()
     {
         SourceNormalizer.Normalize("""
             // chú thích một dòng
@@ -87,79 +90,80 @@ public class SourceSimilarityTests
     }
 
     [Fact]
-    public void Chuoi_ky_tu_bi_quy_ve_mot_token_chung()
+    public void String_literals_collapse_to_one_shared_token()
     {
-        // Đổi lời chào trong printf là cách né đơn giản nhất mà sinh viên nghĩ ra.
+        // Changing the greeting inside printf is the simplest evasion a student comes up with.
         SourceNormalizer.Normalize("""print("Xin chào");""")
             .ShouldBe(SourceNormalizer.Normalize("""print("Hello world, 2026");"""));
     }
 
     [Fact]
-    public void Chuoi_ba_dau_nhay_cua_Python_khong_lam_vo_bo_tach_token()
+    public void Python_triple_quoted_strings_do_not_break_the_tokenizer()
     {
-        // Quét ngây thơ theo từng dấu nháy kép sẽ hiểu ba dấu nháy thành "chuỗi rỗng + định
-        // danh + chuỗi rỗng", và toàn bộ phần thân hàm sau đó bị lệch token.
-        var nguon = "def f():\n    \"\"\"tài liệu hàm\"\"\"\n    return 1\n";
+        // A naive scan over each double quote reads a triple quote as "empty string + identifier
+        // + empty string", and every token after it in the function body is shifted.
+        var source = "def f():\n    \"\"\"tài liệu hàm\"\"\"\n    return 1\n";
 
-        SourceNormalizer.Normalize(nguon)
+        SourceNormalizer.Normalize(source)
             .ShouldBe(["def", "V", "(", ")", ":", "S", "return", "N"]);
     }
 
     [Fact]
-    public void So_moi_dinh_dang_deu_quy_ve_mot_token()
+    public void Numbers_in_every_format_collapse_to_one_token()
     {
         SourceNormalizer.Normalize("x = 0xFF + 3.14e-2 + 100L;")
             .ShouldBe(["V", "=", "N", "+", "N", "+", "N", ";"]);
     }
 
     [Fact]
-    public void Khoang_trang_va_xuong_dong_khong_anh_huong()
+    public void Whitespace_and_line_breaks_make_no_difference()
     {
         SourceNormalizer.Normalize("int a=1;")
             .ShouldBe(SourceNormalizer.Normalize("int   a\n\t=\n1 ;\n"));
     }
 
-    // ── Winnowing ────────────────────────────────────────────────────────────────────────
+    // -- Winnowing ------------------------------------------------------------------------
 
     [Fact]
-    public void Ham_bam_token_KHONG_dung_GetHashCode_cua_runtime()
+    public void The_token_hash_does_NOT_use_the_runtime_GetHashCode()
     {
-        // string.GetHashCode() ngẫu nhiên hóa theo tiến trình. Dùng nó thì fingerprint lưu
-        // hôm nay không khớp fingerprint tính lại sau lần khởi động sau — bảng đầy dữ liệu
-        // mà mọi so sánh đều ra 0%, và không có lỗi nào để lần.
-        // Test tính lại FNV-1a 64-bit ĐỘC LẬP rồi so, chứ không gọi lại chính hàm đang kiểm.
+        // string.GetHashCode() is randomized per process. Using it means a fingerprint stored
+        // today does not match the same fingerprint recomputed after the next restart — a table
+        // full of data where every comparison comes out at 0%, and no error to trace.
+        // This test recomputes FNV-1a 64-bit INDEPENDENTLY and compares, rather than calling
+        // back into the very function under test.
         const string token = "for";
-        var mong = 0xCBF29CE484222325UL;
+        var expected = 0xCBF29CE484222325UL;
         foreach (var c in token)
         {
-            mong ^= c;
-            mong = unchecked(mong * 0x100000001B3UL);
+            expected ^= c;
+            expected = unchecked(expected * 0x100000001B3UL);
         }
 
-        Winnowing.HashToken(token).ShouldBe(unchecked((long)mong));
+        Winnowing.HashToken(token).ShouldBe(unchecked((long)expected));
     }
 
     [Fact]
-    public void Bam_hai_lan_cung_dau_vao_ra_cung_ket_qua()
+    public void Hashing_the_same_input_twice_gives_the_same_result()
     {
-        Van(JavaGoc).ShouldBe(Van(JavaGoc));
+        Fingerprints(JavaOriginal).ShouldBe(Fingerprints(JavaOriginal));
     }
 
     [Fact]
-    public void Rolling_hash_khop_voi_cach_tinh_truc_tiep_tung_k_gram()
+    public void The_rolling_hash_agrees_with_computing_each_k_gram_directly()
     {
-        var token = SourceNormalizer.Normalize(JavaGoc);
+        var tokens = SourceNormalizer.Normalize(JavaOriginal);
 
-        var lan = Winnowing.KGramHashes(token, 5);
-        var thang = Enumerable.Range(0, token.Count - 5 + 1)
-            .Select(i => Winnowing.HashKGram(token.Skip(i).Take(5).ToList()))
+        var rolling = Winnowing.KGramHashes(tokens, 5);
+        var direct = Enumerable.Range(0, tokens.Count - 5 + 1)
+            .Select(i => Winnowing.HashKGram(tokens.Skip(i).Take(5).ToList()))
             .ToList();
 
-        lan.ShouldBe(thang);
+        rolling.ShouldBe(direct);
     }
 
     [Fact]
-    public void File_rong_khong_sinh_dau_van_tay_nao_va_khong_no()
+    public void An_empty_file_produces_no_fingerprints_and_does_not_blow_up()
     {
         Winnowing.Compute([]).ShouldBeEmpty();
         Winnowing.Compute(SourceNormalizer.Normalize("")).ShouldBeEmpty();
@@ -167,118 +171,120 @@ public class SourceSimilarityTests
     }
 
     [Fact]
-    public void File_ngan_hon_mot_k_gram_khong_sinh_dau_van_tay()
+    public void A_file_shorter_than_one_k_gram_produces_no_fingerprints()
     {
-        // 3 token với k = 5: không có k-gram nào. Trả rỗng chứ không được ném.
+        // 3 tokens with k = 5: there is no k-gram at all. Return empty rather than throwing.
         Winnowing.Compute(["int", "V", ";"]).ShouldBeEmpty();
     }
 
     [Fact]
-    public void File_it_hon_mot_cua_so_van_chon_duoc_dau_van_tay()
+    public void A_file_smaller_than_one_window_still_yields_a_fingerprint()
     {
-        // 6 token, k = 5 ⇒ 2 k-gram, nhỏ hơn cửa sổ w = 4. Bỏ qua hẳn thì mọi hàm ngắn đều
-        // vô hình với hệ thống, và chép một hàm ngắn là cách né dễ nhất còn lại.
+        // 6 tokens, k = 5 => 2 k-grams, fewer than the window w = 4. Skipping them entirely would
+        // make every short function invisible to the system, and copying a short function is the
+        // easiest evasion left.
         Winnowing.Compute(["int", "V", "=", "N", ";", "}"]).ShouldNotBeEmpty();
     }
 
     [Fact]
-    public void Vi_tri_tra_ve_tro_dung_vao_k_gram_da_chon()
+    public void The_returned_position_points_at_the_k_gram_that_was_selected()
     {
-        var token = SourceNormalizer.Normalize(JavaGoc);
-        var bam = Winnowing.KGramHashes(token, 5);
+        var tokens = SourceNormalizer.Normalize(JavaOriginal);
+        var hashes = Winnowing.KGramHashes(tokens, 5);
 
-        foreach (var f in Winnowing.Compute(token))
+        foreach (var f in Winnowing.Compute(tokens))
         {
-            f.Position.ShouldBeInRange(0, bam.Count - 1);
-            bam[f.Position].ShouldBe(f.Hash);
+            f.Position.ShouldBeInRange(0, hashes.Count - 1);
+            hashes[f.Position].ShouldBe(f.Hash);
         }
     }
 
     [Fact]
-    public void Winnowing_chon_it_hon_han_so_k_gram()
+    public void Winnowing_selects_substantially_fewer_entries_than_there_are_k_grams()
     {
-        // Không giảm được số lượng thì bảng source_fingerprints phình bằng đúng số token của
-        // cả lớp, và Gap #14 (index trên hash) không cứu nổi.
-        var token = SourceNormalizer.Normalize(JavaGoc);
+        // Without an actual reduction, the source_fingerprints table grows to the total token
+        // count of the entire class, and Gap #14 (an index on the hash) will not save it.
+        var tokens = SourceNormalizer.Normalize(JavaOriginal);
 
-        Winnowing.Compute(token).Count
-            .ShouldBeLessThan(Winnowing.KGramHashes(token, 5).Count);
+        Winnowing.Compute(tokens).Count
+            .ShouldBeLessThan(Winnowing.KGramHashes(tokens, 5).Count);
     }
 
-    // ── Chấm điểm trùng lặp ──────────────────────────────────────────────────────────────
+    // -- Similarity scoring ---------------------------------------------------------------
 
     [Fact]
-    public void Hai_bai_giong_nhau_chi_khac_ten_bien_bi_cham_trung_rat_cao()
+    public void Two_submissions_differing_only_in_identifier_names_score_very_high()
     {
-        var kq = SimilarityScorer.Compare(Van(JavaGoc), Van(JavaDoiTenBien));
+        var result = SimilarityScorer.Compare(Fingerprints(JavaOriginal), Fingerprints(JavaRenamedIdentifiers));
 
-        kq.ContainmentPercent.ShouldBe(100m);
-        kq.JaccardPercent.ShouldBe(100m);
-    }
-
-    [Fact]
-    public void Hai_bai_khac_han_bi_cham_trung_thap()
-    {
-        var kq = SimilarityScorer.Compare(Van(JavaGoc), Van(PythonKhacHan));
-
-        kq.ContainmentPercent.ShouldBeLessThan(20m);
+        result.ContainmentPercent.ShouldBe(100m);
+        result.JaccardPercent.ShouldBe(100m);
     }
 
     [Fact]
-    public void So_sanh_hai_tap_rong_khong_chia_cho_0()
+    public void Two_completely_different_submissions_score_low()
     {
-        var kq = SimilarityScorer.Compare([], []);
+        var result = SimilarityScorer.Compare(Fingerprints(JavaOriginal), Fingerprints(PythonCompletelyDifferent));
 
-        kq.ContainmentPercent.ShouldBe(0m);
-        kq.JaccardPercent.ShouldBe(0m);
-        kq.SharedHashes.ShouldBe(0);
+        result.ContainmentPercent.ShouldBeLessThan(20m);
     }
 
     [Fact]
-    public void Mot_ben_rong_thi_khong_trung_gi_ca()
+    public void Comparing_two_empty_sets_does_not_divide_by_0()
     {
-        SimilarityScorer.Compare(Van(JavaGoc), []).ContainmentPercent.ShouldBe(0m);
-        SimilarityScorer.Compare([], Van(JavaGoc)).ContainmentPercent.ShouldBe(0m);
+        var result = SimilarityScorer.Compare([], []);
+
+        result.ContainmentPercent.ShouldBe(0m);
+        result.JaccardPercent.ShouldBe(0m);
+        result.SharedHashes.ShouldBe(0);
     }
 
     [Fact]
-    public void Chep_mot_doan_vao_bai_dai_hon_van_bi_phat_hien_qua_Containment()
+    public void With_one_side_empty_nothing_matches()
     {
-        // Jaccard chia cho HỢP của hai tập nên loãng đi khi bài chép dài hơn nhiều bài gốc.
-        // Containment chia cho tập NHỎ hơn, nên "chép nguyên hàm rồi viết thêm 300 dòng của
-        // mình" vẫn hiện ra — đây là lý do hệ thống báo cáo cả hai con số.
-        var daiHon = JavaDoiTenBien + "\n" + PythonKhacHan + "\n" + PythonKhacHan;
-
-        var kq = SimilarityScorer.Compare(Van(JavaGoc), Van(daiHon));
-
-        kq.ContainmentPercent.ShouldBe(100m);
-        kq.JaccardPercent.ShouldBeLessThan(kq.ContainmentPercent);
+        SimilarityScorer.Compare(Fingerprints(JavaOriginal), []).ContainmentPercent.ShouldBe(0m);
+        SimilarityScorer.Compare([], Fingerprints(JavaOriginal)).ContainmentPercent.ShouldBe(0m);
     }
 
     [Fact]
-    public void Vi_tri_trung_dung_de_to_sang_doan_giong_nhau()
+    public void Pasting_a_fragment_into_a_much_longer_submission_is_still_caught_by_Containment()
     {
-        var a = Winnowing.Compute(SourceNormalizer.Normalize(JavaGoc));
-        var b = Van(JavaDoiTenBien).ToHashSet();
+        // Jaccard divides by the UNION of the two sets, so it dilutes when the copying submission
+        // is far longer than the original. Containment divides by the SMALLER set, so "copy a
+        // whole function then write 300 lines of my own" still shows up — which is why the system
+        // reports both numbers.
+        var longer = JavaRenamedIdentifiers + "\n" + PythonCompletelyDifferent + "\n" + PythonCompletelyDifferent;
+
+        var result = SimilarityScorer.Compare(Fingerprints(JavaOriginal), Fingerprints(longer));
+
+        result.ContainmentPercent.ShouldBe(100m);
+        result.JaccardPercent.ShouldBeLessThan(result.ContainmentPercent);
+    }
+
+    [Fact]
+    public void Matched_positions_are_what_highlight_the_identical_passages()
+    {
+        var a = Winnowing.Compute(SourceNormalizer.Normalize(JavaOriginal));
+        var b = Fingerprints(JavaRenamedIdentifiers).ToHashSet();
 
         SimilarityScorer.MatchedPositions(a, b).Count.ShouldBe(a.Count);
         SimilarityScorer.MatchedPositions(a, []).ShouldBeEmpty();
     }
 
-    // ── Ngưỡng cảnh báo ──────────────────────────────────────────────────────────────────
+    // -- Warning threshold ----------------------------------------------------------------
 
     [Fact]
-    public void Nguong_canh_bao_la_tham_so_chu_khong_phai_hang_so_chon_bua()
+    public void The_warning_threshold_is_a_parameter_not_an_arbitrarily_chosen_constant()
     {
-        // Bài nhập môn dùng chung starter code trùng 70–90% một cách hoàn toàn chính đáng.
-        // Ngưỡng cứng ở 70 sẽ gắn cờ cả lớp ngay tuần đầu.
+        // Introductory assignments sharing starter code legitimately match at 70-90%.
+        // A hardcoded threshold of 70 would flag the entire class in the first week.
         SimilarityThresholds.ShouldWarn(85m, 70m).ShouldBeTrue();
         SimilarityThresholds.ShouldWarn(85m, 95m).ShouldBeFalse();
         SimilarityThresholds.ShouldWarn(95m, 95m).ShouldBeTrue();
     }
 
     [Fact]
-    public void Nhan_dien_duoc_tep_ma_nguon_de_khong_bam_ca_anh_va_pdf()
+    public void Source_files_are_recognized_so_that_images_and_pdfs_are_not_hashed()
     {
         SourceFileTypes.IsSourceCode("Main.java").ShouldBeTrue();
         SourceFileTypes.IsSourceCode("src/utils/helper.PY").ShouldBeTrue();

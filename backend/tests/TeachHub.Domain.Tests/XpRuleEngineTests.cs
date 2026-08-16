@@ -4,131 +4,133 @@ using TeachHub.Domain.Gamification;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Bảng quy tắc XP là DỮ LIỆU, không phải mã. Mọi con số trong bộ test này đều do người gọi
-/// dựng ra — engine không được biết trước con số nào cả.
+/// The XP rule table is DATA, not code. Every number in this test suite is constructed by the
+/// caller — the engine must not know any of them in advance.
 /// </summary>
 public class XpRuleEngineTests
 {
-    private static XpRuleSpec Quy(XpEventType loai, int diem, decimal? nguong = null,
-                                  int? tranNgay = null, bool bat = true) =>
-        new() { EventType = loai, Points = diem, MinValue = nguong, DailyCap = tranNgay, IsEnabled = bat };
+    private static XpRuleSpec Rule(XpEventType eventType, int points, decimal? threshold = null,
+                                   int? dailyCap = null, bool enabled = true) =>
+        new() { EventType = eventType, Points = points, MinValue = threshold, DailyCap = dailyCap, IsEnabled = enabled };
 
     [Fact]
-    public void Su_kien_khong_co_quy_tac_nao_thi_khong_duoc_XP()
+    public void An_event_with_no_matching_rule_earns_no_XP()
     {
-        var kq = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 9m),
-                                       [Quy(XpEventType.LessonCompleted, 10)]);
+        var result = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 9m),
+                                           [Rule(XpEventType.LessonCompleted, 10)]);
 
-        kq.Points.ShouldBe(0);
-        kq.IsAwarded.ShouldBeFalse();
-        kq.Rule.ShouldBeNull();
+        result.Points.ShouldBe(0);
+        result.IsAwarded.ShouldBeFalse();
+        result.Rule.ShouldBeNull();
     }
 
     [Fact]
-    public void Quy_tac_bi_tat_khong_duoc_ap_dung()
+    public void A_disabled_rule_is_not_applied()
     {
-        // Tắt quy tắc phải có hiệu lực ngay giữa kỳ mà không cần xóa nó đi — xóa là mất luôn
-        // lịch sử vì sao sinh viên từng được cộng.
-        var kq = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted),
-                                       [Quy(XpEventType.LessonCompleted, 10, bat: false)]);
+        // Turning a rule off has to take effect mid-semester without deleting it — deleting also
+        // erases the history of why a student was ever awarded points.
+        var result = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted),
+                                           [Rule(XpEventType.LessonCompleted, 10, enabled: false)]);
 
-        kq.Points.ShouldBe(0);
+        result.Points.ShouldBe(0);
     }
 
     [Fact]
-    public void Nhieu_bac_nguong_thi_bac_CAO_NHAT_thang_the_chu_khong_cong_don()
+    public void With_multiple_threshold_tiers_the_HIGHEST_tier_wins_instead_of_accumulating()
     {
-        // Quiz 9.5 điểm phải nhận 30 XP của bậc "≥ 9", KHÔNG phải 50 (= 20 + 30) và cũng
-        // không phải 20 của bậc thấp hơn. Cộng dồn là cách bảng quy tắc hai bậc âm thầm
-        // biến thành một bảng ba bậc mà không ai khai.
-        IReadOnlyList<XpRuleSpec> bang =
+        // A quiz scored 9.5 must earn the 30 XP of the ">= 9" tier, NOT 50 (= 20 + 30), and not
+        // the 20 of the lower tier either. Accumulating is how a two-tier rule table silently
+        // turns into a three-tier one that nobody declared.
+        IReadOnlyList<XpRuleSpec> table =
         [
-            Quy(XpEventType.QuizHighScore, 20, nguong: 8m),
-            Quy(XpEventType.QuizHighScore, 30, nguong: 9m),
+            Rule(XpEventType.QuizHighScore, 20, threshold: 8m),
+            Rule(XpEventType.QuizHighScore, 30, threshold: 9m),
         ];
 
-        XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 9.5m), bang).Points.ShouldBe(30);
-        XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 8.5m), bang).Points.ShouldBe(20);
+        XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 9.5m), table).Points.ShouldBe(30);
+        XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 8.5m), table).Points.ShouldBe(20);
     }
 
     [Fact]
-    public void Diem_dung_bang_nguong_van_duoc_tinh()
+    public void A_score_exactly_at_the_threshold_still_counts()
     {
-        // Ngưỡng là "từ … trở lên". Dùng > thay vì >= ở đây thì sinh viên được đúng 8.0 điểm
-        // không có XP, và giải thích với họ là chuyện không thể.
-        var kq = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 8m),
-                                       [Quy(XpEventType.QuizHighScore, 20, nguong: 8m)]);
+        // The threshold means "at or above". Using > instead of >= here leaves the student who
+        // scored exactly 8.0 with no XP, and explaining that to them is impossible.
+        var result = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 8m),
+                                           [Rule(XpEventType.QuizHighScore, 20, threshold: 8m)]);
 
-        kq.Points.ShouldBe(20);
+        result.Points.ShouldBe(20);
     }
 
     [Fact]
-    public void Duoi_nguong_thi_khong_quy_tac_nao_ap_dung()
+    public void Below_the_threshold_no_rule_applies()
     {
-        var kq = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 7.9m),
-                                       [Quy(XpEventType.QuizHighScore, 20, nguong: 8m)]);
+        var result = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore, 7.9m),
+                                           [Rule(XpEventType.QuizHighScore, 20, threshold: 8m)]);
 
-        kq.Points.ShouldBe(0);
+        result.Points.ShouldBe(0);
     }
 
     [Fact]
-    public void Su_kien_khong_kem_gia_tri_khong_kich_hoat_quy_tac_co_nguong()
+    public void An_event_carrying_no_value_does_not_trigger_a_threshold_rule()
     {
-        // Không có giá trị mà vẫn cho qua ngưỡng là mở đường cho mọi sự kiện lạ ăn XP bậc cao.
-        var kq = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore),
-                                       [Quy(XpEventType.QuizHighScore, 20, nguong: 8m)]);
+        // Letting a valueless event clear the threshold opens the door for any stray event to
+        // collect top-tier XP.
+        var result = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.QuizHighScore),
+                                           [Rule(XpEventType.QuizHighScore, 20, threshold: 8m)]);
 
-        kq.Points.ShouldBe(0);
+        result.Points.ShouldBe(0);
     }
 
     [Fact]
-    public void Tran_moi_ngay_chan_lan_vuot_qua()
+    public void The_daily_cap_blocks_awards_beyond_it()
     {
-        var bang = new[] { Quy(XpEventType.LessonCompleted, 10, tranNgay: 3) };
+        var table = new[] { Rule(XpEventType.LessonCompleted, 10, dailyCap: 3) };
 
-        XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted, AwardedTodayForType: 2), bang)
+        XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted, AwardedTodayForType: 2), table)
             .Points.ShouldBe(10);
 
-        var chan = XpRuleEngine.Evaluate(
-            new XpEventInput(XpEventType.LessonCompleted, AwardedTodayForType: 3), bang);
+        var blocked = XpRuleEngine.Evaluate(
+            new XpEventInput(XpEventType.LessonCompleted, AwardedTodayForType: 3), table);
 
-        chan.Points.ShouldBe(0);
-        chan.SkipReason.ShouldNotBeNullOrWhiteSpace();
+        blocked.Points.ShouldBe(0);
+        blocked.SkipReason.ShouldNotBeNullOrWhiteSpace();
     }
 
     [Fact]
-    public void Khong_khai_tran_thi_khong_gioi_han_so_lan_trong_ngay()
+    public void With_no_declared_cap_there_is_no_limit_on_awards_per_day()
     {
-        var kq = XpRuleEngine.Evaluate(
+        var result = XpRuleEngine.Evaluate(
             new XpEventInput(XpEventType.LessonCompleted, AwardedTodayForType: 99),
-            [Quy(XpEventType.LessonCompleted, 10)]);
+            [Rule(XpEventType.LessonCompleted, 10)]);
 
-        kq.Points.ShouldBe(10);
+        result.Points.ShouldBe(10);
     }
 
     [Fact]
-    public void Bang_quy_tac_khoi_tao_phu_du_ba_su_kien_cua_de_bai()
+    public void The_seed_rule_table_covers_the_three_events_from_the_requirements()
     {
-        // SeedRules chỉ là bộ GIEO cho một lớp mới — vẫn là dữ liệu, sửa được sau đó.
-        // Nó tồn tại để ngày đầu tiên mở lớp không phải là một bảng trống.
-        var bang = XpRuleEngine.SeedRules();
+        // SeedRules is only the SEED for a fresh class — still data, still editable afterwards.
+        // It exists so that day one of a new class is not a blank table.
+        var table = XpRuleEngine.SeedRules();
 
-        bang.ShouldContain(r => r.EventType == XpEventType.LessonCompleted);
-        bang.ShouldContain(r => r.EventType == XpEventType.AssignmentSubmittedOnTime);
-        bang.ShouldContain(r => r.EventType == XpEventType.QuizHighScore);
-        bang.ShouldAllBe(r => r.Points > 0);
+        table.ShouldContain(r => r.EventType == XpEventType.LessonCompleted);
+        table.ShouldContain(r => r.EventType == XpEventType.AssignmentSubmittedOnTime);
+        table.ShouldContain(r => r.EventType == XpEventType.QuizHighScore);
+        table.ShouldAllBe(r => r.Points > 0);
     }
 
     [Fact]
-    public void Hai_quy_tac_trung_nguong_van_cho_ket_qua_TAT_DINH()
+    public void Two_rules_sharing_a_threshold_still_give_a_DETERMINISTIC_result()
     {
-        // Dữ liệu trùng lặp là chuyện sớm muộn (giảng viên bấm lưu hai lần). Kết quả phải
-        // không phụ thuộc thứ tự phần tử, nếu không cùng một sinh viên đọc hai lần ra hai số.
-        IReadOnlyList<XpRuleSpec> xuoi = [Quy(XpEventType.LessonCompleted, 5), Quy(XpEventType.LessonCompleted, 12)];
-        IReadOnlyList<XpRuleSpec> nguoc = [Quy(XpEventType.LessonCompleted, 12), Quy(XpEventType.LessonCompleted, 5)];
+        // Duplicate data is a matter of time (the instructor clicks save twice). The outcome must
+        // not depend on element order, otherwise the same student reads two different numbers on
+        // two page loads.
+        IReadOnlyList<XpRuleSpec> forward = [Rule(XpEventType.LessonCompleted, 5), Rule(XpEventType.LessonCompleted, 12)];
+        IReadOnlyList<XpRuleSpec> reversed = [Rule(XpEventType.LessonCompleted, 12), Rule(XpEventType.LessonCompleted, 5)];
 
-        var a = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted), xuoi).Points;
-        var b = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted), nguoc).Points;
+        var a = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted), forward).Points;
+        var b = XpRuleEngine.Evaluate(new XpEventInput(XpEventType.LessonCompleted), reversed).Points;
 
         a.ShouldBe(b);
         a.ShouldBe(12);

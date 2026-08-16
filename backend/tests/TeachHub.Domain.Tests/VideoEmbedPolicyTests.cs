@@ -12,32 +12,32 @@ public class VideoEmbedPolicyTests
     [InlineData("https://youtu.be/abc123")]
     [InlineData("https://player.vimeo.com/video/123")]
     [InlineData("https://vimeo.com/123")]
-    public void Chap_nhan_nguon_trong_danh_sach(string url) =>
+    public void Accepts_sources_on_the_allowlist(string url) =>
         VideoEmbedPolicy.IsAllowed(url).ShouldBeTrue();
 
     [Theory]
     [InlineData("https://evil.example/embed")]
-    [InlineData("https://youtube.com.evil.example/embed")]      // tên miền lừa
-    [InlineData("http://www.youtube.com/embed/abc")]            // http trần
+    [InlineData("https://youtube.com.evil.example/embed")]      // lookalike domain
+    [InlineData("http://www.youtube.com/embed/abc")]            // plain http
     [InlineData("javascript:alert(1)")]
     [InlineData("data:text/html,<script>alert(1)</script>")]
-    [InlineData("//youtube.com/embed/abc")]                     // thiếu scheme
+    [InlineData("//youtube.com/embed/abc")]                     // missing scheme
     [InlineData("")]
-    public void Tu_choi_moi_thu_khac(string url) =>
+    public void Rejects_everything_else(string url) =>
         VideoEmbedPolicy.IsAllowed(url).ShouldBeFalse();
 
     [Fact]
-    public void Tu_choi_URL_khong_phan_tich_duoc()
+    public void Rejects_unparseable_urls()
     {
         VideoEmbedPolicy.IsAllowed("khong phai url").ShouldBeFalse();
         VideoEmbedPolicy.IsAllowed(null!).ShouldBeFalse();
     }
 
     [Fact]
-    public void Chi_chap_nhan_https()
+    public void Accepts_https_only()
     {
-        // Nhúng qua http là mở đường cho người đứng giữa thay nội dung video bằng thứ khác,
-        // ngay trong trang học mang tên miền của trường.
+        // Embedding over http opens the door for a man in the middle to swap the video content
+        // for something else, right inside a learning page carrying the school's domain name.
         VideoEmbedPolicy.IsAllowed("http://player.vimeo.com/video/123").ShouldBeFalse();
         VideoEmbedPolicy.IsAllowed("https://player.vimeo.com/video/123").ShouldBeTrue();
     }

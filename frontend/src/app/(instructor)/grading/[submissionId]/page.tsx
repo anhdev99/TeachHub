@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { GroupDto, RubricDto, SubmissionDto } from "@/lib/api/types";
 import { TrangChamBai } from "./trang-cham-bai";
@@ -42,17 +42,17 @@ export default async function GradingPage({
     // `rong` vì đây là màn hình duy nhất phải hiển thị ĐỒNG THỜI mã nguồn của sinh viên và
     // bảng tiêu chí. Ép nó vào bề rộng mặc định là buộc giảng viên cuộn qua cuộn lại giữa thứ
     // đang đọc và ô đang gõ — và đó là thao tác lặp lại 40 lần một buổi.
-    <Trang rong>
-      <DauTrang
-        tieuDe="Chấm bài"
-        moTa="Đọc bài nộp ở bên trái, cho điểm theo tiêu chí ở bên phải."
-        quayLai={{
+    <PageShell wide>
+      <PageHeader
+        title="Chấm bài"
+        description="Đọc bài nộp ở bên trái, cho điểm theo tiêu chí ở bên phải."
+        backTo={{
           href: `/offerings/${bai.offering_id}/grading`,
-          nhan: "Danh sách bài nộp",
+          label: "Danh sách bài nộp",
         }}
       />
 
       <TrangChamBai banDau={bai} rubrics={rubrics} nhom={nhomCuaBai} />
-    </Trang>
+    </PageShell>
   );
 }

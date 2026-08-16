@@ -3,14 +3,15 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// ⚠️ "vietnamese" là BẮT BUỘC, không phải tuỳ chọn cho đẹp.
+// ⚠️ "vietnamese" is MANDATORY, not a nice-to-have.
 //
-// Bộ "latin" KHÔNG chứa các ký tự có dấu của tiếng Việt (ế, ộ, ữ, ằ, ị, đ…). Thiếu nó thì
-// trình duyệt vẫn hiện chữ — nhưng hiện bằng font DỰ PHÒNG của hệ thống cho riêng những ký tự
-// đó, nên chữ lệch nét ngay giữa một từ ("Bảng điều khiển" ghép từ hai font khác nhau). Không
-// có lỗi nào báo, và đây là thứ làm cả sản phẩm trông cẩu thả mà rất khó chỉ ra nguyên nhân.
+// The "latin" subset does NOT contain Vietnamese diacritics (ế, ộ, ữ, ằ, ị, đ…). Without it
+// the browser still shows the text — but it renders those particular characters from the
+// system's FALLBACK font, so the strokes change weight in the middle of a word ("Bảng điều
+// khiển" assembled from two different typefaces). Nothing reports an error, and this is the
+// kind of thing that makes a whole product look sloppy while being very hard to point at.
 //
-// "latin-ext" giữ lại vì vẫn cần cho ký tự Âu khác lọt vào (tên riêng, thuật ngữ).
+// "latin-ext" stays because other European characters still turn up (proper nouns, jargon).
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin", "latin-ext", "vietnamese"],
@@ -28,13 +29,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    // lang="vi" chứ không phải "en": ảnh hưởng cách trình duyệt ngắt dòng, kiểm chính tả
-    // và cách trình đọc màn hình phát âm nội dung tiếng Việt.
-    // `suppressHydrationWarning` là YÊU CẦU của next-themes, không phải cách giấu lỗi: nó
-    // đặt class chủ đề bằng một script chạy TRƯỚC khi React nhận trang, nên HTML máy chủ sinh
-    // ra và HTML trình duyệt đang có chắc chắn khác nhau ở đúng thẻ này. Không có nó thì mỗi
-    // lần tải trang là một cảnh báo hydration, và cảnh báo thật sẽ chìm trong đống nhiễu đó.
-    // Cờ này chỉ ảnh hưởng đúng thẻ <html>, không lan xuống cây con.
+    // lang="vi" rather than "en": it changes how the browser breaks lines, how spell check
+    // behaves, and how a screen reader pronounces Vietnamese content.
+    // `suppressHydrationWarning` is REQUIRED by next-themes, not a way of hiding a bug: it
+    // sets the theme class from a script that runs BEFORE React takes over the page, so the
+    // HTML produced on the server and the HTML in the browser are guaranteed to differ on
+    // exactly this tag. Without it every page load logs a hydration warning, and the real
+    // warnings drown in that noise. The flag applies only to the <html> tag; it does not
+    // cascade into the subtree.
     <html
       lang="vi"
       suppressHydrationWarning

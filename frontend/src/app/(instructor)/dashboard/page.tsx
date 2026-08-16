@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
-import { khoangCach, ngayGio } from "@/lib/dinh-dang";
+import { EmptyState, PageHeader, PageShell } from "@/components/shell/page-shell";
+import { formatDateTime, formatRelative } from "@/lib/format";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { InstructorDashboardDto } from "@/lib/api/types";
 
@@ -18,37 +18,39 @@ export default async function DashboardPage() {
     cache: "no-store",
   });
 
-  // Sinh viên đăng nhập rơi vào đây thì đưa về trang học, không hiện dashboard rỗng.
-  // (Danh tính người dùng do layout của route group lo — trang này không gọi /auth/me nữa.)
+  // A signed-in student who lands here goes to the learning page rather than being shown an
+  // empty dashboard. (Identity is handled by the route group's layout — this page no longer
+  // calls /auth/me itself.)
   if (!res.ok) redirect("/learn");
 
   const d: InstructorDashboardDto = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Tổng quan"
-        moTa="Việc đang chờ bạn, và các lớp đang chạy."
+    <PageShell>
+      <PageHeader
+        title="Tổng quan"
+        description="Việc đang chờ bạn, và các lớp đang chạy."
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <TheSo
-          nhan="Lớp đang dạy"
-          so={d.so_lop_dang_day}
+        <StatCard
+          label="Lớp đang dạy"
+          value={d.so_lop_dang_day}
           Icon={GraduationCap}
           href="/offerings"
         />
-        <TheSo
-          nhan="Bài chưa chấm"
-          so={d.so_bai_chua_cham}
+        <StatCard
+          label="Bài chưa chấm"
+          value={d.so_bai_chua_cham}
           Icon={PenLine}
-          // Chỉ tô cảnh báo khi thật sự có việc: một số 0 màu vàng dạy người dùng bỏ qua màu
-          // vàng, và tới lúc có 30 bài dồn thì màu đó không còn nghĩa gì nữa.
-          nhanManh={d.so_bai_chua_cham > 0}
+          // Only tint it as a warning when there is genuinely work to do: a yellow zero
+          // teaches the user to ignore yellow, and by the time 30 submissions have piled up
+          // the color means nothing anymore.
+          emphasized={d.so_bai_chua_cham > 0}
         />
-        <TheSo
-          nhan="Bài tập tới hạn trong 7 ngày"
-          so={d.so_bai_tap_sap_den_han}
+        <StatCard
+          label="Bài tập tới hạn trong 7 ngày"
+          value={d.so_bai_tap_sap_den_han}
           Icon={CalendarClock}
         />
       </div>
@@ -59,10 +61,10 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           {d.can_xu_ly.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={Inbox}
-              tieuDe="Không còn bài nào chờ chấm"
-              moTa="Bài mới nộp sẽ xuất hiện ở đây."
+              title="Không còn bài nào chờ chấm"
+              description="Bài mới nộp sẽ xuất hiện ở đây."
             />
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -81,10 +83,10 @@ export default async function DashboardPage() {
                         {c.submitted_at && (
                           <>
                             <span aria-hidden>·</span>
-                            {/* Tương đối để trả lời "có gấp không"; mốc chính xác giữ trong
-                                title cho người cần con số thật. */}
-                            <time dateTime={c.submitted_at} title={ngayGio(c.submitted_at)}>
-                              {khoangCach(c.submitted_at)}
+                            {/* Relative form answers "is this urgent?"; the exact timestamp
+                                stays in the title for anyone who needs the real number. */}
+                            <time dateTime={c.submitted_at} title={formatDateTime(c.submitted_at)}>
+                              {formatRelative(c.submitted_at)}
                             </time>
                           </>
                         )}
@@ -96,8 +98,9 @@ export default async function DashboardPage() {
                         Trễ hạn
                       </Badge>
                     )}
-                    {/* Mũi tên: dấu hiệu duy nhất cho biết cả dòng bấm được. Bản cũ chỉ có
-                        viền, nên không phân biệt được dòng bấm được với dòng chỉ để đọc. */}
+                    {/* The chevron is the only signal that the whole row is clickable. The
+                        old version had just a border, so a clickable row was
+                        indistinguishable from a read-only one. */}
                     <ChevronRight
                       className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors"
                       aria-hidden
@@ -116,11 +119,11 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           {d.lop.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={GraduationCap}
-              tieuDe="Chưa mở lớp nào"
-              moTa="Tạo môn học và phiên bản nội dung trước, rồi mở lớp học phần từ phiên bản đã xuất bản."
-              hanhDong={
+              title="Chưa mở lớp nào"
+              description="Tạo môn học và phiên bản nội dung trước, rồi mở lớp học phần từ phiên bản đã xuất bản."
+              action={
                 <Link
                   href="/subjects"
                   className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
@@ -164,40 +167,40 @@ export default async function DashboardPage() {
           )}
         </CardContent>
       </Card>
-    </Trang>
+    </PageShell>
   );
 }
 
-function TheSo({
-  nhan,
-  so,
+function StatCard({
+  label,
+  value,
   Icon,
   href,
-  nhanManh = false,
+  emphasized = false,
 }: {
-  nhan: string;
-  so: number;
+  label: string;
+  value: number;
   Icon: React.ComponentType<{ className?: string }>;
   href?: string;
-  nhanManh?: boolean;
+  emphasized?: boolean;
 }) {
-  const noi = (
+  const card = (
     <Card
       className={`h-full gap-0 py-4 transition-colors ${href ? "hover:border-primary" : ""}`}
     >
       <CardHeader className="px-4 pb-0">
         <CardTitle className="text-muted-foreground flex items-center gap-2 text-sm font-normal">
           <Icon className="size-4 shrink-0" />
-          <span className="text-pretty">{nhan}</span>
+          <span className="text-pretty">{label}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pt-1">
-        {/* `tabular-nums` để các số thẳng cột với nhau khi đứng cạnh; thiếu nó thì ba thẻ số
-            có bề rộng chữ số khác nhau và trông xô lệch. */}
+        {/* `tabular-nums` keeps the digits aligned when the cards sit side by side; without
+            it the three stat cards get different digit widths and look misaligned. */}
         <span
-          className={`text-3xl font-semibold tabular-nums ${nhanManh ? "text-warn" : ""}`}
+          className={`text-3xl font-semibold tabular-nums ${emphasized ? "text-warn" : ""}`}
         >
-          {so}
+          {value}
         </span>
       </CardContent>
     </Card>
@@ -205,9 +208,9 @@ function TheSo({
 
   return href ? (
     <Link href={href} className="block">
-      {noi}
+      {card}
     </Link>
   ) : (
-    noi
+    card
   );
 }

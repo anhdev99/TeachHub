@@ -35,10 +35,10 @@ public sealed class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMem
         b.HasOne<Enrollment>().WithMany().HasForeignKey(x => x.EnrollmentId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Một sinh viên không thể ở hai nhóm cùng lúc trong cùng một lớp. Enrollment đã gắn
-        // cứng vào một lớp nên unique trên enrollment_id là đủ — không cần lặp offering_id.
-        // Để database giữ bất biến này chứ không để handler nhớ: hai request song song
-        // "thêm vào nhóm" sẽ không cùng nhìn thấy nhau.
+        // A student cannot be in two groups at once within the same class offering. An Enrollment
+        // is already pinned to one offering, so a unique index on enrollment_id is enough — no
+        // need to repeat offering_id. Let the database hold this invariant instead of the handler
+        // remembering it: two concurrent "add to group" requests will not see each other.
         b.HasIndex(x => x.EnrollmentId).IsUnique();
     }
 }
@@ -53,8 +53,9 @@ public sealed class GradeAuditLogConfiguration : IEntityTypeConfiguration<GradeA
         b.Property(x => x.NewValue).HasPrecision(5, 2);
         b.Property(x => x.Reason).HasMaxLength(500);
 
-        // Restrict ở mọi phía: nhật ký điểm KHÔNG BAO GIỜ bị xóa theo, kể cả khi lớp bị xóa.
-        // Nó tồn tại chính vì những lúc dữ liệu gốc không còn.
+        // Restrict on every side: the grade audit log is NEVER cascade-deleted, not even when the
+        // class offering is deleted. It exists precisely for the times when the original data is
+        // gone.
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
          .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Enrollment>().WithMany().HasForeignKey(x => x.EnrollmentId)
@@ -77,10 +78,11 @@ public sealed class FinalAssessmentConfiguration : IEntityTypeConfiguration<Fina
         b.Property(x => x.SubmissionMode).HasConversion<string>().HasMaxLength(32);
         b.Property(x => x.MaxScore).HasPrecision(5, 2);
 
-        // GroupConfig chứa enum AllocationMode → phải khai .HasConversion<string>() cho riêng
-        // nó. EF dùng JsonValueReaderWriter cho cột ToJson() và KHÔNG đọc JsonStringEnumConverter
-        // cấu hình ở tầng HTTP; thiếu dòng này thì jsonb lưu số và dữ liệu đổi nghĩa vào ngày
-        // ai đó chèn một giá trị vào giữa enum.
+        // GroupConfig contains the AllocationMode enum → it needs its own .HasConversion<string>().
+        // EF uses JsonValueReaderWriter for a ToJson() column and does NOT read the
+        // JsonStringEnumConverter configured at the HTTP layer; without this line the jsonb stores
+        // numbers, and the data changes meaning the day someone inserts a value into the middle
+        // of the enum.
         b.OwnsOne(x => x.GroupConfig, g =>
         {
             g.ToJson();
@@ -92,7 +94,8 @@ public sealed class FinalAssessmentConfiguration : IEntityTypeConfiguration<Fina
         b.HasOne<Rubric>().WithMany().HasForeignKey(x => x.RubricId)
          .OnDelete(DeleteBehavior.Restrict);
 
-        // grade_column_id chưa có FK: bảng grade_columns thuộc Phase 4b, sẽ thêm ràng buộc ở đó.
+        // grade_column_id has no FK yet: the grade_columns table belongs to Phase 4b, and the
+        // constraint will be added there.
         b.HasMany(x => x.Slots).WithOne().HasForeignKey(s => s.FinalAssessmentId)
          .OnDelete(DeleteBehavior.Cascade);
 

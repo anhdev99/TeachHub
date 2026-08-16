@@ -5,11 +5,11 @@ namespace TeachHub.Domain.Learning;
 public enum ProgressStatus { NotStarted, InProgress, Completed }
 
 /// <summary>
-/// Bảng mới hoàn toàn (Gap #4). SRS có <c>Chapter.unlock_rule</c>, có màn hình 6.3 với icon
-/// khóa/mở và % hoàn thành, có XP và streak — nhưng KHÔNG có bảng nào lưu sinh viên đã học
-/// tới đâu. Không có nó thì không mục nào ở trên làm được.
+/// An entirely new table (Gap #4). The SRS has <c>Chapter.unlock_rule</c>, has screen 6.3 with its
+/// locked/unlocked icon and completion percentage, has XP and streaks — but has NO table storing
+/// how far a student has got. Without it, none of the above can be built.
 ///
-/// Dữ liệu học tập của sinh viên KHÔNG BAO GIỜ bị xóa, kể cả xóa mềm.
+/// A student's learning data is NEVER deleted, not even soft-deleted.
 /// </summary>
 public class LessonProgress : Entity
 {

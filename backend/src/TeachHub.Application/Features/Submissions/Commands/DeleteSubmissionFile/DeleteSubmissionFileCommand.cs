@@ -18,29 +18,31 @@ public sealed class DeleteSubmissionFileHandler(IAppDbContext db, IFileStorage s
 
         if (file is null) return Result.NotFound("Không tìm thấy tệp.");
 
-        var baiNop = await db.Submissions
+        var submission = await db.Submissions
             .SingleOrDefaultAsync(s => s.Id == file.SubmissionId, ct);
 
-        // Không phải bài của mình ⇒ 404, không bao giờ 403.
-        if (baiNop is null ||
+        // Not their own submission ⇒ 404, never 403.
+        if (submission is null ||
             !await db.Enrollments.AnyAsync(
-                e => e.Id == baiNop.EnrollmentId && e.UserId == request.StudentUserId, ct))
+                e => e.Id == submission.EnrollmentId && e.UserId == request.StudentUserId, ct))
             return Result.NotFound("Không tìm thấy tệp.");
 
-        if (await OfferingLock.DaDongAsync(db, baiNop.OfferingId, ct))
-            return Result.Conflict(OfferingLock.ThongDiep("xóa tệp"));
+        if (await OfferingLock.IsClosedAsync(db, submission.OfferingId, ct))
+            return Result.Conflict(OfferingLock.ClosedMessage("xóa tệp"));
 
-        // Đã nộp chính thức thì tệp là bằng chứng chấm điểm, không xóa được nữa. Muốn thay
-        // thì nộp lại — lượt mới giữ nguyên lượt cũ trong lịch sử (Gap #5).
-        if (baiNop.Status != SubmissionStatus.Draft)
+        // Once the work has been formally submitted, the files are the evidence the grade rests
+        // on, so they can no longer be deleted. To replace one, submit again — the new attempt
+        // keeps the old attempt intact in the history (Gap #5).
+        if (submission.Status != SubmissionStatus.Draft)
             return Result.Conflict(
                 "Bài đã nộp chính thức nên không xóa tệp được. Tải tệp mới lên để bắt đầu một lần nộp lại.");
 
         db.SubmissionFiles.Remove(file);
         await db.SaveChangesAsync(ct);
 
-        // Xóa tệp vật lý SAU khi DB đã commit. Làm ngược lại thì storage lỗi giữa chừng để
-        // lại một hàng trỏ vào tệp không còn tồn tại — và trang nộp bài sẽ hỏng mãi mãi.
+        // Delete the physical file AFTER the DB has committed. The other way round, a storage
+        // failure halfway through leaves behind a row pointing at a file that no longer exists —
+        // and the submission page stays broken forever.
         if (file.FilePath is not null)
         {
             try
@@ -49,7 +51,8 @@ public sealed class DeleteSubmissionFileHandler(IAppDbContext db, IFileStorage s
             }
             catch (IOException)
             {
-                // Hàng đã xóa rồi; tệp mồ côi trên đĩa không làm hỏng gì và dọn được sau.
+                // The row is already gone; an orphan file on disk breaks nothing and can be
+                // swept up later.
             }
         }
 

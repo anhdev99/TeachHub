@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { QuizDto, QuizQuestionDto } from "@/lib/api/types";
 import { SoanQuiz } from "./soan-quiz";
@@ -31,11 +31,11 @@ export default async function OfferingQuizzesPage({
   }).then((r) => (r.ok ? r.json() : [])).catch(() => []);
 
   return (
-    <Trang>
-      <DauTrang
-        quayLai={{ href: `/offerings/${id}`, nhan: "Lớp học phần" }}
-        tieuDe="Trắc nghiệm"
-        moTa={
+    <PageShell>
+      <PageHeader
+        backTo={{ href: `/offerings/${id}`, label: "Lớp học phần" }}
+        title="Trắc nghiệm"
+        description={
           <>
             Câu hỏi lấy từ{" "}
             <Link href="/questions" className="text-foreground underline underline-offset-2">
@@ -47,6 +47,6 @@ export default async function OfferingQuizzesPage({
       />
 
       <SoanQuiz offeringId={id} banDau={quiz} nganHang={cau} />
-    </Trang>
+    </PageShell>
   );
 }

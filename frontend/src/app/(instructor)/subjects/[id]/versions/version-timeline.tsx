@@ -17,10 +17,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { TrongRong } from "@/components/shell/trang";
-import { ngay } from "@/lib/dinh-dang";
+import { EmptyState } from "@/components/shell/page-shell";
+import { formatDate } from "@/lib/format";
 import { apiFetch } from "@/lib/api/fetcher";
-import { NHAN_TRANG_THAI, type SubjectVersionDto } from "@/lib/api/types";
+import { VERSION_STATUS_LABELS, type SubjectVersionDto } from "@/lib/api/types";
 
 /**
  * Ba trạng thái phải phân biệt được TỪ XA — đây là chỗ giảng viên kiểm tra trước khi sửa
@@ -48,7 +48,7 @@ const KIEU_TRANG_THAI = {
   },
 } as const;
 
-export function DongThoiGian({
+export function VersionTimeline({
   subjectId,
   versions,
 }: {
@@ -100,10 +100,10 @@ export function DongThoiGian({
       {versions.length === 0 ? (
         <Card>
           <CardContent>
-            <TrongRong
+            <EmptyState
               Icon={Layers}
-              tieuDe="Chưa có phiên bản nào"
-              moTa="Phiên bản là một bản chụp nội dung môn học. Lớp học phần luôn ghim vào một phiên bản đã xuất bản."
+              title="Chưa có phiên bản nào"
+              description="Phiên bản là một bản chụp nội dung môn học. Lớp học phần luôn ghim vào một phiên bản đã xuất bản."
             />
           </CardContent>
         </Card>
@@ -128,12 +128,12 @@ export function DongThoiGian({
                       <kieu.Icon className="text-muted-foreground size-4 shrink-0" aria-hidden />
                       <span className="font-medium">{v.version_label}</span>
                       <Badge className={`${kieu.badge} shrink-0`}>
-                        {NHAN_TRANG_THAI[v.status]}
+                        {VERSION_STATUS_LABELS[v.status]}
                       </Badge>
                       {v.published_at && (
                         <span className="text-muted-foreground text-xs">
                           Xuất bản{" "}
-                          <time dateTime={v.published_at}>{ngay(v.published_at)}</time>
+                          <time dateTime={v.published_at}>{formatDate(v.published_at)}</time>
                         </span>
                       )}
                     </div>

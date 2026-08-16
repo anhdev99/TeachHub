@@ -6,7 +6,7 @@ using TeachHub.Domain.Quizzes;
 
 namespace TeachHub.Application.Features.Quizzes;
 
-// ── Đọc ngân hàng câu hỏi ───────────────────────────────────────────────────────────────
+// ── Read the question bank ──────────────────────────────────────────────────────────────
 
 public sealed record GetQuestionsQuery(Guid InstructorId, string? Tag) : IQuery<List<QuizQuestionDto>>;
 
@@ -15,18 +15,18 @@ public sealed class GetQuestionsHandler(IAppDbContext db)
 {
     public async Task<List<QuizQuestionDto>> Handle(GetQuestionsQuery request, CancellationToken ct)
     {
-        var ds = await db.QuizQuestions.AsNoTracking()
+        var questions = await db.QuizQuestions.AsNoTracking()
             .Include(q => q.Options)
             .Where(q => q.InstructorId == request.InstructorId)
             .Where(q => request.Tag == null || q.FoundationTags.Contains(request.Tag))
             .OrderByDescending(q => q.Id)
             .ToListAsync(ct);
 
-        return [.. ds.Select(QuizQuestionDto.From)];
+        return [.. questions.Select(QuizQuestionDto.From)];
     }
 }
 
-// ── Tạo / sửa câu hỏi ───────────────────────────────────────────────────────────────────
+// ── Create / edit a question ────────────────────────────────────────────────────────────
 
 public sealed record NewOption(string Text, bool IsCorrect);
 
@@ -45,8 +45,9 @@ public sealed class SaveQuestionValidator : AbstractValidator<SaveQuestionComman
         RuleFor(x => x.Text).NotEmpty().WithMessage("Chưa nhập nội dung câu hỏi.").MaximumLength(2000);
         RuleFor(x => x.Points).GreaterThan(0m).WithMessage("Điểm của câu phải lớn hơn 0.");
 
-        // Luật thuần hình dạng trên chính payload ⇒ validator. Một câu trắc nghiệm không có
-        // đáp án đúng nào là câu không ai trả lời đúng được — lỗi soạn đề, không phải lựa chọn.
+        // A pure shape rule over the payload itself ⇒ validator. A multiple-choice question with
+        // no correct option at all is a question nobody can answer correctly — an authoring
+        // mistake, not a deliberate choice.
         RuleFor(x => x.Options)
             .Must(o => o.Count >= 2)
             .When(x => x.Type is QuestionType.SingleChoice or QuestionType.MultipleChoice)
@@ -74,43 +75,44 @@ public sealed class SaveQuestionHandler(IAppDbContext db)
 {
     public async Task<Result<QuizQuestionDto>> Handle(SaveQuestionCommand request, CancellationToken ct)
     {
-        QuizQuestion cau;
-        var moi = request.Id is null;
+        QuizQuestion question;
+        var isNew = request.Id is null;
 
         if (request.Id is { } id)
         {
-            var tim = await db.QuizQuestions.Include(q => q.Options)
+            var found = await db.QuizQuestions.Include(q => q.Options)
                 .SingleOrDefaultAsync(q => q.Id == id && q.InstructorId == request.InstructorId, ct);
 
-            if (tim is null) return Result<QuizQuestionDto>.NotFound("Không tìm thấy câu hỏi.");
+            if (found is null) return Result<QuizQuestionDto>.NotFound("Không tìm thấy câu hỏi.");
 
-            cau = tim;
+            question = found;
 
-            // Remove/Add tường minh qua DbSet: Entity.Id tự sinh UUIDv7 lúc khởi tạo nên thêm
-            // con qua navigation của parent đang tracked làm EF phát UPDATE thay vì INSERT.
-            db.QuestionOptions.RemoveRange(cau.Options);
-            cau.Options.Clear();
+            // Explicit Remove/Add through the DbSet: Entity.Id generates its own UUIDv7 at
+            // construction time, so adding children through the navigation of a tracked parent
+            // makes EF emit an UPDATE instead of an INSERT.
+            db.QuestionOptions.RemoveRange(question.Options);
+            question.Options.Clear();
         }
         else
         {
-            cau = new QuizQuestion
+            question = new QuizQuestion
             {
                 InstructorId = request.InstructorId,
                 Type = request.Type,
                 Text = request.Text.Trim(),
             };
 
-            db.QuizQuestions.Add(cau);
+            db.QuizQuestions.Add(question);
         }
 
-        cau.Type = request.Type;
-        cau.Text = request.Text.Trim();
-        cau.Explanation = request.Explanation?.Trim();
-        cau.FoundationTags = [.. request.FoundationTags.Select(t => t.Trim()).Where(t => t.Length > 0)];
-        cau.Points = request.Points;
-        cau.AllowPartialCredit = request.AllowPartialCredit;
+        question.Type = request.Type;
+        question.Text = request.Text.Trim();
+        question.Explanation = request.Explanation?.Trim();
+        question.FoundationTags = [.. request.FoundationTags.Select(t => t.Trim()).Where(t => t.Length > 0)];
+        question.Points = request.Points;
+        question.AllowPartialCredit = request.AllowPartialCredit;
 
-        cau.FillBlank = request.Type == QuestionType.FillBlank && request.FillBlank is { } f
+        question.FillBlank = request.Type == QuestionType.FillBlank && request.FillBlank is { } f
             ? new FillBlankConfig
             {
                 AcceptedAnswers = [.. f.AcceptedAnswers.Select(a => a.Trim()).Where(a => a.Length > 0)],
@@ -120,28 +122,28 @@ public sealed class SaveQuestionHandler(IAppDbContext db)
             }
             : null;
 
-        var pa = request.Options.Select((o, i) => new QuestionOption
+        var options = request.Options.Select((o, i) => new QuestionOption
         {
-            QuestionId = cau.Id,
+            QuestionId = question.Id,
             Text = o.Text.Trim(),
             IsCorrect = o.IsCorrect,
             OrderIndex = i,
         }).ToList();
 
-        if (moi) cau.Options.AddRange(pa);          // parent cũng mới ⇒ cả đồ thị Added
-        else db.QuestionOptions.AddRange(pa);
+        if (isNew) question.Options.AddRange(options);   // parent is new too ⇒ whole graph Added
+        else db.QuestionOptions.AddRange(options);
 
         await db.SaveChangesAsync(ct);
 
-        // Nạp lại để DTO có đúng danh sách phương án vừa ghi.
-        var luu = await db.QuizQuestions.AsNoTracking().Include(q => q.Options)
-            .SingleAsync(q => q.Id == cau.Id, ct);
+        // Reload so the DTO carries exactly the option list that was just written.
+        var saved = await db.QuizQuestions.AsNoTracking().Include(q => q.Options)
+            .SingleAsync(q => q.Id == question.Id, ct);
 
-        return Result<QuizQuestionDto>.Ok(QuizQuestionDto.From(luu));
+        return Result<QuizQuestionDto>.Ok(QuizQuestionDto.From(saved));
     }
 }
 
-// ── Xóa câu hỏi ─────────────────────────────────────────────────────────────────────────
+// ── Delete a question ───────────────────────────────────────────────────────────────────
 
 public sealed record DeleteQuestionCommand(Guid Id, Guid InstructorId) : ICommand<Result>;
 
@@ -150,21 +152,22 @@ public sealed class DeleteQuestionHandler(IAppDbContext db)
 {
     public async Task<Result> Handle(DeleteQuestionCommand request, CancellationToken ct)
     {
-        var cau = await db.QuizQuestions
+        var question = await db.QuizQuestions
             .SingleOrDefaultAsync(q => q.Id == request.Id && q.InstructorId == request.InstructorId, ct);
 
-        if (cau is null) return Result.NotFound("Không tìm thấy câu hỏi.");
+        if (question is null) return Result.NotFound("Không tìm thấy câu hỏi.");
 
-        // Câu đang nằm trong quiz đã có người làm thì xóa là làm hỏng bài đã chấm: lượt làm
-        // lưu id câu trong answers_json, và điểm cũ sẽ không giải thích được nữa.
-        var soLuot = await db.QuizAttempts.CountAsync(
+        // Deleting a question that sits in a quiz somebody has already taken corrupts work that
+        // was already graded: an attempt stores question ids in answers_json, and the old score
+        // would no longer be explainable.
+        var attemptCount = await db.QuizAttempts.CountAsync(
             a => db.QuizItems.Any(i => i.QuizId == a.QuizId && i.QuestionId == request.Id), ct);
 
-        if (soLuot > 0)
+        if (attemptCount > 0)
             return Result.Conflict(
-                $"Câu này đã có {soLuot} lượt làm bài. Xóa đi thì điểm đã chấm không còn giải thích được.");
+                $"Câu này đã có {attemptCount} lượt làm bài. Xóa đi thì điểm đã chấm không còn giải thích được.");
 
-        db.QuizQuestions.Remove(cau);
+        db.QuizQuestions.Remove(question);
         await db.SaveChangesAsync(ct);
 
         return Result.Ok();

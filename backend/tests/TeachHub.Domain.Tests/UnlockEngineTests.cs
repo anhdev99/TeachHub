@@ -6,104 +6,105 @@ namespace TeachHub.Domain.Tests;
 
 public class UnlockEngineTests
 {
-    private static LessonNode Bai(string ten, bool batBuoc, params ComponentNode[] components) =>
-        new(Guid.CreateVersion7(), ten, batBuoc, [.. components]);
+    private static LessonNode Lesson(string title, bool required, params ComponentNode[] components) =>
+        new(Guid.CreateVersion7(), title, required, [.. components]);
 
-    private static ComponentNode Phan(bool batBuoc) => new(Guid.CreateVersion7(), batBuoc);
+    private static ComponentNode Component(bool required) => new(Guid.CreateVersion7(), required);
 
     [Fact]
-    public void Chuong_free_mo_khoa_toan_bo_bai_ngay_tu_dau()
+    public void A_free_chapter_unlocks_every_lesson_from_the_start()
     {
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free,
-            [Bai("Bài 1", batBuoc: true), Bai("Bài 2", batBuoc: true)]);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free,
+            [Lesson("Bài 1", required: true), Lesson("Bài 2", required: true)]);
 
-        var kq = UnlockEngine.Evaluate(chuong, Progress.Empty);
+        var result = UnlockEngine.Evaluate(chapter, Progress.Empty);
 
-        kq.Values.ShouldAllBe(v => v == LessonAccess.Unlocked);
+        result.Values.ShouldAllBe(v => v == LessonAccess.Unlocked);
     }
 
     [Fact]
-    public void Chuong_tuan_tu_chi_mo_bai_dau_tien_khi_chua_hoc_gi()
+    public void A_sequential_chapter_opens_only_the_first_lesson_when_nothing_is_studied_yet()
     {
-        var b1 = Bai("Bài 1", batBuoc: true);
-        var b2 = Bai("Bài 2", batBuoc: true);
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+        var l1 = Lesson("Bài 1", required: true);
+        var l2 = Lesson("Bài 2", required: true);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [l1, l2]);
 
-        var kq = UnlockEngine.Evaluate(chuong, Progress.Empty);
+        var result = UnlockEngine.Evaluate(chapter, Progress.Empty);
 
-        kq[b1.Id].ShouldBe(LessonAccess.Unlocked);
-        kq[b2.Id].ShouldBe(LessonAccess.Locked);
+        result[l1.Id].ShouldBe(LessonAccess.Unlocked);
+        result[l2.Id].ShouldBe(LessonAccess.Locked);
     }
 
     [Fact]
-    public void Hoan_thanh_bai_bat_buoc_thi_mo_bai_ke_tiep()
+    public void Completing_a_required_lesson_unlocks_the_next_one()
     {
-        var b1 = Bai("Bài 1", batBuoc: true);
-        var b2 = Bai("Bài 2", batBuoc: true);
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+        var l1 = Lesson("Bài 1", required: true);
+        var l2 = Lesson("Bài 2", required: true);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [l1, l2]);
 
-        var kq = UnlockEngine.Evaluate(chuong, Progress.With(completedLessons: [b1.Id]));
+        var result = UnlockEngine.Evaluate(chapter, Progress.With(completedLessons: [l1.Id]));
 
-        kq[b2.Id].ShouldBe(LessonAccess.Unlocked);
+        result[l2.Id].ShouldBe(LessonAccess.Unlocked);
     }
 
     [Fact]
-    public void Bai_KHONG_bat_buoc_khong_chan_bai_ke_tiep()
+    public void A_NON_required_lesson_does_not_block_the_next_one()
     {
-        // is_required_to_unlock_next = false ⇒ bài tham khảo, bỏ qua được.
-        var b1 = Bai("Bài đọc thêm", batBuoc: false);
-        var b2 = Bai("Bài 2", batBuoc: true);
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+        // is_required_to_unlock_next = false => supplementary reading, safe to skip.
+        var l1 = Lesson("Bài đọc thêm", required: false);
+        var l2 = Lesson("Bài 2", required: true);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [l1, l2]);
 
-        var kq = UnlockEngine.Evaluate(chuong, Progress.Empty);
+        var result = UnlockEngine.Evaluate(chapter, Progress.Empty);
 
-        kq[b2.Id].ShouldBe(LessonAccess.Unlocked);
+        result[l2.Id].ShouldBe(LessonAccess.Unlocked);
     }
 
     [Fact]
-    public void Bai_chi_duoc_tinh_hoan_thanh_khi_moi_component_bat_buoc_da_xong()
+    public void A_lesson_counts_as_complete_only_once_every_required_component_is_done()
     {
-        var phanBatBuoc = Phan(batBuoc: true);
-        var phanTuyChon = Phan(batBuoc: false);
-        var b1 = Bai("Bài 1", batBuoc: true, phanBatBuoc, phanTuyChon);
-        var b2 = Bai("Bài 2", batBuoc: true);
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2]);
+        var requiredComponent = Component(required: true);
+        var optionalComponent = Component(required: false);
+        var l1 = Lesson("Bài 1", required: true, requiredComponent, optionalComponent);
+        var l2 = Lesson("Bài 2", required: true);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [l1, l2]);
 
-        // Xem xong nội dung nhưng chưa nộp bài tập bắt buộc
-        var chuaXong = Progress.With(completedLessons: [b1.Id], completedComponents: []);
-        UnlockEngine.Evaluate(chuong, chuaXong)[b2.Id].ShouldBe(LessonAccess.Locked);
+        // Finished reading the content but has not submitted the required exercise yet
+        var notDone = Progress.With(completedLessons: [l1.Id], completedComponents: []);
+        UnlockEngine.Evaluate(chapter, notDone)[l2.Id].ShouldBe(LessonAccess.Locked);
 
-        var daXong = Progress.With(completedLessons: [b1.Id], completedComponents: [phanBatBuoc.Id]);
-        UnlockEngine.Evaluate(chuong, daXong)[b2.Id].ShouldBe(LessonAccess.Unlocked);
+        var done = Progress.With(completedLessons: [l1.Id], completedComponents: [requiredComponent.Id]);
+        UnlockEngine.Evaluate(chapter, done)[l2.Id].ShouldBe(LessonAccess.Unlocked);
     }
 
     [Fact]
-    public void Bai_bi_khoa_neu_ra_duoc_ly_do_la_bai_nao_dang_chan()
+    public void A_locked_lesson_can_name_the_lesson_that_is_blocking_it()
     {
-        // Chỉ hiện ổ khóa mà không nói vì sao là nguồn tin nhắn hỏi bài số một của mọi LMS.
-        var b1 = Bai("Bài 1 — Hooks", batBuoc: true);
-        var b2 = Bai("Bài 2", batBuoc: true);
-        var b3 = Bai("Bài 3", batBuoc: true);
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [b1, b2, b3]);
+        // Showing only a padlock without saying why is the number one source of "why can't I
+        // open this" messages in every LMS.
+        var l1 = Lesson("Bài 1 — Hooks", required: true);
+        var l2 = Lesson("Bài 2", required: true);
+        var l3 = Lesson("Bài 3", required: true);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.AfterPreviousCompleted, [l1, l2, l3]);
 
-        UnlockEngine.BlockingLesson(chuong, b3.Id, Progress.Empty)?.Title.ShouldBe("Bài 1 — Hooks");
-        UnlockEngine.BlockingLesson(chuong, b1.Id, Progress.Empty).ShouldBeNull();
+        UnlockEngine.BlockingLesson(chapter, l3.Id, Progress.Empty)?.Title.ShouldBe("Bài 1 — Hooks");
+        UnlockEngine.BlockingLesson(chapter, l1.Id, Progress.Empty).ShouldBeNull();
     }
 
     [Fact]
-    public void Phan_tram_hoan_thanh_tinh_theo_so_bai_da_xong()
+    public void Completion_percentage_is_computed_from_the_number_of_finished_lessons()
     {
-        var b1 = Bai("1", true); var b2 = Bai("2", true); var b3 = Bai("3", true); var b4 = Bai("4", true);
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free, [b1, b2, b3, b4]);
+        var l1 = Lesson("1", true); var l2 = Lesson("2", true); var l3 = Lesson("3", true); var l4 = Lesson("4", true);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free, [l1, l2, l3, l4]);
 
-        UnlockEngine.CompletionPercent(chuong, Progress.With(completedLessons: [b1.Id, b2.Id]))
+        UnlockEngine.CompletionPercent(chapter, Progress.With(completedLessons: [l1.Id, l2.Id]))
             .ShouldBe(50m);
     }
 
     [Fact]
-    public void Chuong_rong_khong_gay_chia_cho_khong()
+    public void An_empty_chapter_does_not_cause_a_division_by_zero()
     {
-        var chuong = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free, []);
-        UnlockEngine.CompletionPercent(chuong, Progress.Empty).ShouldBe(0m);
+        var chapter = new ChapterNode(Guid.CreateVersion7(), UnlockRule.Free, []);
+        UnlockEngine.CompletionPercent(chapter, Progress.Empty).ShouldBe(0m);
     }
 }

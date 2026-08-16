@@ -23,8 +23,8 @@ public sealed class QuizQuestionConfiguration : IEntityTypeConfiguration<QuizQue
         b.HasMany(x => x.Options).WithOne().HasForeignKey(o => o.QuestionId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // FillBlankConfig không chứa enum; AcceptedAnswers là primitive collection nên EF map
-        // thẳng vào cột jsonb mà không cần OwnsMany.
+        // FillBlankConfig contains no enum; AcceptedAnswers is a primitive collection, so EF maps
+        // it straight into the jsonb column without needing OwnsMany.
         b.OwnsOne(x => x.FillBlank, f => f.ToJson());
 
         b.HasIndex(x => x.InstructorId);
@@ -51,7 +51,7 @@ public sealed class QuizItemConfiguration : IEntityTypeConfiguration<QuizItem>
         b.HasOne<QuizQuestion>().WithMany().HasForeignKey(x => x.QuestionId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Một câu hỏi chỉ xuất hiện MỘT lần trong cùng một quiz.
+        // A question appears only ONCE within the same quiz.
         b.HasIndex(x => new { x.QuizId, x.QuestionId }).IsUnique();
     }
 }
@@ -69,14 +69,15 @@ public sealed class QuizAttemptConfiguration : IEntityTypeConfiguration<QuizAtte
         b.HasOne<Quiz>().WithMany().HasForeignKey(x => x.QuizId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Restrict: lượt làm là dữ liệu điểm của sinh viên, không bị dọn theo khi sửa lớp.
+        // Restrict: an attempt is a student's grade data; it is not cleaned up along with an edit
+        // to the class offering.
         b.HasOne<Enrollment>().WithMany().HasForeignKey(x => x.EnrollmentId)
          .OnDelete(DeleteBehavior.Restrict);
 
-        // Đáp án lưu jsonb, cập nhật sau mỗi câu chứ không đợi lúc nộp.
+        // Answers are stored as jsonb, updated after each question rather than waiting for submit.
         b.OwnsMany(x => x.Answers, a => a.ToJson());
 
-        // Danh sách id lưu jsonb dạng primitive collection — không cần OwnsMany.
+        // Id lists stored as jsonb in the form of a primitive collection — no OwnsMany needed.
         b.Property(x => x.WrongQuestionIds).HasColumnType("jsonb");
         b.Property(x => x.QuestionOrder).HasColumnType("jsonb");
 

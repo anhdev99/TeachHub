@@ -4,28 +4,30 @@ using TeachHub.Application.Common;
 
 namespace TeachHub.Api.Controllers;
 
-// KHÔNG gắn [Produces("application/json")] ở đây. Nó ép content-type cho MỌI phản hồi của
-// mọi controller, kể cả phản hồi lỗi — nên 401/404/409 trả đúng thân ProblemDetails nhưng
-// gắn nhãn "application/json" thay vì "application/problem+json" theo RFC 9457. Frontend
-// phân nhánh theo content-type sẽ không nhận ra đó là lỗi có cấu trúc, và bước 6 của kịch
-// bản nghiệm thu Phase 0 đỏ. JSON vẫn là định dạng duy nhất vì chỉ có formatter JSON đăng ký.
+// Do NOT put [Produces("application/json")] here. It forces the content-type onto EVERY
+// response of every controller, error responses included — so 401/404/409 still carry a proper
+// ProblemDetails body but get labelled "application/json" instead of RFC 9457's
+// "application/problem+json". A frontend that branches on content-type then fails to recognise
+// them as structured errors, and step 6 of the Phase 0 acceptance script goes red. JSON stays
+// the only format anyway, because the JSON formatter is the only one registered.
 [ApiController]
 public abstract class ApiControllerBase : ControllerBase
 {
     /// <summary>
-    /// Id người gọi, lấy từ claim. Fallback policy bảo đảm mọi request tới được đây đều đã
-    /// qua xác thực, nên thiếu claim là lỗi cấu hình của ta chứ không phải lỗi người dùng —
-    /// ném ra để thành 500 và lộ ngay, đừng âm thầm trả Guid.Empty rồi truy vấn nhầm dữ liệu.
+    /// Caller id, taken from the claim. The fallback policy guarantees that every request which
+    /// reaches this point is already authenticated, so a missing claim is a configuration bug on
+    /// our side and not a user error — throw, so it turns into a 500 and shows up right away;
+    /// never quietly return Guid.Empty and go on to query the wrong data with it.
     /// </summary>
     protected Guid CurrentUserId =>
         Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
             ? id
-            : throw new InvalidOperationException("Request đã xác thực nhưng thiếu claim sub hợp lệ.");
+            : throw new InvalidOperationException("Request is authenticated but carries no valid sub claim.");
 
-    // Thành công LUÔN trả 200, kể cả overload không generic. Trả NoContent() (204) ở đây thì
-    // mọi [ProducesResponseType] và mọi test ở Phase 1–4b khẳng định 200 sẽ sai — hợp đồng
-    // OpenAPI lệch và một loạt test đỏ. Một mã thành công duy nhất cho cả hai overload là
-    // quy tắc rẻ nhất để không bao giờ lệch lại.
+    // Success ALWAYS answers 200, the non-generic overload included. Returning NoContent() (204)
+    // here would falsify every [ProducesResponseType] and every Phase 1–4b test that asserts
+    // 200 — the OpenAPI contract drifts and a whole batch of tests goes red. One single success
+    // code for both overloads is the cheapest rule that keeps them from drifting apart again.
     protected IActionResult ToActionResult(Result result) => result.Status switch
     {
         ResultStatus.Ok              => Ok(),
@@ -41,7 +43,7 @@ public abstract class ApiControllerBase : ControllerBase
                                                 title: "Chưa xác thực", detail: result.Error),
         ResultStatus.PayloadTooLarge => Problem(statusCode: StatusCodes.Status413PayloadTooLarge,
                                                 title: "Tệp vượt dung lượng cho phép", detail: result.Error),
-        _ => throw new InvalidOperationException($"Trạng thái chưa xử lý: {result.Status}"),
+        _ => throw new InvalidOperationException($"Unhandled result status: {result.Status}"),
     };
 
     protected IActionResult ToActionResult<T>(Result<T> result) => result.Status switch
@@ -59,6 +61,6 @@ public abstract class ApiControllerBase : ControllerBase
                                                 title: "Chưa xác thực", detail: result.Error),
         ResultStatus.PayloadTooLarge => Problem(statusCode: StatusCodes.Status413PayloadTooLarge,
                                                 title: "Tệp vượt dung lượng cho phép", detail: result.Error),
-        _ => throw new InvalidOperationException($"Trạng thái chưa xử lý: {result.Status}"),
+        _ => throw new InvalidOperationException($"Unhandled result status: {result.Status}"),
     };
 }

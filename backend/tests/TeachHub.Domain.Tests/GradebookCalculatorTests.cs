@@ -4,159 +4,161 @@ using TeachHub.Domain.Grading;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Giữ test dù phase chạy theo yêu cầu "không viết test". Đây là đường đi của con số nộp cho
-/// phòng đào tạo: một trọng số tính sai hay một trần điểm cộng áp hai lần không có triệu chứng
-/// nào trên giao diện — nó chỉ hiện ra khi bảng điểm đã nộp. Cả file chạy dưới 50 ms.
+/// Kept even though the phase ran under a "no tests" instruction. This is the path travelled by
+/// the number submitted to the academic office: one miscomputed weight, or a bonus cap applied
+/// twice, has no symptom in the UI — it only surfaces once the grade sheet has been filed.
+/// The whole file runs in under 50 ms.
 /// </summary>
 public class GradebookCalculatorTests
 {
     private static readonly DateTimeOffset T0 = new(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
 
-    private static GradeColumn Cot(string key, decimal trongSo, AggregationKind kind = AggregationKind.Average)
+    private static GradeColumn Column(string key, decimal weight, AggregationKind kind = AggregationKind.Average)
         => new()
         {
             OfferingId = Guid.CreateVersion7(), Key = key, Name = key,
-            WeightPercent = trongSo, Aggregation = new GradeAggregation { Kind = kind },
+            WeightPercent = weight, Aggregation = new GradeAggregation { Kind = kind },
         };
 
-    // ── Chuẩn hóa về thang 10 ────────────────────────────────────────────────────────────
+    // -- Normalizing to a 10-point scale ---------------------------------------------------
 
     [Fact]
-    public void Nguon_thang_20_duoc_quy_ve_thang_10_truoc_khi_gop()
+    public void A_source_on_a_20_point_scale_is_normalized_to_10_before_aggregating()
     {
-        // Rubric tổng 20, sinh viên được 16 → vào cột là 8.0, KHÔNG phải 16 rồi kẹp thành 10.
-        var d = GradeAggregator.Apply(
+        // A rubric totalling 20 on which the student scored 16 -> the column gets 8.0,
+        // NOT 16 subsequently clamped to 10.
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.Average },
             [new SourceScore(16m, 20m)]);
 
-        d.ShouldBe(8m);
+        score.ShouldBe(8m);
     }
 
     [Fact]
-    public void Khong_co_nguon_nao_tra_0_chu_khong_chia_cho_0()
+    public void With_no_sources_it_returns_0_rather_than_dividing_by_0()
     {
         GradeAggregator.Apply(new GradeAggregation { Kind = AggregationKind.Average }, [])
             .ShouldBe(0m);
     }
 
     [Fact]
-    public void Bai_chua_cham_tinh_la_0_khi_TreatMissingAsZero()
+    public void An_ungraded_submission_counts_as_0_when_TreatMissingAsZero()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.Average, TreatMissingAsZero = true },
             [new SourceScore(10m, 10m), new SourceScore(null, 10m)]);
 
-        d.ShouldBe(5m);
+        score.ShouldBe(5m);
     }
 
     [Fact]
-    public void Bai_chua_cham_bi_loai_khoi_mau_so_khi_TreatMissingAsZero_false()
+    public void An_ungraded_submission_leaves_the_denominator_when_TreatMissingAsZero_is_false()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.Average, TreatMissingAsZero = false },
             [new SourceScore(10m, 10m), new SourceScore(null, 10m)]);
 
-        d.ShouldBe(10m);
+        score.ShouldBe(10m);
     }
 
-    // ── Các quy tắc gộp ──────────────────────────────────────────────────────────────────
+    // -- Aggregation rules -----------------------------------------------------------------
 
     [Fact]
-    public void Bo_n_thap_nhat()
+    public void Drop_the_n_lowest()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.DropLowestN, N = 1 },
             [new SourceScore(4m, 10m), new SourceScore(8m, 10m), new SourceScore(9m, 10m)]);
 
-        d.ShouldBe(8.5m);
+        score.ShouldBe(8.5m);
     }
 
     [Fact]
-    public void Bo_n_thap_nhat_khong_bao_gio_bo_sach_roi_chia_cho_0()
+    public void Dropping_the_n_lowest_never_drops_everything_and_divides_by_0()
     {
-        // N = 5 trên 2 nguồn: phải giữ lại ít nhất một bài.
-        var d = GradeAggregator.Apply(
+        // N = 5 across 2 sources: at least one submission has to survive.
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.DropLowestN, N = 5 },
             [new SourceScore(4m, 10m), new SourceScore(8m, 10m)]);
 
-        d.ShouldBe(8m);
+        score.ShouldBe(8m);
     }
 
     [Fact]
-    public void Lay_n_tot_nhat()
+    public void Take_the_n_best()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.BestNOfM, N = 2 },
             [new SourceScore(4m, 10m), new SourceScore(8m, 10m), new SourceScore(9m, 10m)]);
 
-        d.ShouldBe(8.5m);
+        score.ShouldBe(8.5m);
     }
 
     [Fact]
-    public void Cong_don_bi_kep_o_thang_diem()
+    public void Summing_is_clamped_at_the_top_of_the_scale()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.Sum },
             [new SourceScore(7m, 10m), new SourceScore(8m, 10m)]);
 
-        d.ShouldBe(10m);
+        score.ShouldBe(10m);
     }
 
     [Fact]
-    public void Trung_binh_co_trong_so()
+    public void Weighted_average()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.WeightedAverage },
             [new SourceScore(10m, 10m, 3m), new SourceScore(6m, 10m, 1m)]);
 
-        d.ShouldBe(9m);
+        score.ShouldBe(9m);
     }
 
     [Fact]
-    public void Trong_so_de_trong_het_thi_chia_deu()
+    public void With_every_weight_left_blank_it_falls_back_to_an_even_split()
     {
-        var d = GradeAggregator.Apply(
+        var score = GradeAggregator.Apply(
             new GradeAggregation { Kind = AggregationKind.WeightedAverage },
             [new SourceScore(10m, 10m, 0m), new SourceScore(6m, 10m, 0m)]);
 
-        d.ShouldBe(8m);
+        score.ShouldBe(8m);
     }
 
-    // ── Sổ điểm cộng: tất định và áp trần một lần ────────────────────────────────────────
+    // -- The bonus ledger: deterministic, with the cap applied once ------------------------
 
     [Fact]
-    public void Tran_diem_cong_ap_dung_MOT_lan_tren_toan_bo()
+    public void The_bonus_cap_is_applied_ONCE_across_the_whole_ledger()
     {
-        var cot = Guid.CreateVersion7();
+        var column = Guid.CreateVersion7();
 
         var ledger = BonusLedger.Build(
             [
-                new BonusEntry(Guid.CreateVersion7(), BonusTarget.GradeColumn, cot, 0.5m, T0),
+                new BonusEntry(Guid.CreateVersion7(), BonusTarget.GradeColumn, column, 0.5m, T0),
                 new BonusEntry(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, 0.5m, T0.AddHours(1)),
                 new BonusEntry(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, 0.5m, T0.AddHours(2)),
             ],
             GradebookSettings.Default with { MaxBonusPerStudent = 1m });
 
         ledger.TotalGranted.ShouldBe(1m);
-        ledger.ForColumn(cot).ShouldBe(0.5m);
-        ledger.ToFinalTotal.ShouldBe(0.5m);   // lần cấp thứ ba đã hết trần
+        ledger.ForColumn(column).ShouldBe(0.5m);
+        ledger.ToFinalTotal.ShouldBe(0.5m);   // the third grant already exhausted the cap
     }
 
     [Fact]
-    public void Thu_tu_dau_vao_KHONG_lam_doi_ket_qua_ap_tran()
+    public void Input_order_does_NOT_change_how_the_cap_is_applied()
     {
-        // Blocker B2: không sắp xếp tất định thì trần cắt theo thứ tự câu truy vấn trả về,
-        // và cùng một tập điểm cộng đọc hai lần cho hai kết quả.
+        // Blocker B2: without a deterministic sort, the cap truncates in whatever order the query
+        // returned rows, and reading the same set of bonus entries twice gives two answers.
         var a = new BonusEntry(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, 0.7m, T0);
         var b = new BonusEntry(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, 0.7m, T0.AddHours(1));
-        var s = GradebookSettings.Default with { MaxBonusPerStudent = 1m };
+        var settings = GradebookSettings.Default with { MaxBonusPerStudent = 1m };
 
-        BonusLedger.Build([a, b], s).ToFinalTotal
-            .ShouldBe(BonusLedger.Build([b, a], s).ToFinalTotal);
+        BonusLedger.Build([a, b], settings).ToFinalTotal
+            .ShouldBe(BonusLedger.Build([b, a], settings).ToFinalTotal);
     }
 
     [Fact]
-    public void Diem_cong_am_bi_bo_qua()
+    public void A_negative_bonus_is_ignored()
     {
         var ledger = BonusLedger.Build(
             [new BonusEntry(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, -5m, T0)],
@@ -165,56 +167,56 @@ public class GradebookCalculatorTests
         ledger.ToFinalTotal.ShouldBe(0m);
     }
 
-    // ── Điểm tổng ────────────────────────────────────────────────────────────────────────
+    // -- The final score --------------------------------------------------------------------
 
     [Fact]
-    public void Diem_tong_theo_trong_so()
+    public void The_final_score_follows_the_column_weights()
     {
-        var tk = Cot("thuong_ky", 40m);
-        var cm = Cot("cuoi_mon", 60m);
+        var coursework = Column("thuong_ky", 40m);
+        var final = Column("cuoi_mon", 60m);
 
-        var d = GradebookCalculator.FinalScore(
-            [tk, cm],
-            new Dictionary<Guid, decimal> { [tk.Id] = 8m, [cm.Id] = 6m },
+        var score = GradebookCalculator.FinalScore(
+            [coursework, final],
+            new Dictionary<Guid, decimal> { [coursework.Id] = 8m, [final.Id] = 6m },
             BonusLedger.Empty, GradebookSettings.Default);
 
-        d.ShouldBe(6.8m);   // 8×0.4 + 6×0.6
+        score.ShouldBe(6.8m);   // 8x0.4 + 6x0.6
     }
 
     [Fact]
-    public void Cot_chua_cham_tinh_la_0()
+    public void An_ungraded_column_counts_as_0()
     {
-        var tk = Cot("thuong_ky", 40m);
-        var cm = Cot("cuoi_mon", 60m);
+        var coursework = Column("thuong_ky", 40m);
+        var final = Column("cuoi_mon", 60m);
 
         GradebookCalculator.FinalScore(
-            [tk, cm],
-            new Dictionary<Guid, decimal> { [tk.Id] = 10m },
+            [coursework, final],
+            new Dictionary<Guid, decimal> { [coursework.Id] = 10m },
             BonusLedger.Empty, GradebookSettings.Default)
             .ShouldBe(4m);
     }
 
     [Fact]
-    public void Diem_cong_vao_cot_bi_kep_o_10_truoc_khi_nhan_trong_so()
+    public void A_bonus_added_to_a_column_is_clamped_at_10_before_the_weight_is_applied()
     {
-        var tk = Cot("thuong_ky", 100m);
+        var coursework = Column("thuong_ky", 100m);
 
         var ledger = BonusLedger.Build(
-            [new BonusEntry(Guid.CreateVersion7(), BonusTarget.GradeColumn, tk.Id, 2m, T0)],
+            [new BonusEntry(Guid.CreateVersion7(), BonusTarget.GradeColumn, coursework.Id, 2m, T0)],
             GradebookSettings.Default);
 
         GradebookCalculator.FinalScore(
-            [tk], new Dictionary<Guid, decimal> { [tk.Id] = 9.5m },
+            [coursework], new Dictionary<Guid, decimal> { [coursework.Id] = 9.5m },
             ledger, GradebookSettings.Default)
             .ShouldBe(10m);
     }
 
     [Fact]
-    public void Lam_tron_dung_MOT_lan_o_buoc_cuoi()
+    public void Rounding_happens_exactly_ONCE_at_the_final_step()
     {
-        // Làm tròn từng cột rồi cộng lại lệch tới 0.2–0.3 điểm trên lớp 6 cột.
-        var a = Cot("a", 50m);
-        var b = Cot("b", 50m);
+        // Rounding each column and then summing drifts by 0.2-0.3 points across a 6-column class.
+        var a = Column("a", 50m);
+        var b = Column("b", 50m);
 
         GradebookCalculator.FinalScore(
             [a, b],
@@ -224,9 +226,9 @@ public class GradebookCalculatorTests
     }
 
     [Fact]
-    public void Lam_tron_AwayFromZero_chu_khong_ve_so_chan()
+    public void Rounding_is_AwayFromZero_not_to_even()
     {
-        var a = Cot("a", 100m);
+        var a = Column("a", 100m);
 
         GradebookCalculator.FinalScore(
             [a], new Dictionary<Guid, decimal> { [a.Id] = 8.25m },
@@ -234,40 +236,41 @@ public class GradebookCalculatorTests
             .ShouldBe(8.3m);
     }
 
-    // ── Điều kiện điểm sàn ───────────────────────────────────────────────────────────────
+    // -- Minimum-score conditions ------------------------------------------------------------
 
     [Fact]
-    public void Cuoi_mon_duoi_san_thi_diem_tong_bi_chan()
+    public void A_final_exam_below_the_floor_caps_the_overall_score()
     {
-        // Quy định phổ biến: cuối môn < 4.0 thì không qua môn dù quá trình có đẹp tới đâu.
-        var tk = Cot("thuong_ky", 40m);
-        var cm = Cot("cuoi_mon", 60m);
+        // A common regulation: a final exam under 4.0 fails the subject no matter how good the
+        // coursework was.
+        var coursework = Column("thuong_ky", 40m);
+        var final = Column("cuoi_mon", 60m);
 
-        var d = GradebookCalculator.FinalScore(
-            [tk, cm],
-            new Dictionary<Guid, decimal> { [tk.Id] = 9m, [cm.Id] = 3.5m },
+        var score = GradebookCalculator.FinalScore(
+            [coursework, final],
+            new Dictionary<Guid, decimal> { [coursework.Id] = 9m, [final.Id] = 3.5m },
             BonusLedger.Empty,
             [new GradeCondition { ColumnKey = "cuoi_mon", Threshold = 4m, ActionValue = 3.9m }],
             GradebookSettings.Default);
 
-        d.ShouldBe(3.9m);
+        score.ShouldBe(3.9m);
     }
 
     [Fact]
-    public void Diem_cong_vao_diem_tong_KHONG_keo_qua_nguong_chan()
+    public void A_bonus_on_the_overall_score_does_NOT_lift_it_past_the_cap()
     {
-        // Bước 5 nằm sau bước 4 chính là để chặn đúng chuyện này: điểm phát biểu trên lớp
-        // không được phép làm sinh viên thi 3.5 qua môn.
-        var tk = Cot("thuong_ky", 40m);
-        var cm = Cot("cuoi_mon", 60m);
+        // Step 5 comes after step 4 precisely to block this: class participation points must not
+        // be allowed to pass a student who scored 3.5 on the exam.
+        var coursework = Column("thuong_ky", 40m);
+        var final = Column("cuoi_mon", 60m);
 
         var ledger = BonusLedger.Build(
             [new BonusEntry(Guid.CreateVersion7(), BonusTarget.FinalTotal, null, 2m, T0)],
             GradebookSettings.Default);
 
         GradebookCalculator.FinalScore(
-            [tk, cm],
-            new Dictionary<Guid, decimal> { [tk.Id] = 9m, [cm.Id] = 3.5m },
+            [coursework, final],
+            new Dictionary<Guid, decimal> { [coursework.Id] = 9m, [final.Id] = 3.5m },
             ledger,
             [new GradeCondition { ColumnKey = "cuoi_mon", Threshold = 4m, ActionValue = 3.9m }],
             GradebookSettings.Default)
@@ -275,10 +278,10 @@ public class GradebookCalculatorTests
     }
 
     [Fact]
-    public void Nhieu_dieu_kien_cung_dung_thi_lay_muc_chan_THAP_NHAT()
+    public void When_several_conditions_hold_the_LOWEST_cap_wins()
     {
-        var a = Cot("a", 50m);
-        var b = Cot("b", 50m);
+        var a = Column("a", 50m);
+        var b = Column("b", 50m);
 
         GradebookCalculator.FinalScore(
             [a, b],
@@ -289,51 +292,51 @@ public class GradebookCalculatorTests
                 new GradeCondition { ColumnKey = "b", Threshold = 4m, ActionValue = 3m },
             ],
             GradebookSettings.Default)
-            .ShouldBe(2m);   // đã 2.0 rồi, hai mức chặn đều cao hơn nên không cắt gì
+            .ShouldBe(2m);   // already at 2.0, and both caps sit higher, so nothing is truncated
     }
 
     [Fact]
-    public void Dieu_kien_tro_toi_cot_khong_ton_tai_bi_bo_qua_nhung_co_canh_bao()
+    public void A_condition_pointing_at_a_nonexistent_column_is_ignored_but_reported()
     {
-        var a = Cot("a", 100m);
+        var a = Column("a", 100m);
 
-        var kq = GradeConditionEvaluator.Apply(
+        var result = GradeConditionEvaluator.Apply(
             8m, [a], new Dictionary<Guid, decimal> { [a.Id] = 8m },
             [new GradeCondition { ColumnKey = "khong_co", Threshold = 4m, ActionValue = 3.9m }]);
 
-        kq.Score.ShouldBe(8m);
-        kq.UnknownColumnKeys.ShouldBe(["khong_co"]);
+        result.Score.ShouldBe(8m);
+        result.UnknownColumnKeys.ShouldBe(["khong_co"]);
     }
 
-    // ── Kiểm cấu hình cột ────────────────────────────────────────────────────────────────
+    // -- Column configuration checks ---------------------------------------------------------
 
     [Fact]
-    public void Tong_trong_so_khac_100_bi_tu_choi()
+    public void Weights_not_totalling_100_are_rejected()
     {
-        var kq = GradebookCalculator.ValidateColumns([Cot("a", 40m), Cot("b", 40m)]);
+        var result = GradebookCalculator.ValidateColumns([Column("a", 40m), Column("b", 40m)]);
 
-        kq.IsValid.ShouldBeFalse();
-        kq.Error.ShouldNotBeNull().ShouldContain("100%");
+        result.IsValid.ShouldBeFalse();
+        result.Error.ShouldNotBeNull().ShouldContain("100%");
     }
 
     [Fact]
-    public void Trung_key_bi_tu_choi()
+    public void Duplicate_keys_are_rejected()
     {
-        GradebookCalculator.ValidateColumns([Cot("a", 50m), Cot("a", 50m)])
+        GradebookCalculator.ValidateColumns([Column("a", 50m), Column("a", 50m)])
             .IsValid.ShouldBeFalse();
     }
 
     [Fact]
-    public void Bo_cot_hop_le_thi_qua()
+    public void A_valid_set_of_columns_passes()
     {
-        GradebookCalculator.ValidateColumns([Cot("thuong_ky", 40m), Cot("cuoi_mon", 60m)])
+        GradebookCalculator.ValidateColumns([Column("thuong_ky", 40m), Column("cuoi_mon", 60m)])
             .IsValid.ShouldBeTrue();
     }
 
     [Fact]
-    public void Sua_tay_thang_quy_tac_tong_hop()
+    public void A_manual_override_beats_the_aggregation_rule()
     {
-        var c = Cot("thuong_ky", 100m);
+        var c = Column("thuong_ky", 100m);
 
         GradebookCalculator.RawColumnScore(
             c, isManualOverride: true, manualScore: 7m,

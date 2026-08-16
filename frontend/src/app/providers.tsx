@@ -5,8 +5,8 @@ import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Tạo QueryClient trong state chứ không phải module scope: ở server, module scope bị
-  // chia sẻ giữa các request và dữ liệu của giảng viên này sẽ rò sang giảng viên khác.
+  // Create the QueryClient in state rather than at module scope: on the server, module scope
+  // is shared between requests, and one instructor's data would leak into another's.
   const [client] = useState(
     () =>
       new QueryClient({
@@ -17,12 +17,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    // `attribute="class"` phải khớp với `@custom-variant dark (&:is(.dark *))` trong
-    // globals.css — next-themes mặc định ghi `data-theme`, mà biến thể `dark` của dự án lại
-    // đọc class, nên để mặc định thì bảng màu tối có đủ nhưng không bao giờ được kích hoạt.
+    // `attribute="class"` has to match `@custom-variant dark (&:is(.dark *))` in globals.css
+    // — next-themes writes `data-theme` by default, while this project's `dark` variant reads
+    // a class, so leaving the default means the dark palette is fully defined but never
+    // activated.
     //
-    // `defaultTheme="system"` để theo cài đặt máy: giảng viên chấm bài đêm khuya không phải
-    // đi tìm công tắc, còn ai muốn khác hệ thống thì vẫn tự đổi được.
+    // `defaultTheme="system"` follows the OS setting: an instructor grading late at night
+    // should not have to go hunting for a switch, and anyone who wants to differ from the
+    // system can still change it.
     <ThemeProvider
       attribute="class"
       defaultTheme="system"

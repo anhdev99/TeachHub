@@ -2,13 +2,14 @@ using TeachHub.Domain.Common;
 
 namespace TeachHub.Domain.Grading;
 
-/// <summary>Phase 4b mở rộng thêm đích khác (cột điểm, điểm cộng).</summary>
+/// <summary>Phase 4b adds further targets (grade column, bonus point).</summary>
 public enum GradeTargetType { Submission, GradeColumn, BonusPoint }
 
 /// <summary>
-/// Vết của mọi lần điểm đổi. Bảng CHỈ GHI THÊM — không sửa, không xóa, không query filter
-/// soft-delete. Đây là thứ bảo vệ giảng viên khi sinh viên khiếu nại điểm sáu tháng sau:
-/// không có nó thì không ai dựng lại được lịch sử một con số đã bị ghi đè.
+/// The trail of every score change. An APPEND-ONLY table — no updates, no deletes, no
+/// soft-delete query filter. This is what protects the instructor when a student disputes a
+/// grade six months later: without it nobody can reconstruct the history of a number that has
+/// since been overwritten.
 /// </summary>
 public class GradeAuditLog : Entity
 {

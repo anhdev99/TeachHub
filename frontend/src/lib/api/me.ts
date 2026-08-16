@@ -1,21 +1,23 @@
 import { cookies } from "next/headers";
 import { API_BASE, COOKIE_ACCESS } from "./server";
 
-export type NguoiDung = {
+export type CurrentUser = {
   full_name?: string;
   email?: string;
   roles?: string[];
 };
 
 /**
- * Đọc người dùng hiện tại ở phía máy chủ.
+ * Read the current user on the server.
  *
- * Tách ra khỏi từng trang vì layout của mỗi vai cần nó để dựng thanh điều hướng, và nếu mỗi
- * trang tự gọi thì một trang quên kiểm token là một trang render với dữ liệu rỗng thay vì
- * chuyển về đăng nhập. Trả `null` khi chưa đăng nhập để nơi gọi tự quyết định chuyển hướng —
- * `redirect()` gọi từ trong hàm dùng chung sẽ khiến nơi gọi khó suy ra luồng điều khiển.
+ * Pulled out of the individual pages because each role's layout needs it to build its
+ * navigation, and if every page did its own call then one page forgetting to check the token
+ * is one page that renders with empty data instead of redirecting to the login screen.
+ * Returns `null` when nobody is signed in, so the caller decides where to redirect — calling
+ * `redirect()` from inside a shared helper makes the control flow hard for the caller to
+ * follow.
  */
-export async function layNguoiDung(): Promise<NguoiDung | null> {
+export async function getCurrentUser(): Promise<CurrentUser | null> {
   const token = (await cookies()).get(COOKIE_ACCESS)?.value;
   if (!token) return null;
 
@@ -25,15 +27,16 @@ export async function layNguoiDung(): Promise<NguoiDung | null> {
   });
 
   if (!res.ok) return null;
-  return (await res.json()) as NguoiDung;
+  return (await res.json()) as CurrentUser;
 }
 
-/** Chữ cái đầu để dựng avatar khi chưa có ảnh. */
-export function chuDau(ten?: string): string {
-  const t = (ten ?? "").trim();
-  if (!t) return "?";
-  const phan = t.split(/\s+/);
-  // Tiếng Việt viết họ trước tên, mà người ta nhớ nhau bằng TÊN — nên lấy chữ cái của từ
-  // cuối cùng làm chính: "Nguyễn Văn An" ra "A", không phải "N" (trùng với nửa lớp họ Nguyễn).
-  return phan[phan.length - 1]!.charAt(0).toUpperCase();
+/** Initial used to build an avatar while there is no picture. */
+export function initialOf(name?: string): string {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return "?";
+  const parts = trimmed.split(/\s+/);
+  // Vietnamese names put the family name first, but people remember each other by the GIVEN
+  // name — so take the initial of the LAST word: "Nguyễn Văn An" gives "A", not "N" (which
+  // half the class would share).
+  return parts[parts.length - 1]!.charAt(0).toUpperCase();
 }

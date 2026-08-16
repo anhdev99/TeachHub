@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyQuizDto } from "@/lib/api/types";
 import { DanhSachQuiz } from "./danh-sach-quiz";
@@ -25,14 +25,14 @@ export default async function MyQuizzesPage({
   const ds: MyQuizDto[] = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Trắc nghiệm"
-        moTa="Bài trắc nghiệm của lớp này và số lượt bạn đã dùng."
-        quayLai={{ href: `/learn/${offeringId}`, nhan: "Trang học" }}
+    <PageShell>
+      <PageHeader
+        title="Trắc nghiệm"
+        description="Bài trắc nghiệm của lớp này và số lượt bạn đã dùng."
+        backTo={{ href: `/learn/${offeringId}`, label: "Trang học" }}
       />
 
       <DanhSachQuiz offeringId={offeringId} banDau={ds} />
-    </Trang>
+    </PageShell>
   );
 }

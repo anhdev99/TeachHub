@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
-import { CanhBaoTrungLap } from "@/components/submission/canh-bao-trung-lap";
-import { diem } from "@/lib/dinh-dang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
+import { SimilarityNotice } from "@/components/submission/similarity-notice";
+import { formatScore } from "@/lib/format";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { components } from "@/lib/api/schema";
 
@@ -37,14 +37,14 @@ export default async function SimilarityPage({
   const bc: SimilarityReportDto = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Báo cáo trùng lặp mã nguồn"
-        moTa={`So ${bc.submissions_compared} bài nộp của lớp, ngưỡng cảnh báo ${diem(bc.threshold_percent)}%.`}
-        quayLai={{ href: `/offerings/${offering}/grading`, nhan: "Bài nộp" }}
+    <PageShell>
+      <PageHeader
+        title="Báo cáo trùng lặp mã nguồn"
+        description={`So ${bc.submissions_compared} bài nộp của lớp, ngưỡng cảnh báo ${formatScore(bc.threshold_percent)}%.`}
+        backTo={{ href: `/offerings/${offering}/grading`, label: "Bài nộp" }}
       />
 
-      <CanhBaoTrungLap />
+      <SimilarityNotice />
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -74,10 +74,10 @@ export default async function SimilarityPage({
           )}
 
           {bc.pairs.length === 0 ? (
-            <TrongRong
+            <EmptyState
               Icon={ScanSearch}
-              tieuDe="Không có cặp nào đáng chú ý"
-              moTa="Không cặp bài nộp nào đủ giống để cần bạn đọc đối chiếu. Bài nộp mới sẽ được so lại sau khi băm xong."
+              title="Không có cặp nào đáng chú ý"
+              description="Không cặp bài nộp nào đủ giống để cần bạn đọc đối chiếu. Bài nộp mới sẽ được so lại sau khi băm xong."
             />
           ) : (
             <ul className="flex flex-col gap-1.5">
@@ -100,7 +100,7 @@ export default async function SimilarityPage({
                         <span className="truncate">{c.owner_b}</span>
                       </span>
                       <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
-                        <span>Jaccard {diem(c.jaccard_percent)}%</span>
+                        <span>Jaccard {formatScore(c.jaccard_percent)}%</span>
                         <span aria-hidden>·</span>
                         <span className="font-mono text-xs">
                           {c.shared_fingerprints}/{c.total_a}
@@ -116,7 +116,7 @@ export default async function SimilarityPage({
                           : "bg-card text-muted-foreground border-border"
                       }`}
                     >
-                      {diem(c.similarity_percent)}% trùng
+                      {formatScore(c.similarity_percent)}% trùng
                     </Badge>
 
                     <ChevronRight
@@ -130,6 +130,6 @@ export default async function SimilarityPage({
           )}
         </CardContent>
       </Card>
-    </Trang>
+    </PageShell>
   );
 }

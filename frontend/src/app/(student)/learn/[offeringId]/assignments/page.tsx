@@ -4,10 +4,10 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
-import { diem, khoangCach, ngayGio } from "@/lib/dinh-dang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
+import { formatScore, formatRelative, formatDateTime } from "@/lib/format";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
-import { NHAN_TRANG_THAI_NOP, type MyAssignmentDto } from "@/lib/api/types";
+import { SUBMISSION_STATUS_LABELS, type MyAssignmentDto } from "@/lib/api/types";
 
 /** 48 giờ: mốc mà "sắp tới hạn" bắt đầu đáng để tô màu. */
 const SAP_HAN_MS = 48 * 60 * 60 * 1000;
@@ -37,18 +37,18 @@ export default async function MyAssignmentsPage({
   const bayGio = Date.now();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Bài tập"
-        moTa="Bài tập của lớp này và trạng thái nộp của bạn."
-        quayLai={{ href: `/learn/${offeringId}`, nhan: "Trang học" }}
+    <PageShell>
+      <PageHeader
+        title="Bài tập"
+        description="Bài tập của lớp này và trạng thái nộp của bạn."
+        backTo={{ href: `/learn/${offeringId}`, label: "Trang học" }}
       />
 
       {baiTap.length === 0 ? (
-        <TrongRong
+        <EmptyState
           Icon={FileText}
-          tieuDe="Lớp này chưa có bài tập nào"
-          moTa="Bài tập sẽ hiện ở đây ngay khi giảng viên giao. Bạn không cần làm gì lúc này."
+          title="Lớp này chưa có bài tập nào"
+          description="Bài tập sẽ hiện ở đây ngay khi giảng viên giao. Bạn không cần làm gì lúc này."
         />
       ) : (
         <Card>
@@ -98,7 +98,7 @@ export default async function MyAssignmentsPage({
 
                           {sapHan && a.due_at && (
                             <Badge className="bg-warn-soft text-warn border-warn/25 border">
-                              Hết hạn {khoangCach(a.due_at)}
+                              Hết hạn {formatRelative(a.due_at)}
                             </Badge>
                           )}
 
@@ -107,8 +107,8 @@ export default async function MyAssignmentsPage({
                               <CalendarClock className="size-3.5 shrink-0" aria-hidden />
                               {/* Mốc chính xác hiện thẳng ra: đây là con số sinh viên chép vào
                                   lịch, hiện tương đối thôi thì phải bấm vào mới biết ngày nào. */}
-                              <time dateTime={a.due_at} title={ngayGio(a.due_at)}>
-                                Hạn {ngayGio(a.due_at)}
+                              <time dateTime={a.due_at} title={formatDateTime(a.due_at)}>
+                                Hạn {formatDateTime(a.due_at)}
                               </time>
                             </span>
                           ) : (
@@ -117,7 +117,7 @@ export default async function MyAssignmentsPage({
 
                           {a.score != null && (
                             <span className="text-foreground font-medium tabular-nums">
-                              {diem(a.score)}/{diem(a.max_score)} điểm
+                              {formatScore(a.score)}/{formatScore(a.max_score)} điểm
                             </span>
                           )}
                         </span>
@@ -135,7 +135,7 @@ export default async function MyAssignmentsPage({
           </CardContent>
         </Card>
       )}
-    </Trang>
+    </PageShell>
   );
 }
 
@@ -144,7 +144,7 @@ function NhanTrangThai({ a }: { a: MyAssignmentDto }) {
     return <Badge variant="outline">Chưa nộp</Badge>;
   }
 
-  const nhan = NHAN_TRANG_THAI_NOP[a.status];
+  const nhan = SUBMISSION_STATUS_LABELS[a.status];
 
   // Đã chấm / đã trả bài là việc ĐÃ XONG → xanh lá. Đã nộp / đang chấm là "đang chạy, không
   // cần làm gì" → xám. Bản nháp là việc CÒN DANG DỞ của chính sinh viên → hổ phách, vì đây

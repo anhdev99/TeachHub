@@ -30,12 +30,13 @@ public static class AuthDependencyInjection
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
-        // Cấu hình tham số kiểm token qua IOptions<JwtOptions>, KHÔNG đọc thẳng
-        // config["Jwt:Key"] ngay tại đây. Đọc thẳng là đọc NGAY lúc đăng ký service, trong khi
-        // TokenService đọc IOptions lúc chạy — nên bất kỳ nguồn cấu hình nào nạp sau
-        // (WebApplicationFactory trong test, biến môi trường, Key Vault) chỉ tới được một vế.
-        // Hậu quả đã gặp thật: test ký token bằng issuer "teachhub-test" còn JwtBearer kiểm
-        // bằng "teachhub" của appsettings.json → mọi request có token đều 401, không log gì.
+        // Configure the token validation parameters through IOptions<JwtOptions>, do NOT read
+        // config["Jwt:Key"] straight from here. Reading it straight reads it AT SERVICE
+        // REGISTRATION TIME, while TokenService reads IOptions at run time — so any configuration
+        // source loaded later (WebApplicationFactory in tests, environment variables, Key Vault)
+        // only ever reaches one of the two sides. This actually happened: the tests signed tokens
+        // with issuer "teachhub-test" while JwtBearer validated against "teachhub" from
+        // appsettings.json → every request carrying a token got a 401, with nothing in the log.
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
             .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
             {
@@ -52,10 +53,10 @@ public static class AuthDependencyInjection
             });
 
         services.AddAuthorizationBuilder()
-            // Bảo vệ mặc định: endpoint nào KHÔNG khai báo gì về authorization thì vẫn
-            // đòi đăng nhập. Muốn mở công khai phải gắn [AllowAnonymous] tường minh —
-            // nhờ vậy "quên bảo vệ endpoint" là lỗi không thể xảy ra do đãng trí,
-            // chỉ có thể xảy ra do ai đó cố ý gõ thêm một dòng.
+            // Secure by default: any endpoint that declares NOTHING about authorization still
+            // demands a signed-in user. Making one public takes an explicit [AllowAnonymous] —
+            // which turns "forgot to protect an endpoint" into a mistake that cannot happen
+            // through absent-mindedness, only through someone deliberately typing one more line.
             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddPolicy(Policies.Instructor, p => p.RequireRole(Roles.Instructor))
             .AddPolicy(Policies.Student,    p => p.RequireRole(Roles.Student));
@@ -69,10 +70,11 @@ public static class Policies
 {
     public const string Instructor = nameof(Instructor);
 
-    // KHÔNG có InstructorOrTa. Vai trò TeachingAssistant vẫn tồn tại trong Roles.All để sau này
-    // bật lại không phải migrate, nhưng CHƯA CÓ POLICY NÀO cấp quyền cho nó — xem ADR-013.
-    // Lý do: không có bảng gắn trợ giảng vào một lớp cụ thể, mà mọi kiểm quyền viết dạng
-    // subject.InstructorId == currentUserId. Nên hoặc trợ giảng không làm được gì, hoặc
-    // — nếu nới điều kiện — làm được ở MỌI lớp của MỌI giảng viên. Không có mức trung gian.
+    // There is NO InstructorOrTa. The TeachingAssistant role still exists in Roles.All so that
+    // turning it back on later needs no migration, but NO POLICY grants it anything yet — see
+    // ADR-013. The reason: there is no table binding a teaching assistant to one specific class,
+    // while every permission check is written as subject.InstructorId == currentUserId. So either
+    // the assistant can do nothing, or — if the condition is loosened — they can act on EVERY
+    // class of EVERY instructor. There is no middle ground.
     public const string Student = nameof(Student);
 }

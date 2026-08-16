@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { API_BASE, luuToken, type TokenPair } from "@/lib/api/server";
+import { API_BASE, saveTokens, type TokenPair } from "@/lib/api/server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -11,32 +11,33 @@ export async function POST(req: NextRequest) {
   });
 
   if (!res.ok) {
-    // Chuyển nguyên vẹn problem+json của backend để form hiện đúng thông báo tiếng Việt.
-    const loi = await res.text();
-    return new NextResponse(loi, {
+    // Pass the backend's problem+json through untouched so the form shows the exact
+    // Vietnamese message.
+    const error = await res.text();
+    return new NextResponse(error, {
       status: res.status,
       headers: { "content-type": res.headers.get("content-type") ?? "application/json" },
     });
   }
 
-  // Backend trả snake_case (SRS mục 7). Đọc sai khoá ở đây thì token là undefined,
-  // cookie rỗng, và mọi request sau đó 401 mà không có lỗi nào rõ ràng.
+  // The backend returns snake_case (SRS §7). Reading the wrong key here leaves the token
+  // undefined, the cookie empty, and every later request 401 with no clear error anywhere.
   const pair: TokenPair = await res.json();
-  await luuToken(pair);
+  await saveTokens(pair);
 
-  // Trả về đích ĐÚNG THEO VAI TRÒ. Trước đây trang đăng nhập luôn đẩy về /dashboard, nên
-  // sinh viên rơi vào màn hình của giảng viên — và nếu còn phải đổi mật khẩu lần đầu thì
-  // họ không có gì dẫn tới chỗ tự gỡ chặn.
+  // Return a destination that MATCHES THE ROLE. The login page used to always push to
+  // /dashboard, so students landed on the instructor screen — and if they still had to change
+  // their password on first sign-in, nothing led them to where they could unblock themselves.
   const me = await fetch(`${API_BASE}/api/auth/me`, {
     headers: { authorization: `Bearer ${pair.access_token}` },
     cache: "no-store",
   });
 
-  let dich = "/dashboard";
+  let destination = "/dashboard";
   if (me.ok) {
     const { roles } = (await me.json()) as { roles: string[] };
-    dich = roles.includes("Instructor") ? "/subjects" : "/learn";
+    destination = roles.includes("Instructor") ? "/subjects" : "/learn";
   }
 
-  return NextResponse.json({ ok: true, redirect_to: dich });
+  return NextResponse.json({ ok: true, redirect_to: destination });
 }

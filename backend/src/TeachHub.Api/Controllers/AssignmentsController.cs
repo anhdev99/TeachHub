@@ -16,9 +16,10 @@ using TeachHub.Infrastructure;
 
 namespace TeachHub.Api.Controllers;
 
-// Class KHÔNG gắn policy: cùng tiền tố /api/assignments phục vụ cả giảng viên (tạo bài, cấu
-// hình slot) lẫn sinh viên (tải tệp, nộp chính thức). [Authorize] ở class và ở action CỘNG DỒN
-// chứ không ghi đè, nên đặt Instructor ở class rồi Student cho một action là KHÔNG AI qua được.
+// NO policy on the class: the same /api/assignments prefix serves both the instructor (creating
+// assignments, configuring slots) and the student (uploading files, submitting for real).
+// [Authorize] on the class and on the action ACCUMULATE rather than override, so putting
+// Instructor on the class and Student on one action means NOBODY gets through.
 [Route("api/assignments")]
 [Tags("Assignments")]
 public sealed class AssignmentsController(ISender sender) : ApiControllerBase
@@ -39,8 +40,8 @@ public sealed class AssignmentsController(ISender sender) : ApiControllerBase
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
         => ToActionResult(await sender.Send(new GetAssignmentQuery(id, CurrentUserId), ct));
 
-    // Route tuyệt đối (bắt đầu bằng '/') nên bỏ qua [Route("api/assignments")] của class —
-    // đường dẫn ra đúng /api/subject-versions/{id}/assignments theo hợp đồng SRS mục 7.
+    // An absolute route (one starting with '/') bypasses the class-level [Route("api/assignments")] —
+    // the path comes out as /api/subject-versions/{id}/assignments, per the SRS section 7 contract.
     [HttpGet("/api/subject-versions/{versionId:guid}/assignments")]
     [Authorize(Policy = Policies.Instructor)]
     [ProducesResponseType<List<AssignmentDto>>(StatusCodes.Status200OK)]
@@ -75,15 +76,15 @@ public sealed class AssignmentsController(ISender sender) : ApiControllerBase
         => ToActionResult(await sender.Send(
             new ApplySuggestedSlotsCommand { AssignmentId = id, InstructorId = CurrentUserId }, ct));
 
-    // ── Phần của sinh viên ──────────────────────────────────────────────────────────────
+    // ── Student side ────────────────────────────────────────────────────────────────────
 
     [HttpPost("{id:guid}/submissions/draft")]
     [Authorize(Policy = Policies.Student)]
     [Consumes("multipart/form-data")]
     [IgnoreAntiforgeryToken]
     [EnableRateLimiting("upload")]
-    [RequestSizeLimit(300_000_000)]                                 // hạn mức Kestrel
-    [RequestFormLimits(MultipartBodyLengthLimit = 300_000_000)]     // hạn mức multipart của MVC
+    [RequestSizeLimit(300_000_000)]                                 // Kestrel limit
+    [RequestFormLimits(MultipartBodyLengthLimit = 300_000_000)]     // MVC multipart limit
     [ProducesResponseType<SubmissionFileDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -91,16 +92,16 @@ public sealed class AssignmentsController(ISender sender) : ApiControllerBase
     public async Task<IActionResult> UploadDraft(
         Guid id, [FromForm] UploadSubmissionForm form, CancellationToken ct)
     {
-        // Controller mở stream; command chỉ nhận Stream. Đưa thẳng IFormFile xuống command
-        // sẽ kéo Microsoft.AspNetCore.Http vào tầng Application.
-        await using var noiDung = form.File.OpenReadStream();
+        // The controller opens the stream; the command only ever takes a Stream. Handing the
+        // IFormFile straight down would drag Microsoft.AspNetCore.Http into the Application layer.
+        await using var content = form.File.OpenReadStream();
 
         return ToActionResult(await sender.Send(new UploadSubmissionFileCommand(
             AssignmentId:  id,
             SlotKey:       form.SlotKey,
             FileName:      form.File.FileName,
             SizeBytes:     form.File.Length,
-            Content:       noiDung,
+            Content:       content,
             StudentUserId: CurrentUserId), ct));
     }
 

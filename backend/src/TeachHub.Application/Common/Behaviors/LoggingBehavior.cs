@@ -9,32 +9,32 @@ public sealed class LoggingBehavior<TRequest, TResponse>(
     ICurrentUser currentUser) : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
-    private const int NguongChamMs = 500;
+    private const int SlowThresholdMs = 500;
 
     public async Task<TResponse> Handle(
         TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
     {
-        var ten = typeof(TRequest).Name;
-        var moc = Stopwatch.GetTimestamp();
+        var requestName = typeof(TRequest).Name;
+        var startedAt = Stopwatch.GetTimestamp();
 
         try
         {
             var response = await next();
-            var ms = Stopwatch.GetElapsedTime(moc).TotalMilliseconds;
+            var ms = Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
 
-            if (ms > NguongChamMs)
-                logger.LogWarning("{Request} chạy {Elapsed:F0} ms (user {UserId}) — vượt ngưỡng {Nguong} ms",
-                    ten, ms, currentUser.UserId, NguongChamMs);
+            if (ms > SlowThresholdMs)
+                logger.LogWarning("{Request} ran for {Elapsed:F0} ms (user {UserId}) — over the {Threshold} ms threshold",
+                    requestName, ms, currentUser.UserId, SlowThresholdMs);
             else
-                logger.LogInformation("{Request} xong trong {Elapsed:F0} ms (user {UserId})",
-                    ten, ms, currentUser.UserId);
+                logger.LogInformation("{Request} completed in {Elapsed:F0} ms (user {UserId})",
+                    requestName, ms, currentUser.UserId);
 
             return response;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{Request} lỗi sau {Elapsed:F0} ms (user {UserId})",
-                ten, Stopwatch.GetElapsedTime(moc).TotalMilliseconds, currentUser.UserId);
+            logger.LogError(ex, "{Request} failed after {Elapsed:F0} ms (user {UserId})",
+                requestName, Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds, currentUser.UserId);
             throw;
         }
     }

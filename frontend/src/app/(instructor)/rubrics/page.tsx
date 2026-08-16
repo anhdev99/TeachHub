@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { RubricDto } from "@/lib/api/types";
-import { SoanRubric } from "./soan-rubric";
+import { RubricEditor } from "./rubric-editor";
 
 export default async function RubricsPage() {
   const token = (await cookies()).get(COOKIE_ACCESS)?.value;
@@ -18,13 +18,13 @@ export default async function RubricsPage() {
   const rubrics: RubricDto[] = await res.json();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Bộ tiêu chí chấm"
-        moTa="Bộ tiêu chí thuộc về bạn chứ không thuộc về một môn — dùng lại được cho mọi bài của mọi lớp."
+    <PageShell>
+      <PageHeader
+        title="Bộ tiêu chí chấm"
+        description="Bộ tiêu chí thuộc về bạn chứ không thuộc về một môn — dùng lại được cho mọi bài của mọi lớp."
       />
 
-      <SoanRubric banDau={rubrics} />
-    </Trang>
+      <RubricEditor initial={rubrics} />
+    </PageShell>
   );
 }

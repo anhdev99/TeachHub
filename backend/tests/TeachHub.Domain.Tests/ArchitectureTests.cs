@@ -5,23 +5,24 @@ namespace TeachHub.Domain.Tests;
 public class ArchitectureTests
 {
     [Fact]
-    public void Domain_khong_duoc_phu_thuoc_vao_ha_tang()
+    public void Domain_must_not_depend_on_infrastructure()
     {
-        // MediatR và FluentValidation nằm trong danh sách cấm cùng lý do với EF Core:
-        // ICommand/IQuery là hợp đồng của tầng Application, Domain không được biết chúng tồn tại.
-        // Không chặn ở đây thì cám dỗ "cho Domain phát INotification làm domain event" sẽ thắng,
-        // và luật nghiệp vụ mất khả năng test trong mili-giây — thứ đắt nhất mà kiến trúc này mua được.
-        string[] cam = ["Microsoft.EntityFrameworkCore", "Npgsql", "Hangfire",
-                        "MediatR", "FluentValidation",
-                        "Microsoft.AspNetCore", "AWSSDK"];
+        // MediatR and FluentValidation are on the forbidden list for the same reason as EF Core:
+        // ICommand/IQuery are contracts belonging to the Application layer, and the Domain must not
+        // know they exist. Without a guard here, the temptation to "let the Domain publish an
+        // INotification as a domain event" will win, and business rules lose the ability to be
+        // tested in milliseconds — the most expensive thing this architecture buys us.
+        string[] forbidden = ["Microsoft.EntityFrameworkCore", "Npgsql", "Hangfire",
+                              "MediatR", "FluentValidation",
+                              "Microsoft.AspNetCore", "AWSSDK"];
 
-        var thamChieu = typeof(TeachHub.Domain.Common.Entity).Assembly
+        var referenced = typeof(TeachHub.Domain.Common.Entity).Assembly
             .GetReferencedAssemblies()
             .Select(a => a.Name!)
             .ToList();
 
-        foreach (var c in cam)
-            thamChieu.ShouldNotContain(n => n.StartsWith(c, StringComparison.Ordinal),
-                $"Domain đang tham chiếu {c} — vi phạm ADR-002.");
+        foreach (var f in forbidden)
+            referenced.ShouldNotContain(n => n.StartsWith(f, StringComparison.Ordinal),
+                $"Domain references {f} — violates ADR-002.");
     }
 }

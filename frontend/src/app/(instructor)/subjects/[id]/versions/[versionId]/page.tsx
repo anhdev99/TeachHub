@@ -1,10 +1,10 @@
 import { FileQuestion } from "lucide-react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { SubjectDto, SubjectVersionDto } from "@/lib/api/types";
-import { TrinhSoanThao } from "./trinh-soan-thao";
+import { VersionEditor } from "./version-editor";
 
 /**
  * Màn hình 6.2 — trình soạn thảo chương. Server component chỉ nạp dữ liệu khung
@@ -34,7 +34,7 @@ export default async function EditorPage({
 
   if (!version) return <KhongThayPhienBan subjectId={id} />;
 
-  return <TrinhSoanThao subject={subject} version={version} />;
+  return <VersionEditor subject={subject} version={version} />;
 }
 
 /**
@@ -44,16 +44,16 @@ export default async function EditorPage({
  */
 function KhongThayPhienBan({ subjectId }: { subjectId: string }) {
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Không tìm thấy phiên bản"
-        quayLai={{ href: `/subjects/${subjectId}/versions`, nhan: "Lịch sử phiên bản" }}
+    <PageShell>
+      <PageHeader
+        title="Không tìm thấy phiên bản"
+        backTo={{ href: `/subjects/${subjectId}/versions`, label: "Lịch sử phiên bản" }}
       />
-      <TrongRong
+      <EmptyState
         Icon={FileQuestion}
-        tieuDe="Không tìm thấy phiên bản"
-        moTa="Phiên bản này không tồn tại hoặc không thuộc tài khoản của bạn."
+        title="Không tìm thấy phiên bản"
+        description="Phiên bản này không tồn tại hoặc không thuộc tài khoản của bạn."
       />
-    </Trang>
+    </PageShell>
   );
 }

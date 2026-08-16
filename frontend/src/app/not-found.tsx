@@ -1,17 +1,18 @@
 import Link from "next/link";
 
 /**
- * Trang 404 dùng chung cho toàn ứng dụng.
+ * The application-wide 404 page.
  *
- * Vì sao cần file này: backend cố ý trả **404 chứ không bao giờ 403** cho tài nguyên không
- * thuộc người gọi (ADR-012) — 403 xác nhận id có tồn tại, tức là rò rỉ đúng thứ vừa che.
- * Nên 404 ở đây không phải ca hiếm, mà là **đường đi chính** của mọi phép kiểm quyền sở hữu:
- * 14 chỗ trong `src/app` gọi `notFound()`. Không có file này thì tất cả đều hiện trang mặc
- * định của Next — "This page could not be found." — tiếng Anh, giữa một sản phẩm tiếng Việt.
+ * Why this file is needed: the backend deliberately returns **404 and never 403** for a
+ * resource that does not belong to the caller (ADR-012) — a 403 confirms that the id exists,
+ * which leaks precisely what we just hid. So 404 here is not a rare case, it is the **main
+ * path** of every ownership check: 14 places in `src/app` call `notFound()`. Without this
+ * file, all of them render Next's default page — "This page could not be found." — in
+ * English, in the middle of a Vietnamese product.
  *
- * Chữ dùng ở đây phải là "không tìm thấy", TUYỆT ĐỐI KHÔNG phải "bạn không có quyền":
- * viết "không có quyền" là tự tay nói ra rằng tài nguyên đó có thật, đúng thứ mà việc trả 404
- * thay cho 403 sinh ra để giấu.
+ * The wording here must be "không tìm thấy" and ABSOLUTELY NOT "bạn không có quyền": saying
+ * "you don't have permission" states out loud that the resource exists, which is exactly what
+ * returning 404 instead of 403 was meant to conceal.
  */
 export default function NotFound() {
   return (

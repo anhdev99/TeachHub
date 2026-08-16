@@ -79,8 +79,8 @@ public sealed class TokenService(
 
         if (stored is null) return null;
 
-        // Phát hiện tái sử dụng: token đã bị thu hồi mà vẫn được dùng ⇒ nhiều khả năng
-        // đã rò rỉ. Thu hồi toàn bộ token của user đó và bắt đăng nhập lại.
+        // Reuse detection: a token that was already revoked is being presented again ⇒ it has
+        // most likely leaked. Revoke every token of that user and force a fresh sign-in.
         if (!stored.IsActive(now))
         {
             await db.RefreshTokens

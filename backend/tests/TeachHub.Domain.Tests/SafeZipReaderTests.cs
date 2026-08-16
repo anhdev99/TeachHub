@@ -6,13 +6,13 @@ using TeachHub.Domain.Files;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Phase 3 chạy theo yêu cầu "không viết test" của người dùng — file này là ngoại lệ đã
-/// thống nhất. Zip-slip và zip bomb không có biểu hiện nào trên giao diện: bấm thử trên UI
-/// không phân biệt được bộ đọc an toàn với bộ đọc thủng. Toàn bộ suite này chạy dưới 1 giây.
+/// Phase 3 ran under the user's "no tests" instruction — this file is the agreed exception.
+/// Zip-slip and zip bombs have no visible symptom in the UI: clicking around the interface cannot
+/// tell a safe reader apart from a leaky one. The whole suite runs in under a second.
 /// </summary>
 public class SafeZipReaderTests
 {
-    private static MemoryStream TaoZip(params (string Path, byte[] Content)[] entries)
+    private static MemoryStream MakeZip(params (string Path, byte[] Content)[] entries)
     {
         var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
@@ -26,9 +26,9 @@ public class SafeZipReaderTests
     }
 
     [Fact]
-    public void Doc_duoc_cay_thu_muc_cua_zip_binh_thuong()
+    public void Reads_the_directory_tree_of_an_ordinary_zip()
     {
-        using var zip = TaoZip(
+        using var zip = MakeZip(
             ("README.md", "# Bài 1"u8.ToArray()),
             ("src/App.tsx", "export default App"u8.ToArray()),
             ("src/utils/format.ts", "export const f = 1"u8.ToArray()));
@@ -44,51 +44,51 @@ public class SafeZipReaderTests
     [InlineData("..\\..\\Windows\\System32\\evil.dll")]
     [InlineData("/etc/shadow")]
     [InlineData("src/../../../../root/.ssh/authorized_keys")]
-    public void Tu_choi_zip_co_duong_dan_thoat_ra_ngoai(string duongDanAc)
+    public void Rejects_a_zip_whose_paths_escape_the_extraction_root(string maliciousPath)
     {
-        using var zip = TaoZip((duongDanAc, "xấu"u8.ToArray()));
+        using var zip = MakeZip((maliciousPath, "xấu"u8.ToArray()));
 
         Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, ZipLimits.Default));
     }
 
     [Fact]
-    public void Tu_choi_zip_vuot_qua_tong_dung_luong_sau_giai_nen()
+    public void Rejects_a_zip_exceeding_the_total_uncompressed_size()
     {
-        var to = new byte[10 * 1024 * 1024];   // 10 MB toàn số 0 → nén cực nhỏ
-        using var zip = TaoZip(("bom.bin", to));
+        var big = new byte[10 * 1024 * 1024];   // 10 MB of zeros -> compresses to almost nothing
+        using var zip = MakeZip(("bom.bin", big));
 
-        var hanMuc = ZipLimits.Default with { MaxTotalUncompressedBytes = 1024 * 1024 };
+        var limits = ZipLimits.Default with { MaxTotalUncompressedBytes = 1024 * 1024 };
 
-        Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, hanMuc));
+        Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, limits));
     }
 
     [Fact]
-    public void Tu_choi_zip_co_qua_nhieu_entry()
+    public void Rejects_a_zip_with_too_many_entries()
     {
         var entries = Enumerable.Range(0, 200)
             .Select(i => ($"f{i}.txt", "x"u8.ToArray())).ToArray();
-        using var zip = TaoZip(entries);
+        using var zip = MakeZip(entries);
 
-        var hanMuc = ZipLimits.Default with { MaxEntryCount = 100 };
+        var limits = ZipLimits.Default with { MaxEntryCount = 100 };
 
-        Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, hanMuc));
+        Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, limits));
     }
 
     [Fact]
-    public void Tu_choi_zip_co_ti_le_nen_bat_thuong()
+    public void Rejects_a_zip_with_an_abnormal_compression_ratio()
     {
-        var to = new byte[50 * 1024 * 1024];
-        using var zip = TaoZip(("bom.bin", to));
+        var big = new byte[50 * 1024 * 1024];
+        using var zip = MakeZip(("bom.bin", big));
 
-        var hanMuc = ZipLimits.Default with { MaxCompressionRatio = 50 };
+        var limits = ZipLimits.Default with { MaxCompressionRatio = 50 };
 
-        Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, hanMuc));
+        Should.Throw<UnsafeArchiveException>(() => SafeZipReader.ReadTree(zip, limits));
     }
 
     [Fact]
-    public void Bo_qua_thu_muc_rac_cua_macos_va_windows()
+    public void Skips_the_junk_folders_macos_and_windows_leave_behind()
     {
-        using var zip = TaoZip(
+        using var zip = MakeZip(
             ("README.md", "x"u8.ToArray()),
             ("__MACOSX/._README.md", "x"u8.ToArray()),
             (".DS_Store", "x"u8.ToArray()),
@@ -101,33 +101,33 @@ public class SafeZipReaderTests
     }
 
     [Fact]
-    public void File_khong_phai_zip_bao_loi_ro_rang()
+    public void A_file_that_is_not_a_zip_reports_a_clear_error()
     {
-        using var khongPhaiZip = new MemoryStream("đây chỉ là text"u8.ToArray());
+        using var notAZip = new MemoryStream("đây chỉ là text"u8.ToArray());
 
         Should.Throw<UnsafeArchiveException>(
-            () => SafeZipReader.ReadTree(khongPhaiZip, ZipLimits.Default));
+            () => SafeZipReader.ReadTree(notAZip, ZipLimits.Default));
     }
 
     [Fact]
-    public void Kiem_tra_cau_truc_bat_buoc_bao_thieu_dung_muc()
+    public void The_required_structure_check_reports_exactly_what_is_missing()
     {
-        using var zip = TaoZip(("src/App.tsx", "x"u8.ToArray()));   // thiếu README.md
+        using var zip = MakeZip(("src/App.tsx", "x"u8.ToArray()));   // README.md missing
         var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
 
-        var kq = tree.CheckStructure(new RequiredStructure
+        var result = tree.CheckStructure(new RequiredStructure
         {
             RequiredFiles = ["README.md"], RequiredFolders = ["src"],
         });
 
-        kq.Passed.ShouldBeFalse();
-        kq.Missing.ShouldBe(["README.md"]);
+        result.Passed.ShouldBeFalse();
+        result.Missing.ShouldBe(["README.md"]);
     }
 
     [Fact]
-    public void Cau_truc_dung_thi_pass()
+    public void A_correct_structure_passes()
     {
-        using var zip = TaoZip(("README.md", "x"u8.ToArray()), ("src/App.tsx", "x"u8.ToArray()));
+        using var zip = MakeZip(("README.md", "x"u8.ToArray()), ("src/App.tsx", "x"u8.ToArray()));
         var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
 
         tree.CheckStructure(new RequiredStructure
@@ -135,12 +135,12 @@ public class SafeZipReaderTests
     }
 
     [Fact]
-    public void Cau_truc_van_dung_khi_sv_nen_ca_thu_muc_goc()
+    public void The_structure_still_passes_when_the_student_zipped_the_containing_folder()
     {
-        // Lỗi phổ biến nhất: sinh viên nén cả thư mục cha thành "BaiTap1/README.md".
-        // Chặn cứng chuyện này sẽ khiến nửa lớp bị gắn cờ đỏ oan.
-        using var zip = TaoZip(("BaiTap1/README.md", "x"u8.ToArray()),
-                               ("BaiTap1/src/App.tsx", "x"u8.ToArray()));
+        // The single most common mistake: the student zips the parent folder, producing
+        // "BaiTap1/README.md". Hard-blocking that would flag half the class red for nothing.
+        using var zip = MakeZip(("BaiTap1/README.md", "x"u8.ToArray()),
+                                ("BaiTap1/src/App.tsx", "x"u8.ToArray()));
         var tree = SafeZipReader.ReadTree(zip, ZipLimits.Default);
 
         tree.CheckStructure(new RequiredStructure
@@ -148,29 +148,30 @@ public class SafeZipReaderTests
     }
 
     [Fact]
-    public void Doc_entry_theo_duong_dan_thoat_ra_ngoai_bi_tu_choi()
+    public void Reading_an_entry_by_an_escaping_path_is_rejected()
     {
-        // Cây thư mục đã an toàn, nhưng path của endpoint xem file đến từ query string.
-        using var zip = TaoZip(("README.md", "x"u8.ToArray()));
+        // The directory tree is already safe, but the path for the file-viewing endpoint arrives
+        // from the query string.
+        using var zip = MakeZip(("README.md", "x"u8.ToArray()));
 
         Should.Throw<UnsafeArchiveException>(
             () => SafeZipReader.ReadEntry(zip, "../../etc/passwd", ZipLimits.Default, 1024 * 1024));
     }
 
     [Fact]
-    public void Doc_entry_binh_thuong_tra_dung_noi_dung()
+    public void Reading_an_ordinary_entry_returns_the_right_content()
     {
-        using var zip = TaoZip(("src/App.tsx", "export default App"u8.ToArray()));
+        using var zip = MakeZip(("src/App.tsx", "export default App"u8.ToArray()));
 
-        var noiDung = SafeZipReader.ReadEntry(zip, "src/App.tsx", ZipLimits.Default, 1024 * 1024);
+        var content = SafeZipReader.ReadEntry(zip, "src/App.tsx", ZipLimits.Default, 1024 * 1024);
 
-        System.Text.Encoding.UTF8.GetString(noiDung).ShouldBe("export default App");
+        System.Text.Encoding.UTF8.GetString(content).ShouldBe("export default App");
     }
 
     [Fact]
-    public void Doc_entry_vuot_gioi_han_dung_luong_bi_tu_choi()
+    public void Reading_an_entry_past_the_size_limit_is_rejected()
     {
-        using var zip = TaoZip(("to.txt", new byte[2 * 1024 * 1024]));
+        using var zip = MakeZip(("to.txt", new byte[2 * 1024 * 1024]));
 
         Should.Throw<UnsafeArchiveException>(
             () => SafeZipReader.ReadEntry(zip, "to.txt", ZipLimits.Default, 1024 * 1024));

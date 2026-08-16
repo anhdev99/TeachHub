@@ -15,11 +15,11 @@ public sealed class GradeColumnConfiguration : IEntityTypeConfiguration<GradeCol
         b.Property(x => x.Name).HasMaxLength(200).IsRequired();
         b.Property(x => x.WeightPercent).HasPrecision(5, 2);
 
-        // Aggregation CHỨA enum Kind → phải khai .HasConversion<string>() cho riêng nó.
-        // EF dùng JsonValueReaderWriter cho cột ToJson() và KHÔNG đọc JsonStringEnumConverter
-        // của tầng HTTP. Thiếu dòng này thì jsonb lưu {"Kind": 6} — không lỗi, không test đỏ,
-        // nhưng mọi truy vấn JSON theo tên enum về sau đều trượt im lặng, và ngày ai đó chèn
-        // một giá trị vào giữa enum thì toàn bộ dữ liệu cũ đổi nghĩa.
+        // Aggregation DOES contain the Kind enum → it needs its own .HasConversion<string>().
+        // EF uses JsonValueReaderWriter for a ToJson() column and does NOT read the HTTP layer's
+        // JsonStringEnumConverter. Without this line the jsonb stores {"Kind": 6} — no error, no
+        // failing test, but every later JSON query by enum name silently misses, and the day
+        // someone inserts a value into the middle of the enum, all the old data changes meaning.
         b.OwnsOne(x => x.Aggregation, a =>
         {
             a.ToJson();
@@ -32,8 +32,9 @@ public sealed class GradeColumnConfiguration : IEntityTypeConfiguration<GradeCol
         b.HasMany(x => x.Sources).WithOne().HasForeignKey(s => s.GradeColumnId)
          .OnDelete(DeleteBehavior.Cascade);
 
-        // Ràng buộc PHẢI ở database chứ không chỉ ở validator: cột còn được sinh ra bởi việc
-        // sao chép mẫu và bởi thao tác "áp mẫu khác" — cả hai đều không đi qua màn hình cấu hình.
+        // The constraint MUST live in the database, not only in a validator: columns are also
+        // created by copying a template and by the "apply a different template" action — neither
+        // of which goes through the configuration screen.
         b.HasIndex(x => new { x.OfferingId, x.Key }).IsUnique();
 
         b.ToTable(t => t.HasCheckConstraint("ck_grade_column_key_slug",
@@ -49,8 +50,9 @@ public sealed class GradeColumnSourceConfiguration : IEntityTypeConfiguration<Gr
         b.Property(x => x.SourceType).HasConversion<string>().HasMaxLength(32);
         b.Property(x => x.WeightWithinColumn).HasPrecision(5, 2);
 
-        // source_id trỏ tới Assignment HOẶC Quiz HOẶC FinalAssessment tuỳ SourceType,
-        // nên cố ý KHÔNG khai FK — nhất quán với LessonComponent.RefId của Phase 1.
+        // source_id points at an Assignment OR a Quiz OR a FinalAssessment depending on
+        // SourceType, so it deliberately declares NO FK — consistent with Phase 1's
+        // LessonComponent.RefId.
         b.HasIndex(x => new { x.GradeColumnId, x.SourceType, x.SourceId }).IsUnique();
     }
 }
@@ -98,9 +100,10 @@ public sealed class GradeSchemeTemplateItemConfiguration : IEntityTypeConfigurat
         b.Property(x => x.Name).HasMaxLength(200).IsRequired();
         b.Property(x => x.WeightPercent).HasPrecision(5, 2);
 
-        // MỖI nơi có property kiểu GradeAggregation đều cần MỘT dòng OwnsOne riêng — EF không
-        // suy ra được từ cấu hình của entity khác. Thiếu dòng này thì mô hình EF không dựng
-        // được và ứng dụng không khởi động nổi, với một thông báo lỗi không chỉ ra thiếu ở đâu.
+        // EVERY place that has a GradeAggregation-typed property needs ITS OWN OwnsOne block —
+        // EF cannot infer it from another entity's configuration. Without this line the EF model
+        // fails to build and the application will not start, with an error message that does not
+        // point at what is missing.
         b.OwnsOne(x => x.Aggregation, a =>
         {
             a.ToJson();
@@ -147,10 +150,11 @@ public sealed class BonusPointConfiguration : IEntityTypeConfiguration<BonusPoin
         b.HasOne<BonusPointReasonTemplate>().WithMany().HasForeignKey(x => x.TemplateId)
          .OnDelete(DeleteBehavior.SetNull);
 
-        // Giá trị chuỗi trong CHECK phải khớp ĐÚNG tên enum C# ('GradeColumn', 'FinalTotal').
-        // Quy ước snake_case của dự án áp cho tên bảng và tên cột, KHÔNG áp cho giá trị trong ô.
-        // Viết 'grade_column' ở đây thì migration vẫn chạy trót lọt và mọi INSERT bị chặn —
-        // phát hiện lúc cấp điểm cộng đầu tiên, thường là trên lớp giữa hai nhóm báo cáo.
+        // The string values inside the CHECK must match the C# enum names EXACTLY ('GradeColumn',
+        // 'FinalTotal'). The project's snake_case convention applies to table and column names,
+        // NOT to the values stored in the cells. Write 'grade_column' here and the migration still
+        // applies cleanly while every INSERT is rejected — discovered when the first bonus point
+        // is granted, typically live in class between two group presentations.
         b.ToTable(t =>
         {
             t.HasCheckConstraint("ck_bonus_target_column", """
@@ -202,16 +206,17 @@ public sealed class GradeSnapshotConfiguration : IEntityTypeConfiguration<GradeS
     {
         b.HasKey(x => x.Id);
 
-        // TEXT chứ KHÔNG phải jsonb, và đây là cột duy nhất trong dự án cố tình như vậy.
-        // Postgres chuẩn hóa jsonb lúc lưu: bỏ khoảng trắng và SẮP XẾP LẠI THỨ TỰ KHÓA. Chuỗi
-        // đọc ra khác chuỗi ghi vào, nên SHA-256 tính lại trên bản đọc ra sẽ không khớp
-        // payload_hash — và khả năng đối chiếu là toàn bộ lý do bản chốt tồn tại (ADR-006).
-        // Không ai truy vấn vào bên trong bản chốt, nên khả năng truy vấn của jsonb không bù
-        // lại được mất mát đó.
+        // TEXT and NOT jsonb, and this is the only column in the project deliberately like that.
+        // Postgres normalises jsonb on write: it strips whitespace and REORDERS THE KEYS. The
+        // string read back differs from the string written in, so a SHA-256 recomputed over the
+        // value read back will not match payload_hash — and being able to verify it is the entire
+        // reason snapshots exist (ADR-006). Nobody queries inside a snapshot, so jsonb's query
+        // capability does not make up for that loss.
         b.Property(x => x.PayloadJson).HasColumnType("text").IsRequired();
         b.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
 
-        // Restrict: bản chốt điểm không bao giờ bị xóa theo, kể cả khi lớp bị xóa.
+        // Restrict: a grade snapshot is never deleted along with anything else, not even when the
+        // class offering is deleted.
         b.HasOne<CourseOffering>().WithMany().HasForeignKey(x => x.OfferingId)
          .OnDelete(DeleteBehavior.Restrict);
 

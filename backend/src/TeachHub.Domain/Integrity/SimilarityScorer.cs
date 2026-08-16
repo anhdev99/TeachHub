@@ -1,82 +1,87 @@
 namespace TeachHub.Domain.Integrity;
 
 /// <param name="JaccardPercent">
-/// |A ∩ B| / |A ∪ B|. Con số "hai bài giống nhau bao nhiêu" theo nghĩa cân xứng.
+/// |A ∩ B| / |A ∪ B|. The "how alike are these two submissions" number, in the symmetric sense.
 /// </param>
 /// <param name="ContainmentPercent">
-/// |A ∩ B| / min(|A|, |B|). Con số "bài nhỏ hơn nằm gọn trong bài kia bao nhiêu".
+/// |A ∩ B| / min(|A|, |B|). The "how completely does the smaller submission sit inside the other
+/// one" number.
 /// </param>
 public sealed record SimilarityScore(
     int SharedHashes, int TotalA, int TotalB, decimal JaccardPercent, decimal ContainmentPercent);
 
 /// <summary>
-/// Chấm mức trùng lặp giữa hai tập dấu vân tay. Hàm thuần, không I/O.
+/// Scores how much two fingerprint sets overlap. Pure function, no I/O.
 ///
-/// Báo cáo CẢ HAI con số chứ không chọn một, vì chúng bắt hai hành vi khác nhau:
-/// Jaccard loãng đi khi một bài dài hơn hẳn, nên "chép nguyên một hàm rồi tự viết thêm 300
-/// dòng" sẽ trượt qua nếu chỉ nhìn Jaccard. Containment chia cho tập nhỏ hơn nên bắt được ca
-/// đó, nhưng lại dễ báo động giả với tệp rất ngắn. Chỉ hiển thị một trong hai là hoặc bỏ sót,
-/// hoặc gắn cờ oan — và cả hai kiểu sai đều làm giảng viên mất niềm tin vào danh sách cảnh báo.
+/// Reports BOTH numbers rather than picking one, because they catch two different behaviours:
+/// Jaccard gets diluted when one submission is far longer, so "copy one whole function then write
+/// another 300 lines yourself" slips through if you only look at Jaccard. Containment divides by
+/// the smaller set and does catch that case, but in exchange it raises false alarms on very short
+/// files. Showing only one of the two means either missing cases or flagging innocent ones — and
+/// both kinds of error cost the instructor their trust in the warning list.
 ///
-/// Dùng TẬP (bỏ trùng lặp) chứ không dùng đa tập: một bài lặp lại đúng một đoạn mười lần
-/// không được phép tự đẩy điểm trùng của chính mình lên.
+/// Uses SETS (duplicates removed), not multisets: a submission that repeats one stretch ten times
+/// must not be allowed to inflate its own similarity score.
 /// </summary>
 public static class SimilarityScorer
 {
     public static SimilarityScore Compare(IEnumerable<long> a, IEnumerable<long> b)
     {
-        var ta = new HashSet<long>(a);
-        var tb = new HashSet<long>(b);
+        var setA = new HashSet<long>(a);
+        var setB = new HashSet<long>(b);
 
-        // Tệp rỗng, tệp chỉ có chú thích, hoặc tệp ngắn hơn một k-gram đều cho tập rỗng.
-        // Trả 0 ngay tại đây thay vì chia cho 0 ở dưới.
-        if (ta.Count == 0 || tb.Count == 0)
-            return new SimilarityScore(0, ta.Count, tb.Count, 0m, 0m);
+        // An empty file, a file with nothing but comments, or a file shorter than one k-gram all
+        // give an empty set. Return 0 right here instead of dividing by zero below.
+        if (setA.Count == 0 || setB.Count == 0)
+            return new SimilarityScore(0, setA.Count, setB.Count, 0m, 0m);
 
-        var nho = ta.Count <= tb.Count ? ta : tb;
-        var lon = ReferenceEquals(nho, ta) ? tb : ta;
+        var smaller = setA.Count <= setB.Count ? setA : setB;
+        var larger = ReferenceEquals(smaller, setA) ? setB : setA;
 
-        var chung = nho.Count(h => lon.Contains(h));
-        var hop = ta.Count + tb.Count - chung;
+        var shared = smaller.Count(h => larger.Contains(h));
+        var union = setA.Count + setB.Count - shared;
 
         return new SimilarityScore(
-            chung, ta.Count, tb.Count,
-            PhanTram(chung, hop),
-            PhanTram(chung, nho.Count));
+            shared, setA.Count, setB.Count,
+            Percent(shared, union),
+            Percent(shared, smaller.Count));
     }
 
     /// <summary>
-    /// Vị trí các k-gram của <paramref name="a"/> cũng xuất hiện ở bài kia — đầu vào cho màn
-    /// hình so sánh cạnh nhau. Trả về vị trí token chứ không trả về giá trị băm: giá trị băm
-    /// không nói được đoạn nào trên màn hình phải tô sáng.
+    /// The positions of <paramref name="a"/>'s k-grams that also appear in the other submission —
+    /// the input to the side-by-side comparison screen. Returns token positions rather than hash
+    /// values: a hash value cannot tell you which stretch on screen has to be highlighted.
     /// </summary>
     public static IReadOnlyList<int> MatchedPositions(
         IReadOnlyList<Fingerprint> a, IEnumerable<long> hashesOfOther)
     {
-        var kia = new HashSet<long>(hashesOfOther);
-        return [.. a.Where(f => kia.Contains(f.Hash)).Select(f => f.Position)];
+        var other = new HashSet<long>(hashesOfOther);
+        return [.. a.Where(f => other.Contains(f.Hash)).Select(f => f.Position)];
     }
 
-    private static decimal PhanTram(int tu, int mau) =>
-        mau <= 0 ? 0m : Math.Round(tu * 100m / mau, 2, MidpointRounding.AwayFromZero);
+    private static decimal Percent(int numerator, int denominator) =>
+        denominator <= 0 ? 0m : Math.Round(numerator * 100m / denominator, 2, MidpointRounding.AwayFromZero);
 }
 
 /// <summary>
-/// Ngưỡng cảnh báo. KHÔNG hard-code trong handler: bài tập nhập môn dùng chung starter code
-/// trùng 70–90% một cách hoàn toàn chính đáng, còn bài đồ án cuối kỳ thì 40% đã đáng xem lại.
-/// Ngưỡng cứng chung cho mọi bài sẽ cho ra một danh sách cảnh báo dài tới mức giảng viên ngừng
-/// đọc nó — mất tính năng theo cách khó nhận ra nhất.
+/// The warning threshold. NOT hard-coded in the handler: an introductory assignment built on
+/// shared starter code matches 70–90% entirely legitimately, while on a final-semester project
+/// 40% is already worth a second look. One fixed threshold for every assignment produces a
+/// warning list so long that the instructor stops reading it — losing the feature in the hardest
+/// way to notice.
 ///
-/// Giá trị dưới đây chỉ là điểm khởi đầu. Plan yêu cầu hiệu chỉnh bằng dữ liệu thật: chạy trên
-/// bài của học kỳ trước, xem phân bố, rồi mới chọn ngưỡng cho từng loại bài.
+/// The value below is only a starting point. The plan calls for calibrating it against real data:
+/// run it over last semester's submissions, look at the distribution, and only then pick a
+/// threshold per assignment type.
 /// </summary>
 public static class SimilarityThresholds
 {
     public const decimal DefaultWarnPercent = 60m;
 
     /// <summary>
-    /// Dưới ngần này dấu vân tay thì KHÔNG báo cáo. Một tệp mười dòng chỉ sinh vài dấu vân
-    /// tay, và hai tệp mười dòng cùng in "Hello World" sẽ trùng 100% một cách vô nghĩa.
+    /// Below this many fingerprints, DO NOT report at all. A ten-line file produces only a handful
+    /// of fingerprints, and two ten-line files that both print "Hello World" will match 100% in a
+    /// way that means nothing.
     /// </summary>
     public const int MinFingerprints = 8;
 

@@ -20,15 +20,17 @@ public sealed record FileTreeNode(string Path, long SizeBytes);
 public sealed record StructureCheckResult(bool Passed, List<string> Missing);
 
 /// <summary>
-/// Đọc cấu trúc file zip mà KHÔNG BAO GIỜ ghi ra đĩa theo đường dẫn nằm trong file zip.
-/// Mọi entry bị kiểm trước khi đọc; vượt hạn mức là dừng ngay, không đọc tiếp.
+/// Reads the structure of a zip file while NEVER writing to disk under a path taken from inside
+/// the zip. Every entry is checked before it is read; going over a limit stops the read right
+/// there, nothing further is read.
 ///
-/// Đây là bề mặt tấn công lớn nhất của hệ thống: sinh viên upload file tùy ý và máy chủ
-/// giải nén chúng. Zip-slip ghi đè file ngoài thư mục đích; zip bomb làm đầy đĩa. Xem ADR-005.
+/// This is the largest attack surface in the system: students upload arbitrary files and the
+/// server unpacks them. Zip-slip overwrites files outside the target directory; a zip bomb fills
+/// the disk. See ADR-005.
 /// </summary>
 public static class SafeZipReader
 {
-    private static readonly string[] RacHeThong = ["__MACOSX/", ".DS_Store", "Thumbs.db", "desktop.ini"];
+    private static readonly string[] SystemJunk = ["__MACOSX/", ".DS_Store", "Thumbs.db", "desktop.ini"];
 
     public static FileTree ReadTree(Stream zipStream, ZipLimits limits)
     {
@@ -49,44 +51,44 @@ public static class SafeZipReader
                     $"File nén có {archive.Entries.Count} mục, vượt giới hạn {limits.MaxEntryCount}. " +
                     "Có thể bạn đã nén nhầm cả thư mục node_modules hoặc bin/obj.");
 
-            long tongGiaiNen = 0, tongNen = 0;
+            long totalUncompressed = 0, totalCompressed = 0;
             var files = new List<FileTreeNode>();
 
             foreach (var entry in archive.Entries)
             {
-                if (entry.FullName.EndsWith('/')) continue;                       // thư mục
-                if (RacHeThong.Any(r => entry.FullName.Contains(r, StringComparison.Ordinal))) continue;
+                if (entry.FullName.EndsWith('/')) continue;                       // directory
+                if (SystemJunk.Any(j => entry.FullName.Contains(j, StringComparison.Ordinal))) continue;
 
-                var duongDan = NormalizeAndGuard(entry.FullName, limits);
+                var entryPath = NormalizeAndGuard(entry.FullName, limits);
 
-                tongGiaiNen += entry.Length;
-                tongNen     += entry.CompressedLength;
+                totalUncompressed += entry.Length;
+                totalCompressed   += entry.CompressedLength;
 
-                if (tongGiaiNen > limits.MaxTotalUncompressedBytes)
+                if (totalUncompressed > limits.MaxTotalUncompressedBytes)
                     throw new UnsafeArchiveException(
                         $"Nội dung sau giải nén vượt {limits.MaxTotalUncompressedBytes / 1024 / 1024} MB.");
 
-                files.Add(new FileTreeNode(duongDan, entry.Length));
+                files.Add(new FileTreeNode(entryPath, entry.Length));
             }
 
-            // Kiểm tỉ lệ nén sau cùng: từng entry lẻ có thể bình thường nhưng tổng thể
-            // vẫn là một quả bom.
-            if (tongNen > 0 && tongGiaiNen / tongNen > limits.MaxCompressionRatio)
+            // Check the compression ratio last: each individual entry can look perfectly normal
+            // while the archive as a whole is still a bomb.
+            if (totalCompressed > 0 && totalUncompressed / totalCompressed > limits.MaxCompressionRatio)
                 throw new UnsafeArchiveException(
-                    $"Tỉ lệ nén {tongGiaiNen / tongNen}:1 bất thường, từ chối xử lý.");
+                    $"Tỉ lệ nén {totalUncompressed / totalCompressed}:1 bất thường, từ chối xử lý.");
 
             return new FileTree(files);
         }
     }
 
     /// <summary>
-    /// Đọc nội dung MỘT entry theo đường dẫn. Đường dẫn phải đi qua đúng bộ luật của
-    /// <see cref="NormalizeAndGuard"/> như lúc dựng cây: cây thư mục đã an toàn nhưng
-    /// tham số path đến từ query string và người dùng sửa được.
+    /// Reads the content of ONE entry by path. The path has to go through exactly the same set of
+    /// rules in <see cref="NormalizeAndGuard"/> as when the tree was built: the directory tree is
+    /// already safe, but the path parameter arrives from the query string and the user can edit it.
     /// </summary>
     public static byte[] ReadEntry(Stream zipStream, string path, ZipLimits limits, long maxBytes)
     {
-        var canDoc = NormalizeAndGuard(path, limits);
+        var wanted = NormalizeAndGuard(path, limits);
 
         ZipArchive archive;
         try
@@ -101,7 +103,7 @@ public static class SafeZipReader
         using (archive)
         {
             var entry = archive.Entries.FirstOrDefault(
-                e => string.Equals(e.FullName.Replace('\\', '/'), canDoc, StringComparison.Ordinal));
+                e => string.Equals(e.FullName.Replace('\\', '/'), wanted, StringComparison.Ordinal));
 
             if (entry is null)
                 throw new UnsafeArchiveException($"Không có mục '{path}' trong file nén.");
@@ -113,14 +115,15 @@ public static class SafeZipReader
             using var s = entry.Open();
             using var buf = new MemoryStream();
 
-            // Chép có giới hạn: entry.Length là số do chính file nén khai, kẻ tấn công sửa được.
-            var conLai = maxBytes + 1;
-            var tam = new byte[81920];
-            int doc;
-            while (conLai > 0 && (doc = s.Read(tam, 0, (int)Math.Min(tam.Length, conLai))) > 0)
+            // Bounded copy: entry.Length is a number the archive itself declares, and an attacker
+            // can forge it.
+            var remaining = maxBytes + 1;
+            var chunk = new byte[81920];
+            int read;
+            while (remaining > 0 && (read = s.Read(chunk, 0, (int)Math.Min(chunk.Length, remaining))) > 0)
             {
-                buf.Write(tam, 0, doc);
-                conLai -= doc;
+                buf.Write(chunk, 0, read);
+                remaining -= read;
             }
 
             if (buf.Length > maxBytes)
@@ -131,9 +134,10 @@ public static class SafeZipReader
     }
 
     /// <summary>
-    /// Chuẩn hóa và chặn đường dẫn độc hại. Phơi ra <c>public</c> có chủ ý: tầng Application
-    /// phải gọi lại đúng hàm này cho tham số path đến từ query string. Chép logic sang tầng
-    /// khác là tạo hai bản sao của cùng một bộ luật, và chúng sẽ lệch nhau ngay lần sửa đầu.
+    /// Normalizes a path and blocks malicious ones. Exposed as <c>public</c> on purpose: the
+    /// Application tier has to call this exact function for the path parameter that comes from the
+    /// query string. Copying the logic into another tier creates two copies of the same set of
+    /// rules, and they will drift apart on the very first edit.
     /// </summary>
     public static string NormalizeAndGuard(string raw, ZipLimits limits)
     {
@@ -158,56 +162,57 @@ public sealed class FileTree(List<FileTreeNode> files)
 {
     public List<FileTreeNode> Files { get; set; } = files;
 
-    /// <summary>EF cần hàm dựng không tham số để nạp cột jsonb.</summary>
+    /// <summary>EF needs a parameterless constructor to materialize the jsonb column.</summary>
     public FileTree() : this([]) { }
 
     public StructureCheckResult CheckStructure(RequiredStructure required)
     {
-        // Thử HAI cách hiểu rồi lấy cách khớp hơn, thay vì chọn cứng một cách.
+        // Try BOTH readings and take whichever matches better, instead of hard-coding one of them.
         //
-        // Cách 1 — đọc nguyên: file nằm ngay ở gốc file nén.
-        // Cách 2 — bóc một lớp thư mục bọc: sinh viên chuột phải vào thư mục rồi "nén",
-        //          ra "BaiTap1/README.md". Đây là hành vi mặc định của Windows và macOS,
-        //          chặn nó sẽ gắn cờ đỏ oan cho nửa lớp.
+        // Reading 1 — take it literally: the files sit at the root of the archive.
+        // Reading 2 — strip one wrapper folder: the student right-clicks a folder and picks
+        //             "Compress", which produces "BaiTap1/README.md". That is the default
+        //             behaviour of both Windows and macOS; rejecting it would raise a false red
+        //             flag on half the class.
         //
-        // Chỉ bóc mà không thử cách 1 thì hỏng đúng ca ngược lại: một bài chỉ có src/App.tsx
-        // sẽ bị bóc mất chính thư mục "src" đang được yêu cầu, và báo thiếu "src/" trong khi
-        // nó nằm ngay đó.
-        var nguyen = ThieuGi(Files.Select(f => f.Path).ToList(), required);
+        // Stripping only, without trying reading 1, breaks the exact opposite case: a submission
+        // containing just src/App.tsx would have the very "src" folder that is being required
+        // stripped away, and would report "src/" missing while it is sitting right there.
+        var asIs = MissingFrom(Files.Select(f => f.Path).ToList(), required);
 
-        var goc = CommonRootFolder();
-        if (goc is null) return new StructureCheckResult(nguyen.Count == 0, nguyen);
+        var root = CommonRootFolder();
+        if (root is null) return new StructureCheckResult(asIs.Count == 0, asIs);
 
-        var daBoc = ThieuGi([.. Files.Select(f => f.Path[(goc.Length + 1)..])], required);
+        var stripped = MissingFrom([.. Files.Select(f => f.Path[(root.Length + 1)..])], required);
 
-        var thieu = daBoc.Count < nguyen.Count ? daBoc : nguyen;
-        return new StructureCheckResult(thieu.Count == 0, thieu);
+        var missing = stripped.Count < asIs.Count ? stripped : asIs;
+        return new StructureCheckResult(missing.Count == 0, missing);
     }
 
-    private static List<string> ThieuGi(List<string> duongDan, RequiredStructure required)
+    private static List<string> MissingFrom(List<string> paths, RequiredStructure required)
     {
-        var thieu = new List<string>();
+        var missing = new List<string>();
 
         foreach (var f in required.RequiredFiles)
-            if (!duongDan.Any(p => string.Equals(p, f, StringComparison.OrdinalIgnoreCase)))
-                thieu.Add(f);
+            if (!paths.Any(p => string.Equals(p, f, StringComparison.OrdinalIgnoreCase)))
+                missing.Add(f);
 
         foreach (var d in required.RequiredFolders)
-            if (!duongDan.Any(p => p.StartsWith(d + "/", StringComparison.OrdinalIgnoreCase)))
-                thieu.Add(d + "/");
+            if (!paths.Any(p => p.StartsWith(d + "/", StringComparison.OrdinalIgnoreCase)))
+                missing.Add(d + "/");
 
-        return thieu;
+        return missing;
     }
 
     private string? CommonRootFolder()
     {
         if (Files.Count == 0) return null;
 
-        var dau = Files[0].Path.Split('/');
-        if (dau.Length < 2) return null;
+        var first = Files[0].Path.Split('/');
+        if (first.Length < 2) return null;
 
-        var ungVien = dau[0];
-        return Files.All(f => f.Path.StartsWith(ungVien + "/", StringComparison.Ordinal))
-            ? ungVien : null;
+        var candidate = first[0];
+        return Files.All(f => f.Path.StartsWith(candidate + "/", StringComparison.Ordinal))
+            ? candidate : null;
     }
 }

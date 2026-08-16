@@ -7,10 +7,11 @@ namespace TeachHub.Application.Tests;
 public class TokenExpiryTests
 {
     [Fact]
-    public void Token_het_han_thi_khong_con_active()
+    public void An_expired_token_is_no_longer_active()
     {
-        // Dùng FakeTimeProvider thay vì chờ 14 ngày — đây là lý do mọi logic phụ thuộc
-        // thời gian trong dự án phải đi qua TimeProvider chứ không gọi DateTimeOffset.UtcNow.
+        // Using FakeTimeProvider instead of waiting 14 days — this is why every time-dependent
+        // piece of logic in the project goes through TimeProvider rather than calling
+        // DateTimeOffset.UtcNow.
         var clock = new FakeTimeProvider(new DateTimeOffset(2026, 8, 13, 0, 0, 0, TimeSpan.Zero));
         var token = new RefreshToken
         {
@@ -27,7 +28,7 @@ public class TokenExpiryTests
     }
 
     [Fact]
-    public void Token_da_thu_hoi_thi_khong_con_active_du_chua_het_han()
+    public void A_revoked_token_is_no_longer_active_even_before_it_expires()
     {
         var clock = new FakeTimeProvider(new DateTimeOffset(2026, 8, 13, 0, 0, 0, TimeSpan.Zero));
         var token = new RefreshToken

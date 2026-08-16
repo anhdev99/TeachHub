@@ -2,11 +2,11 @@ import createClient from "openapi-fetch";
 import type { paths } from "./schema";
 
 /**
- * Client gọi API, sinh type từ /openapi/v1.json (pnpm gen:api).
+ * API client, with types generated from /openapi/v1.json (pnpm gen:api).
  *
- * baseUrl trỏ về CHÍNH Next.js chứ không phải .NET API: mọi request đi qua BFF route
- * handler ở src/app/api/**, nơi JWT nằm trong cookie httpOnly và được gắn vào header
- * Authorization phía máy chủ. Trình duyệt không bao giờ thấy token (ADR-007) — một lỗ
- * XSS vì thế không kéo theo việc lộ toàn bộ điểm số của lớp.
+ * baseUrl points at Next.js ITSELF rather than the .NET API: every request goes through the
+ * BFF route handler in src/app/api/**, where the JWT lives in an httpOnly cookie and is
+ * attached to the Authorization header server-side. The browser never sees the token
+ * (ADR-007) — so an XSS hole does not also leak the whole class's grades.
  */
 export const api = createClient<paths>({ baseUrl: "/" });

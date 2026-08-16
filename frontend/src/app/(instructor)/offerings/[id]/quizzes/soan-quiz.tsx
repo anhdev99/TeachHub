@@ -11,9 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TrongRong } from "@/components/shell/trang";
+import { EmptyState } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
-import { NHAN_LOAI_CAU_HOI, type QuizDto, type QuizQuestionDto } from "@/lib/api/types";
+import { QUESTION_TYPE_LABELS, type QuizDto, type QuizQuestionDto } from "@/lib/api/types";
 
 export function SoanQuiz({
   offeringId,
@@ -126,10 +126,10 @@ export function SoanQuiz({
       {ds.length === 0 ? (
         <Card>
           <CardContent>
-            <TrongRong
+            <EmptyState
               Icon={ListChecks}
-              tieuDe="Lớp này chưa có bài trắc nghiệm nào"
-              moTa="Tạo bài ở khối bên trên, rồi chọn câu hỏi từ ngân hàng câu hỏi của bạn."
+              title="Lớp này chưa có bài trắc nghiệm nào"
+              description="Tạo bài ở khối bên trên, rồi chọn câu hỏi từ ngân hàng câu hỏi của bạn."
             />
           </CardContent>
         </Card>
@@ -200,11 +200,11 @@ function ChonCauHoi({
         ) : (
           <>
             {nganHang.length === 0 ? (
-              <TrongRong
+              <EmptyState
                 Icon={ListChecks}
-                tieuDe="Ngân hàng câu hỏi đang trống"
-                moTa="Soạn câu hỏi một lần trong ngân hàng, rồi chọn lại cho bất kỳ bài trắc nghiệm nào."
-                hanhDong={
+                title="Ngân hàng câu hỏi đang trống"
+                description="Soạn câu hỏi một lần trong ngân hàng, rồi chọn lại cho bất kỳ bài trắc nghiệm nào."
+                action={
                   <Link
                     href="/questions"
                     className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
@@ -230,7 +230,7 @@ function ChonCauHoi({
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="text-pretty">{c.text}</span>
                         <span className="text-muted-foreground text-xs">
-                          {NHAN_LOAI_CAU_HOI[c.type]} · {c.points}đ
+                          {QUESTION_TYPE_LABELS[c.type]} · {c.points}đ
                         </span>
                       </span>
                     </label>

@@ -11,48 +11,48 @@ public sealed record ImportResult(List<ValidatedStudent> Valid, List<ImportError
 public static partial class EnrollmentImporter
 {
     /// <summary>
-    /// Nhập được bao nhiêu nhập bấy nhiêu. Một dòng hỏng không được làm hỏng cả file —
-    /// giảng viên chỉ cần sửa đúng những dòng được liệt kê rồi nhập bổ sung. Import thất bại
-    /// toàn phần vì một dòng lỗi nghĩa là phải sửa file bằng tay trước mỗi lần thử.
+    /// Import as much as can be imported. One broken row must not spoil the whole file — the
+    /// instructor only has to fix exactly the rows that were listed and then import again. An
+    /// all-or-nothing failure over a single bad row means editing the file by hand before every try.
     /// </summary>
     public static ImportResult Validate(IReadOnlyList<ImportRow> rows)
     {
         var valid = new List<ValidatedStudent>();
         var errors = new List<ImportError>();
-        var daThay = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         for (var i = 0; i < rows.Count; i++)
         {
-            var soDong = i + 2;   // +1 vì 1-based, +1 vì dòng header
+            var rowNumber = i + 2;   // +1 because 1-based, +1 because of the header row
             var r = rows[i];
 
-            var ma = NormalizeStudentCode(r.StudentCode);
-            var ten = NormalizeName(r.FullName);
+            var code = NormalizeStudentCode(r.StudentCode);
+            var name = NormalizeName(r.FullName);
             var email = r.Email?.Trim().ToLowerInvariant() ?? "";
 
-            if (ma.Length == 0 && ten.Length == 0 && email.Length == 0)
-                continue;                                    // dòng trống: bỏ qua lặng lẽ
+            if (code.Length == 0 && name.Length == 0 && email.Length == 0)
+                continue;                                    // blank row: skip silently
 
-            if (ma.Length == 0) { errors.Add(new(soDong, "Thiếu MSSV.")); continue; }
-            if (ten.Length == 0) { errors.Add(new(soDong, $"Thiếu họ tên (MSSV {ma}).")); continue; }
+            if (code.Length == 0) { errors.Add(new(rowNumber, "Thiếu MSSV.")); continue; }
+            if (name.Length == 0) { errors.Add(new(rowNumber, $"Thiếu họ tên (MSSV {code}).")); continue; }
 
-            // Email không bắt buộc: danh sách của phòng đào tạo thường thiếu, và SV vẫn
-            // ghép được vào lớp bằng MSSV. Nhưng có thì phải đúng định dạng.
+            // Email is optional: the registrar's roster is often missing it, and a student can
+            // still be matched into the class by student code. But if present it must be well-formed.
             if (email.Length > 0 && !EmailPattern().IsMatch(email))
-            { errors.Add(new(soDong, $"Email không hợp lệ: '{r.Email}'.")); continue; }
+            { errors.Add(new(rowNumber, $"Email không hợp lệ: '{r.Email}'.")); continue; }
 
-            if (!daThay.Add(ma))
-            { errors.Add(new(soDong, $"MSSV {ma} bị trùng với một dòng phía trên.")); continue; }
+            if (!seen.Add(code))
+            { errors.Add(new(rowNumber, $"MSSV {code} bị trùng với một dòng phía trên.")); continue; }
 
-            valid.Add(new ValidatedStudent(ma, ten, email, r.ClassName?.Trim()));
+            valid.Add(new ValidatedStudent(code, name, email, r.ClassName?.Trim()));
         }
 
         return new ImportResult(valid, errors);
     }
 
     /// <summary>
-    /// Excel hay biến MSSV thành số rồi xuất ra "2251012001.0" hoặc dạng khoa học.
-    /// Khôi phục về chuỗi chữ số gốc.
+    /// Excel likes to turn a student code into a number and then export it as "2251012001.0"
+    /// or in scientific notation. Restore it to the original digit string.
     /// </summary>
     private static string NormalizeStudentCode(string? raw)
     {

@@ -4,129 +4,133 @@ using TeachHub.Domain.Gamification;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Streak là chỗ dễ sai nhất của toàn bộ cơ chế động lực học tập, và là chỗ sinh viên phát hiện
-/// nhanh nhất: một người học đều 5 ngày mà thấy con số 3 sẽ mất niềm tin vào mọi thứ còn lại.
-/// Cả bộ test này chỉ để trả lời đúng MỘT câu hỏi: "ngày" là ngày nào.
+/// The streak is the easiest thing in the whole motivation mechanism to get wrong, and the thing
+/// students notice fastest: someone who studied five days straight and sees the number 3 stops
+/// trusting everything else. This entire suite exists to answer exactly ONE question: which day
+/// is "a day".
 /// </summary>
 public class StreakCalculatorTests
 {
     private static readonly TimeZoneInfo Vn = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
-    private static readonly TimeSpan LechVn = TimeSpan.FromHours(7);
+    private static readonly TimeSpan VnOffset = TimeSpan.FromHours(7);
 
-    /// <summary>Một mốc thời gian viết theo GIỜ VIỆT NAM cho dễ đọc.</summary>
-    private static DateTimeOffset GioVn(int ngay, int gio, int phut = 0) =>
-        new(2026, 8, ngay, gio, phut, 0, LechVn);
+    /// <summary>A timestamp written in VIETNAM LOCAL TIME for readability.</summary>
+    private static DateTimeOffset VnTime(int day, int hour, int minute = 0) =>
+        new(2026, 8, day, hour, minute, 0, VnOffset);
 
     [Fact]
-    public void Hoc_luc_23h50_roi_00h10_hom_sau_tinh_thanh_HAI_ngay()
+    public void Studying_at_23_50_then_00_10_the_next_day_counts_as_TWO_days()
     {
-        // Ca kinh điển: hai mốc chỉ cách nhau 20 phút nhưng nằm ở hai NGÀY ĐỊA PHƯƠNG khác nhau.
-        // Sinh viên học khuya rồi học tiếp sau nửa đêm đã giữ được chuỗi hai ngày — trả về 1 là
-        // ăn cắp một ngày của họ, và họ đếm được.
-        var toiKhuya = GioVn(16, 23, 50);
-        var quaNuaDem = GioVn(17, 0, 10);
+        // The classic case: two timestamps only 20 minutes apart but sitting on two different
+        // LOCAL DAYS. A student who studied late and kept going past midnight has held a two-day
+        // streak — returning 1 steals a day from them, and they can count.
+        var lateNight = VnTime(16, 23, 50);
+        var pastMidnight = VnTime(17, 0, 10);
 
-        var kq = StreakCalculator.Compute([toiKhuya, quaNuaDem], Vn, now: quaNuaDem);
+        var result = StreakCalculator.Compute([lateNight, pastMidnight], Vn, now: pastMidnight);
 
-        kq.Current.ShouldBe(2);
-        kq.Longest.ShouldBe(2);
+        result.Current.ShouldBe(2);
+        result.Longest.ShouldBe(2);
     }
 
     [Fact]
-    public void Cung_hai_moc_do_nhung_tinh_theo_UTC_chi_ra_MOT_ngay()
+    public void The_very_same_two_timestamps_counted_in_UTC_give_only_ONE_day()
     {
-        // 23:50 giờ VN = 16:50Z, 00:10 hôm sau giờ VN = 17:10Z — CÙNG một ngày UTC.
-        // Đây chính là lý do phải quy đổi qua múi giờ của lớp trước khi so sánh: chọn nhầm
-        // múi giờ không làm sai lệch một chút, nó làm mất hẳn một ngày trong chuỗi.
-        var kq = StreakCalculator.Compute(
-            [GioVn(16, 23, 50), GioVn(17, 0, 10)], TimeZoneInfo.Utc, now: GioVn(17, 0, 10));
+        // 23:50 Vietnam time = 16:50Z, and 00:10 the next day Vietnam time = 17:10Z — the SAME
+        // UTC day. This is exactly why we must convert into the class's time zone before
+        // comparing: picking the wrong zone does not skew the result slightly, it erases an
+        // entire day from the streak.
+        var result = StreakCalculator.Compute(
+            [VnTime(16, 23, 50), VnTime(17, 0, 10)], TimeZoneInfo.Utc, now: VnTime(17, 0, 10));
 
-        kq.Current.ShouldBe(1);
-        kq.Longest.ShouldBe(1);
+        result.Current.ShouldBe(1);
+        result.Longest.ShouldBe(1);
     }
 
     [Fact]
-    public void Ba_ngay_lien_tiep_cho_streak_bang_ba()
+    public void Three_consecutive_days_give_a_streak_of_three()
     {
-        var kq = StreakCalculator.Compute(
-            [GioVn(14, 9), GioVn(15, 20), GioVn(16, 8)], Vn, now: GioVn(16, 22));
+        var result = StreakCalculator.Compute(
+            [VnTime(14, 9), VnTime(15, 20), VnTime(16, 8)], Vn, now: VnTime(16, 22));
 
-        kq.Current.ShouldBe(3);
-        kq.Longest.ShouldBe(3);
+        result.Current.ShouldBe(3);
+        result.Longest.ShouldBe(3);
     }
 
     [Fact]
-    public void Bo_mot_ngay_thi_streak_ve_mot()
+    public void Missing_a_day_resets_the_streak_to_one()
     {
-        // Học ngày 12, 13, 14 — nghỉ ngày 15 — học lại ngày 16.
-        var kq = StreakCalculator.Compute(
-            [GioVn(12, 9), GioVn(13, 9), GioVn(14, 9), GioVn(16, 9)], Vn, now: GioVn(16, 21));
+        // Studied on the 12th, 13th and 14th — took the 15th off — came back on the 16th.
+        var result = StreakCalculator.Compute(
+            [VnTime(12, 9), VnTime(13, 9), VnTime(14, 9), VnTime(16, 9)], Vn, now: VnTime(16, 21));
 
-        kq.Current.ShouldBe(1);
+        result.Current.ShouldBe(1);
 
-        // Kỷ lục cũ KHÔNG bị xóa khi chuỗi đứt: huy hiệu đã trao dựa trên kỷ lục thì không
-        // được phép biến mất, nếu không sinh viên mất huy hiệu vì một ngày ốm.
-        kq.Longest.ShouldBe(3);
+        // The old record is NOT wiped when the run breaks: a badge already awarded on the basis
+        // of that record must not be allowed to vanish, or a student loses a badge over one sick day.
+        result.Longest.ShouldBe(3);
     }
 
     [Fact]
-    public void Hai_hoat_dong_trong_cung_mot_ngay_dia_phuong_chi_tinh_mot_ngay()
+    public void Two_activities_on_the_same_local_day_count_as_one_day()
     {
-        // Học chăm gấp đôi trong một ngày không mua được thêm ngày streak.
-        var kq = StreakCalculator.Compute(
-            [GioVn(16, 7, 30), GioVn(16, 23, 30)], Vn, now: GioVn(16, 23, 40));
+        // Studying twice as hard in one day does not buy an extra streak day.
+        var result = StreakCalculator.Compute(
+            [VnTime(16, 7, 30), VnTime(16, 23, 30)], Vn, now: VnTime(16, 23, 40));
 
-        kq.Current.ShouldBe(1);
-        kq.Longest.ShouldBe(1);
+        result.Current.ShouldBe(1);
+        result.Longest.ShouldBe(1);
     }
 
     [Fact]
-    public void Chua_hoc_hom_nay_nhung_hom_qua_co_thi_chuoi_van_con_song()
+    public void Not_having_studied_today_but_having_studied_yesterday_keeps_the_run_alive()
     {
-        // Không có ân hạn tới hết ngày thì mọi sinh viên mở trang lúc 7 giờ sáng đều thấy
-        // streak = 0 và tưởng mình vừa mất chuỗi — rồi không ai tin con số đó nữa.
-        var kq = StreakCalculator.Compute(
-            [GioVn(14, 9), GioVn(15, 9), GioVn(16, 9)], Vn, now: GioVn(17, 7));
+        // Without a grace period lasting until the end of the day, every student opening the page
+        // at 7 in the morning sees streak = 0 and believes they just lost their run — after which
+        // nobody trusts the number any more.
+        var result = StreakCalculator.Compute(
+            [VnTime(14, 9), VnTime(15, 9), VnTime(16, 9)], Vn, now: VnTime(17, 7));
 
-        kq.Current.ShouldBe(3);
+        result.Current.ShouldBe(3);
     }
 
     [Fact]
-    public void Hoat_dong_gan_nhat_cach_hai_ngay_thi_streak_ve_khong()
+    public void The_most_recent_activity_being_two_days_old_drops_the_streak_to_zero()
     {
-        var kq = StreakCalculator.Compute([GioVn(14, 9)], Vn, now: GioVn(16, 9));
+        var result = StreakCalculator.Compute([VnTime(14, 9)], Vn, now: VnTime(16, 9));
 
-        kq.Current.ShouldBe(0);
-        kq.Longest.ShouldBe(1);
+        result.Current.ShouldBe(0);
+        result.Longest.ShouldBe(1);
     }
 
     [Fact]
-    public void Khong_co_hoat_dong_nao_thi_streak_bang_khong()
+    public void With_no_activity_at_all_the_streak_is_zero()
     {
-        var kq = StreakCalculator.Compute([], Vn, now: GioVn(16, 9));
+        var result = StreakCalculator.Compute([], Vn, now: VnTime(16, 9));
 
-        kq.Current.ShouldBe(0);
-        kq.Longest.ShouldBe(0);
-        kq.LastActiveLocalDate.ShouldBeNull();
+        result.Current.ShouldBe(0);
+        result.Longest.ShouldBe(0);
+        result.LastActiveLocalDate.ShouldBeNull();
     }
 
     [Fact]
-    public void Moc_thoi_gian_khong_can_sap_xep_san()
+    public void Timestamps_do_not_need_to_arrive_pre_sorted()
     {
-        // Truy vấn trả về theo thứ tự nào là chuyện của câu truy vấn; kết quả streak không
-        // được phép phụ thuộc vào nó.
-        var kq = StreakCalculator.Compute(
-            [GioVn(16, 9), GioVn(14, 9), GioVn(15, 9)], Vn, now: GioVn(16, 10));
+        // What order the query returns rows in is the query's business; the streak result must
+        // never depend on it.
+        var result = StreakCalculator.Compute(
+            [VnTime(16, 9), VnTime(14, 9), VnTime(15, 9)], Vn, now: VnTime(16, 10));
 
-        kq.Current.ShouldBe(3);
-        kq.LastActiveLocalDate.ShouldBe(new DateOnly(2026, 8, 16));
+        result.Current.ShouldBe(3);
+        result.LastActiveLocalDate.ShouldBe(new DateOnly(2026, 8, 16));
     }
 
     [Fact]
-    public void Mui_gio_khong_hop_le_lui_ve_gio_Viet_Nam_chu_khong_nem_loi()
+    public void An_invalid_time_zone_falls_back_to_Vietnam_time_instead_of_throwing()
     {
-        // TimeZoneId là chuỗi tự do trong DB. Ném ngoại lệ ở đây là để một dòng dữ liệu hỏng
-        // làm sập trang tiến độ của cả lớp; lùi về mặc định thì sai lệch nhiều nhất là vài giờ.
+        // TimeZoneId is a free-form string in the database. Throwing here would let one corrupt
+        // row take down the progress page for an entire class; falling back to the default is
+        // off by a few hours at worst.
         StreakCalculator.ResolveZone("Khong/Ton_Tai").ShouldBe(Vn);
         StreakCalculator.ResolveZone(null).ShouldBe(Vn);
         StreakCalculator.ResolveZone("  ").ShouldBe(Vn);
@@ -134,11 +138,11 @@ public class StreakCalculatorTests
     }
 
     [Fact]
-    public void Ngay_dia_phuong_doi_theo_mui_gio_cua_lop()
+    public void The_local_date_shifts_with_the_time_zone_of_the_class()
     {
-        var moc = new DateTimeOffset(2026, 8, 16, 17, 30, 0, TimeSpan.Zero);   // 17:30Z
+        var instant = new DateTimeOffset(2026, 8, 16, 17, 30, 0, TimeSpan.Zero);   // 17:30Z
 
-        StreakCalculator.LocalDateOf(moc, Vn).ShouldBe(new DateOnly(2026, 8, 17));       // 00:30 hôm sau
-        StreakCalculator.LocalDateOf(moc, TimeZoneInfo.Utc).ShouldBe(new DateOnly(2026, 8, 16));
+        StreakCalculator.LocalDateOf(instant, Vn).ShouldBe(new DateOnly(2026, 8, 17));       // 00:30 the next day
+        StreakCalculator.LocalDateOf(instant, TimeZoneInfo.Utc).ShouldBe(new DateOnly(2026, 8, 16));
     }
 }

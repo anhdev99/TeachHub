@@ -30,7 +30,7 @@ public sealed record GamificationSettingsDto(
 public sealed record EarnedBadgeDto(
     Guid BadgeId, string Code, string Name, string? Description, string? Icon, DateTimeOffset EarnedAt);
 
-/// <param name="Current">Giá trị hiện tại của chỉ số — để giao diện vẽ được thanh tiến độ, không chỉ nói "chưa đạt".</param>
+/// <param name="Current">The metric's current value — so the UI can draw a progress bar instead of merely saying "not earned yet".</param>
 public sealed record ConditionProgressDto(
     BadgeMetric Metric, BadgeComparison Comparison, decimal Threshold, decimal Current, bool Met);
 
@@ -41,9 +41,10 @@ public sealed record BadgeProgressDto(
 public sealed record XpByTypeDto(XpEventType Type, int Points, int Count);
 
 /// <param name="LastActiveDate">
-/// NGÀY LỊCH ĐỊA PHƯƠNG (yyyy-MM-dd) theo múi giờ của lớp, cố ý KHÔNG phải một mốc thời gian.
-/// Trả về <c>DateTimeOffset</c> ở đây là mời trình duyệt quy đổi lại theo múi giờ của MÁY SINH VIÊN,
-/// và một người mở trang khi đang ở nước ngoài sẽ thấy streak lệch một ngày so với bạn cùng lớp.
+/// The LOCAL CALENDAR DATE (yyyy-MM-dd) in the offering's time zone, deliberately NOT an instant.
+/// Returning a <c>DateTimeOffset</c> here invites the browser to re-convert it into the time zone of
+/// the STUDENT'S MACHINE, and someone opening the page while abroad would see their streak off by a
+/// day compared with their classmates.
 /// </param>
 public sealed record MyGamificationDto(
     Guid OfferingId, bool IsEnabled, int TotalXp,

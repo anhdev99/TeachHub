@@ -8,14 +8,14 @@ public class QuizAttempt : Entity
 {
     public required Guid QuizId { get; set; }
 
-    /// <summary>Gap #2: trỏ tới enrollment chứ không tới user — học lại kỳ sau là lượt khác.</summary>
+    /// <summary>Gap #2: points at the enrollment, not at the user — retaking the course next term is a different attempt history.</summary>
     public required Guid EnrollmentId { get; set; }
 
     public int AttemptNo { get; set; } = 1;
 
     /// <summary>
-    /// Máy chủ là nguồn chân lý về thời gian. Đồng hồ client sửa được bằng một dòng JavaScript,
-    /// nên hạn giờ luôn tính từ mốc này cộng với time_limit của quiz.
+    /// The server is the source of truth about time. A client clock can be changed with one line
+    /// of JavaScript, so the deadline is always this instant plus the quiz's time_limit.
     /// </summary>
     public required DateTimeOffset StartedAt { get; set; }
 
@@ -23,28 +23,29 @@ public class QuizAttempt : Entity
     public QuizAttemptStatus Status { get; set; } = QuizAttemptStatus.InProgress;
 
     /// <summary>
-    /// Đáp án đã lưu, cập nhật sau MỖI câu chứ không đợi tới lúc nộp — lưu jsonb.
-    /// Sinh viên rớt wifi giữa bài mà mất trắng sẽ đòi làm lại, và không có cách nào kiểm chứng.
+    /// Saved answers, updated after EVERY question instead of waiting for the final submit — stored as jsonb.
+    /// A student who loses wifi mid-quiz and loses everything will demand a retake, and there is no way to verify the claim.
     /// </summary>
     public List<StoredAnswer> Answers { get; set; } = [];
 
     public decimal? RawScore { get; set; }
     public decimal? MaxScore { get; set; }
 
-    /// <summary>Điểm đã quy về thang 10 — con số chảy vào sổ điểm.</summary>
+    /// <summary>Score normalized onto the 0–10 scale — the number that flows into the gradebook.</summary>
     public decimal? NormalizedScore { get; set; }
 
-    /// <summary>Nguồn của hàng đợi ôn tập ngắt quãng (Phase 8).</summary>
+    /// <summary>Source of the spaced review queue (Phase 8).</summary>
     public List<Guid> WrongQuestionIds { get; set; } = [];
 
     /// <summary>
-    /// Thứ tự câu đã xáo cho riêng lượt này. Lưu lại để tải lại trang không đảo thứ tự —
-    /// xáo lại mỗi lần mở là sinh viên tưởng mình bị đổi đề giữa chừng.
+    /// The shuffled question order for this attempt alone. Persisted so that reloading the page
+    /// does not reorder anything — reshuffling on every open makes the student think the paper
+    /// was swapped out mid-quiz.
     /// </summary>
     public List<Guid> QuestionOrder { get; set; } = [];
 }
 
-/// <summary>Một đáp án đã lưu, nằm trong cột jsonb của lượt làm.</summary>
+/// <summary>One saved answer, living inside the attempt's jsonb column.</summary>
 public class StoredAnswer
 {
     public Guid QuestionId { get; set; }

@@ -6,26 +6,28 @@ namespace TeachHub.Domain.Tests;
 public class GradeSnapshotHashTests
 {
     [Fact]
-    public void Cung_mot_chuoi_luon_ra_cung_mot_hash()
+    public void The_same_string_always_produces_the_same_hash()
     {
-        // Đối chiếu bản chốt sáu tháng sau chỉ có nghĩa nếu hàm băm tất định.
+        // Reconciling a finalized snapshot six months later only means something if the hash
+        // function is deterministic.
         const string json = """{"class_code":"DA24TIN01","rows":[]}""";
 
         GradeSnapshotHash.Compute(json).ShouldBe(GradeSnapshotHash.Compute(json));
     }
 
     [Fact]
-    public void Doi_mot_ky_tu_la_doi_hash()
+    public void Changing_one_character_changes_the_hash()
     {
         GradeSnapshotHash.Compute("""{"final_score":8.5}""")
             .ShouldNotBe(GradeSnapshotHash.Compute("""{"final_score":8.6}"""));
     }
 
     [Fact]
-    public void Hash_la_64_ky_tu_hex_thuong()
+    public void The_hash_is_64_lowercase_hex_characters()
     {
-        // Cột payload_hash khai varchar(64). Trả về dạng viết hoa hay có dấu gạch là tràn cột
-        // hoặc lệch khi so sánh chuỗi — cả hai chỉ lộ ra lúc chốt sổ thật.
+        // The payload_hash column is declared varchar(64). Returning uppercase, or a dashed form,
+        // either overflows the column or mismatches on string comparison — and both only surface
+        // during a real grade finalization.
         var h = GradeSnapshotHash.Compute("xin chào");
 
         h.Length.ShouldBe(64);
@@ -33,19 +35,21 @@ public class GradeSnapshotHashTests
     }
 
     [Fact]
-    public void Khop_voi_vector_SHA256_chuan()
+    public void Matches_the_standard_SHA256_test_vector()
     {
-        // Vector kiểm thử công khai của SHA-256 cho chuỗi "abc". Có nó thì đổi thuật toán
-        // nhầm (SHA-1, MD5) là test đỏ ngay chứ không âm thầm sinh hash khác họ.
+        // The public SHA-256 test vector for the string "abc". With it in place, accidentally
+        // switching algorithm (SHA-1, MD5) turns the test red immediately instead of silently
+        // producing hashes from a different family.
         GradeSnapshotHash.Compute("abc")
             .ShouldBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
 
     [Fact]
-    public void Tieng_Viet_co_dau_bam_theo_UTF8()
+    public void Vietnamese_with_diacritics_is_hashed_as_UTF8()
     {
-        // Bảng điểm đầy tên tiếng Việt. Băm theo encoding mặc định của máy chủ thì cùng một
-        // bản chốt cho hai hash khác nhau trên hai máy — bản chốt mất sạch giá trị đối chiếu.
+        // Grade sheets are full of Vietnamese names. Hashing with the server's default encoding
+        // makes one snapshot produce two different hashes on two machines — the snapshot loses
+        // all of its reconciliation value.
         GradeSnapshotHash.Compute("Nguyễn Văn Ánh")
             .ShouldBe(GradeSnapshotHash.Compute("Nguyễn Văn Ánh"));
     }

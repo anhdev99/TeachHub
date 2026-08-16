@@ -6,69 +6,75 @@ using TeachHub.Domain.Teaching;
 namespace TeachHub.Application.Features.Learning;
 
 /// <summary>
-/// Lớp đã đóng thì mọi đường GHI của sinh viên phải đóng theo.
+/// Once an offering is closed, every WRITE path open to students has to close with it.
 ///
-/// <c>OfferingStatus</c> có ba giá trị từ Phase 2, nhưng cho tới trước lần sửa này chỗ DUY NHẤT
-/// đọc tới nó là <see cref="CourseOffering.AcceptsJoinCode"/>. Nghĩa là
-/// <c>POST /api/offerings/{id}/close</c> đổi một cái nhãn và chốt một bản sổ điểm, rồi sinh viên
-/// vẫn nộp bài, vẫn làm trắc nghiệm, vẫn đánh dấu tiến độ như thường — và bản chốt "tại thời
-/// điểm đóng" đối chiếu với một sổ điểm còn tiếp tục thay đổi sau lưng nó.
+/// <c>OfferingStatus</c> has had three values since Phase 2, but until this fix the ONLY place that
+/// read it was <see cref="CourseOffering.AcceptsJoinCode"/>. Which meant
+/// <c>POST /api/offerings/{id}/close</c> flipped a label and froze one gradebook snapshot, and then
+/// students went right on submitting work, taking quizzes and marking progress as usual — with the
+/// "as of closing time" snapshot being compared against a gradebook that kept on changing behind
+/// its back.
 ///
-/// Ba quyết định đi kèm, mỗi cái đều cố ý:
+/// Three decisions come with this, every one of them deliberate:
 ///
-/// 1. <b>409 chứ không 404.</b> Khác hẳn ca không-thuộc-về-mình: ở đây sinh viên biết rõ lớp này
-///    có thật và mình có học. Giấu đi bằng 404 chỉ khiến họ tưởng hệ thống hỏng và nhắn tin hỏi
-///    giảng viên. Kèm <c>detail</c> tiếng Việt đọc được, vì đó là thứ duy nhất giao diện hiển thị.
+/// 1. <b>409, not 404.</b> Completely unlike the not-yours case: here the student knows perfectly
+///    well that this offering is real and that they are enrolled in it. Hiding it behind a 404 only
+///    makes them think the system is broken and message the instructor. Ships with a readable
+///    Vietnamese <c>detail</c>, because that is the only thing the UI displays.
 ///
-/// 2. <b>Chỉ khoá đường GHI.</b> Sinh viên vẫn phải xem lại được bài học, điểm, bài đã nộp và gợi
-///    ý đã mở sau khi lớp kết thúc — khoá đọc là xoá sổ toàn bộ giá trị của việc học.
+/// 2. <b>Lock the WRITE paths only.</b> Students must still be able to review lessons, grades,
+///    submitted work and already-unlocked hints after the offering ends — locking reads wipes out
+///    the entire value of having studied.
 ///
-/// 3. <b>KHÔNG khoá giảng viên.</b> Chấm bài thường diễn ra SAU khi lớp kết thúc; chặn giảng viên
-///    chấm nghĩa là không ai dám đóng lớp và tính năng thành vô dụng.
+/// 3. <b>Do NOT lock the instructor.</b> Grading normally happens AFTER the offering ends; blocking
+///    the instructor from grading means nobody dares close an offering and the feature is useless.
 ///
-/// Gom về một chỗ vì lý do y hệt <see cref="LearningAccess"/>: mỗi bản sao chép thủ công là một
-/// chỗ có thể quên, và quên một chỗ là cái khoá không tồn tại.
+/// Centralised for exactly the same reason as <see cref="LearningAccess"/>: every hand-copied
+/// duplicate is one more place to forget, and forgetting one place means the lock does not exist.
 /// </summary>
 public static class OfferingLock
 {
     /// <summary>
-    /// Thông điệp trả cho người dùng. Nhận động từ của thao tác để câu tiếng Việt đọc được —
-    /// "không thao tác được nữa" là loại thông báo khiến người đọc phải đoán họ vừa làm gì sai.
+    /// The message returned to the user. Takes the verb of the operation so the Vietnamese sentence
+    /// reads properly — "you can no longer do that" is the kind of message that leaves the reader
+    /// guessing what exactly they just did wrong.
     /// </summary>
-    public static string ThongDiep(string hanhDong) =>
-        $"Lớp học phần đã kết thúc nên không {hanhDong} được nữa.";
+    public static string ClosedMessage(string action) =>
+        $"Lớp học phần đã kết thúc nên không {action} được nữa.";
 
-    /// <summary>Lớp <paramref name="offeringId"/> đã đóng chưa.</summary>
-    public static Task<bool> DaDongAsync(IAppDbContext db, Guid offeringId, CancellationToken ct) =>
+    /// <summary>Has offering <paramref name="offeringId"/> been closed.</summary>
+    public static Task<bool> IsClosedAsync(IAppDbContext db, Guid offeringId, CancellationToken ct) =>
         db.CourseOfferings.AsNoTracking()
             .AnyAsync(o => o.Id == offeringId && o.Status == OfferingStatus.Closed, ct);
 
     /// <summary>
-    /// Lớp mà <paramref name="enrollmentId"/> thuộc về đã đóng chưa. Bản dùng nhiều nhất: hầu hết
-    /// handler phía sinh viên đã phải giải ra enrollment để kiểm quyền, nên không tốn thêm gì.
+    /// Has the offering that <paramref name="enrollmentId"/> belongs to been closed. The
+    /// most-used overload: most student-side handlers already had to resolve the enrollment in
+    /// order to check permissions, so this costs nothing extra.
     /// </summary>
-    public static async Task<bool> DaDongTheoGhiDanhAsync(
+    public static async Task<bool> IsClosedForEnrollmentAsync(
         IAppDbContext db, Guid enrollmentId, CancellationToken ct)
     {
-        var trangThai = await (from e in db.Enrollments.AsNoTracking()
-                               where e.Id == enrollmentId
-                               join o in db.CourseOfferings on e.OfferingId equals o.Id
-                               select (OfferingStatus?)o.Status).FirstOrDefaultAsync(ct);
+        var status = await (from e in db.Enrollments.AsNoTracking()
+                            where e.Id == enrollmentId
+                            join o in db.CourseOfferings on e.OfferingId equals o.Id
+                            select (OfferingStatus?)o.Status).FirstOrDefaultAsync(ct);
 
-        // Ép kiểu nullable là cố ý: `FirstOrDefaultAsync` trên enum trần trả về `Draft` khi không
-        // có hàng nào, tức "chưa đóng" — một câu trả lời vừa sai vừa im lặng nếu enrollment biến mất.
-        return trangThai == OfferingStatus.Closed;
+        // The nullable cast is deliberate: `FirstOrDefaultAsync` over a bare enum returns `Draft`
+        // when there is no row, i.e. "not closed" — an answer that is both wrong and silent if the
+        // enrollment has disappeared.
+        return status == OfferingStatus.Closed;
     }
 }
 
 /// <summary>
-/// Sinh viên chỉ được chạm vào nội dung của phiên bản mà LỚP MÌNH HỌC đang ghim. Gom phép kiểm
-/// về một chỗ: mỗi bản sao chép thủ công là một chỗ có thể quên, và quên một chỗ là sinh viên
-/// lớp này đánh dấu hoàn thành bài của lớp khác.
+/// A student may only touch content from the version that THEIR OWN OFFERING has pinned. The check
+/// is gathered in one place: every hand-copied duplicate is one more place to forget, and forgetting
+/// one place means a student in this class marking a lesson of another class as complete.
 /// </summary>
 public static class LearningAccess
 {
-    /// <summary>Enrollment của <paramref name="userId"/> ứng với bài học đó, hoặc null nếu không có quyền.</summary>
+    /// <summary>The enrollment of <paramref name="userId"/> for that lesson, or null if they have no access.</summary>
     public static Task<Guid?> EnrollmentForLessonAsync(
         IAppDbContext db, Guid lessonId, Guid userId, CancellationToken ct) =>
         (from l in db.Lessons.AsNoTracking()
@@ -91,57 +97,59 @@ public static class LearningAccess
          select (Guid?)e.Id).FirstOrDefaultAsync(ct);
 
     /// <summary>
-    /// Bài học chứa <paramref name="componentId"/> đã mở khoá với người học chưa?
+    /// Has the lesson containing <paramref name="componentId"/> been unlocked for this learner?
     /// </summary>
     /// <remarks>
-    /// Có ghi danh KHÔNG có nghĩa là được chạm vào mọi bài. `UnlockEngine` mở dần theo tiến độ,
-    /// và nếu phép kiểm đó chỉ sống ở truy vấn dựng trang học thì nó chỉ là một ổ khoá VẼ TRÊN
-    /// GIAO DIỆN: mọi endpoint khác nhận id bài học vẫn phục vụ bình thường.
+    /// Being enrolled does NOT mean being allowed to touch every lesson. `UnlockEngine` opens them
+    /// up gradually as progress is made, and if that check only lives in the query that builds the
+    /// study page then it is nothing but a padlock PAINTED ON THE UI: every other endpoint that
+    /// takes a lesson id still serves it as usual.
     ///
-    /// Dựng lại cây chương rồi gọi chính `UnlockEngine.Evaluate` mà trang học dùng — cố ý không
-    /// viết một phép kiểm "gọn hơn" cho riêng chỗ này. Hai cách tính mở khoá song song là bảo
-    /// đảm sẽ có ngày chúng trả lời khác nhau, và bên lỏng hơn mới là bên quyết định.
+    /// This rebuilds the chapter tree and then calls the very same `UnlockEngine.Evaluate` that the
+    /// study page uses — deliberately not a "leaner" check written just for this spot. Two parallel
+    /// ways of computing unlock state are a guarantee that one day they will answer differently,
+    /// and the looser of the two is the one that decides.
     /// </remarks>
     public static async Task<bool> IsComponentUnlockedAsync(
         IAppDbContext db, Guid componentId, Guid enrollmentId, CancellationToken ct)
     {
-        var viTri = await db.LessonComponents.AsNoTracking()
+        var location = await db.LessonComponents.AsNoTracking()
             .Where(cp => cp.Id == componentId)
             .Join(db.Lessons, cp => cp.LessonId, l => l.Id, (cp, l) => new { l.Id, l.ChapterId })
             .SingleOrDefaultAsync(ct);
 
-        if (viTri is null) return false;
+        if (location is null) return false;
 
-        var chuong = await db.Chapters.AsNoTracking()
-            .Where(c => c.Id == viTri.ChapterId)
+        var chapter = await db.Chapters.AsNoTracking()
+            .Where(c => c.Id == location.ChapterId)
             .Select(c => new { c.Id, c.UnlockRule })
             .SingleAsync(ct);
 
-        var bai = await db.Lessons.AsNoTracking()
-            .Where(l => l.ChapterId == viTri.ChapterId)
+        var lessons = await db.Lessons.AsNoTracking()
+            .Where(l => l.ChapterId == location.ChapterId)
             .OrderBy(l => l.OrderIndex)
             .Select(l => new { l.Id, l.Title, l.IsRequiredToUnlockNext })
             .ToListAsync(ct);
 
-        var phan = await db.LessonComponents.AsNoTracking()
-            .Where(cp => bai.Select(b => b.Id).Contains(cp.LessonId))
+        var components = await db.LessonComponents.AsNoTracking()
+            .Where(cp => lessons.Select(l => l.Id).Contains(cp.LessonId))
             .Select(cp => new { cp.Id, cp.LessonId, cp.IsRequired })
             .ToListAsync(ct);
 
-        var lessonXong = await db.LessonProgresses.AsNoTracking()
+        var completedLessonIds = await db.LessonProgresses.AsNoTracking()
             .Where(p => p.EnrollmentId == enrollmentId && p.Status == ProgressStatus.Completed)
             .Select(p => p.LessonId).ToListAsync(ct);
 
-        var componentXong = await db.ComponentProgresses.AsNoTracking()
+        var completedComponentIds = await db.ComponentProgresses.AsNoTracking()
             .Where(p => p.EnrollmentId == enrollmentId && p.Status == ProgressStatus.Completed)
             .Select(p => p.LessonComponentId).ToListAsync(ct);
 
-        var node = new ChapterNode(chuong.Id, chuong.UnlockRule, [.. bai.Select(l =>
+        var node = new ChapterNode(chapter.Id, chapter.UnlockRule, [.. lessons.Select(l =>
             new LessonNode(l.Id, l.Title, l.IsRequiredToUnlockNext,
-                [.. phan.Where(cp => cp.LessonId == l.Id)
-                        .Select(cp => new ComponentNode(cp.Id, cp.IsRequired))]))]);
+                [.. components.Where(cp => cp.LessonId == l.Id)
+                              .Select(cp => new ComponentNode(cp.Id, cp.IsRequired))]))]);
 
-        var access = UnlockEngine.Evaluate(node, Progress.With(lessonXong, componentXong));
-        return access.GetValueOrDefault(viTri.Id, LessonAccess.Unlocked) != LessonAccess.Locked;
+        var access = UnlockEngine.Evaluate(node, Progress.With(completedLessonIds, completedComponentIds));
+        return access.GetValueOrDefault(location.Id, LessonAccess.Unlocked) != LessonAccess.Locked;
     }
 }

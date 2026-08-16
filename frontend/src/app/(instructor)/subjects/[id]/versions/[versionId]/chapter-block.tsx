@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { ChapterDto, LessonDto } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-import { TheBai } from "./the-bai";
+import { LessonCard } from "./lesson-card";
 
 /**
  * Một chương trong trình soạn thảo.
@@ -44,7 +44,7 @@ import { TheBai } from "./the-bai";
  * chương và bài thành hai thẻ trắng cùng cỡ, cách nhau bằng khoảng trắng — nhìn không ra cái
  * nào chứa cái nào, mà quan hệ chứa nhau chính là thứ duy nhất màn hình này cần thể hiện.
  */
-export function KhoiChuong({
+export function ChapterBlock({
   chuong,
   suaDuoc,
   versionId,
@@ -215,7 +215,7 @@ export function KhoiChuong({
               <SortableContext items={bai.map((l) => l.id)} strategy={verticalListSortingStrategy}>
                 <ul className="border-border border-t">
                   {bai.map((l) => (
-                    <TheBai key={l.id} bai={l} suaDuoc={suaDuoc} chapterId={chuong.id} />
+                    <LessonCard key={l.id} bai={l} suaDuoc={suaDuoc} chapterId={chuong.id} />
                   ))}
                 </ul>
               </SortableContext>

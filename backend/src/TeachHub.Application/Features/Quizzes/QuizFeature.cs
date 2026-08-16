@@ -10,8 +10,8 @@ using TeachHub.Domain.Quizzes;
 namespace TeachHub.Application.Features.Quizzes;
 
 /// <summary>
-/// Quiz thuộc phiên bản môn HOẶC một lớp, nên phép kiểm sở hữu phải rẽ theo đúng nhánh.
-/// Gom về một chỗ vì mọi handler của Phase 5 đều cần nó.
+/// A quiz belongs to a subject version OR to an offering, so the ownership check has to branch
+/// down the right path. Gathered in one place because every Phase 5 handler needs it.
 /// </summary>
 public static class QuizOwnership
 {
@@ -32,7 +32,7 @@ public static class QuizOwnership
     }
 }
 
-// ── Tạo / sửa quiz ──────────────────────────────────────────────────────────────────────
+// ── Create / edit a quiz ────────────────────────────────────────────────────────────────
 
 public sealed record SaveQuizCommand(
     Guid? Id, Guid? SubjectVersionId, Guid? OfferingId,
@@ -47,8 +47,9 @@ public sealed class SaveQuizValidator : AbstractValidator<SaveQuizCommand>
     {
         RuleFor(x => x.Title).NotEmpty().WithMessage("Chưa nhập tên bài trắc nghiệm.").MaximumLength(300);
 
-        // Gap #3 nhắc lại ở tầng validator: CHECK ở database là lớp cuối, còn đây là lớp cho
-        // ra câu tiếng Việt đọc được thay vì một lỗi ràng buộc thô.
+        // Gap #3 restated at the validator layer: the database CHECK is the last line of defence,
+        // while this layer is the one that produces a readable Vietnamese sentence instead of a
+        // raw constraint violation.
         RuleFor(x => x)
             .Must(x => (x.SubjectVersionId is null) != (x.OfferingId is null))
             .When(x => x.Id is null)
@@ -80,12 +81,12 @@ public sealed class SaveQuizHandler(IAppDbContext db)
         }
         else
         {
-            var duoc = request.SubjectVersionId is { } vid
+            var allowed = request.SubjectVersionId is { } vid
                 ? await ContentOwnership.OwnsVersionAsync(db, vid, request.InstructorId, ct)
                 : request.OfferingId is { } oid
                   && await OfferingOwnership.OwnsOfferingAsync(db, oid, request.InstructorId, ct);
 
-            if (!duoc) return Result<QuizDto>.NotFound("Không tìm thấy phiên bản môn học hoặc lớp.");
+            if (!allowed) return Result<QuizDto>.NotFound("Không tìm thấy phiên bản môn học hoặc lớp.");
 
             quiz = new Quiz
             {
@@ -108,28 +109,28 @@ public sealed class SaveQuizHandler(IAppDbContext db)
 
         await db.SaveChangesAsync(ct);
 
-        return Result<QuizDto>.Ok(QuizDto.From(quiz, await CauCuaQuizAsync(db, quiz.Id, ct)));
+        return Result<QuizDto>.Ok(QuizDto.From(quiz, await QuestionsOfQuizAsync(db, quiz.Id, ct)));
     }
 
-    internal static async Task<List<QuizQuestion>> CauCuaQuizAsync(
+    internal static async Task<List<QuizQuestion>> QuestionsOfQuizAsync(
         IAppDbContext db, Guid quizId, CancellationToken ct)
     {
-        var muc = await db.QuizItems.AsNoTracking()
+        var items = await db.QuizItems.AsNoTracking()
             .Where(i => i.QuizId == quizId)
             .OrderBy(i => i.OrderIndex)
             .Select(i => new { i.QuestionId, i.PointsOverride, i.OrderIndex })
             .ToListAsync(ct);
 
-        var ids = muc.Select(m => m.QuestionId).ToList();
+        var ids = items.Select(m => m.QuestionId).ToList();
 
-        var cau = await db.QuizQuestions.AsNoTracking()
+        var questions = await db.QuizQuestions.AsNoTracking()
             .Include(q => q.Options)
             .Where(q => ids.Contains(q.Id))
             .ToListAsync(ct);
 
-        // Giữ đúng thứ tự của quiz và áp điểm ghi đè nếu có.
-        return [.. muc
-            .Select(m => (m, q: cau.FirstOrDefault(x => x.Id == m.QuestionId)))
+        // Keep the quiz's own ordering and apply the points override where there is one.
+        return [.. items
+            .Select(m => (m, q: questions.FirstOrDefault(x => x.Id == m.QuestionId)))
             .Where(x => x.q is not null)
             .Select(x =>
             {
@@ -139,7 +140,7 @@ public sealed class SaveQuizHandler(IAppDbContext db)
     }
 }
 
-// ── Đọc quiz (phía giảng viên, CÓ đáp án) ───────────────────────────────────────────────
+// ── Read a quiz (instructor side, WITH the answer key) ──────────────────────────────────
 
 public sealed record GetQuizQuery(Guid QuizId, Guid InstructorId) : IQuery<Result<QuizDto>>;
 
@@ -153,7 +154,7 @@ public sealed class GetQuizHandler(IAppDbContext db) : IQueryHandler<GetQuizQuer
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == request.QuizId, ct);
 
         return Result<QuizDto>.Ok(
-            QuizDto.From(quiz, await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct)));
+            QuizDto.From(quiz, await SaveQuizHandler.QuestionsOfQuizAsync(db, quiz.Id, ct)));
     }
 }
 
@@ -165,29 +166,29 @@ public sealed class GetQuizzesHandler(IAppDbContext db)
 {
     public async Task<Result<List<QuizDto>>> Handle(GetQuizzesQuery request, CancellationToken ct)
     {
-        var duoc = request.SubjectVersionId is { } vid
+        var allowed = request.SubjectVersionId is { } vid
             ? await ContentOwnership.OwnsVersionAsync(db, vid, request.InstructorId, ct)
             : request.OfferingId is { } oid
               && await OfferingOwnership.OwnsOfferingAsync(db, oid, request.InstructorId, ct);
 
-        if (!duoc) return Result<List<QuizDto>>.NotFound("Không tìm thấy phiên bản môn học hoặc lớp.");
+        if (!allowed) return Result<List<QuizDto>>.NotFound("Không tìm thấy phiên bản môn học hoặc lớp.");
 
-        var ds = await db.Quizzes.AsNoTracking()
+        var quizzes = await db.Quizzes.AsNoTracking()
             .Where(q => request.SubjectVersionId != null
                 ? q.SubjectVersionId == request.SubjectVersionId
                 : q.OfferingId == request.OfferingId)
             .OrderBy(q => q.Title)
             .ToListAsync(ct);
 
-        var kq = new List<QuizDto>(ds.Count);
-        foreach (var q in ds)
-            kq.Add(QuizDto.From(q, await SaveQuizHandler.CauCuaQuizAsync(db, q.Id, ct)));
+        var result = new List<QuizDto>(quizzes.Count);
+        foreach (var q in quizzes)
+            result.Add(QuizDto.From(q, await SaveQuizHandler.QuestionsOfQuizAsync(db, q.Id, ct)));
 
-        return Result<List<QuizDto>>.Ok(kq);
+        return Result<List<QuizDto>>.Ok(result);
     }
 }
 
-// ── Gắn câu hỏi vào quiz ────────────────────────────────────────────────────────────────
+// ── Attach questions to a quiz ──────────────────────────────────────────────────────────
 
 public sealed record SetQuizQuestionsCommand(List<Guid> QuestionIds) : ICommand<Result<QuizDto>>
 {
@@ -203,22 +204,23 @@ public sealed class SetQuizQuestionsHandler(IAppDbContext db)
         if (!await QuizOwnership.OwnsQuizAsync(db, request.QuizId, request.InstructorId, ct))
             return Result<QuizDto>.NotFound("Không tìm thấy bài trắc nghiệm.");
 
-        // Đổi đề khi đã có người làm là làm hỏng bài đã chấm — điểm cũ tính trên bộ câu khác.
+        // Changing the question set once somebody has taken the quiz corrupts work that was
+        // already graded — the old scores were computed over a different set of questions.
         if (await db.QuizAttempts.AnyAsync(a => a.QuizId == request.QuizId, ct))
             return Result<QuizDto>.Conflict(
                 "Bài này đã có lượt làm. Đổi danh sách câu hỏi sẽ làm điểm đã chấm không còn giải thích được.");
 
-        var cuaToi = await db.QuizQuestions.AsNoTracking()
+        var mine = await db.QuizQuestions.AsNoTracking()
             .Where(q => q.InstructorId == request.InstructorId && request.QuestionIds.Contains(q.Id))
             .Select(q => q.Id)
             .ToListAsync(ct);
 
-        var la = request.QuestionIds.Except(cuaToi).ToList();
-        if (la.Count > 0)
+        var foreign = request.QuestionIds.Except(mine).ToList();
+        if (foreign.Count > 0)
             return Result<QuizDto>.NotFound("Có câu hỏi không thuộc ngân hàng của bạn.");
 
-        var cu = await db.QuizItems.Where(i => i.QuizId == request.QuizId).ToListAsync(ct);
-        db.QuizItems.RemoveRange(cu);
+        var existing = await db.QuizItems.Where(i => i.QuizId == request.QuizId).ToListAsync(ct);
+        db.QuizItems.RemoveRange(existing);
 
         db.QuizItems.AddRange(request.QuestionIds.Distinct().Select((qid, i) => new QuizItem
         {
@@ -232,6 +234,6 @@ public sealed class SetQuizQuestionsHandler(IAppDbContext db)
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == request.QuizId, ct);
 
         return Result<QuizDto>.Ok(
-            QuizDto.From(quiz, await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct)));
+            QuizDto.From(quiz, await SaveQuizHandler.QuestionsOfQuizAsync(db, quiz.Id, ct)));
     }
 }

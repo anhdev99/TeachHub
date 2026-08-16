@@ -3,18 +3,19 @@ import type { ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 /**
- * Dòng cảnh báo bắt buộc của mọi màn hình trùng lặp (Rủi ro #3 của SRS).
+ * The mandatory disclaimer on every similarity screen (SRS Risk #3).
  *
- * Nằm ở một component dùng chung chứ không chép sang từng trang: hai bản chép sẽ trôi xa nhau,
- * và bản nhẹ lời hơn sẽ là bản người dùng nhớ. Con số phần trăm là gợi ý để ĐỌC bài, không phải
- * bằng chứng — bài nhập môn dùng chung mã khởi đầu trùng 70–90% một cách hoàn toàn chính đáng.
+ * It lives in one shared component instead of being copied into each page: two copies drift
+ * apart, and the softer-worded one is the one users will remember. The percentage is a hint to
+ * go READ the code, not evidence — intro-level assignments sharing the same starter code hit
+ * 70–90% similarity entirely legitimately.
  *
- * MÀU HỔ PHÁCH (`warn`), CỐ Ý KHÔNG PHẢI ĐỎ. Đỏ trong hệ màu này nghĩa là lỗi và nguy hiểm —
- * dùng nó ở đây là ra một phán quyết bằng màu sắc, nói ngược lại đúng câu chữ bên trong khung.
- * Đây cũng là màu của phần tô sáng đoạn trùng trong `globals.css`, nên khung cảnh báo và vệt
- * vàng trong mã nguồn đọc như cùng một tín hiệu.
+ * AMBER (`warn`), DELIBERATELY NOT RED. In this color system red means error and danger —
+ * using it here delivers a verdict through color, contradicting the exact words inside the
+ * box. Amber is also the color of the matched-range highlight in `globals.css`, so the alert
+ * box and the yellow streaks in the source code read as one signal.
  */
-export function CanhBaoTrungLap({ children }: { children?: ReactNode }) {
+export function SimilarityNotice({ children }: { children?: ReactNode }) {
   return (
     <Alert className="bg-warn-soft border-warn/25 items-start px-3.5 py-3">
       <TriangleAlert className="text-warn" aria-hidden />

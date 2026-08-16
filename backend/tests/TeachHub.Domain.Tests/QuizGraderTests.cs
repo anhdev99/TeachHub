@@ -5,278 +5,280 @@ using TeachHub.Domain.Quizzes;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Giữ test dù phase chạy theo yêu cầu "không viết test": chấm điền khuyết tiếng Việt là ca
-/// KHÔNG kiểm được bằng mắt. Hai chuỗi "Hà Nội" gõ bằng hai bộ gõ khác nhau hiện ra giống
-/// hệt nhau trên màn hình nhưng khác nhau từng byte — nhìn ảnh chụp màn hình không bao giờ
-/// phát hiện được. Cả file chạy dưới 20 ms.
+/// Kept even though the phase ran under a "no tests" instruction: grading Vietnamese fill-in-the-blank
+/// answers is a case that CANNOT be checked by eye. Two strings reading "Hà Nội", typed with two
+/// different input methods, render identically on screen but differ byte for byte — looking at a
+/// screenshot will never reveal it. The whole file runs in under 20 ms.
 /// </summary>
 public class QuizGraderTests
 {
-    private static QuizQuestion ChonMot(params (string Text, bool Dung)[] pa)
+    private static QuizQuestion SingleChoice(params (string Text, bool Correct)[] options)
     {
         var q = new QuizQuestion
         {
             InstructorId = Guid.CreateVersion7(), Type = QuestionType.SingleChoice,
             Text = "Câu hỏi", Points = 1m,
         };
-        q.Options.AddRange(pa.Select((p, i) => new QuestionOption
+        q.Options.AddRange(options.Select((o, i) => new QuestionOption
         {
-            Text = p.Text, IsCorrect = p.Dung, OrderIndex = i,
+            Text = o.Text, IsCorrect = o.Correct, OrderIndex = i,
         }));
         return q;
     }
 
-    private static QuizQuestion ChonNhieu(bool chamMotPhan, params (string Text, bool Dung)[] pa)
+    private static QuizQuestion MultipleChoice(bool partialCredit, params (string Text, bool Correct)[] options)
     {
         var q = new QuizQuestion
         {
             InstructorId = Guid.CreateVersion7(), Type = QuestionType.MultipleChoice,
-            Text = "Câu hỏi", Points = 2m, AllowPartialCredit = chamMotPhan,
+            Text = "Câu hỏi", Points = 2m, AllowPartialCredit = partialCredit,
         };
-        q.Options.AddRange(pa.Select((p, i) => new QuestionOption
+        q.Options.AddRange(options.Select((o, i) => new QuestionOption
         {
-            Text = p.Text, IsCorrect = p.Dung, OrderIndex = i,
+            Text = o.Text, IsCorrect = o.Correct, OrderIndex = i,
         }));
         return q;
     }
 
-    private static QuizQuestion DienKhuyet(params string[] dapAn) => new()
+    private static QuizQuestion FillBlank(params string[] acceptedAnswers) => new()
     {
         InstructorId = Guid.CreateVersion7(), Type = QuestionType.FillBlank,
         Text = "Thủ đô Việt Nam là ___", Points = 1m,
-        FillBlank = new FillBlankConfig { AcceptedAnswers = [.. dapAn] },
+        FillBlank = new FillBlankConfig { AcceptedAnswers = [.. acceptedAnswers] },
     };
 
-    // ── Câu chọn một ─────────────────────────────────────────────────────────────────────
+    // -- Single choice --------------------------------------------------------------------
 
     [Fact]
-    public void Chon_dung_mot_dap_an_duoc_diem()
+    public void Picking_the_one_right_option_earns_the_points()
     {
-        var q = ChonMot(("A", false), ("B", true));
-        var dung = q.Options[1].Id;
+        var q = SingleChoice(("A", false), ("B", true));
+        var correct = q.Options[1].Id;
 
-        QuizGrader.Grade([q], [new QuizAnswer(q.Id, [dung], null)]).RawScore.ShouldBe(1m);
+        QuizGrader.Grade([q], [new QuizAnswer(q.Id, [correct], null)]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Khong_tra_loi_duoc_0_diem()
+    public void Not_answering_at_all_scores_0()
     {
-        var q = ChonMot(("A", false), ("B", true));
+        var q = SingleChoice(("A", false), ("B", true));
 
         QuizGrader.Grade([q], []).RawScore.ShouldBe(0m);
     }
 
     [Fact]
-    public void Cau_chon_mot_ma_chon_hai_la_sai()
+    public void Selecting_two_options_on_a_single_choice_question_is_wrong()
     {
-        // Nhận bừa phương án đầu tiên là nới tay cho người chọn hú họa.
-        var q = ChonMot(("A", false), ("B", true));
+        // Silently taking the first option would be going easy on someone guessing blindly.
+        var q = SingleChoice(("A", false), ("B", true));
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [q.Options[0].Id, q.Options[1].Id], null)])
             .RawScore.ShouldBe(0m);
     }
 
-    // ── Câu chọn nhiều ───────────────────────────────────────────────────────────────────
+    // -- Multiple choice ------------------------------------------------------------------
 
     [Fact]
-    public void Tat_ca_hoac_khong_chon_thieu_mot_dap_an_la_0()
+    public void All_or_nothing_missing_one_correct_option_scores_0()
     {
-        var q = ChonNhieu(false, ("A", true), ("B", true), ("C", false));
+        var q = MultipleChoice(false, ("A", true), ("B", true), ("C", false));
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [q.Options[0].Id], null)]).RawScore.ShouldBe(0m);
     }
 
     [Fact]
-    public void Tat_ca_hoac_khong_chon_du_va_dung_duoc_tron_diem()
+    public void All_or_nothing_selecting_every_correct_option_earns_full_marks()
     {
-        var q = ChonNhieu(false, ("A", true), ("B", true), ("C", false));
+        var q = MultipleChoice(false, ("A", true), ("B", true), ("C", false));
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [q.Options[0].Id, q.Options[1].Id], null)])
             .RawScore.ShouldBe(2m);
     }
 
     [Fact]
-    public void Cham_mot_phan_dung_mot_trong_hai_duoc_nua_diem()
+    public void With_partial_credit_one_of_two_correct_options_earns_half_the_points()
     {
-        var q = ChonNhieu(true, ("A", true), ("B", true), ("C", false));
+        var q = MultipleChoice(true, ("A", true), ("B", true), ("C", false));
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [q.Options[0].Id], null)]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Cham_mot_phan_chon_HET_moi_phuong_an_khong_duoc_tron_diem()
+    public void With_partial_credit_selecting_EVERY_option_does_not_earn_full_marks()
     {
-        // Không trừ đáp án sai thì chọn hết mọi ô là ăn trọn điểm — và cả lớp sẽ làm đúng thế.
-        var q = ChonNhieu(true, ("A", true), ("B", true), ("C", false));
+        // Without subtracting for wrong options, ticking every box earns full marks — and the
+        // entire class will do exactly that.
+        var q = MultipleChoice(true, ("A", true), ("B", true), ("C", false));
 
         QuizGrader.Grade([q],
             [new QuizAnswer(q.Id, [q.Options[0].Id, q.Options[1].Id, q.Options[2].Id], null)])
-            .RawScore.ShouldBe(1m);   // (2 đúng − 1 sai) / 2 × 2 điểm
+            .RawScore.ShouldBe(1m);   // (2 correct - 1 wrong) / 2 x 2 points
     }
 
     [Fact]
-    public void Diem_khong_bao_gio_am()
+    public void The_score_is_never_negative()
     {
-        var q = ChonNhieu(true, ("A", true), ("B", false), ("C", false));
+        var q = MultipleChoice(true, ("A", true), ("B", false), ("C", false));
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [q.Options[1].Id, q.Options[2].Id], null)])
             .RawScore.ShouldBe(0m);
     }
 
     [Fact]
-    public void Id_phuong_an_khong_thuoc_cau_bi_bo_qua()
+    public void An_option_id_that_does_not_belong_to_the_question_is_ignored()
     {
-        var q = ChonNhieu(false, ("A", true), ("B", true));
+        var q = MultipleChoice(false, ("A", true), ("B", true));
 
         QuizGrader.Grade([q],
             [new QuizAnswer(q.Id, [q.Options[0].Id, q.Options[1].Id, Guid.CreateVersion7()], null)])
             .RawScore.ShouldBe(2m);
     }
 
-    // ── Điền khuyết tiếng Việt ───────────────────────────────────────────────────────────
+    // -- Vietnamese fill-in-the-blank -----------------------------------------------------
 
     [Fact]
-    public void Dien_khuyet_dung_chinh_xac()
+    public void An_exactly_correct_fill_in_the_blank_answer_scores()
     {
-        var q = DienKhuyet("Hà Nội");
+        var q = FillBlank("Hà Nội");
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "Hà Nội")]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Dien_khuyet_khong_phan_biet_hoa_thuong()
+    public void Fill_in_the_blank_is_case_insensitive()
     {
-        var q = DienKhuyet("Hà Nội");
+        var q = FillBlank("Hà Nội");
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "hà nội")]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Dien_khuyet_bo_qua_khoang_trang_thua()
+    public void Fill_in_the_blank_ignores_extra_whitespace()
     {
-        var q = DienKhuyet("Hà Nội");
+        var q = FillBlank("Hà Nội");
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "  Hà   Nội ")]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Dien_khuyet_chap_nhan_ca_hai_dang_unicode_cua_tieng_Viet()
+    public void Fill_in_the_blank_accepts_both_unicode_forms_of_Vietnamese()
     {
-        // Đây là ca Gap #12 và là lý do cả file test này tồn tại.
-        // NFC: "ế" là MỘT ký tự dựng sẵn U+1EBF (bàn phím macOS).
-        // NFD: "ế" là "e" + dấu mũ + dấu sắc, BA ký tự (nhiều bộ gõ Telex).
-        // Hai chuỗi hiện ra giống hệt nhau trên màn hình.
-        var q = DienKhuyet("Kiến thức");
-        var goBangTelex = "Kiến thức".Normalize(NormalizationForm.FormD);
+        // This is the Gap #12 case and the reason this whole test file exists.
+        // NFC: "ế" is ONE precomposed character, U+1EBF (the macOS keyboard).
+        // NFD: "ế" is "e" plus a circumflex plus an acute — THREE characters (many Telex IMEs).
+        // The two strings render identically on screen.
+        var q = FillBlank("Kiến thức");
+        var typedWithTelex = "Kiến thức".Normalize(NormalizationForm.FormD);
 
-        goBangTelex.ShouldNotBe("Kiến thức");                 // khác nhau từng byte
-        goBangTelex.Length.ShouldBeGreaterThan("Kiến thức".Length);
+        typedWithTelex.ShouldNotBe("Kiến thức");                 // different byte for byte
+        typedWithTelex.Length.ShouldBeGreaterThan("Kiến thức".Length);
 
-        QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], goBangTelex)]).RawScore.ShouldBe(1m);
+        QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], typedWithTelex)]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Dien_khuyet_chuan_hoa_ca_DAP_AN_MAU_chu_khong_chi_bai_lam()
+    public void Fill_in_the_blank_normalizes_the_ANSWER_KEY_too_not_just_the_submission()
     {
-        // Giảng viên gõ đáp án bằng bộ gõ khác sinh viên là chuyện thường. Chuẩn hóa một bên
-        // thì ca hỏng phụ thuộc vào việc ai gõ bằng gì — thứ không ai nghĩ tới khi tìm lỗi.
-        var q = DienKhuyet("Kiến thức".Normalize(NormalizationForm.FormD));
+        // The instructor typing the answer key with a different IME than the student is routine.
+        // Normalizing only one side makes the failure depend on who typed with what — the last
+        // thing anyone considers while hunting the bug.
+        var q = FillBlank("Kiến thức".Normalize(NormalizationForm.FormD));
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "Kiến thức")]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Dien_khuyet_nhieu_dap_an_duoc_chap_nhan()
+    public void Fill_in_the_blank_accepts_any_of_several_answer_keys()
     {
-        var q = DienKhuyet("Hà Nội", "Ha Noi", "HN");
+        var q = FillBlank("Hà Nội", "Ha Noi", "HN");
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "HN")]).RawScore.ShouldBe(1m);
     }
 
     [Fact]
-    public void Dien_khuyet_sai_thi_khong_co_diem()
+    public void A_wrong_fill_in_the_blank_answer_scores_nothing()
     {
-        var q = DienKhuyet("Hà Nội");
+        var q = FillBlank("Hà Nội");
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "Sài Gòn")]).RawScore.ShouldBe(0m);
     }
 
     [Fact]
-    public void Dien_khuyet_phan_biet_hoa_thuong_khi_duoc_bat()
+    public void Fill_in_the_blank_respects_case_when_case_sensitivity_is_enabled()
     {
-        var q = DienKhuyet("ABC");
+        var q = FillBlank("ABC");
         q.FillBlank!.CaseSensitive = true;
 
         QuizGrader.Grade([q], [new QuizAnswer(q.Id, [], "abc")]).RawScore.ShouldBe(0m);
     }
 
-    // ── Quy về thang 10 ──────────────────────────────────────────────────────────────────
+    // -- Normalizing to a 10-point scale ---------------------------------------------------
 
     [Fact]
-    public void Quy_ve_thang_10_dung_quy_tac_cua_Phase_4b()
+    public void Normalizing_to_a_10_point_scale_follows_the_Phase_4b_rule()
     {
-        // Quiz 20 câu, đúng 15 → 7.5 chứ KHÔNG phải 15 rồi bị kẹp thành 10.
-        var cau = Enumerable.Range(0, 20).Select(_ => ChonMot(("A", true), ("B", false))).ToList();
-        var tra = cau.Take(15).Select(q => new QuizAnswer(q.Id, [q.Options[0].Id], null)).ToList();
+        // A 20-question quiz with 15 correct -> 7.5, NOT 15 subsequently clamped to 10.
+        var questions = Enumerable.Range(0, 20).Select(_ => SingleChoice(("A", true), ("B", false))).ToList();
+        var answers = questions.Take(15).Select(q => new QuizAnswer(q.Id, [q.Options[0].Id], null)).ToList();
 
-        var kq = QuizGrader.Grade(cau, tra);
+        var result = QuizGrader.Grade(questions, answers);
 
-        kq.RawScore.ShouldBe(15m);
-        kq.MaxScore.ShouldBe(20m);
-        kq.NormalizedScore.ShouldBe(7.5m);
+        result.RawScore.ShouldBe(15m);
+        result.MaxScore.ShouldBe(20m);
+        result.NormalizedScore.ShouldBe(7.5m);
     }
 
     [Fact]
-    public void Quiz_khong_co_cau_nao_khong_chia_cho_0()
+    public void A_quiz_with_no_questions_does_not_divide_by_0()
     {
         QuizGrader.Grade([], []).NormalizedScore.ShouldBe(0m);
     }
 
     [Fact]
-    public void Danh_sach_cau_sai_dung_de_dua_vao_hang_doi_on_tap()
+    public void The_list_of_wrong_questions_is_what_feeds_the_review_queue()
     {
-        var a = ChonMot(("A", true), ("B", false));
-        var b = ChonMot(("A", true), ("B", false));
+        var a = SingleChoice(("A", true), ("B", false));
+        var b = SingleChoice(("A", true), ("B", false));
 
-        var kq = QuizGrader.Grade([a, b], [new QuizAnswer(a.Id, [a.Options[0].Id], null)]);
+        var result = QuizGrader.Grade([a, b], [new QuizAnswer(a.Id, [a.Options[0].Id], null)]);
 
-        kq.WrongQuestionIds.ShouldBe([b.Id]);
+        result.WrongQuestionIds.ShouldBe([b.Id]);
     }
 
-    // ── Thời gian ────────────────────────────────────────────────────────────────────────
+    // -- Timing ---------------------------------------------------------------------------
 
     [Fact]
-    public void Chua_het_gio_thi_nop_binh_thuong()
+    public void Submitting_before_time_runs_out_is_ordinary()
     {
-        var batDau = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+        var startedAt = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
 
-        QuizTiming.DaHetGio(batDau, 15, batDau.AddMinutes(14)).ShouldBeFalse();
-    }
-
-    [Fact]
-    public void Nop_trong_an_han_30_giay_van_duoc_chap_nhan()
-    {
-        // Mạng chậm, bấm nộp đúng giây cuối, đồng hồ lệch vài giây — không có ân hạn thì một
-        // bài nộp hợp lệ bị coi là hết giờ.
-        var batDau = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
-
-        QuizTiming.DaHetGio(batDau, 15, batDau.AddMinutes(15).AddSeconds(20)).ShouldBeFalse();
+        QuizTiming.DaHetGio(startedAt, 15, startedAt.AddMinutes(14)).ShouldBeFalse();
     }
 
     [Fact]
-    public void Qua_an_han_thi_tinh_la_het_gio()
+    public void Submitting_within_the_30_second_grace_period_is_still_accepted()
     {
-        var batDau = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+        // A slow network, hitting submit on the final second, clocks a few seconds apart — without
+        // a grace period a perfectly valid submission is treated as out of time.
+        var startedAt = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
 
-        QuizTiming.DaHetGio(batDau, 15, batDau.AddMinutes(16)).ShouldBeTrue();
+        QuizTiming.DaHetGio(startedAt, 15, startedAt.AddMinutes(15).AddSeconds(20)).ShouldBeFalse();
     }
 
     [Fact]
-    public void Quiz_khong_gioi_han_gio_thi_khong_bao_gio_het_gio()
+    public void Past_the_grace_period_it_counts_as_out_of_time()
     {
-        var batDau = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+        var startedAt = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
 
-        QuizTiming.DaHetGio(batDau, null, batDau.AddDays(3)).ShouldBeFalse();
-        QuizTiming.ConLai(batDau, null, batDau).ShouldBeNull();
+        QuizTiming.DaHetGio(startedAt, 15, startedAt.AddMinutes(16)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void An_untimed_quiz_never_runs_out_of_time()
+    {
+        var startedAt = new DateTimeOffset(2026, 9, 1, 8, 0, 0, TimeSpan.FromHours(7));
+
+        QuizTiming.DaHetGio(startedAt, null, startedAt.AddDays(3)).ShouldBeFalse();
+        QuizTiming.ConLai(startedAt, null, startedAt).ShouldBeNull();
     }
 }

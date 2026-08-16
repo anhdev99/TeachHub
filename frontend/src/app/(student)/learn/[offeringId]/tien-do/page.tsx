@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { components } from "@/lib/api/schema";
 import { TienDoCaNhan } from "./tien-do-ca-nhan";
@@ -38,14 +38,14 @@ export default async function ProgressPage({
   ]);
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe="Tiến độ của tôi"
-        moTa="Điểm kinh nghiệm, chuỗi ngày học và những câu cần ôn lại hôm nay."
-        quayLai={{ href: `/learn/${offeringId}`, nhan: "Trang học" }}
+    <PageShell>
+      <PageHeader
+        title="Tiến độ của tôi"
+        description="Điểm kinh nghiệm, chuỗi ngày học và những câu cần ôn lại hôm nay."
+        backTo={{ href: `/learn/${offeringId}`, label: "Trang học" }}
       />
 
       <TienDoCaNhan me={me} bangXepHang={bxh} onTap={onTap} />
-    </Trang>
+    </PageShell>
   );
 }

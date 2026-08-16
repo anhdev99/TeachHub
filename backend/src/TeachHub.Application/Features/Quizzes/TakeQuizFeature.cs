@@ -40,11 +40,11 @@ public sealed class StartQuizAttemptHandler(IAppDbContext db, TimeProvider clock
 
         // Lớp đã kết thúc ⇒ không mở lượt mới VÀ không nối lại lượt dở dang. Cho nối lại thì một
         // lượt mở trước lúc đóng lớp vẫn nộp được sau đó, tức là cái khoá có một cửa sau.
-        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, ghiDanh.Value, ct))
-            return Result<TakeAttemptDto>.Conflict(OfferingLock.ThongDiep("làm bài trắc nghiệm"));
+        if (await OfferingLock.IsClosedForEnrollmentAsync(db, ghiDanh.Value, ct))
+            return Result<TakeAttemptDto>.Conflict(OfferingLock.ClosedMessage("làm bài trắc nghiệm"));
 
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == request.QuizId, ct);
-        var cau = await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct);
+        var cau = await SaveQuizHandler.QuestionsOfQuizAsync(db, quiz.Id, ct);
 
         if (cau.Count == 0)
             return Result<TakeAttemptDto>.Invalid("Bài trắc nghiệm này chưa có câu hỏi nào.");
@@ -184,8 +184,8 @@ public sealed class SaveQuizAnswersHandler(IAppDbContext db, TimeProvider clock)
             !await db.Enrollments.AnyAsync(e => e.Id == luot.EnrollmentId && e.UserId == request.UserId, ct))
             return Result.NotFound("Không tìm thấy lượt làm bài.");
 
-        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, luot.EnrollmentId, ct))
-            return Result.Conflict(OfferingLock.ThongDiep("lưu bài làm"));
+        if (await OfferingLock.IsClosedForEnrollmentAsync(db, luot.EnrollmentId, ct))
+            return Result.Conflict(OfferingLock.ClosedMessage("lưu bài làm"));
 
         if (luot.Status != QuizAttemptStatus.InProgress)
             return Result.Conflict("Lượt làm này đã nộp rồi.");
@@ -197,7 +197,7 @@ public sealed class SaveQuizAnswersHandler(IAppDbContext db, TimeProvider clock)
         // chốt sổ bằng đúng những gì đã tự lưu trước đó.
         if (QuizTiming.DaHetGio(luot.StartedAt, quiz.Config.TimeLimitMinutes, now))
         {
-            var cau = await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct);
+            var cau = await SaveQuizHandler.QuestionsOfQuizAsync(db, quiz.Id, ct);
             StartQuizAttemptHandler.ChotSo(luot, cau, quiz, now, QuizAttemptStatus.AutoSubmitted);
             await db.SaveChangesAsync(ct);
 
@@ -235,11 +235,11 @@ public sealed class SubmitQuizAttemptHandler(IAppDbContext db, TimeProvider cloc
 
         // Xem lại một lượt ĐÃ nộp có đường riêng: GET /api/quiz-attempts/{id}. Endpoint này là
         // đường GHI thuần nên khoá cả khi lượt đã nộp — không có ca đọc nào phải đi qua đây.
-        if (await OfferingLock.DaDongTheoGhiDanhAsync(db, luot.EnrollmentId, ct))
-            return Result<TakeAttemptDto>.Conflict(OfferingLock.ThongDiep("nộp bài trắc nghiệm"));
+        if (await OfferingLock.IsClosedForEnrollmentAsync(db, luot.EnrollmentId, ct))
+            return Result<TakeAttemptDto>.Conflict(OfferingLock.ClosedMessage("nộp bài trắc nghiệm"));
 
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == luot.QuizId, ct);
-        var cau = await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct);
+        var cau = await SaveQuizHandler.QuestionsOfQuizAsync(db, quiz.Id, ct);
         var now = clock.GetUtcNow();
 
         if (luot.Status == QuizAttemptStatus.InProgress)
@@ -279,7 +279,7 @@ public sealed class GetQuizAttemptHandler(IAppDbContext db, TimeProvider clock)
             return Result<TakeAttemptDto>.NotFound("Không tìm thấy lượt làm bài.");
 
         var quiz = await db.Quizzes.AsNoTracking().SingleAsync(q => q.Id == luot.QuizId, ct);
-        var cau = await SaveQuizHandler.CauCuaQuizAsync(db, quiz.Id, ct);
+        var cau = await SaveQuizHandler.QuestionsOfQuizAsync(db, quiz.Id, ct);
 
         return Result<TakeAttemptDto>.Ok(
             StartQuizAttemptHandler.Dung(luot, quiz, cau, clock.GetUtcNow()));

@@ -5,118 +5,119 @@ namespace TeachHub.Application.Tests;
 
 public class EnrollmentImporterTests
 {
-    private static ImportRow Row(string ma, string ten, string email) => new(ma, ten, email, null);
+    private static ImportRow Row(string code, string fullName, string email) => new(code, fullName, email, null);
 
     [Fact]
-    public void Nhap_thanh_cong_cac_dong_hop_le()
+    public void Valid_rows_import_successfully()
     {
-        var kq = EnrollmentImporter.Validate([
+        var result = EnrollmentImporter.Validate([
             Row("2251012001", "Nguyễn Văn A", "a@sv.edu.vn"),
             Row("2251012002", "Trần Thị B",   "b@sv.edu.vn"),
         ]);
 
-        kq.Valid.Count.ShouldBe(2);
-        kq.Errors.ShouldBeEmpty();
+        result.Valid.Count.ShouldBe(2);
+        result.Errors.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Mssv_trung_trong_cung_file_bao_loi_dung_so_dong()
+    public void A_duplicate_student_code_within_one_file_reports_the_right_row_number()
     {
-        var kq = EnrollmentImporter.Validate([
+        var result = EnrollmentImporter.Validate([
             Row("2251012001", "Nguyễn Văn A", "a@sv.edu.vn"),
             Row("2251012002", "Trần Thị B",   "b@sv.edu.vn"),
-            Row("2251012001", "Nguyễn Văn A", "a2@sv.edu.vn"),   // dòng 4 trong Excel
+            Row("2251012001", "Nguyễn Văn A", "a2@sv.edu.vn"),   // row 4 in Excel
         ]);
 
-        kq.Valid.Count.ShouldBe(2);                    // 2 dòng tốt VẪN được nhập
-        kq.Errors.Count.ShouldBe(1);
-        kq.Errors[0].RowNumber.ShouldBe(4);            // 1-based + 1 dòng header
-        kq.Errors[0].Message.ShouldContain("2251012001");
+        result.Valid.Count.ShouldBe(2);                    // the 2 good rows are STILL imported
+        result.Errors.Count.ShouldBe(1);
+        result.Errors[0].RowNumber.ShouldBe(4);            // 1-based, plus 1 header row
+        result.Errors[0].Message.ShouldContain("2251012001");
     }
 
     [Fact]
-    public void Mssv_bi_excel_doc_thanh_so_van_duoc_chuan_hoa()
+    public void A_student_code_Excel_turned_into_a_number_is_still_normalized()
     {
-        // Excel biến "2251012001" thành số rồi xuất ra "2251012001.0" tùy phiên bản.
-        // Đây là lỗi phổ biến nhất khi import.
-        var kq = EnrollmentImporter.Validate([Row("2251012001.0", "Nguyễn Văn A", "a@sv.edu.vn")]);
+        // Excel converts "2251012001" into a number and then exports it as "2251012001.0",
+        // depending on the version. This is the single most common import failure.
+        var result = EnrollmentImporter.Validate([Row("2251012001.0", "Nguyễn Văn A", "a@sv.edu.vn")]);
 
-        kq.Valid.Single().StudentCode.ShouldBe("2251012001");
+        result.Valid.Single().StudentCode.ShouldBe("2251012001");
     }
 
     [Fact]
-    public void Cat_khoang_trang_thua_va_ha_thap_email()
+    public void Extra_whitespace_is_trimmed_and_the_email_is_lowercased()
     {
-        var kq = EnrollmentImporter.Validate([Row("  2251012001  ", " Nguyễn  Văn A ", "  A@SV.EDU.VN ")]);
+        var result = EnrollmentImporter.Validate([Row("  2251012001  ", " Nguyễn  Văn A ", "  A@SV.EDU.VN ")]);
 
-        var sv = kq.Valid.Single();
-        sv.StudentCode.ShouldBe("2251012001");
-        sv.FullName.ShouldBe("Nguyễn Văn A");    // khoảng trắng giữa cũng gộp lại
-        sv.Email.ShouldBe("a@sv.edu.vn");
+        var student = result.Valid.Single();
+        student.StudentCode.ShouldBe("2251012001");
+        student.FullName.ShouldBe("Nguyễn Văn A");    // interior whitespace is collapsed too
+        student.Email.ShouldBe("a@sv.edu.vn");
     }
 
     [Fact]
-    public void Bo_qua_dong_trong_hoan_toan_khong_bao_loi()
+    public void A_fully_blank_row_is_skipped_without_reporting_an_error()
     {
-        // File thật hay có vài dòng trống ở cuối do người dùng bôi đen thừa.
-        var kq = EnrollmentImporter.Validate([
+        // Real files often carry a few trailing blank rows because the user selected too far.
+        var result = EnrollmentImporter.Validate([
             Row("2251012001", "Nguyễn Văn A", "a@sv.edu.vn"),
             Row("", "", ""),
         ]);
 
-        kq.Valid.Count.ShouldBe(1);
-        kq.Errors.ShouldBeEmpty();
+        result.Valid.Count.ShouldBe(1);
+        result.Errors.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Thieu_mssv_hoac_ho_ten_bao_loi_dong_do()
+    public void A_missing_student_code_or_full_name_reports_an_error_on_that_row()
     {
-        var kq = EnrollmentImporter.Validate([
+        var result = EnrollmentImporter.Validate([
             Row("", "Nguyễn Văn A", "a@sv.edu.vn"),
             Row("2251012002", "", "b@sv.edu.vn"),
         ]);
 
-        kq.Errors.Count.ShouldBe(2);
-        kq.Errors.Select(e => e.RowNumber).ShouldBe([2, 3]);
+        result.Errors.Count.ShouldBe(2);
+        result.Errors.Select(e => e.RowNumber).ShouldBe([2, 3]);
     }
 
     [Fact]
-    public void Email_sai_dinh_dang_bao_loi_nhung_khong_chan_ca_file()
+    public void A_malformed_email_reports_an_error_without_blocking_the_whole_file()
     {
-        var kq = EnrollmentImporter.Validate([
+        var result = EnrollmentImporter.Validate([
             Row("2251012001", "Nguyễn Văn A", "khong-phai-email"),
             Row("2251012002", "Trần Thị B",   "b@sv.edu.vn"),
         ]);
 
-        kq.Valid.Count.ShouldBe(1);
-        kq.Errors.Single().RowNumber.ShouldBe(2);
+        result.Valid.Count.ShouldBe(1);
+        result.Errors.Single().RowNumber.ShouldBe(2);
     }
 
     [Fact]
-    public void Thieu_email_van_nhap_duoc_vi_email_khong_bat_buoc()
+    public void A_missing_email_still_imports_because_email_is_optional()
     {
-        // Danh sách của phòng đào tạo thường thiếu email; SV vẫn ghép được vào lớp bằng MSSV.
-        var kq = EnrollmentImporter.Validate([Row("2251012001", "Nguyễn Văn A", "")]);
+        // Rosters from the academic office frequently lack emails; the student can still be
+        // matched into the class by student code.
+        var result = EnrollmentImporter.Validate([Row("2251012001", "Nguyễn Văn A", "")]);
 
-        kq.Errors.ShouldBeEmpty();
-        kq.Valid.Single().Email.ShouldBe("");
+        result.Errors.ShouldBeEmpty();
+        result.Valid.Single().Email.ShouldBe("");
     }
 
     [Fact]
-    public void Kich_ban_nghiem_thu_40_dong_co_2_trung_va_1_thieu_ho_ten_thi_nhap_37()
+    public void Acceptance_40_rows_with_2_duplicates_and_1_missing_name_imports_37()
     {
         var rows = Enumerable.Range(1, 40)
             .Select(i => Row($"225101{i:D4}", $"Sinh viên {i}", $"sv{i}@sv.edu.vn"))
             .ToList();
 
-        rows[10] = Row("2251010001", "Trùng thứ nhất", "x1@sv.edu.vn");   // trùng dòng 1
-        rows[20] = Row("2251010002", "Trùng thứ hai",  "x2@sv.edu.vn");   // trùng dòng 2
-        rows[30] = Row("2251010099", "",               "x3@sv.edu.vn");   // thiếu họ tên
+        rows[10] = Row("2251010001", "Trùng thứ nhất", "x1@sv.edu.vn");   // duplicates row 1
+        rows[20] = Row("2251010002", "Trùng thứ hai",  "x2@sv.edu.vn");   // duplicates row 2
+        rows[30] = Row("2251010099", "",               "x3@sv.edu.vn");   // missing full name
 
-        var kq = EnrollmentImporter.Validate(rows);
+        var result = EnrollmentImporter.Validate(rows);
 
-        kq.Valid.Count.ShouldBe(37);
-        kq.Errors.Count.ShouldBe(3);
-        kq.Errors.Select(e => e.RowNumber).ShouldBe([12, 22, 32]);
+        result.Valid.Count.ShouldBe(37);
+        result.Errors.Count.ShouldBe(3);
+        result.Errors.Select(e => e.RowNumber).ShouldBe([12, 22, 32]);
     }
 }

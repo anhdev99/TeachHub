@@ -10,14 +10,14 @@ import {
 
 type Ctx = { params: Promise<{ path: string[] }> };
 
-async function chuyenTiep(req: NextRequest, ctx: Ctx) {
+async function proxy(req: NextRequest, ctx: Ctx) {
   const { path } = await ctx.params;
   const jar = await cookies();
 
   const url = `${API_BASE}/api/${path.join("/")}${req.nextUrl.search}`;
   const body = req.method === "GET" || req.method === "HEAD" ? undefined : await req.arrayBuffer();
 
-  const goi = (accessToken: string | undefined) =>
+  const call = (accessToken: string | undefined) =>
     fetch(url, {
       method: req.method,
       headers: {
@@ -27,28 +27,28 @@ async function chuyenTiep(req: NextRequest, ctx: Ctx) {
         ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
       },
       body,
-      // Token nằm trong cookie httpOnly ở phía máy chủ; không chuyển tiếp cookie sang .NET.
+      // The token lives in a server-side httpOnly cookie; do not forward cookies to .NET.
       cache: "no-store",
     });
 
-  let res = await goi(jar.get(COOKIE_ACCESS)?.value);
+  let res = await call(jar.get(COOKIE_ACCESS)?.value);
 
-  // Access token hết hạn thì làm mới ĐÚNG MỘT LẦN rồi thử lại. Lặp không giới hạn ở đây
-  // biến một refresh token hỏng thành vòng lặp vô tận đập vào backend.
+  // If the access token expired, refresh EXACTLY ONCE and retry. Looping without a limit
+  // here turns one broken refresh token into an infinite loop hammering the backend.
   if (res.status === 401) {
     const refresh = jar.get(COOKIE_REFRESH)?.value;
     if (refresh) {
-      const lamMoi = await fetch(`${API_BASE}/api/auth/refresh`, {
+      const refreshed = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ refresh_token: refresh }),
       });
 
-      if (lamMoi.ok) {
-        const pair: TokenPair = await lamMoi.json();
+      if (refreshed.ok) {
+        const pair: TokenPair = await refreshed.json();
         jar.set(COOKIE_ACCESS, pair.access_token, cookieOptions(pair.expires_in));
         jar.set(COOKIE_REFRESH, pair.refresh_token, cookieOptions(60 * 60 * 24 * 14));
-        res = await goi(pair.access_token);
+        res = await call(pair.access_token);
       } else {
         jar.delete(COOKIE_ACCESS);
         jar.delete(COOKIE_REFRESH);
@@ -56,8 +56,8 @@ async function chuyenTiep(req: NextRequest, ctx: Ctx) {
     }
   }
 
-  const noiDung = await res.arrayBuffer();
-  return new NextResponse(noiDung, {
+  const payload = await res.arrayBuffer();
+  return new NextResponse(payload, {
     status: res.status,
     headers: {
       "content-type": res.headers.get("content-type") ?? "application/json",
@@ -65,8 +65,8 @@ async function chuyenTiep(req: NextRequest, ctx: Ctx) {
   });
 }
 
-export const GET = chuyenTiep;
-export const POST = chuyenTiep;
-export const PUT = chuyenTiep;
-export const PATCH = chuyenTiep;
-export const DELETE = chuyenTiep;
+export const GET = proxy;
+export const POST = proxy;
+export const PUT = proxy;
+export const PATCH = proxy;
+export const DELETE = proxy;

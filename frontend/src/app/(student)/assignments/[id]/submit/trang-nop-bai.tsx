@@ -19,10 +19,10 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrongRong } from "@/components/shell/trang";
-import { XemMaNguon } from "@/components/submission/xem-ma-nguon";
+import { EmptyState } from "@/components/shell/page-shell";
+import { SourceViewer } from "@/components/submission/source-viewer";
 import { apiFetch } from "@/lib/api/fetcher";
-import { diem, ngayGio } from "@/lib/dinh-dang";
+import { formatScore, formatDateTime } from "@/lib/format";
 import type {
   MyAssignmentDto, MyAssignmentSubmissionDto, SubmissionDto, SubmissionFileDto,
   SubmissionSlotDto,
@@ -107,10 +107,10 @@ export function TrangNopBai({
           màn hình chỉ còn nút "Nộp chính thức" trơ trọi, và sinh viên đi tìm chỗ đính kèm
           tệp cho tới lúc bỏ cuộc. */}
       {baiTap.slots.length === 0 && (
-        <TrongRong
+        <EmptyState
           Icon={Upload}
-          tieuDe="Bài tập này chưa có phần nộp nào"
-          moTa="Giảng viên chưa cấu hình chỗ để đính kèm tệp. Hỏi lại giảng viên trước khi bấm Nộp chính thức."
+          title="Bài tập này chưa có phần nộp nào"
+          description="Giảng viên chưa cấu hình chỗ để đính kèm tệp. Hỏi lại giảng viên trước khi bấm Nộp chính thức."
         />
       )}
 
@@ -171,7 +171,7 @@ export function TrangNopBai({
               >
                 <span className="text-foreground font-medium">Lần {h.attempt_no}</span>
                 {h.submitted_at ? (
-                  <time dateTime={h.submitted_at}>{ngayGio(h.submitted_at)}</time>
+                  <time dateTime={h.submitted_at}>{formatDateTime(h.submitted_at)}</time>
                 ) : (
                   <span>chưa nộp chính thức</span>
                 )}
@@ -255,7 +255,7 @@ function TheTrangThai({
                 {hienHanh?.submitted_at && (
                   <>
                     Lúc{" "}
-                    <time dateTime={hienHanh.submitted_at}>{ngayGio(hienHanh.submitted_at)}</time>.{" "}
+                    <time dateTime={hienHanh.submitted_at}>{formatDateTime(hienHanh.submitted_at)}</time>.{" "}
                   </>
                 )}
                 Tải tệp mới lên sẽ bắt đầu lần nộp thứ {(hienHanh?.attempt_no ?? 1) + 1}.
@@ -277,7 +277,7 @@ function TheTrangThai({
           <CalendarClock className="size-3.5 shrink-0" aria-hidden />
           {baiTap.due_at ? (
             <>
-              Hạn nộp <time dateTime={baiTap.due_at}>{ngayGio(baiTap.due_at)}</time>
+              Hạn nộp <time dateTime={baiTap.due_at}>{formatDateTime(baiTap.due_at)}</time>
             </>
           ) : (
             "Không có hạn nộp"
@@ -290,11 +290,11 @@ function TheTrangThai({
           </span>
         )}
 
-        <span className="tabular-nums">Điểm tối đa {diem(baiTap.max_score)}</span>
+        <span className="tabular-nums">Điểm tối đa {formatScore(baiTap.max_score)}</span>
 
         {baiTap.score != null && (
           <span className="font-semibold tabular-nums">
-            Điểm của bạn {diem(baiTap.score)}/{diem(baiTap.max_score)}
+            Điểm của bạn {formatScore(baiTap.score)}/{formatScore(baiTap.max_score)}
           </span>
         )}
       </div>
@@ -509,7 +509,7 @@ function TepDaNop({
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
             <span className="tabular-nums">{coTep(file.size_bytes)}</span>
             <span aria-hidden>·</span>
-            <time dateTime={file.uploaded_at}>{ngayGio(file.uploaded_at)}</time>
+            <time dateTime={file.uploaded_at}>{formatDateTime(file.uploaded_at)}</time>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
@@ -616,7 +616,7 @@ function CayThuMuc({ submissionId, fileId }: { submissionId: string; fileId: str
       </ul>
 
       {dangXem && (
-        <XemMaNguon submissionId={submissionId} fileId={fileId} path={dangXem} />
+        <SourceViewer submissionId={submissionId} fileId={fileId} path={dangXem} />
       )}
     </div>
   );

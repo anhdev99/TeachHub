@@ -7,9 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { TrongRong } from "@/components/shell/trang";
-import { XemMaNguon } from "@/components/submission/xem-ma-nguon";
-import { diem } from "@/lib/dinh-dang";
+import { EmptyState } from "@/components/shell/page-shell";
+import { SourceViewer } from "@/components/submission/source-viewer";
+import { formatScore } from "@/lib/format";
 import type { components } from "@/lib/api/schema";
 
 type SubmissionComparisonDto = components["schemas"]["SubmissionComparisonDto"];
@@ -33,12 +33,12 @@ function soDoan(f: MatchedFileDto) {
   return f.ranges.length;
 }
 
-function CotMaNguon({
-  tieuDe,
+function SourceColumn({
+  title,
   submissionId,
   files,
 }: {
-  tieuDe: string;
+  title: string;
   submissionId: string;
   files: MatchedFileDto[];
 }) {
@@ -51,7 +51,7 @@ function CotMaNguon({
     // chỉ khối mã cuộn.
     <Card className="min-w-0 gap-4">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <CardTitle className="min-w-0 truncate text-base">{tieuDe}</CardTitle>
+        <CardTitle className="min-w-0 truncate text-base">{title}</CardTitle>
         {tep && (
           <Badge className="bg-warn-soft text-warn border-warn/25 shrink-0 border">
             {soDoan(tep)} đoạn trùng
@@ -61,10 +61,10 @@ function CotMaNguon({
 
       <CardContent className="flex min-w-0 flex-col gap-2">
         {files.length === 0 ? (
-          <TrongRong
+          <EmptyState
             Icon={FileCode}
-            tieuDe="Không có tệp nào trùng"
-            moTa="Bài này không có tệp mã nguồn nào trùng với bài kia."
+            title="Không có tệp nào trùng"
+            description="Bài này không có tệp mã nguồn nào trùng với bài kia."
           />
         ) : (
           <>
@@ -82,7 +82,7 @@ function CotMaNguon({
             </Select>
 
             {tep && (
-              <XemMaNguon
+              <SourceViewer
                 // Đổi tệp là đổi hẳn nội dung lẫn vùng tô sáng, nên ép React dựng lại component
                 // thay vì tái dùng: giữ lại state cũ là khối mã của tệp trước còn nằm trên màn
                 // hình trong lúc tệp mới đang tải, và giảng viên đọc nhầm bài.
@@ -90,8 +90,8 @@ function CotMaNguon({
                 submissionId={submissionId}
                 fileId={tep.submission_file_id}
                 path={tep.entry_path}
-                tenTep={tep.file_name}
-                vungToSang={tep.ranges}
+                fileName={tep.file_name}
+                highlights={tep.ranges}
               />
             )}
           </>
@@ -115,12 +115,12 @@ export function SoSanhBaiNop({
       <div className="border-border bg-card flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-3.5 py-3">
         <span className="flex items-baseline gap-2">
           <span className="text-warn text-2xl font-semibold tabular-nums">
-            {diem(bc.similarity_percent)}%
+            {formatScore(bc.similarity_percent)}%
           </span>
           <span className="text-muted-foreground text-sm">giống nhau</span>
         </span>
         <span className="text-muted-foreground text-sm">
-          Jaccard {diem(bc.jaccard_percent)}% · {bc.shared_fingerprints} đoạn chung
+          Jaccard {formatScore(bc.jaccard_percent)}% · {bc.shared_fingerprints} đoạn chung
         </span>
       </div>
 
@@ -132,8 +132,8 @@ export function SoSanhBaiNop({
       {/* Hai cột từ `lg` chứ không phải `md`: ở 768px mỗi cột chỉ còn ~360px, và một khối mã
           360px thì dòng nào cũng phải cuộn ngang — đọc đối chiếu như vậy còn tệ hơn xếp dọc. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <CotMaNguon tieuDe={tenA} submissionId={bc.submission_a_id} files={bc.files_a} />
-        <CotMaNguon tieuDe={tenB} submissionId={bc.submission_b_id} files={bc.files_b} />
+        <SourceColumn title={tenA} submissionId={bc.submission_a_id} files={bc.files_a} />
+        <SourceColumn title={tenB} submissionId={bc.submission_b_id} files={bc.files_b} />
       </div>
     </div>
   );

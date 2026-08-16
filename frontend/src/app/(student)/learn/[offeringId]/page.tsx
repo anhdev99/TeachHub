@@ -2,7 +2,7 @@ import { SearchX } from "lucide-react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { PageHeader, PageShell, EmptyState } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyProgressDto } from "@/lib/api/types";
 import { TrangHoc } from "./trang-hoc";
@@ -36,13 +36,13 @@ export default async function LearnOfferingPage({
     // nhận id có thật). Vì vậy KHÔNG được viết "bạn không có quyền": câu đó tiết lộ đúng thứ
     // backend đang giấu.
     return (
-      <Trang>
-        <DauTrang tieuDe="Trang học" quayLai={{ href: "/learn", nhan: "Lớp của tôi" }} />
-        <TrongRong
+      <PageShell>
+        <PageHeader title="Trang học" backTo={{ href: "/learn", label: "Lớp của tôi" }} />
+        <EmptyState
           Icon={SearchX}
-          tieuDe="Không tìm thấy lớp học"
-          moTa="Lớp này không tồn tại hoặc bạn không có tên trong danh sách lớp. Hỏi lại giảng viên mã lớp rồi thử vào bằng mã."
-          hanhDong={
+          title="Không tìm thấy lớp học"
+          description="Lớp này không tồn tại hoặc bạn không có tên trong danh sách lớp. Hỏi lại giảng viên mã lớp rồi thử vào bằng mã."
+          action={
             <Link
               href="/learn"
               className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"
@@ -51,7 +51,7 @@ export default async function LearnOfferingPage({
             </Link>
           }
         />
-      </Trang>
+      </PageShell>
     );
   }
 

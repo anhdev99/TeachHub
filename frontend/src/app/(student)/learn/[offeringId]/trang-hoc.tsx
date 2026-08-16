@@ -26,7 +26,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { TrongRong } from "@/components/shell/trang";
+import { EmptyState } from "@/components/shell/page-shell";
 import { apiFetch } from "@/lib/api/fetcher";
 import type { MyChapterDto, MyLessonDto, MyProgressDto } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -179,17 +179,17 @@ export function TrangHoc({
               tự một dòng thì mắt bị lạc dòng khi xuống hàng. */}
           <div className="mx-auto w-full max-w-3xl">
             {!bai ? (
-              <TrongRong
+              <EmptyState
                 Icon={BookOpen}
-                tieuDe="Lớp này chưa có bài học nào"
-                moTa="Giảng viên chưa xuất bản nội dung cho lớp. Bài học sẽ hiện ở đây ngay khi có."
+                title="Lớp này chưa có bài học nào"
+                description="Giảng viên chưa xuất bản nội dung cho lớp. Bài học sẽ hiện ở đây ngay khi có."
               />
             ) : bai.access === "locked" ? (
               // Không bao giờ chỉ hiện ổ khóa: luôn nói rõ phải làm gì để mở.
-              <TrongRong
+              <EmptyState
                 Icon={Lock}
-                tieuDe={bai.title}
-                moTa={bai.locked_reason ?? "Bài này chưa mở."}
+                title={bai.title}
+                description={bai.locked_reason ?? "Bài này chưa mở."}
               />
             ) : (
               <article className="flex flex-col gap-5">

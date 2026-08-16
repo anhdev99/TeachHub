@@ -9,10 +9,10 @@ public class AppUser : IdentityUser<Guid>, IAuditable
 
     public required string FullName { get; set; }
 
-    /// <summary>MSSV — chỉ có với sinh viên, null với giảng viên/trợ giảng.</summary>
+    /// <summary>Student number — present only for students, null for instructors/teaching assistants.</summary>
     public string? StudentCode { get; set; }
 
-    /// <summary>SV import từ Excel phải đổi mật khẩu ở lần đăng nhập đầu (SRS mục 8).</summary>
+    /// <summary>Students imported from Excel must change their password on first login (SRS section 8).</summary>
     public bool MustChangePassword { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }

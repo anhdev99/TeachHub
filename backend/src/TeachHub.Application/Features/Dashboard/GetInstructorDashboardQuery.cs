@@ -21,9 +21,9 @@ public sealed record GetInstructorDashboardQuery(Guid InstructorId)
     : IQuery<InstructorDashboardDto>;
 
 /// <summary>
-/// <c>IQuery</c> chứ không phải <c>ICommand</c>: TransactionBehavior nhìn marker
-/// <c>IBaseCommand</c> nên nó bỏ qua truy vấn này. Bọc dashboard trong transaction chỉ giữ
-/// connection lâu hơn cần thiết mà không đổi được gì.
+/// <c>IQuery</c> and not <c>ICommand</c>: TransactionBehavior keys off the <c>IBaseCommand</c>
+/// marker, so it skips this query. Wrapping the dashboard in a transaction would only hold a
+/// connection longer than necessary without changing anything.
 /// </summary>
 public sealed class GetInstructorDashboardHandler(IAppDbContext db, TimeProvider clock)
     : IQueryHandler<GetInstructorDashboardQuery, InstructorDashboardDto>
@@ -33,14 +33,14 @@ public sealed class GetInstructorDashboardHandler(IAppDbContext db, TimeProvider
     {
         var now = clock.GetUtcNow();
 
-        // Điều kiện sở hữu nằm TRONG câu truy vấn (ADR-012), không nạp rồi lọc.
-        var lopCuaToi = db.CourseOfferings.AsNoTracking()
+        // The ownership condition lives INSIDE the query (ADR-012); never load then filter.
+        var myOfferings = db.CourseOfferings.AsNoTracking()
             .Where(o => db.Subjects.Any(s => s.Id == o.SubjectId && s.InstructorId == request.InstructorId));
 
-        // Mỗi khối dưới đây là MỘT câu truy vấn có projection. Số câu truy vấn là hằng số,
-        // không phụ thuộc sĩ số — đây là chỗ dễ sinh N+1 nhất trong cả hệ thống, và với lớp
-        // 40 người thì N+1 nghĩa là trang chủ tải hàng giây.
-        var lop = await lopCuaToi
+        // Each block below is ONE query with a projection. The number of queries is constant and
+        // does not depend on class size — this is the spot in the whole system most likely to grow
+        // an N+1, and with a class of 40 an N+1 here means the home page takes seconds to load.
+        var offerings = await myOfferings
             .Select(o => new LopTongQuanDto(
                 o.Id,
                 db.Subjects.Where(s => s.Id == o.SubjectId).Select(s => s.Code).Single(),
@@ -52,9 +52,9 @@ public sealed class GetInstructorDashboardHandler(IAppDbContext db, TimeProvider
                 0m))
             .ToListAsync(ct);
 
-        var canXuLy = await db.Submissions.AsNoTracking()
+        var needsAttention = await db.Submissions.AsNoTracking()
             .Where(s => s.IsCurrent && s.Status == SubmissionStatus.Submitted
-                     && lopCuaToi.Any(o => o.Id == s.OfferingId))
+                     && myOfferings.Any(o => o.Id == s.OfferingId))
             .OrderBy(s => s.SubmittedAt)
             .Take(20)
             .Select(s => new CanXuLyDto(
@@ -69,12 +69,12 @@ public sealed class GetInstructorDashboardHandler(IAppDbContext db, TimeProvider
                 s.SubmittedAt, s.IsLate))
             .ToListAsync(ct);
 
-        var sapDenHan = await db.Assignments.AsNoTracking()
+        var dueSoon = await db.Assignments.AsNoTracking()
             .Where(a => a.DueAt != null && a.DueAt > now && a.DueAt < now.AddDays(7)
-                     && lopCuaToi.Any(o => o.SubjectVersionId == a.SubjectVersionId))
+                     && myOfferings.Any(o => o.SubjectVersionId == a.SubjectVersionId))
             .CountAsync(ct);
 
         return new InstructorDashboardDto(
-            lop.Count, lop.Sum(l => l.ChuaCham), sapDenHan, canXuLy, lop);
+            offerings.Count, offerings.Sum(o => o.ChuaCham), dueSoon, needsAttention, offerings);
     }
 }

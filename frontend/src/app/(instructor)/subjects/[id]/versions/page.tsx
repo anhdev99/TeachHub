@@ -1,14 +1,14 @@
 import { FileQuestion } from "lucide-react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { EmptyState, PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { SubjectDto, SubjectVersionDto } from "@/lib/api/types";
-import { DongThoiGian } from "./dong-thoi-gian";
+import { VersionTimeline } from "./version-timeline";
 
 /**
- * Màn hình 6.10 — lịch sử phiên bản. Timeline dọc, mỗi mốc là một version.
- * Server component: token đọc từ cookie httpOnly và không rời khỏi máy chủ.
+ * Screen 6.10 — version history. A vertical timeline, one milestone per version.
+ * Server component: the token is read from the httpOnly cookie and never leaves the server.
  */
 export default async function VersionsPage({
   params,
@@ -26,21 +26,21 @@ export default async function VersionsPage({
     fetch(`${API_BASE}/api/subjects/${id}/versions`, { headers, cache: "no-store" }),
   ]);
 
-  // Backend trả 404 cho môn của giảng viên khác (không bao giờ 403) — với người dùng thì
-  // "không tồn tại" và "không phải của bạn" là cùng một màn hình.
+  // The backend returns 404 for another instructor's subject (never 403) — as far as the user
+  // is concerned, "does not exist" and "is not yours" are the same screen.
   if (!subjectRes.ok || !versionsRes.ok) {
     return (
-      <Trang>
-        <DauTrang
-          tieuDe="Không tìm thấy môn học"
-          quayLai={{ href: "/subjects", nhan: "Môn học" }}
+      <PageShell>
+        <PageHeader
+          title="Không tìm thấy môn học"
+          backTo={{ href: "/subjects", label: "Môn học" }}
         />
-        <TrongRong
+        <EmptyState
           Icon={FileQuestion}
-          tieuDe="Không tìm thấy môn học"
-          moTa="Môn học này không tồn tại hoặc không thuộc tài khoản của bạn."
+          title="Không tìm thấy môn học"
+          description="Môn học này không tồn tại hoặc không thuộc tài khoản của bạn."
         />
-      </Trang>
+      </PageShell>
     );
   }
 
@@ -48,11 +48,11 @@ export default async function VersionsPage({
   const versions: SubjectVersionDto[] = await versionsRes.json();
 
   return (
-    <Trang>
-      <DauTrang
-        quayLai={{ href: "/subjects", nhan: "Môn học" }}
-        tieuDe={subject.name}
-        moTa={
+    <PageShell>
+      <PageHeader
+        backTo={{ href: "/subjects", label: "Môn học" }}
+        title={subject.name}
+        description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="font-mono text-xs">{subject.code}</span>
             <span aria-hidden>·</span>
@@ -61,7 +61,7 @@ export default async function VersionsPage({
         }
       />
 
-      <DongThoiGian subjectId={id} versions={versions} />
-    </Trang>
+      <VersionTimeline subjectId={id} versions={versions} />
+    </PageShell>
   );
 }

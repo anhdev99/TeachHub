@@ -4,72 +4,72 @@ using TeachHub.Domain.Groups;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Giữ test dù Phase 4a chạy theo yêu cầu "không viết test": đây là hàm thuần quyết định
-/// ai làm việc với ai trong cả học kỳ, và các ca biên của nó (nhóm lẻ loi một người, cùng
-/// seed ra cùng kết quả) không nhìn thấy được bằng cách bấm thử trên giao diện. Chạy < 10 ms.
+/// Kept even though Phase 4a ran under a "no tests" instruction: this is the pure function that
+/// decides who works with whom for an entire semester, and its edge cases (a lone one-person group,
+/// same seed producing the same result) are invisible to poking at the UI. Runs in under 10 ms.
 /// </summary>
 public class GroupAllocatorTests
 {
-    private static List<Guid> Sv(int n) => [.. Enumerable.Range(0, n).Select(_ => Guid.CreateVersion7())];
+    private static List<Guid> Students(int n) => [.. Enumerable.Range(0, n).Select(_ => Guid.CreateVersion7())];
 
     [Fact]
-    public void Chia_deu_khi_si_so_chia_het()
+    public void Splits_evenly_when_the_class_size_divides_exactly()
     {
-        var nhom = GroupAllocator.Allocate(Sv(12), groupSize: 4, seed: 42);
+        var groups = GroupAllocator.Allocate(Students(12), groupSize: 4, seed: 42);
 
-        nhom.Count.ShouldBe(3);
-        nhom.ShouldAllBe(g => g.Count == 4);
+        groups.Count.ShouldBe(3);
+        groups.ShouldAllBe(g => g.Count == 4);
     }
 
     [Fact]
-    public void Khong_de_lai_nhom_le_loi_mot_nguoi()
+    public void Never_leaves_behind_a_lone_one_person_group()
     {
-        // 13 sinh viên, nhóm 4 → KHÔNG được ra 4/4/4/1.
-        var nhom = GroupAllocator.Allocate(Sv(13), groupSize: 4, seed: 42);
+        // 13 students, groups of 4 -> must NOT produce 4/4/4/1.
+        var groups = GroupAllocator.Allocate(Students(13), groupSize: 4, seed: 42);
 
-        nhom.ShouldAllBe(g => g.Count >= 3);
-        nhom.Sum(g => g.Count).ShouldBe(13);
+        groups.ShouldAllBe(g => g.Count >= 3);
+        groups.Sum(g => g.Count).ShouldBe(13);
     }
 
     [Fact]
-    public void Moi_sinh_vien_xuat_hien_dung_mot_lan()
+    public void Every_student_appears_exactly_once()
     {
-        var sv = Sv(37);
-        var nhom = GroupAllocator.Allocate(sv, groupSize: 5, seed: 7);
+        var students = Students(37);
+        var groups = GroupAllocator.Allocate(students, groupSize: 5, seed: 7);
 
-        nhom.SelectMany(g => g).OrderBy(x => x).ShouldBe(sv.OrderBy(x => x));
+        groups.SelectMany(g => g).OrderBy(x => x).ShouldBe(students.OrderBy(x => x));
     }
 
     [Fact]
-    public void Cung_seed_cho_ket_qua_giong_nhau()
+    public void The_same_seed_produces_the_same_result()
     {
-        // Giảng viên bấm "Chia ngẫu nhiên", xem trước, rồi mới xác nhận —
-        // kết quả không được đổi giữa lúc xem và lúc lưu.
-        var sv = Sv(20);
+        // The instructor clicks "Split randomly", previews it, and only then confirms —
+        // the result must not change between the preview and the save.
+        var students = Students(20);
 
-        GroupAllocator.Allocate(sv, 4, seed: 99)
-            .ShouldBe(GroupAllocator.Allocate(sv, 4, seed: 99));
+        GroupAllocator.Allocate(students, 4, seed: 99)
+            .ShouldBe(GroupAllocator.Allocate(students, 4, seed: 99));
     }
 
     [Fact]
-    public void Si_so_it_hon_mot_nhom_thi_gom_lam_mot()
+    public void A_class_smaller_than_one_group_is_merged_into_a_single_group()
     {
-        GroupAllocator.Allocate(Sv(3), groupSize: 5, seed: 1).Count.ShouldBe(1);
+        GroupAllocator.Allocate(Students(3), groupSize: 5, seed: 1).Count.ShouldBe(1);
     }
 
     [Fact]
-    public void Danh_sach_rong_tra_ve_khong_nhom_nao()
+    public void An_empty_list_returns_no_groups()
     {
         GroupAllocator.Allocate([], groupSize: 4, seed: 1).ShouldBeEmpty();
     }
 
     [Fact]
-    public void Lop_40_chia_nhom_4_ra_dung_10_nhom_deu_nhau()
+    public void A_class_of_40_split_into_groups_of_4_yields_exactly_10_equal_groups()
     {
-        // Đúng kịch bản nghiệm thu UC-25.
-        var nhom = GroupAllocator.Allocate(Sv(40), groupSize: 4, seed: 2026);
+        // Exactly the UC-25 acceptance scenario.
+        var groups = GroupAllocator.Allocate(Students(40), groupSize: 4, seed: 2026);
 
-        nhom.Count.ShouldBe(10);
-        nhom.ShouldAllBe(g => g.Count == 4);
+        groups.Count.ShouldBe(10);
+        groups.ShouldAllBe(g => g.Count == 4);
     }
 }

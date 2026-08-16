@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
-import { CanhBaoTrungLap } from "@/components/submission/canh-bao-trung-lap";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
+import { SimilarityNotice } from "@/components/submission/similarity-notice";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { components } from "@/lib/api/schema";
 import { SoSanhBaiNop } from "./so-sanh-bai-nop";
@@ -52,17 +52,17 @@ export default async function ComparePage({
   if (res.status === 400) {
     const problem: ProblemDetails = await res.json().catch(() => ({}) as ProblemDetails);
     return (
-      <Trang>
-        <DauTrang
-          tieuDe="Không so sánh được"
-          quayLai={{ href: duongVe, nhan: "Báo cáo trùng lặp" }}
+      <PageShell>
+        <PageHeader
+          title="Không so sánh được"
+          backTo={{ href: duongVe, label: "Báo cáo trùng lặp" }}
         />
         {/* Đây là lỗi thật của thao tác nên dùng `danger`; khung hổ phách phía dưới dành
             riêng cho chuyện "trùng lặp không phải kết tội" — trộn hai màu là mất cả hai nghĩa. */}
         <p className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3.5 py-3 text-sm text-pretty">
           {problem.detail ?? "Hai bài nộp này không so sánh được."}
         </p>
-      </Trang>
+      </PageShell>
     );
   }
 
@@ -71,20 +71,20 @@ export default async function ComparePage({
   const bc: SubmissionComparisonDto = await res.json();
 
   return (
-    <Trang rong>
-      <DauTrang
-        tieuDe="So sánh hai bài nộp"
-        moTa="Đoạn tô nền hổ phách là phần mã hai bên dùng chung."
-        quayLai={{ href: duongVe, nhan: "Báo cáo trùng lặp" }}
+    <PageShell wide>
+      <PageHeader
+        title="So sánh hai bài nộp"
+        description="Đoạn tô nền hổ phách là phần mã hai bên dùng chung."
+        backTo={{ href: duongVe, label: "Báo cáo trùng lặp" }}
       />
 
-      <CanhBaoTrungLap />
+      <SimilarityNotice />
 
       <SoSanhBaiNop
         bc={bc}
         tenA={a?.trim() || "Bài nộp A"}
         tenB={b?.trim() || "Bài nộp B"}
       />
-    </Trang>
+    </PageShell>
   );
 }

@@ -1,7 +1,7 @@
 namespace TeachHub.Domain.Grading;
 
-/// <param name="RawScore">Điểm giảng viên chấm, TRƯỚC mọi mức phạt.</param>
-/// <param name="FinalScore">Điểm hiệu lực, sau gợi ý và sau nộp trễ. Luôn nằm trong [0, RawScore].</param>
+/// <param name="RawScore">The score the instructor gave, BEFORE any penalty.</param>
+/// <param name="FinalScore">The effective score, after hints and after lateness. Always within [0, RawScore].</param>
 public sealed record ScoreBreakdown(
     decimal RawScore,
     int DaysLate,
@@ -15,16 +15,18 @@ public sealed record ScoreBreakdown(
 }
 
 /// <summary>
-/// Gộp hai mức phạt của Phase 6b thành một con số điểm hiệu lực, kèm bảng phân rã để giải
-/// thích cho sinh viên "10 điểm − 20% gợi ý − 10% trễ = 7.2".
+/// Combines the two Phase 6b penalties into a single effective score, together with a breakdown
+/// that explains to the student "10 points − 20% for hints − 10% for lateness = 7.2".
 ///
-/// LUÔN tính từ điểm GỐC, không bao giờ tính chồng lên điểm đã phạt. Đây là điều kiện để hàm
-/// này chạy lại được nhiều lần mà không đổi kết quả (idempotent) — thứ bắt buộc phải có, vì
-/// giảng viên sẽ bấm "tính lại" sau khi sửa hạn nộp hoặc sửa mức phạt. Tính chồng thì mỗi lần
-/// bấm là điểm tụt thêm một nấc, âm thầm, không có gì báo.
+/// ALWAYS computed from the ORIGINAL score, never stacked on top of an already-penalized one.
+/// That is what makes this function safe to run repeatedly without changing the result
+/// (idempotent) — a hard requirement, because instructors will press "recalculate" after editing
+/// a deadline or a penalty rate. Stack the penalties and every press drops the score another
+/// notch, silently, with nothing to warn anyone.
 ///
-/// Hai mức phạt nhân với nhau (chứ không cộng tỉ lệ rồi trừ một lần) nên thứ tự áp không đổi
-/// kết quả — nhờ vậy không có "thứ tự đúng" nào để nhớ sai.
+/// The two penalties are multiplied together (rather than summing the percentages and deducting
+/// once) so that the order they are applied in does not change the result — which means there is
+/// no "correct order" left to misremember.
 /// </summary>
 public static class SubmissionScoring
 {
@@ -35,19 +37,19 @@ public static class SubmissionScoring
         DateTimeOffset? submittedAt,
         IEnumerable<decimal> hintPenaltyPercents)
     {
-        var goiY = HintPenaltyCalculator.Apply(rawScore, hintPenaltyPercents);
+        var hint = HintPenaltyCalculator.Apply(rawScore, hintPenaltyPercents);
 
-        var soNgay = LatePenaltyCalculator.DaysLate(dueAt, submittedAt);
-        var tyLeTre = Math.Clamp(latePenaltyPercentPerDay * soNgay, 0m, 100m);
+        var daysLate = LatePenaltyCalculator.DaysLate(dueAt, submittedAt);
+        var latePercent = Math.Clamp(latePenaltyPercentPerDay * daysLate, 0m, 100m);
 
-        // Làm tròn MỘT LẦN ở cuối. Làm tròn sau mỗi bước là làm tròn hai lần trên cùng một
-        // con số, và sai lệch tích lũy đúng ở chữ số thập phân thứ hai — chỗ sinh viên cộng
-        // tay lại và phát hiện ra.
-        var cuoi = Math.Round(
-            Math.Max(0m, rawScore * (1m - goiY.PercentDeducted / 100m) * (1m - tyLeTre / 100m)),
+        // Round ONCE, at the end. Rounding after each step means rounding the same number twice,
+        // and the accumulated error lands exactly on the second decimal place — which is where the
+        // student adds it up by hand and spots it.
+        var finalScore = Math.Round(
+            Math.Max(0m, rawScore * (1m - hint.PercentDeducted / 100m) * (1m - latePercent / 100m)),
             2, MidpointRounding.AwayFromZero);
 
         return new ScoreBreakdown(
-            rawScore, soNgay, tyLeTre, goiY.HintsUnlocked, goiY.PercentDeducted, cuoi);
+            rawScore, daysLate, latePercent, hint.HintsUnlocked, hint.PercentDeducted, finalScore);
     }
 }

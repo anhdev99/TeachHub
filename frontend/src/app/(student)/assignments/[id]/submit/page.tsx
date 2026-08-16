@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { DauTrang, Trang } from "@/components/shell/trang";
+import { PageHeader, PageShell } from "@/components/shell/page-shell";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type { MyAssignmentDto, MyAssignmentSubmissionDto } from "@/lib/api/types";
 import { TrangNopBai } from "./trang-nop-bai";
@@ -64,14 +64,14 @@ export default async function SubmitPage({
   const quaHan = baiTap.due_at !== null && new Date(baiTap.due_at).getTime() < Date.now();
 
   return (
-    <Trang>
-      <DauTrang
-        tieuDe={baiTap.title}
-        moTa={baiTap.description}
-        quayLai={{ href: `/learn/${offeringId}/assignments`, nhan: "Bài tập" }}
+    <PageShell>
+      <PageHeader
+        title={baiTap.title}
+        description={baiTap.description}
+        backTo={{ href: `/learn/${offeringId}/assignments`, label: "Bài tập" }}
       />
 
       <TrangNopBai baiTap={baiTap} banDau={baiNop} quaHan={quaHan} />
-    </Trang>
+    </PageShell>
   );
 }

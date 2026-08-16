@@ -8,9 +8,9 @@ export const COOKIE_REFRESH = "th_rt";
 const isProd = process.env.NODE_ENV === "production";
 
 /**
- * httpOnly: JavaScript phía client không đọc được token. secure chỉ bật ở production
- * vì dev chạy trên http://localhost — bật cứng thì trình duyệt bỏ cookie và không ai
- * đăng nhập được ở máy phát triển.
+ * httpOnly: client-side JavaScript cannot read the token. secure is only enabled in
+ * production because dev runs on http://localhost — forcing it on makes the browser drop the
+ * cookie, and nobody can sign in on a development machine.
  */
 export function cookieOptions(maxAge: number) {
   return {
@@ -28,13 +28,13 @@ export type TokenPair = {
   expires_in: number;
 };
 
-export async function luuToken(pair: TokenPair) {
+export async function saveTokens(pair: TokenPair) {
   const jar = await cookies();
   jar.set(COOKIE_ACCESS, pair.access_token, cookieOptions(pair.expires_in));
   jar.set(COOKIE_REFRESH, pair.refresh_token, cookieOptions(60 * 60 * 24 * 14));
 }
 
-export async function xoaToken() {
+export async function clearTokens() {
   const jar = await cookies();
   jar.delete(COOKIE_ACCESS);
   jar.delete(COOKIE_REFRESH);

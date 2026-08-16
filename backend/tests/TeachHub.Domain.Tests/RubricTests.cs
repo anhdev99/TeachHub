@@ -4,13 +4,13 @@ using TeachHub.Domain.Assignments;
 namespace TeachHub.Domain.Tests;
 
 /// <summary>
-/// Giữ test dù phase chạy theo yêu cầu "không viết test": đây là phép cộng ra con số nộp
-/// cho phòng đào tạo. Một lỗi làm tròn ở đây không có triệu chứng nào trên giao diện —
-/// nó chỉ hiện ra khi sinh viên khiếu nại. Chạy < 10 ms.
+/// Kept even though the phase ran under a "no tests" instruction: this is the arithmetic that
+/// produces the number handed to the academic office. A rounding error here has no symptom in the
+/// UI — it only surfaces when a student files a complaint. Runs in under 10 ms.
 /// </summary>
 public class RubricTests
 {
-    private static Rubric Mau() => new()
+    private static Rubric Sample() => new()
     {
         Name = "Rubric bài tập lập trình",
         InstructorId = Guid.CreateVersion7(),
@@ -23,12 +23,12 @@ public class RubricTests
     };
 
     [Fact]
-    public void Tong_diem_toi_da_bang_tong_cac_tieu_chi() => Mau().MaxPoints.ShouldBe(10m);
+    public void Total_max_points_equals_the_sum_of_the_criteria() => Sample().MaxPoints.ShouldBe(10m);
 
     [Fact]
-    public void Cham_diem_cong_don_theo_tung_tieu_chi()
+    public void Grading_accumulates_across_the_individual_criteria()
     {
-        var r = Mau();
+        var r = Sample();
 
         r.Score(new Dictionary<Guid, decimal>
         {
@@ -39,36 +39,36 @@ public class RubricTests
     }
 
     [Fact]
-    public void Cham_vuot_qua_max_cua_tieu_chi_la_loi()
+    public void Grading_above_a_criterion_max_is_an_error()
     {
-        var r = Mau();
+        var r = Sample();
 
         Should.Throw<ArgumentOutOfRangeException>(() =>
             r.Score(new Dictionary<Guid, decimal> { [r.Criteria[0].Id] = 99m }));
     }
 
     [Fact]
-    public void Cham_diem_am_la_loi()
+    public void Grading_with_a_negative_score_is_an_error()
     {
-        var r = Mau();
+        var r = Sample();
 
         Should.Throw<ArgumentOutOfRangeException>(() =>
             r.Score(new Dictionary<Guid, decimal> { [r.Criteria[0].Id] = -1m }));
     }
 
     [Fact]
-    public void Tieu_chi_khong_cham_duoc_tinh_la_0_chu_khong_bao_loi()
+    public void An_ungraded_criterion_counts_as_0_rather_than_raising_an_error()
     {
-        // Giảng viên chấm dở dang rồi lưu nháp — không được ném lỗi.
-        var r = Mau();
+        // The instructor grades halfway and saves a draft — that must not throw.
+        var r = Sample();
 
         r.Score(new Dictionary<Guid, decimal> { [r.Criteria[0].Id] = 5m }).ShouldBe(5m);
     }
 
     [Fact]
-    public void Diem_luon_lam_tron_2_chu_so_thap_phan()
+    public void Scores_are_always_rounded_to_2_decimal_places()
     {
-        // decimal chứ không phải double — điểm số không bao giờ đi qua số thực dấu phẩy động.
+        // decimal, not double — scores never travel through binary floating point.
         var r = new Rubric
         {
             Name = "x", InstructorId = Guid.CreateVersion7(),
@@ -79,10 +79,10 @@ public class RubricTests
     }
 
     [Fact]
-    public void Lam_tron_o_ranh_gioi_di_ra_xa_khong_ve_so_chan()
+    public void Rounding_at_the_midpoint_goes_away_from_zero_not_to_even()
     {
-        // AwayFromZero, KHÔNG phải ToEven mặc định của .NET: 8.125 phải ra 8.13 chứ không
-        // phải 8.12. Sinh viên bị làm tròn xuống ở ranh giới là khiếu nại đúng.
+        // AwayFromZero, NOT .NET's default ToEven: 8.125 must produce 8.13, not 8.12.
+        // A student rounded down at the midpoint has a legitimate complaint.
         var r = new Rubric
         {
             Name = "x", InstructorId = Guid.CreateVersion7(),
