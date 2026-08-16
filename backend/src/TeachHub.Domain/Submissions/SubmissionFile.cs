@@ -31,6 +31,13 @@ public class SubmissionFile : Entity
     public long SizeBytes { get; set; }
     public string? ContentType { get; set; }
 
+    /// <summary>
+    /// Đường dẫn ảnh xem trước trong storage. Null khi tệp không phải ảnh, hoặc khi job nền
+    /// chưa chạy xong, hoặc khi ảnh hỏng không giải mã được — cả ba ca đều hiển thị giống
+    /// nhau ở giao diện (không có ảnh xem trước), nên không cần cột trạng thái riêng.
+    /// </summary>
+    public string? ThumbnailPath { get; set; }
+
     public FileProcessingStatus ProcessingStatus { get; set; } = FileProcessingStatus.Pending;
     public string? ProcessingError { get; set; }
 

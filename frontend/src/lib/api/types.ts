@@ -21,6 +21,8 @@ export type MyProgressDto = components["schemas"]["MyProgressDto"];
 export type MyChapterDto = components["schemas"]["MyChapterDto"];
 export type MyLessonDto = components["schemas"]["MyLessonDto"];
 export type MyComponentDto = components["schemas"]["MyComponentDto"];
+/** Câu hỏi nhúng của phần `checkpoint_quiz`, CỐ Ý không kèm đáp án đúng — xem phan-bai-hoc.tsx. */
+export type InlineQuestionDto = components["schemas"]["InlineQuestionDto"];
 export type LessonAccess = components["schemas"]["LessonAccess"];
 export type LessonContentType = components["schemas"]["LessonContentType"];
 

@@ -94,6 +94,11 @@ public sealed class UploadSubmissionFileHandler(
         // 8 — đẩy job giải nén lên queue riêng. Upload trả về NGAY, không chờ giải nén xong.
         if (slot.AcceptsZip) queue.EnqueueProcessing(file.Id);
 
+        // 9 — ảnh thì dựng thêm ảnh xem trước, trên hàng đợi MẶC ĐỊNH (không phải queue "zip").
+        // Job chạy trên scope DI riêng: nó tự đọc lại tệp từ database và tự thoát nếu chưa
+        // thấy hàng, nên upload không phải chờ và không phải bảo đảm gì cho nó.
+        if (ThumbnailPolicy.IsImage(file.FileName)) queue.EnqueueThumbnail(file.Id);
+
         return Result<SubmissionFileDto>.Ok(SubmissionFileDto.From(file));
     }
 

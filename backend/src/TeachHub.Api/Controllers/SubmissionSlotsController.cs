@@ -28,4 +28,19 @@ public sealed class SubmissionSlotsController(ISender sender) : ApiControllerBas
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
         => ToActionResult(await sender.Send(
             new DeleteSubmissionSlotCommand { SlotId = id, InstructorId = CurrentUserId }, ct));
+
+    /// <summary>
+    /// Đổi thứ tự slot. Cùng khuôn với <c>PUT /api/lessons/{id}/reorder</c> của Phase 1 —
+    /// thiếu endpoint này thì giao diện kéo-thả được nhưng thả xong không lưu được, và giảng
+    /// viên sắp xong, tải lại trang, thứ tự về như cũ mà không có thông báo lỗi nào.
+    /// </summary>
+    [HttpPut("{id:guid}/reorder")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Reorder(
+        Guid id, ReorderSubmissionSlotCommand command, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            command with { SlotId = id, InstructorId = CurrentUserId }, ct));
 }

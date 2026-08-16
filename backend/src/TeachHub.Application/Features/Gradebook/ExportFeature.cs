@@ -237,10 +237,28 @@ public sealed class SaveGradeExportTemplateHandler(IAppDbContext db)
 
 public sealed record ExportedFile(byte[] Content, string FileName, string ContentType);
 
-public sealed record ExportGradebookQuery(Guid OfferingId, Guid InstructorId, Guid? TemplateId)
-    : IQuery<Result<ExportedFile>>;
+/// <summary>
+/// Định dạng file xuất. Mặc định <c>Xlsx</c> — đó là thứ phòng đào tạo nhận. Đường CSV giữ
+/// lại vì nó đang chạy được và không phụ thuộc thư viện nào: khi ClosedXML gặp sự cố với một
+/// bảng điểm cụ thể, giảng viên vẫn còn một cách lấy dữ liệu ra thay vì bị chặn hoàn toàn.
+/// </summary>
+public enum GradeExportFormat { Xlsx, Csv }
 
-public sealed class ExportGradebookHandler(IAppDbContext db, ISender sender)
+/// <summary>
+/// Cổng dựng file .xlsx. Hiện thực dùng ClosedXML và nằm ở Infrastructure: kéo ClosedXML vào
+/// Application là đảo chiều phụ thuộc, và mọi test handler sẽ phải tải một thư viện Excel chỉ
+/// để kiểm một nhánh <c>if</c>.
+/// </summary>
+public interface IGradebookExcelWriter
+{
+    ExportedFile Write(GradebookDto so, IReadOnlyList<GradeExportItemDto> cot);
+}
+
+public sealed record ExportGradebookQuery(
+    Guid OfferingId, Guid InstructorId, Guid? TemplateId,
+    GradeExportFormat Format = GradeExportFormat.Xlsx) : IQuery<Result<ExportedFile>>;
+
+public sealed class ExportGradebookHandler(IAppDbContext db, ISender sender, IGradebookExcelWriter excel)
     : IQueryHandler<ExportGradebookQuery, Result<ExportedFile>>
 {
     public async Task<Result<ExportedFile>> Handle(ExportGradebookQuery request, CancellationToken ct)
@@ -259,7 +277,9 @@ public sealed class ExportGradebookHandler(IAppDbContext db, ISender sender)
                    .Select(i => new GradeExportItemDto(i.Source, i.ColumnKey, i.Header, i.OrderIndex, i.DecimalPlaces))]
             : MacDinh(so.Value);
 
-        return Result<ExportedFile>.Ok(GradeCsvWriter.Write(so.Value, cot));
+        return Result<ExportedFile>.Ok(request.Format == GradeExportFormat.Csv
+            ? GradeCsvWriter.Write(so.Value, cot)
+            : excel.Write(so.Value, cot));
     }
 
     /// <summary>Chưa soạn mẫu nào thì xuất đủ mọi cột — vẫn dùng được ngay lần đầu.</summary>
@@ -283,14 +303,55 @@ public sealed class ExportGradebookHandler(IAppDbContext db, ISender sender)
 }
 
 /// <summary>
-/// Xuất CSV có BOM UTF-8 thay vì .xlsx. Đánh đổi được ghi lại có chủ ý: Excel mở CSV bình
-/// thường, còn thêm một thư viện sinh .xlsx là thêm một phụ thuộc nữa phải nuôi cho một tính
-/// năng mà bản CSV đã phục vụ đủ. BOM là bắt buộc — thiếu nó thì Excel trên Windows đọc
-/// tiếng Việt thành ký tự rác, và đó là lỗi người dùng gặp ngay lần xuất đầu tiên.
+/// Quy MỘT ô của mẫu xuất về giá trị thật. Bản DUY NHẤT: cả CSV lẫn .xlsx đều đi qua đây.
+/// Mỗi bản chép lại là một chỗ sẽ lệch, và hai file xuất cho cùng một lớp ra hai con số khác
+/// nhau là kiểu lỗi không ai đối chiếu cho tới khi sinh viên khiếu nại.
+/// </summary>
+public static class GradeExportValues
+{
+    /// <summary>
+    /// Nguồn cho ra SỐ (điểm) hay cho ra CHỮ. Quyết định này đi thẳng vào ô Excel: ghi điểm
+    /// dưới dạng chuỗi thì mọi công thức SUM/AVERAGE của phòng đào tạo trả 0 mà không báo lỗi.
+    /// </summary>
+    public static bool IsNumeric(GradeExportSource nguon) => nguon
+        is GradeExportSource.GradeColumn
+        or GradeExportSource.BonusTotal
+        or GradeExportSource.FinalScore;
+
+    /// <summary>Giá trị số của ô, hoặc null khi chưa có điểm (ô để TRỐNG, không ghi 0).</summary>
+    public static decimal? Number(GradebookDto so, GradeRowDto hang, GradeExportItemDto o) => o.Source switch
+    {
+        GradeExportSource.BonusTotal => hang.BonusToFinal,
+        GradeExportSource.FinalScore => hang.FinalScore,
+        GradeExportSource.GradeColumn => DiemCot(so, hang, o.ColumnKey),
+        _ => null,
+    };
+
+    /// <summary>Giá trị chữ của ô. MSSV nằm ở đây chứ không ở nhánh số — xem ghi chú trong writer.</summary>
+    public static string Text(GradeRowDto hang, GradeExportItemDto o) => o.Source switch
+    {
+        GradeExportSource.StudentCode => hang.StudentCode,
+        GradeExportSource.FullName => hang.FullName,
+        GradeExportSource.ClassName => hang.ClassName ?? "",
+        _ => "",                       // Email chưa có trong GradebookDto, Blank là cột để trống
+    };
+
+    private static decimal? DiemCot(GradebookDto so, GradeRowDto hang, string? key)
+    {
+        var c = so.Columns.FirstOrDefault(x => x.Key == key);
+        return c is null ? null : hang.Cells.FirstOrDefault(x => x.ColumnId == c.Id)?.Score;
+    }
+}
+
+/// <summary>
+/// Đường xuất CSV — GIỮ LẠI bên cạnh .xlsx chứ không thay thế. Không phụ thuộc thư viện nào,
+/// nên khi bộ sinh .xlsx gặp sự cố với một bảng điểm cụ thể thì giảng viên vẫn lấy được dữ
+/// liệu ra. BOM UTF-8 là bắt buộc — thiếu nó thì Excel trên Windows đọc tiếng Việt thành ký
+/// tự rác, và đó là lỗi người dùng gặp ngay lần xuất đầu tiên.
 /// </summary>
 public static class GradeCsvWriter
 {
-    public static ExportedFile Write(GradebookDto so, List<GradeExportItemDto> cot)
+    public static ExportedFile Write(GradebookDto so, IReadOnlyList<GradeExportItemDto> cot)
     {
         var sb = new System.Text.StringBuilder();
 
@@ -298,30 +359,21 @@ public static class GradeCsvWriter
 
         foreach (var h in so.Rows)
         {
-            var o = cot.Select(c => c.Source switch
-            {
-                GradeExportSource.StudentCode => Escape(h.StudentCode),
-                GradeExportSource.FullName => Escape(h.FullName),
-                GradeExportSource.ClassName => Escape(h.ClassName ?? ""),
-                GradeExportSource.BonusTotal => So(h.BonusToFinal, c.DecimalPlaces),
-                GradeExportSource.FinalScore => So(h.FinalScore, c.DecimalPlaces),
-                GradeExportSource.GradeColumn => So(DiemCot(h, c.ColumnKey), c.DecimalPlaces),
-                _ => "",
-            });
+            var o = cot.Select(c => GradeExportValues.IsNumeric(c.Source)
+                ? So(GradeExportValues.Number(so, h, c), c.DecimalPlaces)
+                : Escape(GradeExportValues.Text(h, c)));
 
             sb.AppendLine(string.Join(",", o));
         }
 
-        // BOM UTF-8 để Excel nhận đúng tiếng Việt.
-        var bytes = new System.Text.UTF8Encoding(true).GetBytes(sb.ToString());
+        // BOM UTF-8 để Excel nhận đúng tiếng Việt — GHÉP TAY, không trông vào cờ của encoding.
+        // `new UTF8Encoding(true).GetBytes(...)` KHÔNG chèn BOM: cờ đó chỉ ảnh hưởng
+        // GetPreamble() và StreamWriter. Bản trước viết đúng như vậy và tin là đã có BOM, nên
+        // mọi file CSV xuất ra đều mở lên thành "Nguy?n V?n ?nh" trên Excel Windows.
+        var utf8 = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        byte[] bytes = [.. utf8.GetPreamble(), .. utf8.GetBytes(sb.ToString())];
 
         return new ExportedFile(bytes, $"so-diem-{so.ClassCode}.csv", "text/csv; charset=utf-8");
-
-        decimal? DiemCot(GradeRowDto h, string? key)
-        {
-            var c = so.Columns.FirstOrDefault(x => x.Key == key);
-            return c is null ? null : h.Cells.FirstOrDefault(x => x.ColumnId == c.Id)?.Score;
-        }
     }
 
     private static string So(decimal? v, int soLe) =>

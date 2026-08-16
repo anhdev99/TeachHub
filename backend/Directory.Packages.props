@@ -38,7 +38,11 @@
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageVersion Include="AWSSDK.S3" Version="4.0.102.1" />
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
-    <PackageVersion Include="SixLabors.ImageSharp" Version="4.1.0" />
+    <!-- GHIM 2.1.x: bản Apache-2.0 CUỐI CÙNG. Từ v3 SixLabors đổi sang Six Labors Split
+         License và v4 đòi license key (build cảnh báo "Please obtain a license"). Cùng lý do
+         với việc ghim MediatR 12.5.0 — đây là thay đổi PHÁP LÝ, không phải kỹ thuật, và CI
+         vẫn xanh sau khi nâng nên không có gì chặn lại. Đừng để Dependabot tự kéo lên 3.x/4.x. -->
+    <PackageVersion Include="SixLabors.ImageSharp" Version="2.1.13" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
   </ItemGroup>

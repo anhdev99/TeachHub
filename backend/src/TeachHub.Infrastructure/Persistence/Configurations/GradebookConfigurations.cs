@@ -201,7 +201,14 @@ public sealed class GradeSnapshotConfiguration : IEntityTypeConfiguration<GradeS
     public void Configure(EntityTypeBuilder<GradeSnapshot> b)
     {
         b.HasKey(x => x.Id);
-        b.Property(x => x.PayloadJson).HasColumnType("jsonb").IsRequired();
+
+        // TEXT chứ KHÔNG phải jsonb, và đây là cột duy nhất trong dự án cố tình như vậy.
+        // Postgres chuẩn hóa jsonb lúc lưu: bỏ khoảng trắng và SẮP XẾP LẠI THỨ TỰ KHÓA. Chuỗi
+        // đọc ra khác chuỗi ghi vào, nên SHA-256 tính lại trên bản đọc ra sẽ không khớp
+        // payload_hash — và khả năng đối chiếu là toàn bộ lý do bản chốt tồn tại (ADR-006).
+        // Không ai truy vấn vào bên trong bản chốt, nên khả năng truy vấn của jsonb không bù
+        // lại được mất mát đó.
+        b.Property(x => x.PayloadJson).HasColumnType("text").IsRequired();
         b.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
 
         // Restrict: bản chốt điểm không bao giờ bị xóa theo, kể cả khi lớp bị xóa.

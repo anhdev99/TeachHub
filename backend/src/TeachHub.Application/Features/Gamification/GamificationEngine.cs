@@ -74,11 +74,19 @@ public static class GamificationEngine
         // Chỉ bản nộp HIỆN HÀNH: nộp lại tạo hàng mới với is_current = false (Gap #5), đếm cả
         // bản cũ là thưởng XP nhiều lần cho đúng một bài.
         //
-        // GIỚI HẠN ĐÃ BIẾT: bài nộp theo NHÓM có enrollment_id null (chỉ có group_id) nên chưa
-        // vào đây. Ghi nhận XP cho từng thành viên nhóm cần đi qua group_members và là việc của
-        // vòng sau — đừng lặng lẽ "sửa" bằng cách bỏ điều kiện enrollment_id.
+        // Bài nộp theo NHÓM có enrollment_id = null (chỉ có group_id), nên phải đi qua
+        // group_members để quy về từng thành viên. Lọc mỗi enrollment_id thì cả nhóm không ai
+        // được XP cho bài đó — và đó là những bài nặng nhất trong môn, tức là cơ chế XP im lặng
+        // thưởng ít nhất cho phần việc lớn nhất.
+        //
+        // Không sợ cộng trùng: DedupeKey là "submission:{id}" và unique index
+        // (enrollment_id, dedupe_key) canh giữ, nên mỗi thành viên nhận đúng MỘT lần cho một
+        // bài — đồng thời hai thành viên khác nhau vẫn nhận riêng, vì khóa gắn với enrollment.
         var baiNop = await db.Submissions.AsNoTracking()
-            .Where(s => s.EnrollmentId == enrollmentId && s.IsCurrent && s.SubmittedAt != null)
+            .Where(s => s.IsCurrent && s.SubmittedAt != null
+                        && (s.EnrollmentId == enrollmentId
+                            || (s.GroupId != null && db.GroupMembers.Any(
+                                    m => m.GroupId == s.GroupId && m.EnrollmentId == enrollmentId))))
             .OrderBy(s => s.SubmittedAt)
             .Select(s => new SubmissionFact(s.Id, s.SubmittedAt!.Value, s.IsLate))
             .ToListAsync(ct);

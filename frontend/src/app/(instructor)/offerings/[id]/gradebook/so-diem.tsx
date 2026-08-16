@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  DndContext, KeyboardSensor, MouseSensor, TouchSensor,
+  closestCenter, useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, arrayMove, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -90,11 +99,21 @@ export function SoDiem({
           Xem điểm tạm tính (bỏ qua bài chưa chấm)
         </label>
 
+        {/* Endpoint xuất mặc định trả .xlsx; CSV phải hỏi bằng ?format=csv. Nhãn phải khớp
+            định dạng thật — ghi "CSV" rồi tải về một tệp .xlsx là giảng viên mở bằng công cụ
+            sai rồi tưởng tệp hỏng. */}
         <a
           href={`/api/offerings/${offeringId}/gradebook/export`}
           className="text-sm underline"
         >
-          Xuất bảng điểm (CSV)
+          Xuất bảng điểm (Excel)
+        </a>
+
+        <a
+          href={`/api/offerings/${offeringId}/gradebook/export?format=csv`}
+          className="text-muted-foreground hover:text-foreground text-sm underline"
+        >
+          Xuất CSV
         </a>
 
         <CauHinhCot offeringId={offeringId} so={so} nguon={nguon} onXong={lamMoi} />
@@ -198,6 +217,101 @@ export function SoDiem({
   );
 }
 
+/**
+ * Một hàng cấu hình cột, kéo được để đổi thứ tự.
+ *
+ * `id` của dnd-kit là uuid THẬT của cột, không phải chỉ số mảng. Dùng chỉ số thì sau mỗi cú
+ * kéo React tái sử dụng nhầm DOM node: ô input đang gõ dở giữ nguyên giá trị cũ nhưng nhảy
+ * sang cột khác, và giảng viên sửa trọng số của cột mình không định sửa.
+ */
+function HangCot({
+  c,
+  nguon,
+  onDoi,
+  onXoa,
+  onXongNguon,
+}: {
+  c: GradeColumnDto;
+  nguon: Nguon[];
+  onDoi: (moi: Partial<GradeColumnDto>) => void;
+  onXoa: () => void;
+  onXongNguon: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: c.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`flex flex-wrap items-end gap-2 ${isDragging ? "opacity-50" : ""}`}
+    >
+      {/* Tay cầm riêng thay vì kéo cả hàng: cả hàng đều là input, kéo được cả hàng thì mọi
+          thao tác bôi đen chữ trong ô đều biến thành kéo cột.
+          touch-none = touch-action:none — thiếu nó thì trên điện thoại trình duyệt nuốt mất
+          cử chỉ để cuộn trang và tay cầm không kéo được. */}
+      <button
+        type="button"
+        className="text-muted-foreground hover:text-foreground h-11 w-11 shrink-0 cursor-grab touch-none text-lg active:cursor-grabbing"
+        aria-label={`Kéo để đổi thứ tự cột ${c.name}`}
+        {...attributes}
+        {...listeners}
+      >
+        ⠿
+      </button>
+
+      <div className="flex flex-col gap-1">
+        <Label>Tên cột</Label>
+        <Input
+          className="w-40" value={c.name}
+          onChange={(e) => onDoi({ name: e.target.value })}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <Label>Khóa</Label>
+        <Input className="w-32 font-mono text-xs" value={c.key} readOnly />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <Label>Trọng số %</Label>
+        <Input
+          type="number" min={0} max={100} className="w-24" value={c.weight_percent}
+          onChange={(e) => onDoi({ weight_percent: Number(e.target.value) })}
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <Label>Quy tắc gộp</Label>
+        <Select value={c.kind} onValueChange={(v) => onDoi({ kind: v as AggregationKind })}>
+          <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(NHAN_QUY_TAC_GOP).map(([k, nhan]) => (
+              <SelectItem key={k} value={k}>{nhan}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {(c.kind === "drop_lowest_n" || c.kind === "best_n_of_m") && (
+        <div className="flex flex-col gap-1">
+          <Label>N</Label>
+          <Input
+            type="number" min={0} className="w-20" value={c.n}
+            onChange={(e) => onDoi({ n: Number(e.target.value) })}
+          />
+        </div>
+      )}
+
+      <GanNguon columnId={c.id} nguon={nguon} daGan={c.sources} onXong={onXongNguon} />
+
+      <Button size="sm" variant="ghost" onClick={onXoa}>
+        Xóa cột
+      </Button>
+    </div>
+  );
+}
+
 function CauHinhCot({
   offeringId,
   so,
@@ -209,27 +323,77 @@ function CauHinhCot({
   nguon: Nguon[];
   onXong: () => void;
 }) {
+  const qc = useQueryClient();
   const [mo, setMo] = useState(false);
   const [cot, setCot] = useState<GradeColumnDto[]>(so.columns);
 
+  // Tiền tố, KHÔNG kèm cờ "tạm tính": sổ điểm nằm trong cache dưới hai khoá
+  // ["gradebook", offeringId, false] và [..., true]. Ghi lạc quan vào một khoá thôi thì gạt
+  // công tắc "xem điểm tạm tính" là thứ tự cột nhảy về như cũ.
+  const khoaSo = ["gradebook", offeringId] as const;
+
+  // MouseSensor + TouchSensor chứ KHÔNG phải PointerSensor: pointer event gộp cả chuột lẫn
+  // chạm, nên PointerSensor sẽ bắt đầu kéo ngay khi ngón tay trượt 8px — tức là mọi thao tác
+  // cuộn trang trên điện thoại đều biến thành kéo cột. Tách đôi thì cảm ứng đi qua TouchSensor
+  // với ràng buộc GIỮ 200ms, và vuốt để cuộn vẫn là cuộn.
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const keoXong = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setCot((cu) => {
+      const tu = cu.findIndex((x) => x.id === active.id);
+      const den = cu.findIndex((x) => x.id === over.id);
+      if (tu < 0 || den < 0) return cu;
+      return arrayMove(cu, tu, den);
+    });
+  };
+
   const luu = useMutation({
-    mutationFn: () =>
+    mutationFn: (ds: GradeColumnDto[]) =>
       apiFetch(`/api/offerings/${offeringId}/grade-columns`, {
         method: "PUT",
         body: JSON.stringify({
-          columns: cot.map((c, i) => ({
+          // order_index lấy theo VỊ TRÍ hiện tại trong mảng, không lấy c.order_index cũ —
+          // đó chính là thứ vừa bị kéo-thả làm cho lỗi thời.
+          columns: ds.map((c, i) => ({
             id: c.id, key: c.key, name: c.name,
             weight_percent: c.weight_percent, order_index: i,
             kind: c.kind, n: c.n, treat_missing_as_zero: c.treat_missing_as_zero,
           })),
         }),
       }),
+
+    onMutate: async (ds) => {
+      // Chặn mọi refetch đang bay: một phản hồi cũ về sau khi ghi lạc quan sẽ kéo bảng về
+      // thứ tự cũ rồi lại nhảy tới — lỗi không tái hiện được trên máy nhanh.
+      await qc.cancelQueries({ queryKey: khoaSo });
+      const truoc = qc.getQueriesData<GradebookDto>({ queryKey: khoaSo });
+      qc.setQueriesData<GradebookDto>({ queryKey: khoaSo }, (cu) =>
+        cu ? { ...cu, columns: ds.map((c, i) => ({ ...c, order_index: i })) } : cu,
+      );
+      return { truoc };
+    },
+
+    onError: (e: Error, _ds, ctx) => {
+      // Hoàn tác ĐÚNG bản trước đó của từng khoá. Không hoàn tác thì bảng vẫn hiện thứ tự mới
+      // dù server đã từ chối, giảng viên tin là đã lưu và chỉ phát hiện khi tải lại trang.
+      ctx?.truoc.forEach(([k, d]) => qc.setQueryData(k, d));
+      toast.error(e.message);
+    },
+
     onSuccess: () => {
       toast.success("Đã lưu cấu hình cột.");
       setMo(false);
-      onXong();
     },
-    onError: (e: Error) => toast.error(e.message),
+
+    // Server là nguồn chân lý: nó đánh số lại order_index về 0..n-1 và tính lại điểm tổng
+    // theo trọng số mới. Thiếu bước này thì lần kéo sau tính trên chỉ số đã lệch.
+    onSettled: () => qc.invalidateQueries({ queryKey: khoaSo }),
   });
 
   const tong = cot.reduce((t, c) => t + Number(c.weight_percent), 0);
@@ -244,73 +408,26 @@ function CauHinhCot({
 
   return (
     <div className="border-border flex w-full flex-col gap-3 rounded-lg border p-4">
-      {cot.map((c, i) => (
-        <div key={c.id} className="flex flex-wrap items-end gap-2">
-          <div className="flex flex-col gap-1">
-            <Label>Tên cột</Label>
-            <Input
-              className="w-40" value={c.name}
-              onChange={(e) =>
-                setCot((cu) => cu.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))
+      <p className="text-muted-foreground text-sm">
+        Kéo tay cầm ⠿ để đổi thứ tự cột. Thứ tự chỉ được ghi lại khi bấm “Lưu”.
+      </p>
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={keoXong}>
+        <SortableContext items={cot.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+          {cot.map((c) => (
+            <HangCot
+              key={c.id}
+              c={c}
+              nguon={nguon}
+              onDoi={(moi) =>
+                setCot((cu) => cu.map((x) => (x.id === c.id ? { ...x, ...moi } : x)))
               }
+              onXoa={() => setCot((cu) => cu.filter((x) => x.id !== c.id))}
+              onXongNguon={onXong}
             />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label>Khóa</Label>
-            <Input className="w-32 font-mono text-xs" value={c.key} readOnly />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label>Trọng số %</Label>
-            <Input
-              type="number" min={0} max={100} className="w-24" value={c.weight_percent}
-              onChange={(e) =>
-                setCot((cu) =>
-                  cu.map((x, j) => (j === i ? { ...x, weight_percent: Number(e.target.value) } : x)))
-              }
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <Label>Quy tắc gộp</Label>
-            <Select
-              value={c.kind}
-              onValueChange={(v) =>
-                setCot((cu) => cu.map((x, j) => (j === i ? { ...x, kind: v as AggregationKind } : x)))
-              }
-            >
-              <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(NHAN_QUY_TAC_GOP).map(([k, nhan]) => (
-                  <SelectItem key={k} value={k}>{nhan}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(c.kind === "drop_lowest_n" || c.kind === "best_n_of_m") && (
-            <div className="flex flex-col gap-1">
-              <Label>N</Label>
-              <Input
-                type="number" min={0} className="w-20" value={c.n}
-                onChange={(e) =>
-                  setCot((cu) => cu.map((x, j) => (j === i ? { ...x, n: Number(e.target.value) } : x)))
-                }
-              />
-            </div>
-          )}
-
-          <GanNguon columnId={c.id} nguon={nguon} daGan={c.sources} onXong={onXong} />
-
-          <Button
-            size="sm" variant="ghost"
-            onClick={() => setCot((cu) => cu.filter((_, j) => j !== i))}
-          >
-            Xóa cột
-          </Button>
-        </div>
-      ))}
+          ))}
+        </SortableContext>
+      </DndContext>
 
       <div className="flex flex-wrap items-center gap-3">
         <Button
@@ -330,7 +447,11 @@ function CauHinhCot({
           Tổng trọng số: {tong}%{tong !== 100 && " — phải bằng 100%"}
         </span>
 
-        <Button size="sm" disabled={luu.isPending || tong !== 100} onClick={() => luu.mutate()}>
+        <Button
+          size="sm"
+          disabled={luu.isPending || tong !== 100}
+          onClick={() => luu.mutate(cot)}
+        >
           {luu.isPending ? "Đang lưu…" : "Lưu"}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setMo(false)}>Đóng</Button>

@@ -31,10 +31,22 @@ public sealed record MyLessonDto(
     List<MyComponentDto> Components);
 
 /// <param name="Html">Nội dung nhúng của hook / custom_note / code_along. Null với loại khác.</param>
+/// <param name="RefId">
+/// Với phần loại <c>quiz</c>: id bài trắc nghiệm để mở ra làm ngay trong bài học.
+/// Không có nó thì phần quiz chỉ là một dòng chữ và sinh viên không có đường nào vào làm.
+/// </param>
+/// <param name="InlineQuestions">
+/// Câu hỏi nhúng của phần <c>checkpoint_quiz</c> — CỐ Ý không kèm đáp án đúng. Chấm đi qua
+/// endpoint riêng ở máy chủ, cùng lý do với <c>TakeOptionDto</c> của Phase 5: gửi kèm đáp án
+/// rồi ẩn trên giao diện thì cả lớp mở DevTools ra đọc.
+/// </param>
 public sealed record MyComponentDto(
     Guid Id, LessonComponentType Type, int OrderIndex, bool IsRequired, bool Completed,
     string? Html, string? ReflectionPrompt, string? StarterCodeUrl, string? Language,
-    int InlineQuestionCount);
+    int InlineQuestionCount, Guid? RefId, List<InlineQuestionDto> InlineQuestions);
+
+/// <summary>Một câu hỏi nhúng, đã tước đáp án đúng.</summary>
+public sealed record InlineQuestionDto(int Index, string Text, List<string> Options);
 
 public sealed record MyChapterDto(
     Guid Id, string Title, string? Objective, int OrderIndex,
@@ -79,10 +91,12 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
             .OrderBy(cp => cp.OrderIndex)
             .Select(cp => new
             {
-                cp.Id, cp.LessonId, cp.IsRequired, cp.Type, cp.OrderIndex,
+                cp.Id, cp.LessonId, cp.IsRequired, cp.Type, cp.OrderIndex, cp.RefId,
                 cp.Config.Html, cp.Config.ReflectionPrompt,
                 cp.Config.StarterCodeUrl, cp.Config.Language,
                 InlineQuestionCount = cp.Config.InlineQuestions.Count,
+                InlineQuestions = cp.Config.InlineQuestions
+                    .Select(q => new { q.Text, q.Options }).ToList(),
             })
             .ToListAsync(ct);
 
@@ -154,7 +168,9 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                                 cp.Id, cp.Type, cp.OrderIndex, cp.IsRequired,
                                 progress.CompletedComponents.Contains(cp.Id),
                                 cp.Html, cp.ReflectionPrompt, cp.StarterCodeUrl, cp.Language,
-                                cp.InlineQuestionCount))]);
+                                cp.InlineQuestionCount, cp.RefId,
+                                [.. cp.InlineQuestions.Select((q, i) =>
+                                    new InlineQuestionDto(i, q.Text, q.Options))]))]);
                 })]));
 
             tongBai += node.Lessons.Count;

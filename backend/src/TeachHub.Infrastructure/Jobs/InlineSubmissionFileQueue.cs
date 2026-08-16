@@ -16,19 +16,30 @@ public sealed class InlineSubmissionFileQueue(
     IServiceScopeFactory scopes, ILogger<InlineSubmissionFileQueue> log) : ISubmissionFileQueue
 {
     public void EnqueueProcessing(Guid submissionFileId) =>
+        Chay<ProcessSubmissionFileJob>(
+            submissionFileId, (j, id, ct) => j.RunAsync(id, ct), "Xử lý tệp nộp");
+
+    public void EnqueueThumbnail(Guid submissionFileId) =>
+        Chay<GenerateThumbnailJob>(
+            submissionFileId, (j, id, ct) => j.RunAsync(id, ct), "Dựng ảnh xem trước cho tệp nộp");
+
+    private void Chay<TJob>(
+        Guid submissionFileId,
+        Func<TJob, Guid, CancellationToken, Task> chay,
+        string moTa) where TJob : notnull =>
         _ = Task.Run(async () =>
         {
             try
             {
                 using var scope = scopes.CreateScope();
-                var job = scope.ServiceProvider.GetRequiredService<ProcessSubmissionFileJob>();
-                await job.RunAsync(submissionFileId, CancellationToken.None);
+                var job = scope.ServiceProvider.GetRequiredService<TJob>();
+                await chay(job, submissionFileId, CancellationToken.None);
             }
             catch (Exception e)
             {
                 // Không có ai await Task này, nên exception không bắt ở đây sẽ biến mất
                 // hoàn toàn — tệp kẹt ở Pending mà log không có một dòng nào.
-                log.LogError(e, "Xử lý tệp nộp {Id} thất bại.", submissionFileId);
+                log.LogError(e, "{MoTa} {Id} thất bại.", moTa, submissionFileId);
             }
         });
 }

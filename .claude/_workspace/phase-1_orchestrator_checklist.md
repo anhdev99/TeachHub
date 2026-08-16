@@ -32,7 +32,7 @@ Ký hiệu: `- [ ]` chưa làm · `- [x]` xong theo DoD · `- [!]` BỎ DỞ (gh
 - [x] 1. Tạo môn "IN4203 — Lập trình di động React Native"
 - [x] 2. Version `2026-2027`, tạo 2 chương
 - [x] 3. Chương 1 có 2 bài: bài 1 gắn assignment + quiz + reflection; **bài 2 không gắn gì** — vẫn hợp lệ
-- [!] 4. Upload 1 PPT và 1 PDF, xem trước được trong trình duyệt — upload XONG (có kiểm magic bytes); **xem trước CHƯA LÀM**, thiếu endpoint phục vụ file
+- [x] 4. Upload 1 PPT và 1 PDF, xem trước được trong trình duyệt — HOÀN TẤT ở Phase 2: endpoint `GET /api/files/{**path}` (có kiểm quyền, 9 test ở `LessonFileAccessTests`), PDF xem trực tiếp bằng `<object>`, PPT tải về (quyết định bỏ LibreOffice, xem báo cáo Phase 2)
 - [x] 5. Kéo-thả đổi thứ tự bài và component, tải lại thấy thứ tự đã lưu
 - [x] 6. Xuất bản version → mọi nút sửa `disabled`
 - [x] 7. Tạo version `2027-2028` từ nó → đủ 2 chương, đúng thứ tự, đúng component

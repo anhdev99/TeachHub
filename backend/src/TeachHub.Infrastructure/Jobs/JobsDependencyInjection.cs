@@ -14,6 +14,7 @@ public static class JobsDependencyInjection
     public static IServiceCollection AddJobs(this IServiceCollection services, IConfiguration config)
     {
         services.AddScoped<ProcessSubmissionFileJob>();
+        services.AddScoped<GenerateThumbnailJob>();       // Phase 3 Task 3.5 bước 4
         services.AddScoped<ComputeFingerprintsJob>();     // Phase 6
         services.AddScoped<ReviewQueueJob>();             // Phase 8
 

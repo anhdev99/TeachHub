@@ -141,3 +141,34 @@
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
+
+/*
+ * Đoạn trùng lặp trong màn hình so sánh hai bài nộp (decoration của Shiki).
+ *
+ * Phải đặt SAU và phải cụ thể hơn quy tắc `.dark .shiki span` bên trên, vì `--shiki-dark-bg`
+ * được Shiki đặt trên thẻ <pre> và biến CSS thì DI TRUYỀN xuống mọi thẻ con — nên quy tắc kia
+ * sơn nền của cả khối mã đè lên đúng ô mình vừa tô, và ở chế độ tối phần tô sáng biến mất
+ * sạch. Cả hai đều !important nên thứ quyết định là độ cụ thể: thêm `.th-trung` là đủ thắng.
+ *
+ * Shiki gắn lớp này lên thẻ token khi đoạn tô nằm gọn trong một token, còn khi đoạn phủ cả
+ * dòng thì gộp vào thẻ dòng thành `class="line th-trung"` — bộ chọn theo lớp bắt được cả hai.
+ *
+ * MÀU VÀNG HỔ PHÁCH, KHÔNG PHẢI ĐỎ, và đây là quyết định nội dung chứ không phải thẩm mỹ:
+ * đỏ là màu của lỗi và của kết tội, trong khi cả màn hình được viết để nói rằng đây chỉ là
+ * gợi ý để đọc và hệ thống không bao giờ tự kết luận sao chép (Rủi ro #3 của SRS). Tô đỏ là
+ * nói ngược lại dòng cảnh báo ngay phía trên nó. Vàng cũng khớp với viền cảnh báo amber-500
+ * đang dùng ở trang báo cáo trùng lặp.
+ *
+ * Nền để trong suốt một phần để màu chữ của bộ tô cú pháp bên dưới vẫn đọc được — tô đặc thì
+ * mã nguồn không còn đọc nổi, mà đọc mã mới là toàn bộ mục đích của màn hình này. Hai giá trị
+ * sáng/tối khai TƯỜNG MINH: nền tối cần đậm hơn mới thấy, dùng chung một giá trị thì một
+ * trong hai chế độ gần như không nhìn ra chỗ nào được tô.
+ */
+.shiki span.th-trung {
+  background-color: oklch(0.83 0.13 82 / 0.35) !important;
+  border-radius: 2px;
+}
+
+.dark .shiki span.th-trung {
+  background-color: oklch(0.77 0.15 70 / 0.32) !important;
+}

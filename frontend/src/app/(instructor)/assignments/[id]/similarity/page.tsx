@@ -89,6 +89,18 @@ export default async function SimilarityPage({
                     <span className="text-muted-foreground text-xs">
                       Jaccard {c.jaccard_percent}% · {c.shared_fingerprints}/{c.total_a} đoạn chung
                     </span>
+                    {/* Chuyển tiếp cả tên hai bên: API so sánh chỉ trả id, mà cột mã nguồn
+                        không ghi rõ của ai thì giảng viên đọc xong vẫn phải quay lại đây dò. */}
+                    <Link
+                      href={
+                        `/submissions/${c.submission_a_id}/compare/${c.submission_b_id}` +
+                        `?offering=${offering}&assignment=${id}` +
+                        `&a=${encodeURIComponent(c.owner_a)}&b=${encodeURIComponent(c.owner_b)}`
+                      }
+                      className="text-sm underline"
+                    >
+                      Xem cạnh nhau
+                    </Link>
                   </span>
                 </li>
               ))}

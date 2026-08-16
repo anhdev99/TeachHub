@@ -2323,6 +2323,7 @@ export interface paths {
             parameters: {
                 query?: {
                     template_id?: string;
+                    format?: components["schemas"]["GradeExportFormat"];
                 };
                 header?: never;
                 path: {
@@ -2338,6 +2339,153 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gradebook/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeSnapshotDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gradebook/snapshots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeSnapshotDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/gradebook/snapshots/{snapshotId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    snapshotId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GradeSnapshotDetailDto"];
+                    };
                 };
                 /** @description Not Found */
                 404: {
@@ -6144,6 +6292,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/submission-slots/{id}/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReorderSubmissionSlotCommand"];
+                    "application/*+json": components["schemas"]["ReorderSubmissionSlotCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6659,6 +6865,8 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /** @enum {unknown} */
+        GradeExportFormat: "xlsx" | "csv" | null;
         GradeExportItemDto: {
             source: components["schemas"]["GradeExportSource"];
             column_key: null | string;
@@ -6709,6 +6917,29 @@ export interface components {
             /** Format: int32 */
             n: number;
             treat_missing_as_zero: boolean;
+        };
+        GradeSnapshotDetailDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offering_id: string;
+            /** Format: date-time */
+            taken_at: string;
+            /** Format: uuid */
+            taken_by: string;
+            payload_hash: string;
+            payload_json: string;
+        };
+        GradeSnapshotDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            offering_id: string;
+            /** Format: date-time */
+            taken_at: string;
+            /** Format: uuid */
+            taken_by: string;
+            payload_hash: string;
         };
         /** @enum {unknown} */
         GradeSourceType: "assignment" | "quiz" | "final_assessment";
@@ -6804,6 +7035,12 @@ export interface components {
             options?: string[];
             correct_indexes?: number[];
             explanation?: null | string;
+        };
+        InlineQuestionDto: {
+            /** Format: int32 */
+            index: number;
+            text: string;
+            options: string[];
         };
         InstructorDashboardDto: {
             /** Format: int32 */
@@ -7025,6 +7262,9 @@ export interface components {
             language: null | string;
             /** Format: int32 */
             inline_question_count: number;
+            /** Format: uuid */
+            ref_id: null | string;
+            inline_questions: components["schemas"]["InlineQuestionDto"][];
         };
         MyGamificationDto: {
             /** Format: uuid */
@@ -7240,6 +7480,14 @@ export interface components {
             to_index: number;
             /** Format: uuid */
             lesson_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        ReorderSubmissionSlotCommand: {
+            /** Format: int32 */
+            to_index: number;
+            /** Format: uuid */
+            slot_id?: string;
             /** Format: uuid */
             instructor_id?: string;
         };

@@ -76,6 +76,12 @@ public sealed class GradebookController(ISender sender) : ApiControllerBase
         => ToActionResult(await sender.Send(
             command with { OfferingId = offeringId, InstructorId = CurrentUserId }, ct));
 
+    /// <summary>
+    /// Xuất bảng điểm. Mặc định .xlsx; <c>?format=csv</c> lấy bản CSV có BOM UTF-8.
+    /// Là IQuery chứ không phải ICommand nên TransactionBehavior bỏ qua — dựng file Excel cho
+    /// lớp 300 sinh viên mất vài trăm mili giây, giữ một transaction mở suốt chừng đó thời
+    /// gian chỉ để ĐỌC là cách làm cạn connection pool vào đúng tuần cuối kỳ.
+    /// </summary>
     [HttpGet("offerings/{offeringId:guid}/gradebook/export")]
     [Authorize(Policy = Policies.Instructor)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -83,13 +89,48 @@ public sealed class GradebookController(ISender sender) : ApiControllerBase
     public async Task<IActionResult> Export(
         Guid offeringId,
         [FromQuery(Name = "template_id")] Guid? templateId,
+        // Query string KHÔNG đi theo JsonNamingPolicy: thiếu [FromQuery(Name=…)] thì tham số
+        // luôn nhận giá trị mặc định và người dùng không nhận được lỗi nào.
+        [FromQuery(Name = "format")] GradeExportFormat? format,
         CancellationToken ct)
     {
-        var kq = await sender.Send(new ExportGradebookQuery(offeringId, CurrentUserId, templateId), ct);
+        var kq = await sender.Send(new ExportGradebookQuery(
+            offeringId, CurrentUserId, templateId, format ?? GradeExportFormat.Xlsx), ct);
+
         if (!kq.IsSuccess) return ToActionResult(kq);
 
         return File(kq.Value.Content, kq.Value.ContentType, kq.Value.FileName);
     }
+
+    /// <summary>
+    /// Chốt sổ điểm: chụp lại toàn bộ bảng điểm lúc này thành một bản bất biến (ADR-006).
+    /// Chỉ GHI THÊM — mở lại lớp rồi đóng lần nữa sinh bản mới, bản cũ không đổi một byte.
+    /// </summary>
+    [HttpPost("offerings/{offeringId:guid}/gradebook/snapshot")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<GradeSnapshotDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> TakeSnapshot(Guid offeringId, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            new TakeGradeSnapshotCommand { OfferingId = offeringId, InstructorId = CurrentUserId }, ct));
+
+    [HttpGet("offerings/{offeringId:guid}/gradebook/snapshots")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<List<GradeSnapshotDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSnapshots(Guid offeringId, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            new GetGradeSnapshotsQuery(offeringId, CurrentUserId), ct));
+
+    /// <summary>Nội dung đầy đủ của một bản chốt — dùng để đối chiếu khi sinh viên khiếu nại.</summary>
+    [HttpGet("gradebook/snapshots/{snapshotId:guid}")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<GradeSnapshotDetailDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetSnapshot(Guid snapshotId, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            new GetGradeSnapshotQuery(snapshotId, CurrentUserId), ct));
 }
 
 [Route("api")]

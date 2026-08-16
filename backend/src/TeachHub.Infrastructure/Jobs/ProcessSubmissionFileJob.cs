@@ -13,6 +13,11 @@ public sealed class HangfireSubmissionFileQueue(IBackgroundJobClient jobs) : ISu
 {
     public void EnqueueProcessing(Guid submissionFileId) =>
         jobs.Enqueue<ProcessSubmissionFileJob>(j => j.RunAsync(submissionFileId, CancellationToken.None));
+
+    // Không chỉ định hàng đợi ở đây: GenerateThumbnailJob không khai [Queue] nên Hangfire đẩy
+    // nó vào "default". Gắn nó vào ZipQueue là làm nghẽn đúng hàng đợi cố ý để hẹp.
+    public void EnqueueThumbnail(Guid submissionFileId) =>
+        jobs.Enqueue<GenerateThumbnailJob>(j => j.RunAsync(submissionFileId, CancellationToken.None));
 }
 
 public sealed class ProcessSubmissionFileJob(

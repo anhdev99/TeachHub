@@ -173,6 +173,7 @@ export function TrangHoc({
                       <PhanBaiHoc
                         key={p.id}
                         phan={p}
+                        offeringId={offeringId}
                         dangLuu={hoanThanhPhan.isPending && hoanThanhPhan.variables === p.id}
                         onHoanThanh={(id) => hoanThanhPhan.mutate(id)}
                       />

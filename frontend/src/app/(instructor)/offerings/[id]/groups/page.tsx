@@ -32,7 +32,10 @@ export default async function GroupsPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-semibold">Chia nhóm</h1>
       </div>
 
-      <ChiaNhom offeringId={id} banDau={nhom} siSo={sinhVien.length} />
+      {/* Truyền cả danh sách sinh viên chứ không chỉ sĩ số: màn hình cần biết AI chưa có nhóm
+          để dựng vùng thả "Chưa có nhóm". Chỉ có con số thì kéo một sinh viên ra khỏi nhóm
+          xong là người đó biến mất khỏi màn hình. */}
+      <ChiaNhom offeringId={id} banDau={nhom} sinhVien={sinhVien} />
     </main>
   );
 }

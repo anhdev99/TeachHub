@@ -164,6 +164,7 @@ public sealed class SubmissionFileConfiguration : IEntityTypeConfiguration<Submi
         b.Property(x => x.SlotKey).HasMaxLength(64).IsRequired();
         b.Property(x => x.FileName).HasMaxLength(500).IsRequired();
         b.Property(x => x.FilePath).HasMaxLength(1000);
+        b.Property(x => x.ThumbnailPath).HasMaxLength(1000);
         b.Property(x => x.ExternalUrl).HasMaxLength(1000);
         b.Property(x => x.ContentType).HasMaxLength(200);
         b.Property(x => x.ProcessingStatus).HasConversion<string>().HasMaxLength(32);
