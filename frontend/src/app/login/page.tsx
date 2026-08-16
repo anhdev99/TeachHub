@@ -23,6 +23,21 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+/**
+ * Tài khoản bấm-một-phát khi phát triển.
+ *
+ * ⚠️ CHỈ hiện khi `NODE_ENV === "development"`. Đây là mật khẩu viết thẳng trong mã nguồn —
+ * ở production nó là một danh sách tài khoản mời mọi người vào thử. `process.env.NODE_ENV`
+ * được Next thay bằng hằng số lúc build, nên ở bản production cả khối này bị loại khỏi bundle
+ * chứ không phải chỉ ẩn bằng CSS: người xem mã nguồn trang cũng không thấy gì.
+ *
+ * Chỉ dùng cho dữ liệu dev. Thêm tài khoản thật vào đây là biến tiện lợi thành lỗ hổng.
+ */
+const TAI_KHOAN_DEV = [
+  { nhan: "Giảng viên", email: "instructor@teachhub.local", password: "Teach@123" },
+  { nhan: "Sinh viên", email: "dung@sv.edu.vn", password: "Sv@12345" },
+] as const;
+
 export default function LoginPage() {
   const router = useRouter();
   const [loiChung, setLoiChung] = useState<string | null>(null);
@@ -30,6 +45,7 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
@@ -142,6 +158,35 @@ export default function LoginPage() {
             <Button type="submit" disabled={isSubmitting} className="min-h-11">
               {isSubmitting ? "Đang đăng nhập…" : "Đăng nhập"}
             </Button>
+
+            {process.env.NODE_ENV === "development" && (
+              <div className="border-border flex flex-col gap-2 border-t pt-3">
+                <p className="text-muted-foreground text-xs">
+                  Chỉ có ở máy phát triển — bấm để vào thẳng:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TAI_KHOAN_DEV.map((tk) => (
+                    <Button
+                      key={tk.email}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isSubmitting}
+                      // Điền vào form RỒI submit, không gọi thẳng `onSubmit`: như vậy ô email
+                      // và mật khẩu hiện đúng thứ vừa dùng, nên khi cần thử một tài khoản khác
+                      // thì sửa tại chỗ được thay vì gõ lại từ đầu.
+                      onClick={() => {
+                        setValue("email", tk.email);
+                        setValue("password", tk.password);
+                        void handleSubmit(onSubmit)();
+                      }}
+                    >
+                      {tk.nhan}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>
