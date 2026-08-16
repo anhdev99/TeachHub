@@ -1,0 +1,135 @@
+<meta charset="utf-8">
+<title>Phase 5 — Trắc nghiệm · Báo cáo</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1d21; --muted:#5b6572; --line:#e3e7ec; --ok:#0a7d3f; --warn:#a8620a; --bad:#b3261e; --code:#f6f8fa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#15181c; --fg:#e6e9ee; --muted:#9aa4b1; --line:#2b313a; --ok:#54d38a; --warn:#e0a458; --bad:#ef8079; --code:#1d2228; }
+  }
+  * { box-sizing: border-box; }
+  body { background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+         max-width:60rem; margin:0 auto; padding:2rem 1.25rem 5rem; }
+  h1 { font-size:1.9rem; line-height:1.25; margin:0 0 .25rem; }
+  h2 { font-size:1.3rem; margin:2.5rem 0 .75rem; padding-top:1.25rem; border-top:1px solid var(--line); }
+  h3 { font-size:1.05rem; margin:1.75rem 0 .5rem; }
+  .sub { color:var(--muted); margin:0 0 2rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.94rem; }
+  th, td { text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-weight:600; color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
+  code { background:var(--code); padding:.12em .38em; border-radius:4px; font-size:.88em;
+         font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  pre { background:var(--code); padding:.9rem 1rem; border-radius:8px; overflow-x:auto; font-size:.85rem; }
+  .ok { color:var(--ok); font-weight:600; } .warn { color:var(--warn); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+  .box { border:1px solid var(--line); border-left:3px solid var(--warn); border-radius:6px; padding:.85rem 1rem; margin:1.25rem 0; }
+  ul { padding-left:1.3rem; } li { margin:.3rem 0; }
+</style>
+
+<h1>Phase 5 — Trắc nghiệm (Quiz engine)</h1>
+<p class="sub">16/08/2026 · nghiệm thu 22/22 bước đạt · build 0 cảnh báo · 145 test thuần xanh trong 121 ms</p>
+
+<div class="box">
+  <strong>Plan Phase 5 chỉ có ở mức phạm vi.</strong> Khác Phase 0–4b, nó nằm trong file backlog
+  và chỉ liệt kê "cần có gì" + "chỗ nào khó", không có code mẫu hay thứ tự bước. Toàn bộ thiết
+  kế chi tiết là do tôi dựng theo quy ước dự án; những chỗ phải tự quyết ghi ở mục 2.
+</div>
+
+<h2>1. Đã dựng</h2>
+
+<table>
+  <tr><th>Phần</th><th>Nội dung</th></tr>
+  <tr><td>Domain</td><td><code>QuizQuestion</code> + <code>QuestionOption</code> + <code>FillBlankConfig</code>, <code>QuizItem</code>, <code>QuizAttempt</code>, <code>QuizConfig</code>, <code>QuizGrader</code>, <code>QuizTiming</code></td></tr>
+  <tr><td>Schema</td><td>5 bảng mới + CHECK <code>ck_quizzes_owner</code>; <code>quizzes.subject_version_id</code> nới từ NOT NULL sang NULL</td></tr>
+  <tr><td>API</td><td>10 endpoint: ngân hàng câu hỏi, soạn quiz, gắn câu, bắt đầu / tự lưu / nộp / xem lại lượt làm</td></tr>
+  <tr><td>Giao diện</td><td>Ngân hàng câu hỏi, soạn quiz theo lớp (giảng viên); danh sách quiz + trang làm bài có đồng hồ và tự lưu (sinh viên)</td></tr>
+  <tr><td>Tích hợp</td><td><code>GradeSourceType.Quiz</code> nối vào sổ điểm; mở khóa <code>FinalAssessmentType.Quiz</code> mà Phase 4a đã chặn</td></tr>
+</table>
+
+<h2>2. Bốn quyết định phải tự đưa ra</h2>
+
+<h3>2.1 <code>multiple_choice</code>: mặc định tất-cả-hoặc-không, nhưng cấu hình được</h3>
+<p>Plan ghi thẳng <em>"Cần bạn quyết"</em> kèm đề xuất mặc định. Tôi lấy mặc định đó
+(tất-cả-hoặc-không, dễ giải thích cho sinh viên nhất) nhưng thêm cờ
+<code>AllowPartialCredit</code> <strong>theo từng câu</strong> thay vì khóa cứng toàn hệ thống —
+hai kiểu chấm đều chính đáng, và chọn cứng một kiểu là buộc giảng viên sống với quyết định của
+người viết code. Khi bật chấm một phần, đáp án chọn sai bị <strong>trừ</strong> tương đương: không
+trừ thì tích hết mọi ô là ăn trọn điểm, và cả lớp sẽ làm đúng như vậy.</p>
+
+<h3>2.2 Điểm quiz vào sổ: lấy lượt CAO NHẤT</h3>
+<p>Quiz cho làm nhiều lần chính là để học lại cho tới khi nắm được. Lấy lượt cuối thì một lần
+bấm nhầm xóa sạch kết quả tốt trước đó.</p>
+
+<h3>2.3 Chuẩn hóa về thang 10 làm MỘT lần, lúc chấm</h3>
+<p><code>QuizAttempt.NormalizedScore</code> lưu sẵn con số thang 10, nên sổ điểm coi thang gốc của
+nguồn Quiz là 10 và không chuẩn hóa lần thứ hai. Chuẩn hóa hai lần là chia cho thang điểm hai lần.</p>
+
+<h3>2.4 DTO riêng cho phía sinh viên</h3>
+<p><code>TakeOptionDto</code> cố ý KHÔNG có trường <code>is_correct</code> — không phải ẩn trên giao
+diện, mà là không tồn tại trong JSON. Tái sử dụng DTO của giảng viên rồi ẩn ở tầng hiển thị thì
+chỉ cần một lần lỡ là cả lớp mở DevTools ra đọc đáp án, và không có gì trong hệ thống báo động.</p>
+
+<h2>3. Chỗ khó nhất: chấm điền khuyết tiếng Việt</h2>
+
+<p>Plan xếp đây là Gap #12 và nói đúng: đây là ca <strong>không kiểm được bằng mắt</strong>.</p>
+
+<pre>"Kiến thức" gõ trên bàn phím macOS  → U+1EBF        (ế là MỘT ký tự dựng sẵn)
+"Kiến thức" gõ bằng nhiều bộ Telex  → U+0065 U+0302 U+0301   (e + mũ + sắc, BA ký tự)</pre>
+
+<p>Hai chuỗi hiện ra <em>giống hệt nhau</em> trên màn hình và trong ảnh chụp. Không chuẩn hóa NFC
+thì sinh viên trả lời đúng vẫn bị chấm sai, và nhìn giao diện không bao giờ ra nguyên nhân.
+Điểm dễ bỏ sót: phải chuẩn hóa <strong>cả đáp án mẫu lẫn bài làm</strong> bằng cùng một hàm —
+chuẩn hóa mỗi một bên thì ca hỏng phụ thuộc vào việc giảng viên gõ bằng bộ gõ nào.</p>
+
+<p>Có test cho cả hai chiều (<code>Dien_khuyet_chap_nhan_ca_hai_dang_unicode_cua_tieng_Viet</code>
+và <code>..._chuan_hoa_ca_DAP_AN_MAU_chu_khong_chi_bai_lam</code>), và test khẳng định hai chuỗi
+đó thật sự khác nhau từng byte trước khi khẳng định chúng chấm như nhau.</p>
+
+<h2>4. Nghiệm thu</h2>
+
+<table>
+  <tr><th>#</th><th>Bước</th><th>Kết quả</th></tr>
+  <tr><td>1</td><td>Tạo 4 câu đủ 4 loại</td><td class="ok">✔ 4/4</td></tr>
+  <tr><td>2</td><td>Câu chọn-một không có đáp án đúng</td><td class="ok">✔ 400</td></tr>
+  <tr><td>3</td><td>Quiz thuộc CẢ HAI chủ sở hữu (Gap #3)</td><td class="ok">✔ 400</td></tr>
+  <tr><td>4</td><td>Quiz 15 phút, 2 lượt, xáo trộn + gắn 4 câu</td><td class="ok">✔ 4 câu, 4.0 điểm</td></tr>
+  <tr><td>5</td><td>SV bắt đầu làm — đề có kèm đáp án đúng không?</td><td class="ok">✔ KHÔNG; còn 900s</td></tr>
+  <tr><td>6</td><td>Tự lưu rồi tắt trình duyệt, vào lại</td><td class="ok">✔ nối lại đúng lượt cũ, 4 đáp án còn nguyên</td></tr>
+  <tr><td>7</td><td>Tải lại trang trên UI thật</td><td class="ok">✔ ô đã tích vẫn còn tích</td></tr>
+  <tr><td>8</td><td>Nộp bài chấm tự động</td><td class="ok">✔ 4/4 thô → <strong>10</strong> thang 10</td></tr>
+  <tr><td>9</td><td>Câu "Hà Nội" gõ <code>"  hà   nội "</code></td><td class="ok">✔ chấm ĐÚNG</td></tr>
+  <tr><td>10</td><td>Sau khi nộp mới hiện đáp án + giải thích</td><td class="ok">✔ 4/4 câu có phần xem lại</td></tr>
+  <tr><td>11</td><td>Lượt 2 mở được, lượt 3 khi max = 2</td><td class="ok">✔ 200 / 403 kèm câu tiếng Việt</td></tr>
+  <tr><td>12</td><td>Gắn quiz làm nguồn cột Trắc nghiệm</td><td class="ok">✔ cột = 10.0, tổng vẫn bị điều kiện điểm sàn chặn ở 3.9</td></tr>
+  <tr><td>13</td><td>Trang làm bài trên Chromium</td><td class="ok">✔ không lỗi console, đáp án đúng tô xanh sau khi nộp</td></tr>
+</table>
+
+<h2>5. Cổng chất lượng</h2>
+<ul>
+  <li><code>dotnet build TeachHub.sln</code> → <span class="ok">0 Warning(s), 0 Error(s)</span></li>
+  <li><code>dotnet test</code> → <span class="ok">145/145 xanh, 121 ms</span> (thêm 24 test của <code>QuizGraderTests</code>)</li>
+  <li><code>npx tsc --noEmit</code> sạch · <code>pnpm build</code> dựng được toàn bộ route</li>
+  <li>Migration <code>QuizEngine</code>: <code>Up()</code> không có lệnh <code>Drop</code>; lệnh <code>AlterColumn</code> duy nhất là <strong>nới</strong> <code>subject_version_id</code> từ NOT NULL sang NULL — thay đổi mở rộng, không mất dữ liệu. Đã apply lên DB đang có dữ liệu thật.</li>
+  <li>OpenAPI xác nhận <code>TakeOptionDto</code> KHÔNG chứa <code>is_correct</code></li>
+</ul>
+
+<h2>6. Một mục trong phạm vi CHƯA làm</h2>
+
+<table>
+  <tr><th>Việc</th><th>Trạng thái</th></tr>
+  <tr><td class="warn">Component <code>quiz</code> và <code>checkpoint_quiz</code> hoạt động TRONG bài học</td>
+      <td>Chưa nối. <code>LessonComponent.RefId</code> đã có sẵn chỗ trỏ tới Quiz từ Phase 1, và
+          <code>ComponentConfig.InlineQuestions</code> cũng đã có — nhưng trang học hiện chỉ hiện
+          nút "Đánh dấu đã xong" cho mọi loại phần, chưa mở quiz ra làm ngay trong bài.
+          Quiz đứng riêng thì chạy đầy đủ; đây là phần <em>nhúng</em> còn thiếu.</td></tr>
+</table>
+
+<h3>Nợ mang sang từ trước, chưa trả</h3>
+<ul>
+  <li>Không có integration test cho Phase 3, 4a, 4b, 5 — theo yêu cầu người dùng. Vẫn là món nợ lớn nhất.</li>
+  <li><code>CrossInstructorIsolationTests</code> chưa có dòng cho tài nguyên mới (nay thêm <code>QuizQuestion</code>, <code>Quiz</code>). Cách ly đã kiểm tay.</li>
+  <li>Kéo-thả sắp xếp, xuất <code>.xlsx</code> thật, lệnh chốt <code>GradeSnapshot</code>, thumbnail ảnh.</li>
+</ul>
+
+<p class="sub" style="margin-top:2.5rem">
+Tiếp theo theo roadmap: Phase 6 (liêm chính học thuật — phát hiện trùng lặp mã nguồn),
+Phase 7 (gamification, chạy song song được), Phase 8 (ôn tập ngắt quãng — nay đã đủ điều kiện
+vì Phase 5 xong, <code>QuizAttempt.WrongQuestionIds</code> chính là nguồn của hàng đợi ôn tập).
+</p>
