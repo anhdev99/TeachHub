@@ -51,7 +51,18 @@ public sealed class LessonsController(ISender sender) : ApiControllerBase
     [Authorize(Policy = Policies.Student)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Complete(Guid id, [FromQuery] int secondsSpent, CancellationToken ct)
+    public async Task<IActionResult> Complete(
+        Guid id,
+        // [FromQuery(Name = …)] TƯỜNG MINH, giống mọi tham số query nhiều chữ khác trong dự án
+        // (xem GradebookController). Model binder của query string KHÔNG đi theo
+        // JsonNamingPolicy, nên trước đây tham số này nhận đúng tên camelCase `secondsSpent` —
+        // chạy được, nhưng là NGOẠI LỆ DUY NHẤT trong một hợp đồng API toàn snake_case.
+        //
+        // Đó mới là chỗ nguy hiểm: ai đó dọn dẹp cho nhất quán sẽ đổi phía gọi sang
+        // `seconds_spent`, và tham số lặng lẽ nhận 0 — không lỗi, không cảnh báo, chỉ là thời
+        // gian học của mọi sinh viên bằng 0 từ đó trở đi.
+        [FromQuery(Name = "seconds_spent")] int secondsSpent,
+        CancellationToken ct)
         => ToActionResult(await sender.Send(new CompleteLessonCommand(id, CurrentUserId, secondsSpent), ct));
 
     [HttpPost("{id:guid}/file")]

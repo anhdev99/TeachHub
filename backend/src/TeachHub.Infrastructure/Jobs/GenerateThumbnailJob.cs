@@ -57,6 +57,16 @@ public sealed class GenerateThumbnailJob(
             // và ảnh xem trước không bao giờ lẫn vào danh sách tệp sinh viên đã nộp.
             using var ms = new MemoryStream(kq.Content, writable: false);
 
+            // ⚠️ Hai tham số dưới đây KHÔNG được dùng nguyên văn, và đừng suy ra đường dẫn từ
+            // chúng. `Storage.Sanitize()` nuốt dấu `/`, nên tên container thành `thumbnails<guid>`
+            // liền một mạch chứ không lồng thư mục; và tên tệp truyền vào bị thay bằng một
+            // UUIDv7 mới, nên `{file.Id}.jpg` chỉ còn tác dụng gợi ý phần mở rộng.
+            //
+            // Cả hai adapter (`LocalFileStorage`, `S3FileStorage`) dùng chung một hàm `Sanitize`
+            // nên chúng nhất quán với nhau — đây không phải lỗi. Ghi ra đây vì ý đồ "tên tệp
+            // tất định" đọc từ dòng này là ý đồ chết: đường dẫn thật chỉ biết được qua
+            // `luu.Path`, và đó là lý do nó được ghi xuống `ThumbnailPath` ngay bên dưới thay
+            // vì dựng lại bằng chuỗi ở chỗ khác.
             var luu = await storage.SaveAsync(
                 $"thumbnails/{file.SubmissionId}", $"{file.Id}.jpg", ms, "image/jpeg", ct);
 

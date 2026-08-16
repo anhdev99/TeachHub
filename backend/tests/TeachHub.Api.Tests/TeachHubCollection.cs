@@ -34,3 +34,17 @@ public sealed class IsolationCollection : ICollectionFixture<Security.IsolationF
 {
     public const string Ten = "teachhub-isolation";
 }
+
+/// <summary>
+/// Collection riêng cho ma trận cách ly SINH VIÊN ↔ SINH VIÊN: fixture của nó seed hai thế giới
+/// sinh viên đối xứng, mỗi thế giới một lớp riêng trên một môn riêng.
+///
+/// Không dùng chung với <see cref="IsolationCollection"/>: ma trận sinh viên có các dòng GHI
+/// chạy dưới danh nghĩa chính chủ (nộp bài, xóa tệp, vào nhóm) và chúng đổi dữ liệu seed — trộn
+/// vào fixture của ma trận giảng viên là làm các dòng bên đó đỏ theo thứ tự chạy.
+/// </summary>
+[CollectionDefinition(Ten)]
+public sealed class StudentIsolationCollection : ICollectionFixture<Security.StudentIsolationFixture>
+{
+    public const string Ten = "teachhub-student-isolation";
+}

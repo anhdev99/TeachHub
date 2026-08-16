@@ -199,19 +199,25 @@ public class InlineCheckpointQuizTests(TeachHubApiFactory factory)
            .GetProperty("required_components_remaining").GetInt32().ShouldBe(1);
     }
 
+    /// <summary>
+    /// Có ĐỐI CHỨNG DƯƠNG trong cùng một test: 404 một mình cũng là thứ một route gõ sai trả về,
+    /// nên nếu chỉ khẳng định "người ngoài nhận 404" thì test vẫn xanh sau khi đường dẫn bị đổi
+    /// nhầm — và phép kiểm quyền coi như hết được canh. Cú 200 của chính chủ trên CÙNG một URL
+    /// là thứ nói rằng 404 phía trên đến từ việc không học lớp này, không đến từ định tuyến.
+    /// </summary>
     [Fact]
     public async Task Sinh_vien_lop_khac_cham_bai_cua_lop_nay_thi_404()
     {
-        var (_, _, componentId) = await SeedAsync();
+        var (sv, _, componentId) = await SeedAsync();
         var (svKhac, _, _) = await SeedAsync();   // lớp hoàn toàn khác
-
-        var res = await svKhac.PostAsJsonAsync($"/api/lesson-components/{componentId}/check", new
-        {
-            answers = new object[] { new { index = 0, selected_indexes = new[] { 1 } } },
-        });
+        var duongDan = $"/api/lesson-components/{componentId}/check";
+        var than = new { answers = new object[] { new { index = 0, selected_indexes = new[] { 1 } } } };
 
         // 404, KHÔNG BAO GIỜ 403: 403 xác nhận id đó có thật.
-        res.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await svKhac.PostAsJsonAsync(duongDan, than)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        // Chính chủ, cùng URL, cùng thân request: phải chấm được.
+        (await sv.PostAsJsonAsync(duongDan, than)).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

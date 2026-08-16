@@ -4141,7 +4141,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: {
-                    secondsSpent?: number;
+                    seconds_spent?: number;
                 };
                 header?: never;
                 path: {

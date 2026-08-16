@@ -75,6 +75,10 @@ public sealed class CrossInstructorIsolationTests(IsolationFixture fx)
         ("GET",    "/api/offerings/{offeringId}",                          null),
         ("GET",    "/api/offerings/{offeringId}/enrollments",              null),
         ("POST",   "/api/offerings/{offeringId}/enrollments/create-accounts", null),
+        // Đóng lớp là hành động MỘT CHIỀU: nó chốt sổ điểm và khóa mọi đường nộp bài của cả
+        // lớp. Giảng viên B gọi được vào lớp của A là kết thúc học kỳ hộ người khác — và không
+        // có thao tác "mở lại" nào hoàn tác được bản chốt đã sinh ra.
+        ("POST",   "/api/offerings/{offeringId}/close",                    null),
 
         // ── Phase 3: bài tập, slot nộp, bài nộp, cây thư mục trong tệp nén ──────────────
         // Dòng đầu là ca "tạo mới trong không gian của người khác": không có id nào của A

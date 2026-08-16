@@ -71,17 +71,35 @@ public class CloseOfferingTests(TeachHubApiFactory factory)
         ds.GetArrayLength().ShouldBe(1);
     }
 
+    /// <summary>
+    /// 404 một mình KHÔNG chứng minh được gì: một route gõ sai cũng trả đúng 404 đó, nên một
+    /// test chỉ khẳng định "người khác nhận 404" vẫn xanh sau khi ai đó đổi nhầm đường dẫn —
+    /// và lúc đó phép kiểm quyền sở hữu coi như không còn được canh nữa.
+    ///
+    /// Vì thế hai cú gọi phải nằm trong CÙNG một test, trên CÙNG một URL, theo đúng thứ tự:
+    /// giảng viên khác trước (404), rồi chính chủ (200). Cú 200 chính là đối chứng dương —
+    /// nó nói rằng route có thật và 404 phía trên đến từ quyền sở hữu, không đến từ định tuyến.
+    /// </summary>
     [Fact]
     public async Task Lop_cua_giang_vien_khac_tra_404_chu_khong_bao_gio_403()
     {
         var gv = await factory.LoginAsInstructorAsync();
         var offeringId = await SeedLopCoSoDiemAsync(gv);
+        var duongDan = $"/api/offerings/{offeringId}/close";
 
         var nguoiKhac = await factory.LoginAsAsync("gv-dong-lop@teachhub.local");
 
-        var res = await nguoiKhac.PostAsync($"/api/offerings/{offeringId}/close", null);
+        var cuaNguoiKhac = await nguoiKhac.PostAsync(duongDan, null);
+        cuaNguoiKhac.StatusCode.ShouldBe(HttpStatusCode.NotFound);
 
-        res.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        // Chính chủ, cùng URL, ngay sau đó: phải đóng được.
+        var chinhChu = await gv.PostAsync(duongDan, null);
+        chinhChu.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Và cú gọi hỏng ở trên KHÔNG được để lại dấu vết nào: đúng một bản chốt, của chính chủ.
+        var ds = await gv.GetFromJsonAsync<JsonElement>(
+            $"/api/offerings/{offeringId}/gradebook/snapshots");
+        ds.GetArrayLength().ShouldBe(1);
     }
 
     /// <summary>
