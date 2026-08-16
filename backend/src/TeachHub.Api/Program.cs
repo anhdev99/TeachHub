@@ -138,7 +138,15 @@ app.MapHealthChecks("/health").AllowAnonymous();
 // Dashboard Hangfire là middleware chứ không phải action nên không có class để gắn
 // [Authorize]; RequireAuthorization trên endpoint routing là cách duy nhất đúng ở đây.
 if (app.Configuration.GetValue("Hangfire:Enabled", true))
+{
     app.MapHangfireDashboard("/jobs").RequireAuthorization(Policies.Instructor);
+
+    // Job ôn tập ngắt quãng chạy 1 giờ sáng mỗi ngày (Phase 8). AddOrUpdate là idempotent
+    // nên khởi động lại ứng dụng không nhân bản lịch — dùng Enqueue ở đây sẽ tạo một job
+    // MỚI mỗi lần deploy, và sau vài tháng dashboard đầy job trùng nhau.
+    app.Services.GetRequiredService<IRecurringJobManager>().AddOrUpdate<ReviewQueueJob>(
+        ReviewQueueJob.RecurringJobId, j => j.RunAsync(CancellationToken.None), Cron.Daily(1));
+}
 
 // CHỈ seed ở Development/Testing. Ở Production dùng POST /api/auth/bootstrap để tạo
 // giảng viên đầu tiên — seed tài khoản có mật khẩu công khai lên máy chủ thật là

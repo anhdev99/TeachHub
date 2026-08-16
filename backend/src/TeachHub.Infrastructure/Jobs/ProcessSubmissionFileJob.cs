@@ -16,7 +16,8 @@ public sealed class HangfireSubmissionFileQueue(IBackgroundJobClient jobs) : ISu
 }
 
 public sealed class ProcessSubmissionFileJob(
-    AppDbContext db, IFileStorage storage, ILogger<ProcessSubmissionFileJob> log)
+    AppDbContext db, IFileStorage storage, ISimilarityQueue similarity,
+    ILogger<ProcessSubmissionFileJob> log)
 {
     /// <summary>
     /// Chạy trên queue "zip" với ít worker (ADR-005): một file nén độc hại không được phép
@@ -77,5 +78,14 @@ public sealed class ProcessSubmissionFileJob(
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Băm dấu vân tay mã nguồn (Phase 6) chạy SAU khi giải nén xong, không phải trước:
+        // với file .zip thì chính FileTree là danh sách tệp cần băm, nên gọi sớm hơn thì job
+        // kia thấy FileTree còn null và không biết bên trong có gì.
+        //
+        // Chỉ đẩy khi giải nén thành công. Đẩy cả file hỏng thì job băm chạy rồi thất bại
+        // hàng loạt trên đúng những tệp đã biết là không đọc được.
+        if (file.ProcessingStatus == FileProcessingStatus.Done)
+            similarity.EnqueueFingerprinting(file.Id);
     }
 }

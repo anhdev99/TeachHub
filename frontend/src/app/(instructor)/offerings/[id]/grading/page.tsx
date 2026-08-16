@@ -61,6 +61,14 @@ export default async function GradingListPage({
                     <Link href={`/grading/${s.submission_id}`} className="hover:underline">
                       {s.title}
                     </Link>
+                    {s.assignment_id && (
+                      <Link
+                        href={`/assignments/${s.assignment_id}/similarity?offering=${id}`}
+                        className="text-muted-foreground ml-2 text-xs underline"
+                      >
+                        trùng lặp
+                      </Link>
+                    )}
                   </TableCell>
                   <TableCell>
                     {s.group_name && <span className="font-medium">{s.group_name} · </span>}

@@ -1317,6 +1317,663 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/badges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BadgeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveBadgeCommand"];
+                    "application/*+json": components["schemas"]["SaveBadgeCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BadgeDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/badges/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/xp-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["XpRuleDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveXpRuleCommand"];
+                    "application/*+json": components["schemas"]["SaveXpRuleCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["XpRuleDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/xp-rules/seed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["XpRuleDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/xp-rules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gamification-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GamificationSettingsDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SaveGamificationSettingsCommand"];
+                    "application/*+json": components["schemas"]["SaveGamificationSettingsCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GamificationSettingsDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gamification/recalculate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecalculationSummaryDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/gamification/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaderboardDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/my-gamification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyGamificationDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/my-gamification/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MyGamificationDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{offeringId}/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    offeringId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LeaderboardDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/offerings/{offeringId}/gradebook": {
         parameters: {
             query?: never;
@@ -2523,6 +3180,414 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{assignmentId}/similarity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    offering_id?: string;
+                    threshold?: number;
+                };
+                header?: never;
+                path: {
+                    assignmentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SimilarityReportDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{id}/compare/{otherId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                    otherId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionComparisonDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{assignmentId}/hints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    assignmentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HintDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignment-hints/{id}/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HintDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assignments/{assignmentId}/hint-unlocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    offering_id?: string;
+                };
+                header?: never;
+                path: {
+                    assignmentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HintUnlockLogDto"][];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{id}/apply-penalties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ScoreBreakdownDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/submissions/{id}/member-scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberEffectiveScoreDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetMemberScoresCommand"];
+                    "application/*+json": components["schemas"]["SetMemberScoresCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberEffectiveScoreDto"][];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -3974,6 +5039,158 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/review/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TodayReviewDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/items/{id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AnswerReviewItemCommand"];
+                    "application/*+json": components["schemas"]["AnswerReviewItemCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewAnswerDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/lesson-components/{id}/recap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RecapDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rubrics": {
         parameters: {
             query?: never;
@@ -4984,6 +6201,14 @@ export interface components {
         };
         /** @enum {unknown} */
         AggregationKind: "manual" | "average" | "weighted_average" | "sum" | "max" | "min" | "drop_lowest_n" | "best_n_of_m";
+        AnswerReviewItemCommand: {
+            selected_option_ids: string[];
+            text: null | string;
+            /** Format: uuid */
+            item_id?: string;
+            /** Format: uuid */
+            user_id?: string;
+        };
         AssignmentDto: {
             /** Format: uuid */
             id: string;
@@ -5023,6 +6248,38 @@ export interface components {
             offering_id?: string;
             /** Format: uuid */
             actor_id?: string;
+        };
+        /** @enum {unknown} */
+        BadgeComparison: "at_least" | "at_most" | "exactly";
+        BadgeConditionDto: {
+            metric: components["schemas"]["BadgeMetric"];
+            comparison: components["schemas"]["BadgeComparison"];
+            /** Format: double */
+            threshold: number;
+        };
+        BadgeDto: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            description: null | string;
+            icon: null | string;
+            logic: components["schemas"]["BadgeLogic"];
+            is_enabled: boolean;
+            conditions: components["schemas"]["BadgeConditionDto"][];
+        };
+        /** @enum {unknown} */
+        BadgeLogic: "all" | "any";
+        /** @enum {unknown} */
+        BadgeMetric: "total_xp" | "current_streak_days" | "longest_streak_days" | "lessons_completed" | "on_time_submissions" | "late_submissions" | "consecutive_on_time_submissions" | "high_score_quizzes";
+        BadgeProgressDto: {
+            /** Format: uuid */
+            badge_id: string;
+            code: string;
+            name: string;
+            description: null | string;
+            icon: null | string;
+            conditions: components["schemas"]["ConditionProgressDto"][];
         };
         BonusPointDto: {
             /** Format: uuid */
@@ -5111,6 +6368,15 @@ export interface components {
         };
         /** @enum {unknown} */
         ConditionOperator: "less_than" | "less_or_equal";
+        ConditionProgressDto: {
+            metric: components["schemas"]["BadgeMetric"];
+            comparison: components["schemas"]["BadgeComparison"];
+            /** Format: double */
+            threshold: number;
+            /** Format: double */
+            current: number;
+            met: boolean;
+        };
         CreateAssignmentCommand: {
             title: string;
             description: null | string;
@@ -5222,6 +6488,16 @@ export interface components {
             points: number;
             description: null | string;
         };
+        EarnedBadgeDto: {
+            /** Format: uuid */
+            badge_id: string;
+            code: string;
+            name: string;
+            description: null | string;
+            icon: null | string;
+            /** Format: date-time */
+            earned_at: string;
+        };
         EnrollmentDto: {
             /** Format: uuid */
             id: string;
@@ -5280,6 +6556,14 @@ export interface components {
         };
         /** @enum {unknown} */
         FinalAssessmentType: "quiz" | "final_project";
+        GamificationSettingsDto: {
+            /** Format: uuid */
+            offering_id: string;
+            is_enabled: boolean;
+            leaderboard_visibility: components["schemas"]["LeaderboardVisibility"];
+            /** Format: int32 */
+            leaderboard_size: number;
+        };
         GradebookDto: {
             /** Format: uuid */
             offering_id: string;
@@ -5468,6 +6752,31 @@ export interface components {
             student_code: string;
             full_name: string;
         };
+        HintDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            order_index: number;
+            /** Format: double */
+            penalty_percent: number;
+            is_unlocked: boolean;
+            content: null | string;
+            /** Format: date-time */
+            unlocked_at: null | string;
+        };
+        HintUnlockLogDto: {
+            /** Format: uuid */
+            hint_id: string;
+            /** Format: int32 */
+            order_index: number;
+            /** Format: uuid */
+            enrollment_id: string;
+            student_name: string;
+            /** Format: double */
+            penalty_percent_applied: number;
+            /** Format: date-time */
+            unlocked_at: string;
+        };
         /** Format: binary */
         IFormFile: string;
         ImportEnrollmentsResponse: {
@@ -5539,6 +6848,33 @@ export interface components {
             /** Format: uuid */
             user_id?: string;
         };
+        LeaderboardDto: {
+            /** Format: uuid */
+            offering_id: string;
+            is_enabled: boolean;
+            visibility: components["schemas"]["LeaderboardVisibility"];
+            /** Format: int32 */
+            total_participants: number;
+            /** Format: int32 */
+            my_rank: null | number;
+            /** Format: int32 */
+            my_xp: number;
+            rows: components["schemas"]["LeaderboardRowDto"][];
+        };
+        LeaderboardRowDto: {
+            /** Format: int32 */
+            rank: number;
+            display_name: string;
+            /** Format: int32 */
+            total_xp: number;
+            /** Format: int32 */
+            streak_days: number;
+            /** Format: int32 */
+            badge_count: number;
+            is_me: boolean;
+        };
+        /** @enum {unknown} */
+        LeaderboardVisibility: "anonymous" | "real_names";
         LearningOutcome: {
             code: string;
             text: string;
@@ -5603,12 +6939,41 @@ export interface components {
             /** Format: double */
             average_progress_percent: number;
         };
+        MatchedFileDto: {
+            /** Format: uuid */
+            submission_file_id: string;
+            file_name: string;
+            entry_path: null | string;
+            ranges: components["schemas"]["MatchedRangeDto"][];
+        };
+        MatchedRangeDto: {
+            /** Format: int32 */
+            position: number;
+            /** Format: int32 */
+            length: number;
+        };
         MeDto: {
             /** Format: uuid */
             id: string;
             email: string;
             full_name: string;
             roles: string[];
+        };
+        MemberEffectiveScoreDto: {
+            /** Format: uuid */
+            enrollment_id: string;
+            student_name: string;
+            /** Format: double */
+            score: null | number;
+            is_overridden: boolean;
+            reason: null | string;
+        };
+        MemberScoreInput: {
+            /** Format: uuid */
+            enrollment_id: string;
+            /** Format: double */
+            score: null | number;
+            reason: null | string;
         };
         MyAssignmentDto: {
             /** Format: uuid */
@@ -5660,6 +7025,25 @@ export interface components {
             language: null | string;
             /** Format: int32 */
             inline_question_count: number;
+        };
+        MyGamificationDto: {
+            /** Format: uuid */
+            offering_id: string;
+            is_enabled: boolean;
+            /** Format: int32 */
+            total_xp: number;
+            /** Format: int32 */
+            current_streak_days: number;
+            /** Format: int32 */
+            longest_streak_days: number;
+            last_active_date: null | string;
+            /** Format: int32 */
+            rank: number;
+            /** Format: int32 */
+            total_participants: number;
+            xp_by_type: components["schemas"]["XpByTypeDto"][];
+            badges: components["schemas"]["EarnedBadgeDto"][];
+            upcoming_badges: components["schemas"]["BadgeProgressDto"][];
         };
         MyLessonDto: {
             /** Format: uuid */
@@ -5823,6 +7207,23 @@ export interface components {
             options: components["schemas"]["QuestionOptionDto"][];
             fill_blank: null | components["schemas"]["FillBlankDto"];
         };
+        RecalculationSummaryDto: {
+            /** Format: uuid */
+            offering_id: string;
+            /** Format: int32 */
+            enrollments_processed: number;
+            /** Format: int32 */
+            xp_events_created: number;
+            /** Format: int32 */
+            badges_awarded: number;
+        };
+        RecapDto: {
+            /** Format: uuid */
+            component_id: string;
+            source_chapter_title: null | string;
+            foundation_tags: string[];
+            questions: components["schemas"]["TakeQuestionDto"][];
+        };
         RefreshTokenCommand: {
             refresh_token: string;
         };
@@ -5842,6 +7243,34 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        ReviewAnswerDto: {
+            /** Format: uuid */
+            item_id: string;
+            is_correct: boolean;
+            stage: components["schemas"]["ReviewStage"];
+            /** Format: date-time */
+            next_review_at: null | string;
+            is_mastered: boolean;
+            explanation: null | string;
+            correct_option_ids: string[];
+            accepted_answers: string[];
+        };
+        ReviewItemDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            question_id: string;
+            stage: components["schemas"]["ReviewStage"];
+            /** Format: date-time */
+            next_review_at: null | string;
+            /** Format: int32 */
+            correct_count: number;
+            /** Format: int32 */
+            wrong_count: number;
+            question: components["schemas"]["TakeQuestionDto"];
+        };
+        /** @enum {unknown} */
+        ReviewStage: "three_days" | "one_week" | "two_weeks" | "mastered";
         RubricCriterionDto: {
             /** Format: uuid */
             id: string;
@@ -5861,6 +7290,19 @@ export interface components {
             max_points: number;
             criteria: components["schemas"]["RubricCriterionDto"][];
         };
+        SaveBadgeCommand: {
+            /** Format: uuid */
+            id: null | string;
+            code: string;
+            name: string;
+            description: null | string;
+            icon: null | string;
+            logic: components["schemas"]["BadgeLogic"];
+            is_enabled: boolean;
+            conditions: components["schemas"]["BadgeConditionDto"][];
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         SaveBonusReasonTemplateCommand: {
             /** Format: uuid */
             id: null | string;
@@ -5869,6 +7311,16 @@ export interface components {
             default_points: number;
             default_target: null | components["schemas"]["BonusTarget"];
             default_column_key: null | string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        SaveGamificationSettingsCommand: {
+            is_enabled: boolean;
+            leaderboard_visibility: components["schemas"]["LeaderboardVisibility"];
+            /** Format: int32 */
+            leaderboard_size: number;
+            /** Format: uuid */
+            offering_id?: string;
             /** Format: uuid */
             instructor_id?: string;
         };
@@ -5925,6 +7377,40 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        SaveXpRuleCommand: {
+            /** Format: uuid */
+            id: null | string;
+            event_type: components["schemas"]["XpEventType"];
+            /** Format: int32 */
+            points: number;
+            /** Format: double */
+            min_value: null | number;
+            /** Format: int32 */
+            daily_cap: null | number;
+            is_enabled: boolean;
+            /** Format: uuid */
+            offering_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
+        ScoreBreakdownDto: {
+            /** Format: uuid */
+            submission_id: string;
+            /** Format: double */
+            raw_score: number;
+            /** Format: int32 */
+            days_late: number;
+            /** Format: double */
+            late_penalty_percent: number;
+            /** Format: int32 */
+            hints_unlocked: number;
+            /** Format: double */
+            hint_penalty_percent: number;
+            /** Format: double */
+            penalty_points: number;
+            /** Format: double */
+            final_score: number;
+        };
         SetColumnSourcesCommand: {
             sources: components["schemas"]["GradeColumnSourceInput"][];
             /** Format: uuid */
@@ -5943,12 +7429,53 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        SetMemberScoresCommand: {
+            scores: components["schemas"]["MemberScoreInput"][];
+            /** Format: uuid */
+            submission_id?: string;
+            /** Format: uuid */
+            instructor_id?: string;
+        };
         SetQuizQuestionsCommand: {
             question_ids: string[];
             /** Format: uuid */
             quiz_id?: string;
             /** Format: uuid */
             instructor_id?: string;
+        };
+        SimilarityPairDto: {
+            /** Format: uuid */
+            submission_a_id: string;
+            owner_a: string;
+            /** Format: uuid */
+            submission_b_id: string;
+            owner_b: string;
+            /** Format: double */
+            similarity_percent: number;
+            /** Format: double */
+            jaccard_percent: number;
+            /** Format: int32 */
+            shared_fingerprints: number;
+            /** Format: int32 */
+            total_a: number;
+            /** Format: int32 */
+            total_b: number;
+            is_warning: boolean;
+        };
+        SimilarityReportDto: {
+            /** Format: uuid */
+            assignment_id: string;
+            /** Format: uuid */
+            offering_id: string;
+            /** Format: double */
+            threshold_percent: number;
+            /** Format: int32 */
+            submissions_compared: number;
+            /** Format: int32 */
+            submissions_without_fingerprints: number;
+            /** Format: int32 */
+            warning_count: number;
+            pairs: components["schemas"]["SimilarityPairDto"][];
         };
         SubjectDto: {
             /** Format: uuid */
@@ -5978,6 +7505,20 @@ export interface components {
         };
         /** @enum {unknown} */
         SubjectVersionStatus: "draft" | "published" | "archived";
+        SubmissionComparisonDto: {
+            /** Format: uuid */
+            submission_a_id: string;
+            /** Format: uuid */
+            submission_b_id: string;
+            /** Format: double */
+            similarity_percent: number;
+            /** Format: double */
+            jaccard_percent: number;
+            /** Format: int32 */
+            shared_fingerprints: number;
+            files_a: components["schemas"]["MatchedFileDto"][];
+            files_b: components["schemas"]["MatchedFileDto"][];
+        };
         SubmissionDto: {
             /** Format: uuid */
             id: string;
@@ -6100,6 +7641,15 @@ export interface components {
             points: number;
             options: components["schemas"]["TakeOptionDto"][];
         };
+        TodayReviewDto: {
+            /** Format: int32 */
+            total_due: number;
+            /** Format: int32 */
+            total_pending: number;
+            /** Format: int32 */
+            mastered_count: number;
+            items: components["schemas"]["ReviewItemDto"][];
+        };
         ToGradeItemDto: {
             /** Format: uuid */
             submission_id: string;
@@ -6192,6 +7742,27 @@ export interface components {
             version_id?: string;
             /** Format: uuid */
             instructor_id?: string;
+        };
+        XpByTypeDto: {
+            type: components["schemas"]["XpEventType"];
+            /** Format: int32 */
+            points: number;
+            /** Format: int32 */
+            count: number;
+        };
+        /** @enum {unknown} */
+        XpEventType: "lesson_completed" | "component_completed" | "assignment_submitted_on_time" | "quiz_high_score" | "streak_milestone";
+        XpRuleDto: {
+            /** Format: uuid */
+            id: string;
+            event_type: components["schemas"]["XpEventType"];
+            /** Format: int32 */
+            points: number;
+            /** Format: double */
+            min_value: null | number;
+            /** Format: int32 */
+            daily_cap: null | number;
+            is_enabled: boolean;
         };
     };
     responses: never;

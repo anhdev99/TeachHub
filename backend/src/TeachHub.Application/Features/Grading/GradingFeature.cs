@@ -103,6 +103,10 @@ public sealed class GradeSubmissionHandler(IAppDbContext db, TimeProvider clock)
         var truoc = bai.Score;
         var now = clock.GetUtcNow();
 
+        // RawScore = điểm giảng viên vừa chấm, TRƯỚC mọi mức phạt (Phase 6b). Ghi ở đây chứ
+        // không đợi lúc áp phạt: thiếu nó thì lệnh áp phạt lần thứ hai sẽ trừ chồng lên điểm
+        // đã trừ, và mỗi lần sửa hạn nộp rồi bấm tính lại là điểm sinh viên tụt thêm một nấc.
+        bai.RawScore = diem;
         bai.Score = diem;
         bai.RubricScores = new Dictionary<Guid, decimal>(request.RubricScores);
         bai.Feedback = request.Feedback;

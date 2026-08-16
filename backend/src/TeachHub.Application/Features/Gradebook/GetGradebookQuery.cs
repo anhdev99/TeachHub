@@ -95,7 +95,16 @@ public sealed class GetGradebookHandler(IAppDbContext db)
 
         var baiNop = await db.Submissions.AsNoTracking()
             .Where(s => s.OfferingId == request.OfferingId && s.IsCurrent && s.Score != null)
-            .Select(s => new { s.AssignmentId, s.FinalAssessmentId, s.EnrollmentId, s.GroupId, s.Score })
+            .Select(s => new { s.Id, s.AssignmentId, s.FinalAssessmentId, s.EnrollmentId, s.GroupId, s.Score })
+            .ToListAsync(ct);
+
+        // Điểm riêng từng thành viên nhóm (UC-10b, Phase 6b). Đọc ở đây chứ không tính lại
+        // luật ở nơi khác: MemberScoring.Resolve là bản DUY NHẤT của quy tắc "điểm riêng
+        // thắng thế điểm chung", và mỗi bản chép lại là một chỗ sẽ lệch.
+        var idBaiNop = baiNop.Select(s => s.Id).ToList();
+
+        var diemRieng = await db.SubmissionMemberScores.AsNoTracking()
+            .Where(m => idBaiNop.Contains(m.SubmissionId))
             .ToListAsync(ct);
 
         // Bài nhóm: điểm của nhóm là điểm của mọi thành viên (mặc định MVP).
@@ -189,7 +198,20 @@ public sealed class GetGradebookHandler(IAppDbContext db)
                     && (x.EnrollmentId == enrollmentId
                         || (x.GroupId != null && nhomCuaToi.Contains(x.GroupId.Value))));
 
-                return bn?.Score;
+                if (bn is null) return null;
+
+                // Bài NHÓM có điểm riêng cho chính sinh viên này thì điểm riêng thắng thế.
+                // Không kiểm ở đây thì giảng viên chấm riêng một thành viên xong mở sổ điểm
+                // vẫn thấy điểm chung, và sẽ tin là thao tác chấm riêng không có tác dụng.
+                if (bn.GroupId is not null)
+                {
+                    var rieng = diemRieng.FirstOrDefault(
+                        m => m.SubmissionId == bn.Id && m.EnrollmentId == enrollmentId);
+
+                    if (rieng is not null) return rieng.Score;
+                }
+
+                return bn.Score;
             }
         }
 

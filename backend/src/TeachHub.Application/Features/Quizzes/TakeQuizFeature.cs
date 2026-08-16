@@ -1,6 +1,8 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TeachHub.Application.Common;
 using TeachHub.Application.Common.Messaging;
+using TeachHub.Application.Features.Review;
 using TeachHub.Domain.Content;
 using TeachHub.Domain.Quizzes;
 
@@ -210,7 +212,7 @@ public sealed class SaveQuizAnswersHandler(IAppDbContext db, TimeProvider clock)
 public sealed record SubmitQuizAttemptCommand(Guid AttemptId, Guid UserId)
     : ICommand<Result<TakeAttemptDto>>;
 
-public sealed class SubmitQuizAttemptHandler(IAppDbContext db, TimeProvider clock)
+public sealed class SubmitQuizAttemptHandler(IAppDbContext db, TimeProvider clock, ISender sender)
     : ICommandHandler<SubmitQuizAttemptCommand, Result<TakeAttemptDto>>
 {
     public async Task<Result<TakeAttemptDto>> Handle(
@@ -234,6 +236,12 @@ public sealed class SubmitQuizAttemptHandler(IAppDbContext db, TimeProvider cloc
                 quaGio ? QuizAttemptStatus.AutoSubmitted : QuizAttemptStatus.Submitted);
 
             await db.SaveChangesAsync(ct);
+
+            // Nạp câu sai vào hàng đợi ôn tập NGAY (Phase 8), không đợi job đêm. Job đêm vẫn
+            // giữ làm lưới quét sót; lệnh này idempotent (có ReviewGenerationMark + unique
+            // index) nên gọi hai lần vô hại. Chỉ dựa vào job đêm thì sinh viên nộp bài xong
+            // phải chờ tới 24 giờ mới thấy mục ôn tập, và họ sẽ nghĩ tính năng bị hỏng.
+            await sender.Send(new GenerateReviewItemsCommand(luot.Id), ct);
         }
 
         return Result<TakeAttemptDto>.Ok(StartQuizAttemptHandler.Dung(luot, quiz, cau, now));

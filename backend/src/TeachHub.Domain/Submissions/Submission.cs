@@ -38,7 +38,35 @@ public class Submission : Entity
     public int HintsUsed { get; set; }
     public SubmissionStatus Status { get; set; } = SubmissionStatus.Draft;
 
+    /// <summary>Điểm HIỆU LỰC — đã trừ gợi ý và nộp trễ. Sổ điểm đọc đúng cột này.</summary>
     public decimal? Score { get; set; }
+
+    /// <summary>
+    /// Điểm giảng viên chấm, TRƯỚC mọi mức phạt (Phase 6b).
+    ///
+    /// Không có cột này thì mức phạt chỉ áp được đúng một lần: lần thứ hai sẽ trừ chồng lên
+    /// điểm đã trừ, nên mỗi lần giảng viên sửa hạn nộp rồi bấm "tính lại" là điểm sinh viên
+    /// tụt thêm một nấc, không có gì báo và không có đường quay lại.
+    ///
+    /// null với các bài chấm trước Phase 6 — lúc đó <see cref="Score"/> chính là điểm gốc.
+    /// </summary>
+    public decimal? RawScore { get; set; }
+
+    /// <summary>
+    /// Tỉ lệ đã trừ, lưu lại để giải thích được "10 điểm − 20% gợi ý − 10% trễ = 7.2" mà
+    /// không phải tính lại từ hạn nộp và nhật ký mở gợi ý mỗi lần hiển thị. Sinh viên khiếu
+    /// nại điểm sau ba tháng thì hạn nộp có thể đã bị sửa, và con số tính lại sẽ khác con số
+    /// đã trả về cho họ.
+    /// </summary>
+    public decimal LatePenaltyPercent { get; set; }
+
+    public decimal HintPenaltyPercent { get; set; }
+
+    /// <summary>Số ngày trễ tại thời điểm áp phạt — hiển thị kèm để giảng viên đối chiếu.</summary>
+    public int DaysLate { get; set; }
+
+    /// <summary>Điểm riêng từng thành viên nhóm (UC-10b). Rỗng ⇒ cả nhóm nhận điểm chung.</summary>
+    public List<SubmissionMemberScore> MemberScores { get; set; } = [];
 
     /// <summary>criterion_id → điểm, lưu jsonb. Phase 4a dùng để chấm theo rubric.</summary>
     public Dictionary<Guid, decimal> RubricScores { get; set; } = [];

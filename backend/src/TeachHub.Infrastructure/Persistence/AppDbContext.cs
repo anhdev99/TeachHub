@@ -6,6 +6,9 @@ using TeachHub.Domain.Assessments;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Common;
 using TeachHub.Domain.Content;
+using TeachHub.Domain.Gamification;
+using TeachHub.Domain.Integrity;
+using TeachHub.Domain.Review;
 using TeachHub.Domain.Grading;
 using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
@@ -62,6 +65,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, TimePro
     public DbSet<QuestionOption> QuestionOptions => Set<QuestionOption>();
     public DbSet<QuizItem> QuizItems => Set<QuizItem>();
     public DbSet<QuizAttempt> QuizAttempts => Set<QuizAttempt>();
+
+    public DbSet<SourceFingerprint> SourceFingerprints => Set<SourceFingerprint>();
+    public DbSet<HintUnlock> HintUnlocks => Set<HintUnlock>();
+    public DbSet<SubmissionMemberScore> SubmissionMemberScores => Set<SubmissionMemberScore>();
+
+    public DbSet<XpRule> XpRules => Set<XpRule>();
+    public DbSet<XpEvent> XpEvents => Set<XpEvent>();
+    public DbSet<Badge> Badges => Set<Badge>();
+    public DbSet<EarnedBadge> EarnedBadges => Set<EarnedBadge>();
+    public DbSet<OfferingGamificationSettings> OfferingGamificationSettings => Set<OfferingGamificationSettings>();
+
+    public DbSet<ReviewQueueItem> ReviewQueueItems => Set<ReviewQueueItem>();
+    public DbSet<ReviewGenerationMark> ReviewGenerationMarks => Set<ReviewGenerationMark>();
 
     DbSet<AppUser> IAppDbContext.Users => Users;
 

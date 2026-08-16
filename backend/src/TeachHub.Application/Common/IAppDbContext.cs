@@ -2,6 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using TeachHub.Domain.Assignments;
 using TeachHub.Domain.Assessments;
 using TeachHub.Domain.Content;
+using TeachHub.Domain.Gamification;
+using TeachHub.Domain.Integrity;
+using TeachHub.Domain.Review;
 using TeachHub.Domain.Grading;
 using TeachHub.Domain.Groups;
 using TeachHub.Domain.Identity;
@@ -68,6 +71,22 @@ public interface IAppDbContext
     DbSet<QuestionOption> QuestionOptions { get; }
     DbSet<QuizItem> QuizItems { get; }
     DbSet<QuizAttempt> QuizAttempts { get; }
+
+    // Phase 6 — liêm chính học thuật & chấm nâng cao
+    DbSet<SourceFingerprint> SourceFingerprints { get; }
+    DbSet<HintUnlock> HintUnlocks { get; }
+    DbSet<SubmissionMemberScore> SubmissionMemberScores { get; }
+
+    // Phase 7 — gamification
+    DbSet<XpRule> XpRules { get; }
+    DbSet<XpEvent> XpEvents { get; }
+    DbSet<Badge> Badges { get; }
+    DbSet<EarnedBadge> EarnedBadges { get; }
+    DbSet<OfferingGamificationSettings> OfferingGamificationSettings { get; }
+
+    // Phase 8 — ôn tập ngắt quãng
+    DbSet<ReviewQueueItem> ReviewQueueItems { get; }
+    DbSet<ReviewGenerationMark> ReviewGenerationMarks { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

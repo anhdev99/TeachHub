@@ -14,6 +14,8 @@ public static class JobsDependencyInjection
     public static IServiceCollection AddJobs(this IServiceCollection services, IConfiguration config)
     {
         services.AddScoped<ProcessSubmissionFileJob>();
+        services.AddScoped<ComputeFingerprintsJob>();     // Phase 6
+        services.AddScoped<ReviewQueueJob>();             // Phase 8
 
         if (!config.GetValue("Hangfire:Enabled", true))
         {
@@ -21,10 +23,12 @@ public static class JobsDependencyInjection
             // thay vì bỏ qua. Bỏ qua thì tệp nộp nằm mãi ở trạng thái Pending và cây thư mục
             // không bao giờ hiện ra — một chế độ hỏng âm thầm, khó lần hơn hẳn so với chậm.
             services.AddScoped<ISubmissionFileQueue, InlineSubmissionFileQueue>();
+            services.AddScoped<ISimilarityQueue, InlineSimilarityQueue>();
             return services;
         }
 
         services.AddScoped<ISubmissionFileQueue, HangfireSubmissionFileQueue>();
+        services.AddScoped<ISimilarityQueue, HangfireSimilarityQueue>();
 
         services.AddHangfire(c => c
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

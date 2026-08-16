@@ -75,6 +75,13 @@ export function TrangHoc({
           Trắc nghiệm
         </Link>
 
+        <Link
+          href={`/learn/${offeringId}/tien-do`}
+          className="text-muted-foreground hover:text-foreground text-sm"
+        >
+          Tiến độ
+        </Link>
+
         <Badge variant="secondary">Hoàn thành {data.overall_percent}%</Badge>
 
         {/* Dưới 768px sidebar thu vào drawer — SRS mục 9: SV hay xem trên điện thoại. */}
