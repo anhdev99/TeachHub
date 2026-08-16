@@ -65,7 +65,9 @@ export function TrinhSoanThao({
   const chuong = chuongQuery.data ?? [];
 
   return (
-    <Trang>
+    // `rong`: đây là bàn làm việc soạn nội dung, không phải trang để đọc. Khung hẹp làm
+    // một chương 20 bài phải cuộn dài gấp đôi trong khi nửa màn hình bỏ trống.
+    <Trang rong>
       <DauTrang
         quayLai={{
           href: `/subjects/${subject.id}/versions`,
@@ -149,7 +151,7 @@ export function TrinhSoanThao({
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
           {chuong.map((c) => (
             <KhoiChuong key={c.id} chuong={c} suaDuoc={suaDuoc} versionId={version.id} />
           ))}
@@ -157,28 +159,21 @@ export function TrinhSoanThao({
       )}
 
       {/* Ô thêm chương LUÔN hiển thị, chỉ `disabled` khi bản đã khoá. Ẩn hẳn thì màn hình
-          chỉ-xem trông như một màn hình khác, và người dùng đi tìm nút đã "biến mất". */}
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-2">
-          <Input
-            className="min-w-48 flex-1"
-            value={tenChuongMoi}
-            disabled={!suaDuoc}
-            aria-label="Tên chương mới"
-            onChange={(e) => setTenChuongMoi(e.target.value)}
-            placeholder={suaDuoc ? "Tên chương mới" : "Đã khoá — phiên bản chỉ xem"}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && tenChuongMoi.trim()) themChuong.mutate(tenChuongMoi.trim());
-            }}
-          />
-          <Button
-            onClick={() => themChuong.mutate(tenChuongMoi.trim())}
-            disabled={!suaDuoc || !tenChuongMoi.trim() || themChuong.isPending}
-          >
-            <Plus className="size-4" aria-hidden />
-            Thêm chương
-          </Button>
-        </div>
+          chỉ-xem trông như một màn hình khác, và người dùng đi tìm nút đã "biến mất".
+          Cùng khuôn với ô thêm bài bên trong chương: một dòng, gõ tên rồi Enter. */}
+      <div className="border-border bg-muted/30 flex items-center gap-2 rounded-lg border border-dashed px-2 py-1.5">
+        <Plus className="text-muted-foreground ml-1 size-4 shrink-0" aria-hidden />
+        <Input
+          className="focus-visible:bg-card focus-visible:border-input h-9 border-transparent bg-transparent shadow-none"
+          value={tenChuongMoi}
+          disabled={!suaDuoc}
+          aria-label="Tên chương mới"
+          onChange={(e) => setTenChuongMoi(e.target.value)}
+          placeholder={suaDuoc ? "Thêm chương — gõ tên rồi Enter" : "Đã khoá — phiên bản chỉ xem"}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && tenChuongMoi.trim()) themChuong.mutate(tenChuongMoi.trim());
+          }}
+        />
       </div>
 
       {suaDuoc && (
