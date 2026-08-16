@@ -275,4 +275,101 @@ public class InlineCheckpointQuizTests(TeachHubApiFactory factory)
 
         res.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    /// <summary>
+    /// Bài học chưa mở khoá thì KHÔNG được gửi nội dung xuống, và cũng không chấm được.
+    ///
+    /// Trước đây `my-progress` trả về đầy đủ `html`, `file_url` và `inline_questions` bất kể
+    /// `access == locked` — ổ khoá chỉ tồn tại ở giao diện, còn gọi thẳng API là đọc hết bài
+    /// chưa mở, nên toàn bộ `UnlockEngine` chỉ là trang trí. Test này canh CẢ HAI đầu: đường
+    /// đọc và đường chấm. Bịt một đầu mà để hở đầu kia thì cái khoá không tồn tại.
+    /// </summary>
+    [Fact]
+    public async Task Bai_dang_khoa_KHONG_gui_noi_dung_va_KHONG_cham_duoc()
+    {
+        var gv = await factory.LoginAsInstructorAsync();
+        var (subjectId, versionId) = await TeachHubApiFactory.SeedSubjectWithDraftAsync(gv);
+
+        // `after_previous_completed`: bài 2 chỉ mở sau khi bài 1 xong.
+        var ch = await gv.PostAsJsonAsync($"/api/subject-versions/{versionId}/chapters",
+            new { title = "Chương 1", unlock_rule = "after_previous_completed" });
+        ch.EnsureSuccessStatusCode();
+        var chapterId = (await ch.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+        // `is_required_to_unlock_next` là thứ THẬT SỰ khoá bài sau. Chỉ đặt luật chương thành
+        // `after_previous_completed` là chưa đủ: `UnlockEngine.Evaluate` chỉ cho một bài chặn
+        // bài kế tiếp khi bài đó được đánh dấu bắt buộc. Thiếu cờ này thì Bài 2 vẫn mở, và test
+        // sẽ đỏ ở khẳng định "không lộ nội dung" — đỏ vì bài không hề bị khoá, không phải vì
+        // bộ lọc hỏng.
+        async Task<(Guid Lesson, Guid Component)> ThemBaiAsync(string ten, string biMat)
+        {
+            var b = await gv.PostAsJsonAsync($"/api/chapters/{chapterId}/lessons",
+                new { title = ten, is_required_to_unlock_next = true });
+            b.EnsureSuccessStatusCode();
+            var lessonId = (await b.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+
+            var cp = await gv.PostAsJsonAsync($"/api/lessons/{lessonId}/components", new
+            {
+                type = "checkpoint_quiz",
+                is_required = true,
+                config = new
+                {
+                    html = $"<p>{biMat}</p>",
+                    inline_questions = new object[]
+                    {
+                        new
+                        {
+                            text = $"Câu hỏi của {ten}",
+                            options = new[] { "A", "B" },
+                            correct_indexes = new[] { 1 },
+                            explanation = biMat,
+                        },
+                    },
+                },
+            });
+            cp.EnsureSuccessStatusCode();
+            return (lessonId, (await cp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid());
+        }
+
+        var bai1 = await ThemBaiAsync("Bài 1", "NOI-DUNG-BAI-MOT");
+        var bai2 = await ThemBaiAsync("Bài 2", "NOI-DUNG-BAI-HAI-BI-MAT");
+
+        (await gv.PostAsync($"/api/subject-versions/{versionId}/publish", null)).EnsureSuccessStatusCode();
+        var offeringId = await TeachHubApiFactory.CreateOfferingAsync(gv, subjectId, versionId);
+        var sv = await factory.LoginAsNewStudentOfAsync(offeringId);
+
+        // ── Đường đọc ────────────────────────────────────────────────────────────────────
+        var tienDo = await sv.GetAsync($"/api/offerings/{offeringId}/my-progress");
+        tienDo.EnsureSuccessStatusCode();
+        var tho = await tienDo.Content.ReadAsStringAsync();
+
+        // Khẳng định trên CHUỖI JSON THÔ, không phải trên object đã phân giải: chuỗi thô là thứ
+        // thật sự đi qua dây. Đọc qua DTO thì một trường mới bị quên lọc sẽ không ai thấy.
+        tho.ShouldContain("NOI-DUNG-BAI-MOT",
+            customMessage: "bài đã mở phải CÓ nội dung — thiếu dòng này thì test xanh vì lý do sai");
+        tho.ShouldNotContain("NOI-DUNG-BAI-HAI-BI-MAT",
+            customMessage: "bài đang khoá KHÔNG được gửi nội dung xuống");
+
+        // Cấu trúc thì vẫn phải giữ: sinh viên cần biết bài khoá gồm mấy phần.
+        var d = JsonDocument.Parse(tho).RootElement;
+        var baiHai = d.GetProperty("chapters")[0].GetProperty("lessons")
+            .EnumerateArray().Single(l => l.GetProperty("title").GetString() == "Bài 2");
+
+        baiHai.GetProperty("access").GetString().ShouldBe("locked");
+        baiHai.GetProperty("components").GetArrayLength().ShouldBe(1);
+        baiHai.GetProperty("components")[0].GetProperty("inline_question_count").GetInt32().ShouldBe(1);
+        baiHai.GetProperty("components")[0].GetProperty("inline_questions").GetArrayLength().ShouldBe(0);
+
+        // ── Đường chấm ───────────────────────────────────────────────────────────────────
+        var than = new { answers = new object[] { new { index = 0, selected_indexes = new[] { 1 } } } };
+
+        var khoa = await sv.PostAsJsonAsync($"/api/lesson-components/{bai2.Component}/check", than);
+        khoa.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await khoa.Content.ReadAsStringAsync()).ShouldNotContain("NOI-DUNG-BAI-HAI-BI-MAT");
+
+        // Đối chứng dương trên CÙNG endpoint: thiếu bước này thì một route gõ sai cũng cho 404
+        // và dòng trên xanh vĩnh viễn.
+        var mo = await sv.PostAsJsonAsync($"/api/lesson-components/{bai1.Component}/check", than);
+        mo.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
 }

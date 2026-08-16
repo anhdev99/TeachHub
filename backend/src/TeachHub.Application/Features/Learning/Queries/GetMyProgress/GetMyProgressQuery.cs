@@ -161,6 +161,18 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                         ? null
                         : l.FileUrl;
 
+                    // ⛔ BÀI ĐANG KHOÁ THÌ KHÔNG GỬI NỘI DUNG XUỐNG.
+                    //
+                    // Trước đây `html`, `file_url` và cả `inline_questions` vẫn trả về đầy đủ
+                    // bất kể `access == Locked` — ổ khoá chỉ tồn tại ở giao diện, còn gọi thẳng
+                    // API là đọc hết bài chưa mở. Toàn bộ `UnlockEngine` khi đó chỉ là trang trí.
+                    //
+                    // Vẫn giữ CẤU TRÚC (số phần, loại phần, phần nào bắt buộc, số câu hỏi) vì
+                    // đó không phải nội dung: sinh viên cần thấy trước bài khoá gồm những gì để
+                    // biết mình sắp học gì, và giao diện cần con số để hiện "còn N phần bắt buộc".
+                    var khoa = truyCap == LessonAccess.Locked;
+                    if (khoa) fileUrl = null;
+
                     // "Xong" phải dùng CÙNG một định nghĩa với phần trăm và luật mở khóa —
                     // tức UnlockEngine.IsComplete. Trước đây chỗ này lấy thẳng
                     // progress.CompletedLessons, nên giao diện hiện ✓ ở Bài 1 trong khi Bài 2
@@ -180,11 +192,23 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                             .Select(cp => new MyComponentDto(
                                 cp.Id, cp.Type, cp.OrderIndex, cp.IsRequired,
                                 progress.CompletedComponents.Contains(cp.Id),
-                                cp.Html, cp.ReflectionPrompt, cp.StarterCodeUrl, cp.Language,
-                                cp.InlineQuestionCount, cp.RefId,
-                                [.. cp.InlineQuestions.Select((q, i) =>
-                                    new InlineQuestionDto(i, q.Text, q.Options,
-                                        InlineQuizGrader.IsMultiSelect(q.CorrectIndexes)))]))]);
+                                // Nội dung: rỗng hết khi bài còn khoá.
+                                khoa ? null : cp.Html,
+                                khoa ? null : cp.ReflectionPrompt,
+                                khoa ? null : cp.StarterCodeUrl,
+                                khoa ? null : cp.Language,
+                                // Số câu hỏi vẫn gửi — đó là con số, không phải nội dung.
+                                cp.InlineQuestionCount,
+                                // `RefId` cũng phải tước: nó là id của bài trắc nghiệm hoặc bài
+                                // tập gắn với phần này, và endpoint mở lượt làm bài KHÔNG kiểm
+                                // bài học đã mở khoá chưa. Gửi id xuống là mở sẵn một đường vòng
+                                // qua đúng cái khoá vừa dựng.
+                                khoa ? null : cp.RefId,
+                                khoa
+                                    ? []
+                                    : [.. cp.InlineQuestions.Select((q, i) =>
+                                        new InlineQuestionDto(i, q.Text, q.Options,
+                                            InlineQuizGrader.IsMultiSelect(q.CorrectIndexes)))]))]);
                 })]));
 
             tongBai += node.Lessons.Count;

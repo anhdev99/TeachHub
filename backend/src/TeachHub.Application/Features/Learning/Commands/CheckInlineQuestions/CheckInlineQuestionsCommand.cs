@@ -89,6 +89,12 @@ public sealed class CheckInlineQuestionsCommandHandler(IAppDbContext db, ISender
         if (enrollmentId is null)
             return Result<CheckInlineQuestionsResultDto>.NotFound("Không tìm thấy phần học.");
 
+        // Có tên trong lớp chưa đủ — bài học phải đã mở khoá. Cùng lý do với việc `my-progress`
+        // không gửi nội dung của bài đang khoá: chặn ở một đầu mà để hở đầu kia thì cái khoá
+        // không tồn tại. 404 chứ không phải 403, giữ đúng quy ước của dự án.
+        if (!await LearningAccess.IsComponentUnlockedAsync(db, request.ComponentId, enrollmentId.Value, ct))
+            return Result<CheckInlineQuestionsResultDto>.NotFound("Không tìm thấy phần học.");
+
         // AsNoTracking: chỉ đọc. Sửa một owned entity đang được theo dõi để phục vụ một lần đọc
         // là cách mất dữ liệu im lặng ở cuối request.
         var phan = await db.LessonComponents.AsNoTracking()
