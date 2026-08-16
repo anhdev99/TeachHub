@@ -47,7 +47,24 @@ builder.Services.AddControllers(o =>
         // snake_case để khớp đúng hợp đồng API trong SRS mục 7
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower));
-        o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+
+        // ⛔ KHÔNG đặt `DefaultIgnoreCondition = WhenWritingNull` ở đây. Đã từng có, và nó
+        // làm hợp đồng API nói dối.
+        //
+        // Chỗ này cấu hình serializer LÚC CHẠY, còn `ConfigureHttpJsonOptions` bên dưới mới
+        // là thứ sinh schema trong /openapi/v1.json — hai IOptions khác nhau, không kế thừa.
+        // Đặt cờ ở một bên: schema khai `score` là trường BẮT BUỘC kiểu ["null","number"],
+        // trong khi phản hồi thật BỎ HẲN khoá đó khi bài chưa chấm.
+        //
+        // Hậu quả không nằm ở chỗ thiếu vài byte. `openapi-typescript` sinh ra
+        // `score: number | null` nên frontend viết `score === null` để hỏi "chấm chưa" —
+        // và biểu thức đó KHÔNG BAO GIỜ đúng, vì giá trị thực là `undefined`. TypeScript
+        // biên dịch sạch, không có lỗi nào lúc chạy. Ca đã bắt được: nút "Trả bài cho sinh
+        // viên" mở khoá trên một bài CHƯA CHẤM, tức là trả bài không điểm cho sinh viên.
+        //
+        // Bản chốt là schema: `null` mang nghĩa "chưa có giá trị", khác hẳn "không có
+        // trường này". Muốn giấu một trường thì đánh dấu trên chính DTO đó, đừng đặt luật
+        // toàn cục làm lệch mọi endpoint.
     });
 
 builder.Services.ConfigureHttpJsonOptions(o =>

@@ -36,7 +36,10 @@ export function ThanhTrenSv({ ten, chu }: { ten: string; chu: string }) {
 
   return (
     <header className="bg-card/90 border-border sticky top-0 z-30 border-b backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4">
+      {/* Bề rộng và lề phải khớp ĐÚNG với `Trang` (max-w-5xl + p-4/sm:p-6/lg:p-8). Lệch một
+          bậc thôi là logo thụt vào so với tiêu đề ngay bên dưới, và hai thứ đó trông như hai
+          khung khác nhau chồng lên nhau. Đổi bề rộng ở `Trang` thì phải đổi cả ở đây. */}
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
         <Thuonghieu href="/learn" />
 
         <div className="flex items-center gap-2">
