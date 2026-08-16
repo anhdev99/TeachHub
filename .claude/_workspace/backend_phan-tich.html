@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeachHub — Phân tích backend</title>
+<style>
+ :root{--bg:#fbfaf8;--fg:#1a1a19;--muted:#6b6b66;--line:#e3e2df;--card:#fff;
+       --stop:#9b2c2c;--warn:#8a5a00;--ok:#2f6f43;--ink:#2c5282}
+ @media(prefers-color-scheme:dark){:root{--bg:#16161a;--fg:#e8e8e4;--muted:#a0a09a;--line:#2e2e33;
+       --card:#1e1e23;--stop:#e08585;--warn:#d9a441;--ok:#7bbf92;--ink:#8ab4d8}}
+ *{box-sizing:border-box}
+ body{margin:0;padding:2rem 1rem 5rem;background:var(--bg);color:var(--fg);
+      font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+ main{max-width:62rem;margin:0 auto}
+ h1{font-size:1.9rem;margin:0 0 .3rem;letter-spacing:-.02em}
+ h2{font-size:1.3rem;margin:3rem 0 .9rem;padding-bottom:.4rem;border-bottom:2px solid var(--line)}
+ h3{font-size:1.02rem;margin:1.8rem 0 .5rem}
+ .sub{color:var(--muted);margin:0 0 2rem}
+ table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem;background:var(--card)}
+ th,td{text-align:left;padding:.55rem .65rem;border-bottom:1px solid var(--line);vertical-align:top}
+ th{font-weight:600;color:var(--muted);font-size:.79rem;text-transform:uppercase;letter-spacing:.04em}
+ .wrap{overflow-x:auto}
+ code{font-family:ui-monospace,Menlo,monospace;font-size:.87em;
+      background:color-mix(in srgb,var(--fg) 8%,transparent);padding:.1em .35em;border-radius:3px}
+ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.85rem;
+     overflow-x:auto;font-size:.83rem;line-height:1.5}
+ pre code{background:none;padding:0}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.9rem 1.1rem;margin:1rem 0}
+ .stop{border-left:4px solid var(--stop)} .warn{border-left:4px solid var(--warn)}
+ .ok{border-left:4px solid var(--ok)} .info{border-left:4px solid var(--ink)}
+ .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(8rem,1fr));gap:.7rem;margin:1.5rem 0}
+ .m{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.8rem;text-align:center}
+ .m b{display:block;font-size:1.45rem;letter-spacing:-.02em} .m span{color:var(--muted);font-size:.76rem}
+ ul{padding-left:1.2rem} li{margin:.3rem 0}
+ .quiet{color:var(--muted);font-size:.9rem}
+ .tag{display:inline-block;font-size:.72rem;padding:.1em .5em;border-radius:99px;
+      border:1px solid currentColor;font-weight:600}
+ .t-stop{color:var(--stop)} .t-warn{color:var(--warn)} .t-ok{color:var(--ok)}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Phân tích backend TeachHub</h1>
+<p class="sub">17/08/2026 · .NET 10 · EF Core 10 + PostgreSQL 17 · commit <code>1f7ba03</code></p>
+
+<div class="metrics">
+  <div class="m"><b>19.107</b><span>dòng mã (4 tầng)</span></div>
+  <div class="m"><b>131</b><span>endpoint</span></div>
+  <div class="m"><b>55</b><span>bảng · 145 index</span></div>
+  <div class="m"><b>610</b><span>test</span></div>
+  <div class="m"><b>39/42</b><span>khớp API của SRS</span></div>
+</div>
+
+<div class="card info">
+<p style="margin:0"><strong>Cách làm.</strong> Bốn hướng phân tích song song: kiến trúc, tầng dữ liệu,
+bảo mật, và hợp đồng API. <strong>Mọi phát hiện nghiêm trọng đều được xác minh lại độc lập</strong> —
+bằng truy vấn trên CSDL thật, bằng <code>curl</code> trên API đang chạy, hoặc bằng đếm câu lệnh SQL
+qua <code>log_statement</code>. Không mục nào dựa trên suy luận từ mã nguồn mà không chạy.
+<strong>Không sửa một dòng mã nào</strong> — đây là phân tích.</p>
+</div>
+
+<h2>1. Năm điều quan trọng nhất</h2>
+
+<div class="wrap">
+<table>
+<tr><th>#</th><th>Vấn đề</th><th>Hậu quả</th><th>Trạng thái</th></tr>
+<tr><td>1</td><td><code>ux_submission_current</code> chưa bao giờ có tác dụng</td><td>Hai bản nộp "hiện hành" cùng lúc → sổ điểm chấm nhầm bài, im lặng</td><td><span class="tag t-stop">đã chứng minh</span></td></tr>
+<tr><td>2</td><td>Đăng nhập không giới hạn tốc độ, khoá tài khoản không bao giờ kích hoạt</td><td>Dò mật khẩu không giới hạn cho mọi tài khoản</td><td><span class="tag t-stop">đã chứng minh</span></td></tr>
+<tr><td>3</td><td>Bảng điều khiển Hangfire mở cho mọi giảng viên</td><td>Giảng viên B đọc id bài nộp lớp A và có nút xoá job</td><td><span class="tag t-stop">đã chứng minh</span></td></tr>
+<tr><td>4</td><td>Luật tính điểm bị chép ra khỏi Domain, bản gốc thành mã chết</td><td>26 test đang canh một hàm không ai gọi</td><td><span class="tag t-stop">đã chứng minh</span></td></tr>
+<tr><td>5</td><td>Tầng Application 10.350 dòng / 29 test, không một test handler nào</td><td>Đường ghi điểm thật của sinh viên không có test</td><td><span class="tag t-warn">đo được</span></td></tr>
+</table>
+</div>
+
+<h2>2. Hỏng dữ liệu</h2>
+
+<div class="card stop">
+<h3 style="margin-top:0">D1. Unique index chưa bao giờ chặn được hàng nào</h3>
+<p><code>AssignmentConfigurations.cs:150</code> — index giữ luật <em>"mỗi người nộp chỉ có đúng một bản
+hiện hành"</em> thiếu <code>NULLS NOT DISTINCT</code>. Catalog xác nhận
+<code>indnullsnotdistinct = f</code>.</p>
+<p>Postgres mặc định coi hai NULL là <strong>khác nhau</strong>. Mà <code>ck_submissions_owner</code>
+<strong>ép</strong> mọi hàng phải có NULL ở một trong <code>assignment_id</code>/<code>final_assessment_id</code>,
+và bài cá nhân có <code>group_id</code> NULL. Đo trên dữ liệu thật: <strong>9/9 hàng có ≥2 NULL</strong>
+trong 4 cột được index ⇒ không hàng nào từng lọt vào phạm vi kiểm tra.</p>
+<pre><code>select count(*) as tong,
+       count(*) filter (where (assignment_id is null)::int + (final_assessment_id is null)::int
+                            + (enrollment_id is null)::int + (group_id is null)::int &gt;= 2)
+from submissions;
+→  9 | 9</code></pre>
+<p style="margin-bottom:0">Đúng kịch bản mà chú thích ngay phía trên nó nói là đã ngăn: double-click
+"Nộp chính thức". Và <code>GetGradebookQuery</code> lấy <code>FirstOrDefault</code> chứ không
+<code>Single</code>, nên nó <strong>không ném lỗi mà chấm nhầm bài</strong>. Không test nào phủ bất
+biến này — cả repo chỉ nhắc <code>IsCurrent</code> ở hai chỗ, đều là fixture.</p>
+</div>
+
+<div class="card stop">
+<h3 style="margin-top:0">D2. 6/10 bài tập có <code>submission_mode</code> là chuỗi rỗng</h3>
+<p>Migration thêm cột <code>NOT NULL DEFAULT ''</code> và <strong>không có backfill nào</strong> trong
+cả 10 migration. <code>''</code> không khớp enum member nào.</p>
+<pre><code>select submission_mode, count(*) from assignments group by 1;
+→  (CHUỖI RỖNG) | 6
+   Individual    | 4</code></pre>
+<p style="margin-bottom:0">API trả <strong>HTTP 200</strong> và báo cáo chúng là
+<code>"individual"</code> — EF lặng lẽ quy giá trị không đọc được về default. Sáu bài tập đang bị
+báo sai chế độ nộp; cột này không tin được trong SQL thô, export hay báo cáo; và ngày thêm CHECK
+constraint thì chính sáu hàng này chặn migration.</p>
+</div>
+
+<div class="card warn">
+<h3 style="margin-top:0">D3. Ba đường xoá lọt qua luật "dữ liệu sinh viên không bao giờ xoá"</h3>
+<ul style="margin-bottom:0">
+<li><strong>Xoá cột điểm cascade xoá <code>grade_records</code>.</strong> Chốt chặn ở
+<code>GradebookCommands.cs:65</code> chỉ đếm <code>Score != null</code> — hàng có <code>Note</code>
+hoặc <code>IsManualOverride</code> mà chưa có điểm bị DELETE cứng, không cảnh báo.</li>
+<li><strong><code>LessonComponent</code> không có soft delete.</strong> Xoá một phần học kéo theo
+<code>component_progresses ON DELETE CASCADE</code> ⇒ <strong>tiến độ học của mọi sinh viên cho phần
+đó biến mất</strong>.</li>
+<li><strong>Xoá mềm không lan xuống con.</strong> CSDL dev đang có 1 chương đã xoá mềm nhưng
+<strong>2 bài học dưới nó vẫn <code>is_deleted = false</code></strong>. Chưa lộ ra vì mọi đường đọc
+hiện tại đều đi xuyên qua Chapter (đã lọc) — rủi ro là truy vấn tương lai đọc thẳng
+<code>db.Lessons</code> theo id.</li>
+</ul>
+</div>
+
+<h2>3. Bảo mật</h2>
+
+<div class="card stop">
+<h3 style="margin-top:0">S1. Đăng nhập: không giới hạn tốc độ, khoá tài khoản không bao giờ chạy</h3>
+<p><code>AuthController.Login</code> thiếu <code>[EnableRateLimiting("auth")]</code> (register,
+bootstrap, invites thì có). Và <code>LoginCommand.cs:35</code> dùng
+<code>users.CheckPasswordAsync(...)</code> — hàm này <strong>không ghi nhận lần thất bại</strong>, nên
+<code>MaxFailedAccessAttempts = 10</code> khai ở <code>AuthDependencyInjection.cs:26</code>
+<strong>không bao giờ được kích hoạt</strong>.</p>
+<pre><code>25 lần đăng nhập sai liên tiếp:
+  401 (vẫn cho thử tiếp) : 25/25
+  503 (bị chặn)          :  0/25
+đăng nhập ĐÚNG ngay sau đó → 200   (tài khoản KHÔNG bị khoá)</code></pre>
+<p style="margin-bottom:0"><code>POST /api/auth/refresh</code> cũng không có giới hạn.
+Sửa: gắn rate-limit <strong>và</strong> chuyển sang
+<code>CheckPasswordSignInAsync(lockoutOnFailure: true)</code>.</p>
+</div>
+
+<div class="card stop">
+<h3 style="margin-top:0">S2. Bảng điều khiển Hangfire đi vòng qua ranh giới cách ly giảng viên</h3>
+<p><code>Program.cs:159</code>: <code>MapHangfireDashboard("/jobs").RequireAuthorization(Policies.Instructor)</code>
+— chỉ đòi <strong>vai</strong>, không đòi quyền sở hữu.</p>
+<pre><code>Giảng viên B (không sở hữu lớp nào):
+  GET /api/offerings/{lớp của A}  → 404   ← cách ly hoạt động
+  GET /jobs                       → 200   ← nhưng vào được bảng điều khiển
+  trang trả về 7.748 byte, có nút Delete, mục Succeeded / Enqueued</code></pre>
+<p style="margin-bottom:0">Chi tiết job chứa GUID tệp nộp và bài nộp của lớp A, và dashboard có nút
+<strong>Requeue/Delete</strong>. Đây là rò rỉ chéo-giảng-viên cộng khả năng can thiệp hàng đợi, vượt
+qua đúng ranh giới mà <code>CrossInstructorIsolationTests</code> dựng ra để giữ — và ma trận không
+phủ được vì <code>/jobs</code> không phải endpoint API.</p>
+</div>
+
+<div class="card warn">
+<h3 style="margin-top:0">S3. Rate-limiter dùng xô đếm toàn cục, không phân vùng</h3>
+<p style="margin-bottom:0"><code>Program.cs:105</code> khai <code>FixedWindowLimiter</code> không có
+<code>PartitionedRateLimiter</code> — mỗi policy là <strong>một xô chung cho tất cả người gọi</strong>.
+Đo được: một IP nặc danh spam <code>/api/auth/register</code> làm cạn xô, khiến <strong>mọi sinh viên
+không vào lớp được</strong> trong cả phút đó. Tương tự, một sinh viên upload liên tục chặn mọi upload
+bài giảng của mọi giảng viên. Đòn bẩy DoS chi phí rất thấp.</p>
+</div>
+
+<div class="card warn">
+<h3 style="margin-top:0">S4. Khoá ký JWT nằm trong source control</h3>
+<p style="margin-bottom:0"><code>appsettings.json</code> chứa <code>Jwt:Key</code> cố định. Bản thân
+chuỗi đó là giá trị giữ chỗ tự ghi <em>"đặt qua biến môi trường ở production"</em>, và cơ chế đọc qua
+<code>IOptions</code> là đúng — nhưng <strong>không có gì bắt buộc</strong> production phải đặt biến
+đó. Thiếu một guard từ chối khởi động khi khoá trống, quá ngắn, hoặc bằng giá trị mẫu. Agent đã ký
+được token giả với vai <code>Instructor</code> bằng chính khoá này và server chấp nhận.</p>
+</div>
+
+<h2>4. Kiến trúc</h2>
+
+<div class="card stop">
+<h3 style="margin-top:0">A1. Luật tính điểm bị chép ra khỏi Domain</h3>
+<p><code>GradebookCalculator.RawColumnScore</code> có <strong>đúng 2 tham chiếu</strong> trong toàn
+repo: định nghĩa, và một test. <strong>Không mã sản xuất nào gọi nó.</strong> Sổ điểm thật chạy bằng
+một bản chép tay ở <code>GetGradebookQuery.cs:155</code>.</p>
+<p style="margin-bottom:0">Hậu quả: 26 test của <code>GradebookCalculatorTests</code> đang canh một
+hàm chết. Sửa luật ở Domain sẽ làm test xanh và <strong>sổ điểm thật không đổi</strong>. Lý do phát
+sinh thì chính đáng — chế độ "xem điểm tạm tính" cần thay <code>Aggregation</code> bằng bản sao, mà
+chữ ký Domain nhận <code>GradeColumn</code>. Cách sửa đúng là <strong>đổi chữ ký ở Domain</strong>,
+không phải chép sang handler. Nhánh <code>?provisional=true</code> hiện <strong>không có test nào ở
+bất kỳ tầng nào</strong>.</p>
+</div>
+
+<div class="card stop">
+<h3 style="margin-top:0">A2. Thứ tự phương án trắc nghiệm xáo lại ở mỗi lần đọc</h3>
+<p><code>QuizAttempt</code> lưu <code>QuestionOrder</code> nhưng <strong>không có
+<code>OptionOrder</code></strong>. Gọi <code>GET /api/quiz-attempts/{id}</code> bốn lần trên cùng một
+lượt làm bài:</p>
+<pre><code>lần 1:  useDatabase | useEffect   | useState
+lần 2:  useEffect   | useState    | useDatabase
+lần 3:  useEffect   | useState    | useDatabase
+lần 4:  useState    | useDatabase | useEffect</code></pre>
+<p style="margin-bottom:0">Sinh viên F5 giữa giờ làm bài → ô đang tick nhảy sang phương án khác. Đáp
+án lưu vẫn đúng (lưu theo id), nhưng người dùng đọc đó là "hệ thống đổi đề của tôi".
+<strong>Lần 2 và 3 giống hệt nhau</strong> — vì khoá xáo trộn dùng <code>Guid.CreateVersion7()</code>,
+mà UUIDv7 mang 48 bit timestamp ở đầu nên chỉ ngẫu nhiên trong cùng một mili-giây. Nó chạy do may.
+Khuôn đúng đã có sẵn trong repo: <code>GroupAllocator</code> dùng <code>new Random(seed)</code>.</p>
+</div>
+
+<div class="card warn">
+<h3 style="margin-top:0">A3. Bảy bản chép tay của một phép kiểm quyền</h3>
+<p>Phép kiểm <em>"bài nộp này thuộc lớp của tôi không"</em> được viết lại ở 7 chỗ
+(<code>GradingFeature.cs:60,160</code>, <code>PenaltyFeature.cs:44</code>,
+<code>MemberScoreFeature.cs:65,185</code>, <code>SimilarityFeature.cs:176</code>,
+<code>SnapshotFeature.cs:224</code>) — trong khi <code>OfferingOwnership.OwnsOfferingAsync</code>
+<strong>đã tồn tại</strong> và đang được 26 chỗ khác dùng.</p>
+<p style="margin-bottom:0">Đây chính xác là "sửa một chỗ quên ba chỗ". Ngày thêm khái niệm trợ giảng
+hay đổi <code>Subject.InstructorId</code> thành bảng nối, chỗ nào quên sẽ trả 404 quá tay
+(<strong>tính năng chết</strong>) hoặc 200 quá tay (<strong>lộ bài nộp lớp khác</strong>) — không
+loại nào có triệu chứng.</p>
+</div>
+
+<div class="card warn">
+<h3 style="margin-top:0">A4. <code>TransactionBehavior</code> commit khi handler trả <code>Result</code> lỗi</h3>
+<p>Chỉ exception mới rollback. Một <code>Result.Conflict(...)</code> trả về <em>sau</em>
+<code>SaveChangesAsync</code> vẫn được ghi vĩnh viễn.</p>
+<p style="margin-bottom:0">Một chỗ phải <strong>né</strong> điều đó (<code>CloseOfferingCommand.cs:89</code>,
+có comment giải thích), một chỗ <strong>cố ý dựa vào</strong> nó (<code>TakeQuizFeature.cs:200</code> —
+lưu bản chấm tự động khi hết giờ rồi trả 409). Hai hành vi đối nghịch cùng dựa trên một quy tắc
+<strong>bất thành văn</strong>: <code>TransactionBehavior</code> không ghi điều này trong tài liệu của
+chính nó. Ai "sửa" behavior cho rollback đúng — một thay đổi nghe rất hợp lý — sẽ <strong>xoá mất mọi
+bài quiz hết giờ</strong>, và không test nào đỏ.</p>
+</div>
+
+<div class="card warn">
+<h3 style="margin-top:0">A5. <code>[Authorize(Policy)]</code> đặt ở cấp class trên 4 controller</h3>
+<p style="margin-bottom:0"><code>BadgesController</code>, <code>QuestionsController</code>,
+<code>BonusPointsController</code>, <code>GradeTemplatesController</code>. Chưa hỏng gì vì không class
+nào có action mang policy khác. Nhưng policy ở class và ở action <strong>cộng dồn chứ không ghi
+đè</strong> — thêm một action <code>Policies.Student</code> vào đó là <strong>403 câm cho mọi tài
+khoản</strong>, không log gì. Đáng chú ý: chính hai file đó có comment giải thích <em>đúng</em> lý do
+phải để class trống, và mỗi file chứa cùng lúc một class làm đúng và một class làm sai.</p>
+</div>
+
+<h2>5. Hiệu năng — đo, không suy diễn</h2>
+
+<p>Bật <code>log_statement='all'</code> trên Postgres, gọi API thật, đếm câu lệnh từ log:</p>
+
+<div class="wrap">
+<table>
+<tr><th>Đường</th><th>Số câu lệnh</th><th>Nhận xét</th></tr>
+<tr><td><code>GET /api/instructor/dashboard</code></td><td>3</td><td>Tốt</td></tr>
+<tr><td><code>GET /api/offerings</code></td><td>1</td><td>Tốt</td></tr>
+<tr><td><code>my-progress</code></td><td>5</td><td>Nạp phẳng, ghép trong bộ nhớ — cố ý và đúng</td></tr>
+<tr><td><code>GET .../gradebook</code></td><td>13 + 1/nguồn</td><td><strong>N+1 đồng bộ</strong></td></tr>
+<tr><td><code>GET /api/quizzes</code></td><td>1 + 2/quiz</td><td>15 quiz = 31 round-trip</td></tr>
+</table>
+</div>
+
+<div class="card warn">
+<p style="margin:0"><strong>Sổ điểm:</strong> mỗi <code>grade_column_source</code> tốn một truy vấn
+<strong>đồng bộ</strong> (<code>GetGradebookQuery.cs:236-240</code>) — sync-over-async, chặn một
+thread pool thread mỗi lần. Thang điểm 8 cột × 3 nguồn = 37 câu lệnh, 24 trong đó blocking. Và vì
+<code>TakeGradeSnapshot</code> lẫn <code>ExportGradebook</code> đều gọi lại query này, mỗi lần chốt
+sổ và xuất Excel đều trả giá đó — với <code>TakeGradeSnapshot</code> là <code>ICommand</code>, toàn
+bộ nằm <strong>trong một transaction đang mở</strong>.</p>
+<p style="margin-bottom:0">Đáng nói: nó <strong>không tăng theo sĩ số</strong> — vòng lặp sinh viên
+tính hoàn toàn trong bộ nhớ, viết tốt. Và khuôn sửa đã có sẵn ngay trong cùng handler
+(<code>:79-85</code> đã nạp trước dictionary cho <code>MaxScore</code>).</p>
+</div>
+
+<p class="quiet">Quét toàn bộ <code>src/</code>: <strong>0 lời gọi DB có <code>await</code> nằm trong
+vòng lặp</strong>. Các chỗ trông giống N+1 khác đều nằm trong projection của <code>IQueryable</code>
+⇒ dịch thành subquery tương quan, 1 round trip. Đã xác nhận trên SQL thật.</p>
+
+<h2>6. Độ phủ test</h2>
+
+<div class="wrap">
+<table>
+<tr><th>Tầng</th><th>Dòng mã</th><th>Dòng test</th><th>Số test</th><th>Nhận xét</th></tr>
+<tr><td>Domain</td><td>4.067</td><td>2.922</td><td>233</td><td>Rất tốt</td></tr>
+<tr><td><strong>Application</strong></td><td><strong>10.350</strong></td><td><strong>401</strong></td><td><strong>29</strong></td><td>133 handler, 41 validator — <strong>0 test cho cả hai</strong></td></tr>
+<tr><td>Api</td><td>2.132</td><td>6.694</td><td>174</td><td>1.849 dòng là ma trận cách ly</td></tr>
+</table>
+</div>
+
+<p>29 test Application phủ đúng ba thứ, đều là <strong>hàm thuần</strong> — tức tầng này chỉ đang test
+những gì tình cờ không cần database.</p>
+
+<div class="card warn">
+<p style="margin:0"><strong>Cái gì cụ thể đang không được kiểm.</strong> Những đường dưới đây chỉ được
+ma trận cách ly chạm (chỉ khẳng định "người khác nhận 404"), <strong>không có test chức năng nào kiểm
+giá trị</strong>:</p>
+<ul style="margin-bottom:0">
+<li><code>POST /submissions/{id}/grade</code> và <code>/apply-penalties</code> — <strong>đường duy nhất
+ghi điểm thật của sinh viên</strong>. Domain có <code>SubmissionScoring</code>,
+<code>LatePenaltyCalculator</code>, <code>Rubric</code> được test kỹ; nhưng <strong>phần ghép chúng
+lại</strong> — đọc hạn nộp đúng nguồn, lấy <code>RawScore ?? Score</code> cho dữ liệu cũ, gộp gợi ý
+theo nhóm để không phạt hai lần — không có một test nào.</li>
+<li><code>GET /gradebook?provisional=true</code> — nhánh điểm tạm tính (liên quan A1)</li>
+<li>Toàn bộ luồng làm quiz — hết giờ, giới hạn lượt, nối lại lượt dở (liên quan A2)</li>
+<li>Gamification: chống trùng bằng <code>DedupeKey</code>, trần XP theo ngày, thưởng mốc streak</li>
+<li><strong>41 validator</strong> — loại rẻ nhất để test (không cần database, chạy mili-giây) và đang
+trống hoàn toàn</li>
+</ul>
+</div>
+
+<h2>7. Hợp đồng API so với SRS §7</h2>
+
+<p><strong>39/42 khớp chính xác.</strong> Phần lệch chia hai loại:</p>
+
+<div class="wrap">
+<table>
+<tr><th>SRS ghi</th><th>Thực tế</th><th>Đánh giá</th></tr>
+<tr><td><code>GET /api/students/{id}/review-queue</code></td><td><code>GET /api/review/today</code></td><td><strong>Tốt hơn</strong> — bỏ <code>{id}</code> là bỏ một mặt tấn công IDOR</td></tr>
+<tr><td><code>GET /api/students/{id}/progress</code></td><td><code>GET /api/offerings/{id}/my-progress</code></td><td>Tốt hơn, cùng lý do</td></tr>
+<tr><td><code>DELETE /api/bonus-point-templates/{id}</code></td><td><code>PUT …/visibility</code></td><td><strong>Tốt hơn</strong> — SRS ghi rõ "thực chất set <code>is_active=false</code>", nên <code>DELETE</code> là nói dối ngữ nghĩa</td></tr>
+<tr><td><code>GET /api/assignments?reusable=true</code></td><td><strong>không tồn tại</strong></td><td><span class="tag t-stop">lỗ hổng thật</span></td></tr>
+</table>
+</div>
+
+<div class="card stop">
+<h3 style="margin-top:0">API1. Thư viện tái sử dụng bài tập không tồn tại</h3>
+<p>Chỉ có <code>/api/subject-versions/{id}/assignments</code> và
+<code>/api/offerings/{id}/assignments</code>, đều bó theo phạm vi. Bên trắc nghiệm thì
+<code>GET /api/quizzes</code> lại <strong>có</strong>. Bất đối xứng này khoá chết một yêu cầu của
+SRS 6.2: <em>"Khi thêm component loại <code>assignment</code> hoặc <code>quiz</code>: cho phép tạo mới
+hoặc <strong>chọn từ thư viện</strong> để tái sử dụng."</em></p>
+<p style="margin-bottom:0">Lần theo tới cùng thì hỏng cả hai đầu: <strong>backend sẵn sàng một
+nửa</strong> — <code>AddComponentCommand.cs:25</code> nhận <code>RefId</code> và validator bắt buộc nó
+cho đúng hai loại này; <strong>frontend không có đường nào</strong> —
+<code>LOAI_CAN_REF = ["assignment", "quiz"]</code> và trình soạn thảo loại hẳn hai loại đó khỏi menu.
+Nghĩa là gắn bài tập hoặc trắc nghiệm vào một bài học <strong>hiện không làm được từ giao diện</strong>,
+dù backend chấp nhận.</p>
+</div>
+
+<h2>8. Đang làm tốt — đừng đụng vào</h2>
+
+<div class="card ok">
+<p style="margin-top:0"><strong>Kiểm bằng dữ liệu thật, không chỉ đọc cấu hình:</strong></p>
+<ul>
+<li><strong>0 cột</strong> <code>double</code>/<code>real</code> trong 55 bảng; mọi điểm là <code>numeric(5,2)</code></li>
+<li><strong>0 cột</strong> <code>timestamp</code> không múi giờ</li>
+<li>Enum trong <code>jsonb</code> lưu <strong>chuỗi</strong>: <code>{"Kind": "Average"}</code>,
+<code>{"Op": "LessThan"}</code> — đúng cái bẫy im lặng nhất của tầng dữ liệu</li>
+<li><strong>17/17</strong> property complex có dòng <code>OwnsOne</code>; <strong>6/6</strong> enum
+trong jsonb có <code>HasConversion&lt;string&gt;()</code>; <strong>31/31</strong> enum cấp entity có</li>
+<li><strong>0 lệnh <code>DROP</code></strong> trong bất kỳ <code>Up()</code> nào của cả 10 migration</li>
+<li><strong>0 cột FK thiếu index</strong> trên toàn bộ 55 bảng</li>
+</ul>
+<p style="margin-top:1rem"><strong>Chốt chặn bảo mật đã thử thật và giữ được:</strong></p>
+<ul style="margin-bottom:0">
+<li><strong>404-không-403</strong> thi hành nghiêm túc: chỉ 3 chỗ trả <code>Forbidden</code> trong toàn
+Application, cả ba đều là ca "đúng chủ nhưng sai trạng thái"</li>
+<li><strong>Zip-slip / zip-bomb</strong>: mọi biến thể traversal bị chặn; giới hạn tổng giải nén, tỉ lệ
+nén, số entry, độ sâu; đọc entry có trần byte không tin <code>entry.Length</code></li>
+<li><strong>Path traversal</strong> <code>GET /api/files/{**path}</code>: thử <code>../</code>,
+<code>..%2F</code>, <code>%2e%2e</code>, <code>..\\</code> — tất cả 404, hai lớp phòng thủ</li>
+<li><strong>Tên tệp không chi phối đường lưu</strong>: thay bằng UUIDv7, chỉ giữ phần mở rộng đã lọc;
+<code>FileSignatureValidator</code> kiểm 8 byte đầu</li>
+<li><strong>Giới hạn upload đủ CẢ HAI tầng</strong> (<code>RequestSizeLimit</code> +
+<code>RequestFormLimits</code>) trên mọi endpoint upload</li>
+<li><strong>Không tin danh tính từ body</strong>: mọi controller ghi đè bằng claim; thử gửi
+<code>instructor_id</code> của người khác → tài nguyên vẫn thuộc người gọi</li>
+<li><strong>Không lộ đáp án đúng</strong>; bảng xếp hạng ẩn danh không gửi tên thật; bài học đang khoá
+không gửi nội dung</li>
+<li><strong>Token</strong>: refresh và invite lưu SHA-256; phát hiện tái sử dụng → thu hồi toàn bộ;
+đổi mật khẩu revoke hết refresh token</li>
+<li><strong>Không có SQL thô</strong>, không có dynamic order-by; không lộ stack trace kể cả ở Development</li>
+</ul>
+</div>
+
+<h2>9. Chưa kiểm được</h2>
+
+<ul>
+<li><strong>Coverage thật</strong> — chưa chạy coverlet. Mọi con số ở mục 6 là đếm cấu trúc; một
+endpoint "có test" theo cách đếm đó vẫn có thể chỉ được chạm bằng một dòng assert 200.</li>
+<li><strong>Index thừa</strong> — 54/145 index có <code>idx_scan = 0</code>, nhưng <strong>con số này
+không chứng minh gì</strong>: bảng lớn nhất là 182 hàng, ở kích thước đó Postgres luôn quét tuần tự
+bất kể index. Cần đo lại trên dữ liệu quy mô học kỳ thật.</li>
+<li><strong>CSDL dev không phải mẫu sạch</strong> — có id UUIDv4 lẫn trong <code>assignments</code>,
+<code>enrollments</code>, <code>quizzes</code> (hàng cũ từ bản build trước). Mã hiện tại đúng
+(<code>Guid.CreateVersion7()</code>, không có <code>NewGuid()</code> nào trong <code>src/</code>).</li>
+<li><strong>Khoảng điểm [0,10] không có CHECK constraint ở DB</strong> — chỉ có
+<code>HasPrecision(5,2)</code>. Ứng dụng chặn đúng ở validator và Domain; không tìm được ADR nói đây
+là quyết định có ý thức.</li>
+</ul>
+
+<h2>10. Thứ tự đề nghị xử lý</h2>
+
+<div class="wrap">
+<table>
+<tr><th>#</th><th>Việc</th><th>Vì sao trước</th></tr>
+<tr><td>1</td><td><code>AreNullsDistinct(false)</code> + migration + test chèn hàng trùng</td><td>Bất biến duy nhất đang tin là có mà thật sự không có</td></tr>
+<tr><td>2</td><td>Rate-limit + lockout thật cho <code>login</code>/<code>refresh</code></td><td>Đường chiếm tài khoản rẻ nhất, đang mở hoàn toàn</td></tr>
+<tr><td>3</td><td>Siết <code>/jobs</code> bằng policy admin riêng</td><td>Đang đi vòng qua ranh giới cách ly giảng viên</td></tr>
+<tr><td>4</td><td>Backfill <code>submission_mode</code> + CHECK constraint</td><td>6 hàng đang sai; chặn migration sau này</td></tr>
+<tr><td>5</td><td>Lưu <code>OptionOrder</code> vào <code>QuizAttempt</code></td><td>Sinh viên đang thấy đề đổi giữa giờ làm bài</td></tr>
+<tr><td>6</td><td>Đổi chữ ký <code>RawColumnScore</code> ở Domain, bỏ bản chép</td><td>26 test đang canh mã chết</td></tr>
+<tr><td>7</td><td>Phân vùng rate-limiter theo IP/user</td><td>Đòn bẩy DoS chi phí thấp</td></tr>
+<tr><td>8</td><td><code>SubmissionOwnership</code> gom 7 bản chép</td><td>"Sửa một chỗ quên ba chỗ" trên đường kiểm quyền</td></tr>
+<tr><td>9</td><td>Test cho đường chấm bài + áp phạt ở Application</td><td>Đường duy nhất ghi điểm thật, đang không có test</td></tr>
+<tr><td>10</td><td>3 dictionary thay 24 round-trip đồng bộ ở sổ điểm</td><td>Khuôn đã có sẵn trong cùng handler</td></tr>
+</table>
+</div>
+
+<p class="quiet" style="margin-top:2.5rem">Báo cáo này <strong>không kèm thay đổi mã nào</strong>.
+Mọi phát hiện đánh dấu "đã chứng minh" đều có lệnh tái hiện trong phần tương ứng.</p>
+
+</main>
+</body>
+</html>
