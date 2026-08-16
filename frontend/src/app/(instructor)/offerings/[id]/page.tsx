@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { CuonNgang, DauTrang, Trang, TrongRong } from "@/components/shell/trang";
+import { DongLop } from "./dong-lop";
 import { ngayGio } from "@/lib/dinh-dang";
 import { API_BASE, COOKIE_ACCESS } from "@/lib/api/server";
 import type {
@@ -77,7 +78,12 @@ export default async function OfferingDetailPage({
             <span>{lop.enrollment_count} sinh viên</span>
           </span>
         }
-        hanhDong={<TaoBaiTap subjectVersionId={lop.subject_version_id} />}
+        hanhDong={
+          <>
+            <DongLop lop={lop} />
+            <TaoBaiTap subjectVersionId={lop.subject_version_id} />
+          </>
+        }
       />
 
       {lop.join_code && (

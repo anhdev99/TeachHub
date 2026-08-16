@@ -15,6 +15,12 @@ export type LessonComponentType = components["schemas"]["LessonComponentType"];
 
 // Phase 2 — lớp học phần và trải nghiệm học
 export type OfferingDto = components["schemas"]["OfferingDto"];
+/**
+ * Kết quả đóng lớp. `snapshot` là `null` khi lớp chưa có cột điểm nào để chốt — lúc đó
+ * `snapshot_skipped_reason` mang câu giải thích đọc được, và giao diện PHẢI hiện nó ra:
+ * đóng lớp mà lặng lẽ không chốt bản nào là đúng thứ người ta chỉ phát hiện khi cần đối chiếu.
+ */
+export type CloseOfferingResultDto = components["schemas"]["CloseOfferingResultDto"];
 export type EnrollmentDto = components["schemas"]["EnrollmentDto"];
 export type MyOfferingDto = components["schemas"]["MyOfferingDto"];
 export type MyProgressDto = components["schemas"]["MyProgressDto"];
@@ -23,6 +29,15 @@ export type MyLessonDto = components["schemas"]["MyLessonDto"];
 export type MyComponentDto = components["schemas"]["MyComponentDto"];
 /** Câu hỏi nhúng của phần `checkpoint_quiz`, CỐ Ý không kèm đáp án đúng — xem phan-bai-hoc.tsx. */
 export type InlineQuestionDto = components["schemas"]["InlineQuestionDto"];
+export type InlineAnswerDto = components["schemas"]["InlineAnswerDto"];
+/**
+ * Kết quả chấm câu hỏi nhúng. `correct_indexes` và `explanation` CHỈ có ở đây — tức là sau
+ * khi sinh viên đã trả lời. Chúng cố ý vắng mặt trong `InlineQuestionDto` lúc tải bài, vì
+ * gửi đáp án xuống rồi ẩn trên giao diện nghĩa là cả lớp mở DevTools ra đọc.
+ */
+export type CheckInlineQuestionsResultDto =
+  components["schemas"]["CheckInlineQuestionsResultDto"];
+export type InlineQuestionResultDto = components["schemas"]["InlineQuestionResultDto"];
 export type LessonAccess = components["schemas"]["LessonAccess"];
 export type LessonContentType = components["schemas"]["LessonContentType"];
 

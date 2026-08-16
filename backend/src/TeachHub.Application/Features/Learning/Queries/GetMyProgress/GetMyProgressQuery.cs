@@ -46,7 +46,18 @@ public sealed record MyComponentDto(
     int InlineQuestionCount, Guid? RefId, List<InlineQuestionDto> InlineQuestions);
 
 /// <summary>Một câu hỏi nhúng, đã tước đáp án đúng.</summary>
-public sealed record InlineQuestionDto(int Index, string Text, List<string> Options);
+/// <param name="Index">
+/// Số thứ tự do MÁY CHỦ đánh. Đây chính là con số phải gửi lại khi chấm
+/// (<c>POST /api/lesson-components/{id}/check</c>), không phải vị trí trong mảng của giao diện.
+/// </param>
+/// <param name="MultiSelect">
+/// Câu này chọn được NHIỀU đáp án hay không, suy từ số đáp án đúng đang lưu — cùng một hàm
+/// (<see cref="InlineQuizGrader.IsMultiSelect"/>) mà đường chấm dùng, nên hai bên không lệch
+/// được. Không có cờ này thì giao diện render radio cho mọi câu, và câu nhiều đáp án bị chấm
+/// sai một cách im lặng: sinh viên không có cách nào trả lời đúng nó. Cờ chỉ nói SỐ LƯỢNG đáp
+/// án đúng là một hay nhiều — nó không lộ đáp án nào đúng.
+/// </param>
+public sealed record InlineQuestionDto(int Index, string Text, List<string> Options, bool MultiSelect);
 
 public sealed record MyChapterDto(
     Guid Id, string Title, string? Objective, int OrderIndex,
@@ -95,8 +106,10 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                 cp.Config.Html, cp.Config.ReflectionPrompt,
                 cp.Config.StarterCodeUrl, cp.Config.Language,
                 InlineQuestionCount = cp.Config.InlineQuestions.Count,
+                // CorrectIndexes được nạp lên máy chủ nhưng KHÔNG đi tiếp xuống client: chỉ số
+                // lượng của nó được dùng, để biết câu đó chọn-một hay chọn-nhiều.
                 InlineQuestions = cp.Config.InlineQuestions
-                    .Select(q => new { q.Text, q.Options }).ToList(),
+                    .Select(q => new { q.Text, q.Options, q.CorrectIndexes }).ToList(),
             })
             .ToListAsync(ct);
 
@@ -170,7 +183,8 @@ public sealed class GetMyProgressQueryHandler(IAppDbContext db)
                                 cp.Html, cp.ReflectionPrompt, cp.StarterCodeUrl, cp.Language,
                                 cp.InlineQuestionCount, cp.RefId,
                                 [.. cp.InlineQuestions.Select((q, i) =>
-                                    new InlineQuestionDto(i, q.Text, q.Options))]))]);
+                                    new InlineQuestionDto(i, q.Text, q.Options,
+                                        InlineQuizGrader.IsMultiSelect(q.CorrectIndexes)))]))]);
                 })]));
 
             tongBai += node.Lessons.Count;

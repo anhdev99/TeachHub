@@ -6,6 +6,7 @@ using TeachHub.Application.Features.Enrollments.Commands.ImportEnrollments;
 using TeachHub.Application.Features.Enrollments.Queries.GetEnrollments;
 using TeachHub.Application.Features.Offerings;
 using TeachHub.Application.Features.Enrollments.Commands.CreateStudentAccounts;
+using TeachHub.Application.Features.Offerings.Commands.CloseOffering;
 using TeachHub.Application.Features.Offerings.Commands.CreateOffering;
 using TeachHub.Application.Features.Offerings.Commands.JoinOffering;
 using TeachHub.Application.Features.Learning.Queries.GetMyProgress;
@@ -51,6 +52,19 @@ public sealed class OfferingsController(ISender sender) : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetEnrollments(Guid id, CancellationToken ct)
         => ToActionResult(await sender.Send(new GetEnrollmentsQuery(id, CurrentUserId), ct));
+
+    /// <summary>
+    /// Đóng lớp: đổi trạng thái sang <c>closed</c> và chốt một bản sổ điểm trong cùng một lệnh.
+    /// Đóng một lớp đã đóng trả 409 chứ không chốt thêm bản nữa.
+    /// </summary>
+    [HttpPost("{id:guid}/close")]
+    [Authorize(Policy = Policies.Instructor)]
+    [ProducesResponseType<CloseOfferingResultDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Close(Guid id, CancellationToken ct)
+        => ToActionResult(await sender.Send(
+            new CloseOfferingCommand { OfferingId = id, InstructorId = CurrentUserId }, ct));
 
     [HttpPost("join")]
     [Authorize(Policy = Policies.Student)]

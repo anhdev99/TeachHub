@@ -3,6 +3,8 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   Check,
+  CircleCheck,
+  CircleX,
   ClipboardList,
   Code2,
   FileText,
@@ -18,11 +20,12 @@ import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { apiFetch } from "@/lib/api/fetcher";
 import {
   NHAN_LOAI_COMPONENT,
+  type CheckInlineQuestionsResultDto,
   type InlineQuestionDto,
   type LessonComponentType,
   type MyComponentDto,
@@ -93,85 +96,204 @@ function NoiDungHtml({ html }: { html: string }) {
 /**
  * Trắc nghiệm nhanh nhúng ngay trong bài học.
  *
- * ⚠️ KHÔNG CHẤM Ở CLIENT, và đây không phải là chuyện lười: payload `InlineQuestionDto` chỉ có
- * `{index, text, options}` — backend CỐ Ý tước đáp án đúng đi, đúng lý do với `TakeOptionDto`
- * của Phase 5. Muốn chấm ở client thì phải có đáp án trong payload, mà gửi đáp án xuống rồi
- * ẩn trên giao diện nghĩa là cả lớp mở DevTools ra đọc. Nên phần chấm CHỜ endpoint chấm câu
- * nhúng ở máy chủ; tới lúc đó chỗ này chỉ là ô tự kiểm tra.
+ * ⚠️ CHẤM Ở MÁY CHỦ, không bao giờ ở client. `InlineQuestionDto` chỉ mang
+ * `{index, text, options, multi_select}` — backend CỐ Ý không gửi `correct_indexes` xuống,
+ * cùng lý do với `TakeOptionDto` của Phase 5. Đáp án đúng và lời giải chỉ xuất hiện trong
+ * PHẢN HỒI của lời gọi chấm, tức là sau khi sinh viên đã trả lời. Gửi trước rồi ẩn trên giao
+ * diện thì cả lớp mở DevTools ra đọc.
  *
- * Vì chưa có endpoint nên lựa chọn của sinh viên KHÔNG được gửi đi và KHÔNG được lưu. Phải nói
- * thẳng điều đó trên màn hình: hiện một bài trắc nghiệm trông như thật rồi lặng lẽ vứt câu trả
- * lời đi là để sinh viên tin mình đã nộp, và trách nhau khi điểm không có.
+ * `multi_select` do máy chủ suy từ số đáp án đúng, và đường chấm dùng CHÍNH giá trị đó — nên
+ * ô chọn hiện ra ở đây với luật chấm ở kia không thể lệch nhau. Thiếu cờ này thì câu nhiều
+ * đáp án bị render thành radio: sinh viên không chọn đủ được đáp án, bị chấm sai, và không có
+ * gì chỉ ra vì sao.
  *
- * KHI ENDPOINT CHẤM CÓ RỒI, hai thứ phải nối vào đây (đã đối chiếu với domain, xác nhận
- * 2026-08-15):
- *
- *  1. `InlineQuestionDto` hiện KHÔNG có cờ phân biệt chọn-một / chọn-nhiều, trong khi
- *     `Domain/Content/ComponentConfig.cs` lưu `CorrectIndexes` là DANH SÁCH — câu nhiều đáp án
- *     là có thật. Chỗ này đang render radio (chọn một). Chừng nào chưa chấm thì chưa sai, nhưng
- *     nối endpoint vào mà vẫn thiếu cờ đó là chấm sai câu nhiều đáp án một cách LẶNG LẼ: sinh
- *     viên không chọn đủ được đáp án, và không có lỗi nào chỉ ra vì sao mất điểm.
- *  2. Domain có `Explanation` cho mỗi câu nhưng DTO gửi xuống cố ý KHÔNG kèm — đúng, vì lời
- *     giải mà gửi trước thì mở DevTools là biết đáp án. Nó phải đi về trong PHẢN HỒI của lời
- *     gọi chấm rồi mới hiện. Bỏ quên bước đó là tính năng mất đúng phần dạy học của nó: sinh
- *     viên biết mình sai mà không biết vì sao.
+ * Đây là câu hỏi TỰ KIỂM TRA, không vào sổ điểm — nhưng trả lời đúng hết thì máy chủ đánh dấu
+ * phần học hoàn thành, nên nó vẫn đẩy được tiến độ mở khoá bài sau.
  */
-function TracNghiemNhanh({ cauHoi }: { cauHoi: InlineQuestionDto[] }) {
+function TracNghiemNhanh({
+  componentId,
+  cauHoi,
+  onHoanThanh,
+}: {
+  componentId: string;
+  cauHoi: InlineQuestionDto[];
+  onHoanThanh: () => void;
+}) {
   // Khoá theo `index` THẬT của câu hỏi do server đánh số, không theo vị trí trong mảng.
-  const [chon, setChon] = useState<Record<number, number>>({});
+  // Giá trị là MẢNG kể cả với câu chọn-một: một hình dạng duy nhất cho cả hai loại, thay vì
+  // hai kiểu dữ liệu phải nhớ chuyển qua lại ở mỗi chỗ dùng.
+  const [chon, setChon] = useState<Record<number, number[]>>({});
   const goc = useId();
+
+  const cham = useMutation({
+    mutationFn: () =>
+      apiFetch<CheckInlineQuestionsResultDto>(`/api/lesson-components/${componentId}/check`, {
+        method: "POST",
+        body: JSON.stringify({
+          answers: cauHoi.map((c) => ({
+            index: c.index,
+            selected_indexes: chon[c.index] ?? [],
+          })),
+        }),
+      }),
+    onSuccess: (kq) => {
+      // Trả lời đúng hết thì máy chủ tự đánh dấu phần học xong. Báo lên trang cha để thanh
+      // tiến độ và trạng thái khoá của bài sau cập nhật theo, thay vì phải tải lại trang.
+      if (kq.completed) onHoanThanh();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const kq = cham.data;
+  // Tra kết quả theo `index` thật, không theo vị trí — máy chủ không hứa trả về đúng thứ tự.
+  const theoIndex = new Map((kq?.results ?? []).map((r) => [r.index, r]));
+
+  function doiChon(index: number, i: number, multi: boolean) {
+    setChon((cu) => {
+      const dang = cu[index] ?? [];
+      if (!multi) return { ...cu, [index]: [i] };
+      return {
+        ...cu,
+        [index]: dang.includes(i) ? dang.filter((x) => x !== i) : [...dang, i],
+      };
+    });
+  }
+
+  const chuaTraLoi = cauHoi.filter((c) => c.options.length > 0 && !(chon[c.index]?.length > 0));
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Câu này là NỘI DUNG chứ không phải trang trí: nó là thứ duy nhất ngăn sinh viên tin
-          rằng mình vừa nộp một bài có tính điểm. Nền hổ phách để không bị lướt qua. */}
-      <p className="bg-warn-soft text-warn border-warn/25 rounded-lg border px-3 py-2 text-xs text-pretty">
-        Câu hỏi tự kiểm tra. Lựa chọn của bạn <strong>chưa được chấm và chưa được lưu</strong> —
-        hãy tự đối chiếu với nội dung bài học.
-      </p>
+      {kq ? (
+        <p
+          className={cn(
+            "rounded-lg border px-3 py-2 text-sm text-pretty",
+            kq.all_correct
+              ? "bg-ok-soft text-ok border-ok/25"
+              : "bg-warn-soft text-warn border-warn/25",
+          )}
+        >
+          Đúng {kq.correct_count}/{kq.total} câu.{" "}
+          {kq.all_correct
+            ? "Phần này đã được đánh dấu hoàn thành."
+            : "Xem lời giải bên dưới rồi thử lại nhé."}
+        </p>
+      ) : (
+        <p className="text-muted-foreground text-sm text-pretty">
+          Câu hỏi tự kiểm tra — không tính vào điểm. Trả lời đúng hết thì phần này được đánh
+          dấu hoàn thành.
+        </p>
+      )}
 
       <ol className="flex flex-col gap-4">
-        {cauHoi.map((c) => (
-          <li key={c.index} className="flex flex-col gap-2">
-            {/* Chuỗi do giảng viên soạn đi qua text node của React nên được thoát tự động.
-                Không dùng dangerouslySetInnerHTML ở đây. */}
-            <p className="text-sm font-medium text-pretty">
-              {c.index + 1}. {c.text}
-            </p>
+        {cauHoi.map((c) => {
+          const r = theoIndex.get(c.index);
+          const dapAnDung = r?.correct_indexes ?? [];
 
-            {c.options.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Câu hỏi tự luận — hãy tự trả lời.</p>
-            ) : (
-              <RadioGroup
-                value={chon[c.index] === undefined ? "" : String(chon[c.index])}
-                onValueChange={(v) => setChon((cu) => ({ ...cu, [c.index]: Number(v) }))}
-                className="gap-1.5"
-              >
-                {c.options.map((o, i) => {
-                  const id = `${goc}-${c.index}-${i}`;
-                  const daChon = chon[c.index] === i;
+          return (
+            <li key={c.index} className="flex flex-col gap-2">
+              {/* Chuỗi do giảng viên soạn đi qua text node của React nên được thoát tự động.
+                  Không dùng dangerouslySetInnerHTML ở đây. */}
+              <p className="flex items-start gap-2 text-sm font-medium text-pretty">
+                <span className="flex-1">
+                  {c.index + 1}. {c.text}
+                </span>
+                {r &&
+                  (r.is_correct ? (
+                    <CircleCheck className="text-ok mt-0.5 size-4 shrink-0" aria-label="Đúng" />
+                  ) : (
+                    <CircleX className="text-danger mt-0.5 size-4 shrink-0" aria-label="Sai" />
+                  ))}
+              </p>
 
-                  return (
-                    // Cả ô là vùng bấm ≥ 44px, không phải mỗi chấm tròn 16px: trên điện thoại
-                    // bấm trúng một chấm 16px là chuyện may rủi.
-                    <Label
-                      key={id}
-                      htmlFor={id}
-                      className={cn(
-                        "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm font-normal transition-colors",
-                        daChon ? "border-primary bg-accent" : "border-border hover:bg-muted",
-                      )}
-                    >
-                      <RadioGroupItem value={String(i)} id={id} />
-                      <span className="flex-1 text-pretty">{o}</span>
-                    </Label>
-                  );
-                })}
-              </RadioGroup>
-            )}
-          </li>
-        ))}
+              {c.multi_select && !kq && (
+                <p className="text-muted-foreground text-xs">Chọn tất cả đáp án đúng.</p>
+              )}
+
+              {c.options.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Câu hỏi tự luận — hãy tự trả lời.</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {c.options.map((o, i) => {
+                    const id = `${goc}-${c.index}-${i}`;
+                    const daChon = (chon[c.index] ?? []).includes(i);
+                    const laDapAn = dapAnDung.includes(i);
+
+                    return (
+                      // Cả ô là vùng bấm ≥ 44px, không phải mỗi chấm tròn 16px: trên điện
+                      // thoại bấm trúng một chấm 16px là chuyện may rủi.
+                      <Label
+                        key={id}
+                        htmlFor={id}
+                        className={cn(
+                          "flex min-h-11 items-center gap-2.5 rounded-lg border px-3 py-2 text-sm font-normal transition-colors",
+                          kq ? "cursor-default" : "cursor-pointer",
+                          // Sau khi chấm, đáp án đúng luôn được tô — kể cả khi sinh viên
+                          // không chọn nó. Chỉ tô ô đã chọn thì người sai vẫn không biết
+                          // đáp án đúng là ô nào.
+                          laDapAn
+                            ? "bg-ok-soft border-ok/30"
+                            : kq && daChon
+                              ? "bg-danger-soft border-danger/30"
+                              : daChon
+                                ? "border-primary bg-accent"
+                                : "border-border",
+                          kq ? "" : "hover:bg-muted",
+                        )}
+                      >
+                        <Checkbox
+                          id={id}
+                          checked={daChon}
+                          disabled={!!kq || cham.isPending}
+                          // `rounded-full` cho câu chọn-một: hình dạng ô là thứ đầu tiên
+                          // người ta đọc để biết được chọn mấy đáp án.
+                          className={c.multi_select ? "" : "rounded-full"}
+                          onCheckedChange={() => doiChon(c.index, i, c.multi_select)}
+                        />
+                        <span className="flex-1 text-pretty">{o}</span>
+                      </Label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Lời giải chỉ có sau khi chấm — đây là phần dạy học thật của tính năng này.
+                  Biết mình sai mà không biết vì sao thì bài tự kiểm tra chẳng dạy được gì. */}
+              {r?.explanation && (
+                <p className="text-muted-foreground border-border border-l-2 pl-3 text-sm text-pretty">
+                  {r.explanation}
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ol>
+
+      <div className="flex flex-wrap items-center gap-2">
+        {kq ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              cham.reset();
+              setChon({});
+            }}
+          >
+            Làm lại
+          </Button>
+        ) : (
+          <Button size="sm" disabled={cham.isPending} onClick={() => cham.mutate()}>
+            {cham.isPending ? "Đang chấm…" : "Kiểm tra"}
+          </Button>
+        )}
+
+        {/* Nói trước còn bao nhiêu câu bỏ trống, thay vì để bấm xong mới biết. Không CHẶN
+            bấm: đây là bài tự kiểm tra, bỏ trống vài câu vẫn là một lựa chọn hợp lệ. */}
+        {!kq && chuaTraLoi.length > 0 && (
+          <span className="text-muted-foreground text-xs">
+            Còn {chuaTraLoi.length} câu chưa chọn.
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -255,7 +377,14 @@ export function PhanBaiHoc({
 
       {/* Trắc nghiệm nhanh: câu hỏi nhúng ngay trong bài, không rời khỏi trang học. */}
       {phan.type === "checkpoint_quiz" && phan.inline_questions.length > 0 && (
-        <TracNghiemNhanh cauHoi={phan.inline_questions} />
+        <TracNghiemNhanh
+          componentId={phan.id}
+          cauHoi={phan.inline_questions}
+          // Đúng hết thì máy chủ đã đánh dấu hoàn thành. Gọi lại `onHoanThanh` để trang cha
+          // nạp lại tiến độ — lệnh này idempotent nên đánh dấu lần nữa không sao, và nếu
+          // không gọi thì thanh tiến độ với trạng thái khoá của bài sau vẫn hiện số cũ.
+          onHoanThanh={() => onHoanThanh(phan.id)}
+        />
       )}
 
       {/* Đếm được câu hỏi nhưng không tải được nội dung là ca thật (dữ liệu cũ soạn trước khi

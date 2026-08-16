@@ -3838,6 +3838,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/lesson-components/{id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CheckInlineQuestionsCommand"];
+                    "application/*+json": components["schemas"]["CheckInlineQuestionsCommand"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CheckInlineQuestionsResultDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lesson-components/{id}/reorder": {
         parameters: {
             query?: never;
@@ -4359,6 +4419,61 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/offerings/{id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CloseOfferingResultDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -6553,6 +6668,24 @@ export interface components {
             foundation_tags: string[];
             unlock_rule: components["schemas"]["UnlockRule"];
         };
+        CheckInlineQuestionsCommand: {
+            answers: components["schemas"]["InlineAnswerDto"][];
+            /** Format: uuid */
+            component_id?: string;
+            /** Format: uuid */
+            user_id?: string;
+        };
+        CheckInlineQuestionsResultDto: {
+            /** Format: uuid */
+            component_id: string;
+            /** Format: int32 */
+            total: number;
+            /** Format: int32 */
+            correct_count: number;
+            all_correct: boolean;
+            completed: boolean;
+            results: components["schemas"]["InlineQuestionResultDto"][];
+        };
         CloneSubjectVersionCommand: {
             /** Format: uuid */
             cloned_from_version_id: null | string;
@@ -6561,6 +6694,13 @@ export interface components {
             subject_id?: string;
             /** Format: uuid */
             instructor_id?: string;
+        };
+        CloseOfferingResultDto: {
+            /** Format: uuid */
+            offering_id: string;
+            status: components["schemas"]["OfferingStatus"];
+            snapshot: null | components["schemas"]["GradeSnapshotDto"];
+            snapshot_skipped_reason: null | string;
         };
         ComponentConfig: {
             /** Format: int32 */
@@ -7030,6 +7170,11 @@ export interface components {
             /** Format: uuid */
             instructor_id?: string;
         };
+        InlineAnswerDto: {
+            /** Format: int32 */
+            index: number;
+            selected_indexes: number[];
+        };
         InlineQuestion: {
             text: string;
             options?: string[];
@@ -7041,6 +7186,15 @@ export interface components {
             index: number;
             text: string;
             options: string[];
+            multi_select: boolean;
+        };
+        InlineQuestionResultDto: {
+            /** Format: int32 */
+            index: number;
+            multi_select: boolean;
+            is_correct: boolean;
+            correct_indexes: number[];
+            explanation: null | string;
         };
         InstructorDashboardDto: {
             /** Format: int32 */
