@@ -1,0 +1,147 @@
+<meta charset="utf-8">
+<title>Phase 6 + 7 + 8 · Báo cáo chốt</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1d21; --muted:#5b6572; --line:#e3e7ec; --ok:#0a7d3f; --warn:#a8620a; --bad:#b3261e; --code:#f6f8fa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#15181c; --fg:#e6e9ee; --muted:#9aa4b1; --line:#2b313a; --ok:#54d38a; --warn:#e0a458; --bad:#ef8079; --code:#1d2228; }
+  }
+  * { box-sizing: border-box; }
+  body { background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+         max-width:62rem; margin:0 auto; padding:2rem 1.25rem 5rem; }
+  h1 { font-size:1.9rem; line-height:1.25; margin:0 0 .25rem; }
+  h2 { font-size:1.3rem; margin:2.5rem 0 .75rem; padding-top:1.25rem; border-top:1px solid var(--line); }
+  h3 { font-size:1.05rem; margin:1.75rem 0 .5rem; }
+  .sub { color:var(--muted); margin:0 0 2rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.94rem; }
+  th, td { text-align:left; padding:.55rem .7rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-weight:600; color:var(--muted); font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; }
+  code { background:var(--code); padding:.12em .38em; border-radius:4px; font-size:.88em;
+         font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  pre { background:var(--code); padding:.9rem 1rem; border-radius:8px; overflow-x:auto; font-size:.85rem; }
+  .ok { color:var(--ok); font-weight:600; } .warn { color:var(--warn); font-weight:600; } .bad { color:var(--bad); font-weight:600; }
+  .box { border:1px solid var(--line); border-left:3px solid var(--warn); border-radius:6px; padding:.85rem 1rem; margin:1.25rem 0; }
+  ul { padding-left:1.3rem; } li { margin:.3rem 0; }
+</style>
+
+<h1>Phase 6 + 7 + 8 — thi công song song bằng ba agent</h1>
+<p class="sub">16/08/2026 · build 0 cảnh báo · 237 test thuần xanh · 105 endpoint · toàn bộ P1 xong</p>
+
+<h2>1. Cách chia việc, và điểm bắt buộc phải nối tiếp</h2>
+
+<p>Ba phase độc lập về nghiệp vụ nên chạy song song được — plan Phase 7 còn ghi rõ "chạy song
+song hoàn toàn". Ba agent, mỗi agent một vertical slice từ Domain lên Controller.</p>
+
+<div class="box">
+  <strong>Migration là điểm KHÔNG được song song.</strong> EF dùng chung một
+  <code>AppDbContextModelSnapshot</code>; ba agent cùng chạy <code>dotnet ef migrations add</code>
+  là hỏng snapshot chắc chắn, và migration <em>kế tiếp</em> sẽ sinh lệnh sai trên database đã có
+  điểm thật của sinh viên. Vì thế mỗi agent bị cấm chạm <code>AppDbContext</code>/<code>IAppDbContext</code>
+  và cấm sinh migration; chúng chỉ báo lại danh sách DbSet cần khai. Orchestrator gom thành
+  <strong>một</strong> migration sau khi cả ba xong.
+</div>
+
+<p>Kết quả: code của ba agent biên dịch cùng nhau ngay lần đầu, <strong>0 lỗi 0 cảnh báo</strong>,
+không có xung đột file nào.</p>
+
+<h2>2. Ba điểm tích hợp agent không được phép chạm — orchestrator nối</h2>
+
+<p>Đây là phần dễ bị bỏ sót nhất của kiểu chia việc này: mỗi agent làm xong phần của mình nhưng
+<em>không ai gọi</em> nó, và tính năng tồn tại mà không bao giờ chạy.</p>
+
+<table>
+  <tr><th>Điểm nối</th><th>Nếu không nối thì sao</th></tr>
+  <tr><td><code>ProcessSubmissionFileJob</code> → <code>EnqueueFingerprinting</code></td>
+      <td>Không bài nộp nào được băm dấu vân tay ⇒ báo cáo trùng lặp luôn rỗng. Gọi SAU giải nén vì với .zip thì <code>FileTree</code> chính là danh sách tệp cần băm.</td></tr>
+  <tr><td><code>SubmitQuizAttemptHandler</code> → <code>GenerateReviewItemsCommand</code></td>
+      <td>Mục ôn tập chỉ sinh qua job đêm ⇒ sinh viên nộp quiz xong phải chờ tới 24 giờ, và sẽ nghĩ tính năng hỏng. Lệnh idempotent nên job đêm vẫn giữ làm lưới quét sót.</td></tr>
+  <tr><td><code>GetGradebookQuery</code> → <code>SubmissionMemberScore</code></td>
+      <td>Chấm riêng một thành viên xong mở sổ điểm vẫn thấy điểm chung ⇒ giảng viên tin là thao tác chấm riêng không có tác dụng.</td></tr>
+</table>
+
+<p>Cộng thêm <code>GradeSubmissionHandler</code> ghi <code>RawScore</code>: thiếu nó thì lệnh áp
+phạt lần thứ hai trừ chồng lên điểm đã trừ, và mỗi lần sửa hạn nộp rồi bấm tính lại là điểm sinh
+viên tụt thêm một nấc — không có gì báo và không có đường quay lại.</p>
+
+<h2>3. Nghiệm thu — chạy thật</h2>
+
+<h3>Phase 6 — Liêm chính học thuật</h3>
+<table>
+  <tr><th>Bước</th><th>Kết quả</th></tr>
+  <tr><td>Hai bài <strong>chỉ khác tên biến, chú thích và thụt lề</strong></td>
+      <td class="ok">✔ <strong>100% trùng</strong>, 30/30 đoạn chung, gắn cờ cảnh báo</td></tr>
+  <tr><td>Hai bài khác hẳn (thuật toán vs React component)</td><td class="ok">✔ 0 cảnh báo, trùng 0%</td></tr>
+  <tr><td>Áp phạt hai lần liên tiếp</td><td class="ok">✔ điểm giữ nguyên 10.0 — không trừ chồng</td></tr>
+  <tr><td>Màn hình báo cáo</td><td class="ok">✔ hiện rõ "hệ thống không bao giờ tự trừ điểm"</td></tr>
+</table>
+<p>Chuẩn hóa trước khi băm là toàn bộ giá trị của thuật toán, và con số 100% ở dòng đầu chính là
+bằng chứng nó hoạt động: không chuẩn hóa thì đổi tên biến là qua mặt được.</p>
+
+<h3>Phase 7 — Gamification</h3>
+<table>
+  <tr><th>Bước</th><th>Kết quả</th></tr>
+  <tr><td>Đồng bộ XP từ hoạt động thật</td><td class="ok">✔ 117 XP suy ra từ dữ liệu học, không nhận từ client</td></tr>
+  <tr><td>Streak theo múi giờ lớp</td><td class="ok">✔ 2 ngày; test 23:50 → 00:10 hôm sau ra 2 ngày</td></tr>
+  <tr><td>Bảng xếp hạng phía sinh viên</td><td class="ok">✔ "Bạn" · "Sinh viên #2" — tên thật KHÔNG có trong payload</td></tr>
+  <tr><td>Bảng xếp hạng phía giảng viên</td><td class="ok">✔ tên thật đầy đủ</td></tr>
+</table>
+<p>Agent còn <strong>mutation-test</strong> phần streak: thay chuyển múi giờ bằng <code>UtcDateTime</code>
+thì đúng hai test nửa đêm đỏ — test không xanh giả.</p>
+
+<h3>Phase 8 — Ôn tập ngắt quãng</h3>
+<table>
+  <tr><th>Bước</th><th>Kết quả</th></tr>
+  <tr><td>Nộp quiz sai 4 câu</td><td class="ok">✔ 4 mục vào hàng đợi <strong>ngay</strong>, không chờ job đêm</td></tr>
+  <tr><td>Lịch lần đầu</td><td class="ok">✔ đúng +3 ngày, bậc <code>ThreeDays</code></td></tr>
+  <tr><td>Thang 3d → 1 tuần → 2 tuần → thuộc; sai thì về đầu</td><td class="ok">✔ 14 test thuần</td></tr>
+  <tr><td>"Ôn tập hôm nay" trên trang tiến độ</td><td class="ok">✔ mở được, 0 mục tới hạn (đúng — lịch còn 3 ngày)</td></tr>
+</table>
+
+<h2>4. Cổng chất lượng</h2>
+<ul>
+  <li><code>dotnet build TeachHub.sln</code> → <span class="ok">0 Warning(s), 0 Error(s)</span></li>
+  <li><code>dotnet test</code> → <span class="ok">237/237 xanh</span> (thêm 92 test của ba phase)</li>
+  <li><code>npx tsc --noEmit</code> sạch · <code>pnpm build</code> dựng được toàn bộ route</li>
+  <li>Migration <code>IntegrityGamificationAndReview</code>: 10 bảng mới, 4 cột thêm vào <code>submissions</code>, 19 index — <strong><code>Up()</code> không có một lệnh phá hủy nào</strong>. Đã apply lên DB đang có dữ liệu thật; đếm lại sau khi apply: 5 bài nộp, 1 ô điểm, 3 lượt quiz, 4 sinh viên — nguyên vẹn.</li>
+  <li>105 endpoint tổng cộng</li>
+</ul>
+
+<h2>5. Quyết định đáng ghi lại của các agent</h2>
+<ul>
+  <li><strong>Phase 6</strong> — báo cáo cả Jaccard lẫn Containment: chỉ Jaccard thì "chép một hàm rồi viết thêm 300 dòng" trượt; chỉ Containment thì tệp ngắn báo động giả.</li>
+  <li><strong>Phase 6</strong> — bài nhóm lấy HỢP gợi ý mọi thành viên đã mở, nếu không cả nhóm cử một bạn đi mở hết là né sạch phạt.</li>
+  <li><strong>Phase 7</strong> — streak đọc dữ kiện gốc (<code>LessonProgress.CompletedAt</code>…) chứ không đọc <code>xp_events</code>: bài học xong sau khi chạm trần XP vẫn tính là một ngày hoạt động, và sự kiện thưởng streak không thể tự đánh dấu hôm nay là ngày hoạt động để thổi phồng chính con số nó thưởng.</li>
+  <li><strong>Phase 7</strong> — huy hiệu <em>fail closed</em>: huy hiệu không có điều kiện nào thì KHÔNG bao giờ được trao. Viết <code>Conditions.All(...)</code> theo phản xạ là trao huy hiệu dở dang cho cả lớp.</li>
+  <li><strong>Phase 8</strong> — thêm <code>ReviewGenerationMark</code> ngoài phạm vi plan: không có nó, job đêm nạp lại mỗi đêm và mỗi lần tính là trả lời SAI, đẩy bậc của sinh viên về 3 ngày vĩnh viễn mà không exception nào nổ.</li>
+  <li><strong>Phase 8</strong> — trả lời mục chưa tới hạn trả 409: không chặn thì bấm đúng ba lần trong nửa phút là "đã thuộc", xóa sạch ý nghĩa của chữ <em>ngắt quãng</em>.</li>
+</ul>
+
+<h2>6. Còn nợ</h2>
+<table>
+  <tr><th>Việc</th><th>Ghi chú</th></tr>
+  <tr><td class="warn">Không có integration test cho Phase 3 → 8</td>
+      <td>Theo yêu cầu người dùng suốt các phase. Mọi luồng đã nghiệm thu qua API thật + Chromium thật, nhưng <strong>không có lưới an toàn cho lần refactor sau</strong>. Vẫn là món nợ lớn nhất.</td></tr>
+  <tr><td class="warn"><code>CrossInstructorIsolationTests</code> chưa có dòng cho tài nguyên mới</td>
+      <td>Cả ba agent đều nêu đích danh mục này. Nay thêm <code>SourceFingerprint</code>, <code>XpRule</code>, <code>Badge</code>, <code>OfferingGamificationSettings</code>, và 4 endpoint Phase 6. DoD mục 7 chưa đạt.</td></tr>
+  <tr><td>Bài nộp theo NHÓM chưa tính XP</td><td>Bài nhóm có <code>enrollment_id = null</code> nên không vào truy vấn dữ kiện. Cần một vòng qua <code>group_members</code>.</td></tr>
+  <tr><td>Ngưỡng trùng lặp 60% là số đặt tạm</td><td>Plan nói rõ phải hiệu chỉnh bằng dữ liệu học kỳ trước. Chưa ai chạy thử trên bài thật.</td></tr>
+  <tr><td>Màn hình so sánh cạnh nhau tô sáng đoạn trùng</td><td>API <code>compare</code> đã có; giao diện mới dừng ở bảng danh sách cặp trùng.</td></tr>
+  <tr><td>Component <code>quiz</code>/<code>checkpoint_quiz</code> nhúng trong bài học</td><td>Nợ từ Phase 5, chưa nối.</td></tr>
+  <tr><td>Kéo-thả sắp xếp · xuất <code>.xlsx</code> thật · chốt <code>GradeSnapshot</code> · thumbnail ảnh</td><td>Nợ mang từ Phase 3–4b.</td></tr>
+</table>
+
+<h2>7. Vì sao KHÔNG thi công Phase 9</h2>
+<p>Plan ghi rõ <strong>"P2 — chỉ lập kế hoạch chi tiết khi đã tới lúc"</strong>, và phần lớn hạng
+mục còn thiếu quyết định nghiệp vụ chứ không thiếu code:</p>
+<ul>
+  <li><strong>Điểm danh QR</strong> — có trong sơ đồ ER của SRS nhưng <em>chưa bao giờ được đặc tả</em> (Gap #13). Điểm danh vào hay ra? Đi trễ tính thế nào? Chống điểm danh hộ ra sao?</li>
+  <li><strong>Chấm code tự động</strong> — plan gọi là "đắt nhất và rủi ro nhất": cần sandbox thực thi mã không tin cậy. Plan còn khuyên đừng tự dựng sandbox.</li>
+  <li><strong>Quy đổi điểm chữ</strong> — người dùng đã chốt 13/08 là chỉ cần thang số 0–10.</li>
+  <li><strong>Đổ điểm vào file .xlsx mẫu của trường</strong> — chỉ làm nếu phòng đào tạo bắt buộc.</li>
+</ul>
+<p>Xây bây giờ là đoán yêu cầu rồi làm lại.</p>
+
+<p class="sub" style="margin-top:2.5rem">
+Việc nên làm tiếp, theo đúng thứ tự plan khuyên: dùng thật một học kỳ · sao lưu database hằng
+ngày và <em>thử khôi phục ít nhất một lần</em> · theo dõi dung lượng lưu trữ theo lớp · rà lại
+toàn bộ endpoint xem có chỗ nào sót kiểm quyền theo tài nguyên.
+</p>
