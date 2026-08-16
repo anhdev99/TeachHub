@@ -56,10 +56,52 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center p-4">
+    // Hai cột từ lg: bên trái là bảng hiệu, bên phải là form. Bản cũ đặt một hộp nhỏ giữa
+    // trang trắng mênh mông — thứ đầu tiên người dùng thấy, và nó không nói được sản phẩm này
+    // là gì. Dưới lg thì chỉ còn cột form, không nhét bảng hiệu vào màn hình điện thoại.
+    <main className="grid min-h-svh lg:grid-cols-2">
+      <section className="bg-primary text-primary-foreground relative hidden flex-col justify-between overflow-hidden p-10 lg:flex">
+        <div className="flex items-center gap-2.5">
+          <span className="bg-primary-foreground/15 grid size-9 place-items-center rounded-lg text-base font-bold">
+            T
+          </span>
+          <span className="text-lg font-semibold tracking-tight">TeachHub</span>
+        </div>
+
+        <div className="flex max-w-md flex-col gap-4">
+          <p className="text-3xl leading-snug font-semibold tracking-tight text-balance">
+            Soạn bài, giao bài, chấm điểm — trong một chỗ.
+          </p>
+          <p className="text-primary-foreground/75 text-pretty">
+            Nội dung có phiên bản nên lớp đang chạy không bị đổi giữa chừng. Sổ điểm tự tính
+            theo trọng số bạn đặt, và mọi lần sửa điểm đều còn dấu vết.
+          </p>
+        </div>
+
+        {/* Trang trí: hai vòng tròn mờ. `aria-hidden` vì chúng không mang thông tin nào. */}
+        <div
+          aria-hidden
+          className="bg-primary-foreground/5 pointer-events-none absolute -right-24 -bottom-32 size-96 rounded-full"
+        />
+        <div
+          aria-hidden
+          className="bg-primary-foreground/5 pointer-events-none absolute -top-20 -right-10 size-56 rounded-full"
+        />
+
+        <p className="text-primary-foreground/60 text-xs">
+          Hệ thống quản lý dạy học cá nhân
+        </p>
+      </section>
+
+      <section className="flex items-center justify-center p-4 sm:p-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Đăng nhập TeachHub</CardTitle>
+          {/* Bảng hiệu thu nhỏ, chỉ hiện khi cột trái bị ẩn — nếu không thì logo xuất hiện
+              hai lần trên cùng một màn hình. */}
+          <span className="bg-primary text-primary-foreground mb-2 grid size-9 place-items-center rounded-lg text-sm font-bold lg:hidden">
+            T
+          </span>
+          <CardTitle className="text-xl">Đăng nhập TeachHub</CardTitle>
           <CardDescription>Dành cho giảng viên và sinh viên.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -85,14 +127,25 @@ export default function LoginPage() {
               )}
             </div>
 
-            {loiChung && <p className="text-destructive text-sm">{loiChung}</p>}
+            {loiChung && (
+              // Lỗi chung có nền và viền chứ không phải một dòng chữ đỏ trần: sau khi bấm
+              // "Đăng nhập" mắt người dùng đang ở nút, một dòng chữ mảnh phía trên rất dễ bị
+              // bỏ qua và họ bấm lại lần nữa.
+              <p
+                role="alert"
+                className="bg-danger-soft text-danger border-danger/25 rounded-lg border px-3 py-2 text-sm"
+              >
+                {loiChung}
+              </p>
+            )}
 
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="min-h-11">
               {isSubmitting ? "Đang đăng nhập…" : "Đăng nhập"}
             </Button>
           </form>
         </CardContent>
       </Card>
+      </section>
     </main>
   );
 }

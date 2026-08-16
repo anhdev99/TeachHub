@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeachHub — Hệ thống thiết kế giao diện</title>
+<style>
+ :root{--bg:#fbfaf8;--fg:#1a1a19;--muted:#6b6b66;--line:#e3e2df;--card:#fff;--ink:#2c5282;--stop:#9b2c2c;--ok:#2f6f43}
+ @media(prefers-color-scheme:dark){:root{--bg:#16161a;--fg:#e8e8e4;--muted:#a0a09a;--line:#2e2e33;--card:#1e1e23;--ink:#8ab4d8;--stop:#e08585;--ok:#7bbf92}}
+ *{box-sizing:border-box}
+ body{margin:0;padding:2rem 1rem 5rem;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+ main{max-width:58rem;margin:0 auto}
+ h1{font-size:1.8rem;margin:0 0 .3rem;letter-spacing:-.02em}
+ h2{font-size:1.25rem;margin:2.6rem 0 .8rem;padding-bottom:.35rem;border-bottom:2px solid var(--line)}
+ h3{font-size:1rem;margin:1.5rem 0 .4rem}
+ .sub{color:var(--muted);margin:0 0 2rem}
+ table{width:100%;border-collapse:collapse;margin:.9rem 0;font-size:.9rem;background:var(--card)}
+ th,td{text-align:left;padding:.55rem .65rem;border-bottom:1px solid var(--line);vertical-align:top}
+ th{font-weight:600;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+ code{font-family:ui-monospace,Menlo,monospace;font-size:.87em;background:color-mix(in srgb,var(--fg) 8%,transparent);padding:.1em .35em;border-radius:3px}
+ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.9rem;overflow-x:auto;font-size:.84rem;line-height:1.55}
+ pre code{background:none;padding:0}
+ .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:.9rem 1rem;margin:1rem 0}
+ .stop{border-left:4px solid var(--stop)}
+ .ok{border-left:4px solid var(--ok)}
+ ul{padding-left:1.2rem}li{margin:.3rem 0}
+ .wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<main>
+
+<h1>Hệ thống thiết kế giao diện TeachHub</h1>
+<p class="sub">Hợp đồng chung cho mọi màn hình. Nền móng đã dựng xong — việc còn lại là <strong>áp
+xuống</strong>, không phải phát minh lại.</p>
+
+<div class="card stop">
+<h3 style="margin-top:0">File CẤM sửa</h3>
+<p>Đây là nền móng dùng chung. Ba agent cùng sửa một file trong danh sách này là chắc chắn xung đột,
+và mỗi màn hình sẽ lệch một kiểu — đúng thứ hệ thống này sinh ra để ngăn.</p>
+<ul style="margin-bottom:0">
+<li><code>src/app/globals.css</code> · <code>src/app/layout.tsx</code></li>
+<li><code>src/app/(instructor)/layout.tsx</code> · <code>src/app/(student)/layout.tsx</code></li>
+<li><code>src/components/shell/**</code> · <code>src/lib/dinh-dang.ts</code> · <code>src/lib/api/me.ts</code></li>
+<li><code>src/components/ui/**</code> (chỉ sinh bằng <code>pnpm dlx shadcn@latest add</code>)</li>
+<li><code>src/app/(instructor)/dashboard/page.tsx</code> · <code>src/app/login/page.tsx</code>
+    · <code>not-found.tsx</code> · <code>error.tsx</code> — <strong>đây là màn hình mẫu, đọc để
+    theo, không sửa</strong></li>
+</ul>
+<p style="margin-bottom:0">Thấy thiếu thứ gì trong nền móng thì <strong>báo lại</strong>, đừng tự thêm.</p>
+</div>
+
+<h2>1. Màu — dùng token, không gõ mã màu</h2>
+
+<div class="wrap">
+<table>
+<tr><th>Dùng cho</th><th>Lớp Tailwind</th><th>Ghi chú</th></tr>
+<tr><td>Nền trang</td><td><code>bg-background</code></td><td>trắng ngà, đã đặt ở <code>body</code></td></tr>
+<tr><td>Thẻ, bảng</td><td><code>bg-card</code></td><td>trắng — nổi lên trên nền ngà</td></tr>
+<tr><td>Hành động chính</td><td><code>bg-primary text-primary-foreground</code></td><td>xanh mực</td></tr>
+<tr><td>Mục đang chọn / vùng nhấn nhẹ</td><td><code>bg-accent text-accent-foreground</code></td><td></td></tr>
+<tr><td>Chữ phụ</td><td><code>text-muted-foreground</code></td><td></td></tr>
+<tr><td>Đường kẻ</td><td><code>border-border</code></td><td></td></tr>
+<tr><td><strong>Đã xong, đã chấm, đạt</strong></td><td><code>text-ok</code> <code>bg-ok-soft</code> <code>border-ok/25</code></td><td>xanh lá</td></tr>
+<tr><td><strong>Cần chú ý, sắp hết hạn, trùng lặp</strong></td><td><code>text-warn</code> <code>bg-warn-soft</code> <code>border-warn/25</code></td><td>hổ phách</td></tr>
+<tr><td><strong>Quá hạn, lỗi, nguy hiểm</strong></td><td><code>text-danger</code> <code>bg-danger-soft</code> <code>border-danger/25</code></td><td>đỏ</td></tr>
+</table>
+</div>
+
+<div class="card stop">
+<p style="margin:0"><strong>Cấm <code>text-green-600</code>, <code>bg-red-50</code>, <code>#2c5282</code>
+và mọi mã màu gõ thẳng.</strong> Màu gõ thẳng không đổi theo chế độ tối — nhãn "Đã nộp" nền
+<code>bg-green-50</code> ở chế độ tối thành một vệt sáng chói với chữ gần như không đọc được. Toàn
+bộ token trên đã có sẵn cả hai bản sáng/tối.</p>
+</div>
+
+<h3>Nhãn trạng thái — khuôn chuẩn</h3>
+<pre><code>&lt;Badge className="bg-ok-soft text-ok border-ok/25 border"&gt;Đã chấm&lt;/Badge&gt;
+&lt;Badge className="bg-warn-soft text-warn border-warn/25 border"&gt;3 chờ chấm&lt;/Badge&gt;
+&lt;Badge className="bg-danger-soft text-danger border-danger/25 border"&gt;Trễ hạn&lt;/Badge&gt;</code></pre>
+
+<h2>2. Khung trang — bắt buộc dùng</h2>
+
+<pre><code>import { Trang, DauTrang, TrongRong, CuonNgang } from "@/components/shell/trang";
+
+&lt;Trang&gt;                             {/* rong: bảng rộng như sổ điểm dùng &lt;Trang rong&gt; */}
+  &lt;DauTrang
+    tieuDe="Lớp học phần"
+    moTa="Các lớp bạn đang dạy."
+    quayLai={{ href: "/offerings", nhan: "Lớp học phần" }}   {/* tuỳ chọn */}
+    hanhDong={&lt;Button&gt;Mở lớp mới&lt;/Button&gt;}                  {/* tuỳ chọn */}
+  /&gt;
+  …
+&lt;/Trang&gt;</code></pre>
+
+<div class="card stop">
+<p style="margin:0"><strong>Xoá <code>&lt;main className="mx-auto … max-w-3xl/4xl/5xl …"&gt;</code>
+tự khai ở từng trang.</strong> Mỗi trang một bề rộng khác nhau là lý do chuyển màn hình thấy nội
+dung nhảy ngang. <code>Trang</code> lo việc đó. Cũng <strong>xoá dòng hiện tên/email người dùng</strong>
+ở đầu trang — sidebar và thanh trên đã có.</p>
+</div>
+
+<h3>Trạng thái rỗng — không bao giờ để trắng</h3>
+<pre><code>&lt;TrongRong
+  Icon={Inbox}
+  tieuDe="Chưa có bài tập nào"
+  moTa="Bài tập tạo từ phiên bản nội dung của môn học."
+  hanhDong={&lt;Link href="…" className="bg-primary text-primary-foreground inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium"&gt;Tạo bài tập&lt;/Link&gt;}
+/&gt;</code></pre>
+<p>Một dòng <code>&lt;p&gt;Chưa có gì.&lt;/p&gt;</code> là chưa đủ: "chưa có gì" và "hỏng rồi"
+trông giống hệt nhau, người dùng không biết nên chờ, nên tạo mới, hay nên báo lỗi.</p>
+
+<h2>3. Định dạng — dùng hàm, không gọi toLocaleString</h2>
+
+<pre><code>import { ngayGio, ngay, khoangCach, diem } from "@/lib/dinh-dang";
+
+ngayGio("2026-08-16T04:38:00Z")   // "16/08/2026 11:38"
+ngay(...)                          // "16/08/2026"
+khoangCach(...)                    // "3 giờ trước" · "trong 2 ngày"
+diem(8.5)                          // "8,5"</code></pre>
+
+<p><code>new Date(x).toLocaleString("vi-VN")</code> cho <code>11:38:48 16/8/2026</code>: có giây
+(không ai cần), không có số 0 đứng đầu nên cột thời gian răng cưa, và đọc ngược thói quen.</p>
+
+<div class="card ok">
+<p style="margin:0">Dùng <code>khoangCach</code> khi câu hỏi thật là <em>"gấp không / còn kịp
+không"</em> (hàng chờ chấm, hạn nộp), và <strong>luôn</strong> kèm mốc chính xác trong
+<code>title</code>:</p>
+<pre style="margin:.6rem 0 0"><code>&lt;time dateTime={x} title={ngayGio(x)}&gt;{khoangCach(x)}&lt;/time&gt;</code></pre>
+</div>
+
+<h2>4. Dòng danh sách bấm được</h2>
+
+<pre><code>&lt;Link href={…} className="hover:bg-accent group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"&gt;
+  &lt;span className="flex min-w-0 flex-1 flex-col gap-0.5"&gt;
+    &lt;span className="truncate font-medium"&gt;{tieuDe}&lt;/span&gt;
+    &lt;span className="text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm"&gt;
+      &lt;span className="truncate"&gt;{phu}&lt;/span&gt;
+      &lt;span aria-hidden&gt;·&lt;/span&gt;
+      &lt;span className="font-mono text-xs"&gt;{ma}&lt;/span&gt;
+    &lt;/span&gt;
+  &lt;/span&gt;
+  {nhan}
+  &lt;ChevronRight className="text-muted-foreground group-hover:text-foreground size-4 shrink-0 transition-colors" aria-hidden /&gt;
+&lt;/Link&gt;</code></pre>
+
+<ul>
+<li><strong>Chevron là bắt buộc</strong> cho dòng bấm được — bản cũ chỉ có viền nên không phân biệt
+được dòng bấm được với dòng chỉ để đọc.</li>
+<li><code>min-w-0</code> + <code>truncate</code>: thiếu là tên môn dài phá vỡ bố cục trên điện thoại.</li>
+<li>Mã lớp, MSSV, mã môn dùng <code>font-mono text-xs</code> — chúng là định danh, không phải văn xuôi.</li>
+</ul>
+
+<h2>5. Điện thoại — điều kiện nghiệm thu, không phải "làm sau"</h2>
+<ul>
+<li>Mọi trang đọc được ở <strong>390px</strong>, <strong>không cuộn ngang</strong>.</li>
+<li>Bảng rộng bọc trong <code>&lt;CuonNgang&gt;</code> — <strong>khối đó</strong> cuộn, không phải cả trang.</li>
+<li>Vùng bấm <strong>≥ 44px</strong>: <code>min-h-11</code> cho nút và mục menu.</li>
+<li>Viết mobile-first: lớp mặc định cho điện thoại, <code>sm:</code>/<code>lg:</code> mới mở rộng.</li>
+<li>Sổ điểm phải <strong>ghim cột MSSV + Họ tên</strong> khi cuộn ngang, nếu không thì cuộn tới cột
+"Cuối môn" là không còn biết đang nhập điểm cho ai.</li>
+</ul>
+
+<h2>6. Ranh giới — thứ TUYỆT ĐỐI không đụng</h2>
+<ul>
+<li><strong>Không đổi lời gọi API, không đổi hình dạng dữ liệu, không đổi logic nghiệp vụ.</strong>
+Đây là việc thiết kế lại giao diện. Thấy lỗi nghiệp vụ thì <strong>báo lại</strong>, đừng tự sửa.</li>
+<li><strong>Không gõ tay type API.</strong> Mọi type lấy từ <code>@/lib/api/types</code> /
+<code>schema.d.ts</code> đã sinh sẵn.</li>
+<li><strong>Không thêm <code>dangerouslySetInnerHTML</code></strong> ngoài chỗ đã có (output của Shiki,
+và <code>locHtml</code> trong <code>phan-bai-hoc.tsx</code>).</li>
+<li><strong>Không đổi cấu trúc kéo-thả</strong> (<code>onMutate</code>/<code>onError</code>/<code>onSettled</code>,
+<code>MouseSensor</code>+<code>TouchSensor</code>) — chỉ đổi phần nhìn.</li>
+<li><strong>Không chạy <code>pnpm build</code></strong> — ba agent build song song sẽ tranh nhau thư
+mục <code>.next</code>. Dùng <code>npx tsc --noEmit</code> (an toàn khi chạy song song); máy chủ dev
+đã chạy sẵn ở <code>localhost:9811</code> để xem bằng mắt.</li>
+<li><strong>Component shadcn mới phải sinh bằng <code>pnpm dlx shadcn@latest add &lt;tên&gt;</code></strong>,
+không chép tay.</li>
+</ul>
+
+<h2>7. Nghiệm thu trước khi báo xong</h2>
+<ul>
+<li><code>npx tsc --noEmit</code> sạch.</li>
+<li><strong>Mở thật từng màn hình bạn sửa</strong> trên <code>localhost:9811</code> bằng Playwright,
+ở <strong>cả 1440px và 390px</strong>, và <strong>nhìn ảnh chụp</strong> — không chỉ khẳng định là
+đã sửa. Ảnh trắng trơn là màn hình hỏng, không phải màn hình gọn.</li>
+<li>Không lỗi JS trên console.</li>
+<li>Không còn <code>toLocaleString</code>, không còn <code>max-w-*</code> tự khai ở cấp trang,
+không còn mã màu gõ thẳng trong phần bạn phụ trách.</li>
+<li>Nhãn và thông báo lỗi bằng <strong>tiếng Việt</strong>; tên biến/hàm tiếng Anh.</li>
+</ul>
+
+<p class="sub" style="margin-top:2.5rem">Tài khoản thử: giảng viên <code>instructor@teachhub.local</code>
+/ <code>Teach@123</code> · sinh viên <code>dung@sv.edu.vn</code> / <code>Sv@12345</code>.
+Lớp có dữ liệu thật: <code>01a00219-b7e5-74dc-8f53-e07504fb3ba9</code>.</p>
+
+</main>
+</body>
+</html>
