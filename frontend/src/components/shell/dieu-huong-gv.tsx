@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DoiChuDe } from "./doi-chu-de";
 import { Thuonghieu } from "./thuong-hieu";
 
 const MUC = [
@@ -91,15 +92,18 @@ function ChanSidebar({ ten, email, chu }: { ten: string; email: string; chu: str
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={thoat}
-        disabled={dangThoat}
-        className="text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors disabled:opacity-60"
-      >
-        <LogOut className="size-4 shrink-0" aria-hidden />
-        {dangThoat ? "Đang thoát…" : "Đăng xuất"}
-      </button>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={thoat}
+          disabled={dangThoat}
+          className="text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground flex min-h-11 flex-1 items-center gap-2.5 rounded-lg px-3 text-sm transition-colors disabled:opacity-60"
+        >
+          <LogOut className="size-4 shrink-0" aria-hidden />
+          {dangThoat ? "Đang thoát…" : "Đăng xuất"}
+        </button>
+        <DoiChuDe />
+      </div>
     </div>
   );
 }

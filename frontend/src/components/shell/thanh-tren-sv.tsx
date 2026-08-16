@@ -3,6 +3,7 @@
 import { LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { DoiChuDe } from "./doi-chu-de";
 import { Thuonghieu } from "./thuong-hieu";
 
 /**
@@ -46,6 +47,7 @@ export function ThanhTrenSv({ ten, chu }: { ten: string; chu: string }) {
             {chu}
           </span>
           <span className="hidden truncate text-sm sm:inline">{ten}</span>
+          <DoiChuDe />
           <button
             type="button"
             onClick={thoat}

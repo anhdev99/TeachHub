@@ -30,8 +30,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // lang="vi" chứ không phải "en": ảnh hưởng cách trình duyệt ngắt dòng, kiểm chính tả
     // và cách trình đọc màn hình phát âm nội dung tiếng Việt.
+    // `suppressHydrationWarning` là YÊU CẦU của next-themes, không phải cách giấu lỗi: nó
+    // đặt class chủ đề bằng một script chạy TRƯỚC khi React nhận trang, nên HTML máy chủ sinh
+    // ra và HTML trình duyệt đang có chắc chắn khác nhau ở đúng thẻ này. Không có nó thì mỗi
+    // lần tải trang là một cảnh báo hydration, và cảnh báo thật sẽ chìm trong đống nhiễu đó.
+    // Cờ này chỉ ảnh hưởng đúng thẻ <html>, không lan xuống cây con.
     <html
       lang="vi"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
