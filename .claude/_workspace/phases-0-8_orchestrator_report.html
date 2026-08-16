@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TeachHub — Báo cáo chốt Phase 0 → 8</title>
+<style>
+  :root {
+    --bg: #fbfbfa; --fg: #1a1a19; --muted: #6b6b66; --line: #e3e2df;
+    --card: #ffffff; --ok: #2f6f43; --warn: #8a5a00; --stop: #9b2c2c; --accent: #2c5282;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16161a; --fg:#e8e8e4; --muted:#a0a09a; --line:#2e2e33;
+            --card:#1e1e23; --ok:#7bbf92; --warn:#d9a441; --stop:#e08585; --accent:#8ab4d8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2rem 1rem 5rem; background:var(--bg); color:var(--fg);
+         font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif; }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size:1.9rem; line-height:1.25; margin:0 0 .3rem; letter-spacing:-.02em; }
+  h2 { font-size:1.3rem; margin:3rem 0 .9rem; padding-bottom:.4rem;
+       border-bottom:2px solid var(--line); letter-spacing:-.01em; }
+  h3 { font-size:1.02rem; margin:1.8rem 0 .5rem; }
+  .sub { color:var(--muted); margin:0 0 2rem; }
+  table { width:100%; border-collapse:collapse; margin:1rem 0; font-size:.92rem;
+          background:var(--card); }
+  th,td { text-align:left; padding:.6rem .7rem; border-bottom:1px solid var(--line);
+          vertical-align:top; }
+  th { font-weight:600; color:var(--muted); font-size:.82rem; text-transform:uppercase;
+       letter-spacing:.04em; }
+  .wrap { overflow-x:auto; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.88em;
+         background:color-mix(in srgb, var(--fg) 7%, transparent);
+         padding:.1em .35em; border-radius:3px; }
+  .ok { color:var(--ok); font-weight:600; }
+  .warn { color:var(--warn); font-weight:600; }
+  .stop { color:var(--stop); font-weight:600; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px;
+          padding:1rem 1.1rem; margin:1rem 0; }
+  .card.flag { border-left:4px solid var(--warn); }
+  .card.bug  { border-left:4px solid var(--stop); }
+  .card.good { border-left:4px solid var(--ok); }
+  .metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));
+             gap:.75rem; margin:1.5rem 0; }
+  .metric { background:var(--card); border:1px solid var(--line); border-radius:8px;
+            padding:.85rem; text-align:center; }
+  .metric b { display:block; font-size:1.5rem; letter-spacing:-.02em; }
+  .metric span { color:var(--muted); font-size:.78rem; }
+  ul { padding-left:1.2rem; } li { margin:.35rem 0; }
+  .quiet { color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>TeachHub — Báo cáo chốt Phase 0 → 8</h1>
+<p class="sub">16/08/2026 · nhánh <code>phase-0-foundation</code> · commit <code>76519fd</code></p>
+
+<div class="metrics">
+  <div class="metric"><b>506</b><span>test xanh</span></div>
+  <div class="metric"><b>0</b><span>cảnh báo build</span></div>
+  <div class="metric"><b>129</b><span>endpoint API</span></div>
+  <div class="metric"><b>55</b><span>bảng CSDL</span></div>
+  <div class="metric"><b>26</b><span>màn hình</span></div>
+  <div class="metric"><b>81</b><span>dòng ma trận cách ly</span></div>
+</div>
+
+<p>Phase 0 đến 8 đã thi công xong và nghiệm thu trên trình duyệt thật. Phase 9 <strong>cố ý
+chưa làm</strong> — lý do ở cuối. Báo cáo này ghi cả phần chưa xong; danh sách đó ở mục
+<a href="#con-no">Còn nợ</a>.</p>
+
+<h2>1. Trạng thái từng phase</h2>
+
+<div class="wrap">
+<table>
+<tr><th>Phase</th><th>Nội dung</th><th>Trạng thái</th></tr>
+<tr><td>0</td><td>Nền móng: 4 tầng, Result, MediatR pipeline, Identity + JWT, Testcontainers</td><td class="ok">Xong</td></tr>
+<tr><td>1</td><td>Môn học, phiên bản, chương, bài, clone phiên bản</td><td class="ok">Xong</td></tr>
+<tr><td>2</td><td>Lớp học phần, ghi danh, trang học, mở khoá theo tiến độ</td><td class="ok">Xong</td></tr>
+<tr><td>3</td><td>Bài tập, slot nộp, upload, giải nén an toàn, xem cây tệp</td><td class="ok">Xong</td></tr>
+<tr><td>4a</td><td>Chấm điểm, rubric, nhóm, đợt cuối môn</td><td class="ok">Xong</td></tr>
+<tr><td>4b</td><td>Sổ điểm động, điểm cộng, điều kiện điểm sàn, xuất Excel/CSV, chốt sổ</td><td class="ok">Xong</td></tr>
+<tr><td>5</td><td>Ngân hàng câu hỏi, trắc nghiệm, chấm tự động</td><td class="ok">Xong</td></tr>
+<tr><td>6</td><td>Phát hiện trùng lặp (Winnowing), gợi ý mở dần, so sánh cạnh nhau</td><td class="ok">Xong</td></tr>
+<tr><td>7</td><td>Điểm kinh nghiệm, huy hiệu, bảng xếp hạng ẩn danh</td><td class="ok">Xong</td></tr>
+<tr><td>8</td><td>Ôn tập theo lịch, hàng đợi ôn lại</td><td class="ok">Xong</td></tr>
+<tr><td>9</td><td>Điểm danh QR, chấm bài tự động, thông báo</td><td class="warn">Chưa làm — có chủ đích</td></tr>
+</table>
+</div>
+
+<h2>2. Nghiệm thu trên trình duyệt thật</h2>
+
+<p>Toàn bộ chạy bằng Chromium điều khiển qua Playwright, trên cơ sở dữ liệu dev có dữ liệu thật,
+không phải fixture của test.</p>
+
+<div class="wrap">
+<table>
+<tr><th>Màn hình</th><th>Kiểm cái gì</th><th>Kết quả</th></tr>
+<tr><td>So sánh hai bài nộp</td><td>Cặp trùng 100% có thật, tô sáng đoạn chung, cảnh báo "không tự trừ điểm"</td><td class="ok">Đạt</td></tr>
+<tr><td>Trắc nghiệm nhúng trong bài học</td><td>2 câu, 6 phương án bấm được, ở 390px</td><td class="ok">Đạt</td></tr>
+<tr><td>— cùng màn hình</td><td>Đáp án đúng và lời giải <strong>không</strong> có trong HTML gửi xuống</td><td class="ok">Đạt</td></tr>
+<tr><td>Sổ điểm</td><td>Kéo-thả cột, lưu được, sống sót qua tải lại trang</td><td class="ok">Đạt</td></tr>
+<tr><td>Chia nhóm</td><td>Kéo sinh viên giữa các nhóm, hoàn tác được khi lỗi</td><td class="ok">Đạt</td></tr>
+<tr><td>Mọi trang</td><td>Không cuộn ngang ở 390px; 0 lỗi JS trên console</td><td class="ok">Đạt</td></tr>
+</table>
+</div>
+
+<div class="card good">
+<h3 style="margin-top:0">Một kết quả đáng nói</h3>
+<p style="margin-bottom:0">Cặp bài trùng dùng để nghiệm thu có <strong>tên biến và tên hàm khác
+hoàn toàn nhau</strong> — <code>tinhTong/danhSach/ketQua</code> so với <code>sum/arr/total</code> —
+và khác cả kiểu chú thích. Hệ thống vẫn bắt đúng 100% trùng. Đó là bằng chứng chạy thật cho bước
+chuẩn hoá nguồn trước khi băm: nếu bước đó sai, đây là đúng ca sẽ lọt.</p>
+</div>
+
+<h2>3. Lỗi thật tìm ra và đã sửa</h2>
+
+<div class="card bug">
+<h3 style="margin-top:0">CSV xuất ra chưa bao giờ có BOM</h3>
+<p>Chú thích trong mã khẳng định <code>new UTF8Encoding(true).GetBytes(...)</code> chèn BOM.
+Nó không. Cờ đó chỉ ảnh hưởng <code>GetPreamble()</code> và <code>StreamWriter</code>.</p>
+<p style="margin-bottom:0"><strong>Hậu quả:</strong> mọi bảng điểm xuất ra mở trên Excel Windows
+thành <code>Nguy?n V?n ?nh</code>. Không test nào bắt được vì test đọc lại bằng .NET, nơi thiếu
+BOM không gây ra khác biệt gì. Sửa bằng cách ghép <code>GetPreamble()</code> vào đầu mảng byte.</p>
+</div>
+
+<div class="card bug">
+<h3 style="margin-top:0">ImageSharp 4.1.0 làm hỏng build Release</h3>
+<p style="margin-bottom:0">Từ v3 SixLabors đổi giấy phép, và v4 đòi license key: bước
+<code>SixLabors_ValidateLicense</code> chỉ là <code>ContinueOnError</code> ở Debug, còn ở Release
+thì <strong>build FAILED</strong>. Đã ghim <code>2.1.13</code> — bản Apache-2.0 cuối cùng — kèm
+chú thích cùng lý lẽ với việc ghim MediatR 12.5.0. Cả hai đều là ràng buộc giấy phép, không phải
+sở thích kỹ thuật.</p>
+</div>
+
+<div class="card bug">
+<h3 style="margin-top:0">Trang 404 hiện tiếng Anh</h3>
+<p><code>src/app</code> có <strong>14 chỗ</strong> gọi <code>notFound()</code>, mà không có
+<code>not-found.tsx</code> nào. Vì backend cố ý trả 404 thay vì 403 cho tài nguyên không thuộc
+người gọi (ADR-012), 404 là <strong>đường đi chính</strong> của mọi phép kiểm quyền sở hữu, không
+phải ca hiếm.</p>
+<p style="margin-bottom:0"><strong>Hậu quả:</strong> giảng viên mở nhầm một đường dẫn thì gặp
+"This page could not be found." giữa một sản phẩm tiếng Việt. Đã thêm <code>not-found.tsx</code>
+và <code>error.tsx</code>. Ghi chú: Next 16 đặt tên prop là <code>retry</code> chứ không phải
+<code>reset</code> như bản 15 — viết theo trí nhớ thì TypeScript không kêu nhưng nút "Thử lại"
+thành nút chết.</p>
+</div>
+
+<h3>Sáu lỗi tìm ra bằng cách mở trình duyệt</h3>
+<p class="quiet">Không lỗi nào trong số này bị bắt bởi test tự động. Tất cả đều xuất hiện khi thao
+tác tay trên UI thật — đúng như DoD của roadmap dự đoán.</p>
+<ul>
+  <li><strong>Ngõ cụt trong bài học:</strong> trang báo "còn 1 phần bắt buộc" nhưng không liệt kê
+      phần nào, nên sinh viên không thể hoàn thành, và bài kế tiếp bị khoá vĩnh viễn.</li>
+  <li><strong>Ngõ cụt sau khi nộp:</strong> slot <code>max_files=1</code> đầy thì control upload
+      bị ẩn, nộp nhầm tệp là không sửa được.</li>
+  <li><strong>EF phát UPDATE thay vì INSERT</strong> ở 4 chỗ: <code>Entity.Id</code> tự sinh UUIDv7
+      lúc khởi tạo nên EF kết luận hàng đã tồn tại.</li>
+  <li><strong>Cột jsonb NULL</strong> trên các hàng có trước migration làm sổ điểm trả 500.</li>
+  <li><strong><code>FinalAssessment.GradeColumnId</code> bắt buộc</strong> khiến tính năng không
+      dùng được, vì cột điểm mãi Phase 4b mới có.</li>
+  <li><strong>Bài tập bị chặn trên phiên bản đã xuất bản</strong> — nhưng lớp đang dạy luôn ghim
+      phiên bản đã xuất bản, nên không tạo được bài tập cho lớp thật.</li>
+</ul>
+
+<h2>4. Ma trận cách ly giảng viên (DoD mục 7)</h2>
+
+<p>Mở rộng từ 19 lên <strong>81 dòng</strong>, phủ Phase 2 đến 7. <strong>Cả 81 dòng trả 404</strong>
+— không dòng nào 200, không dòng nào 403.</p>
+
+<p>Ba điều khiến ma trận này không xanh giả:</p>
+<ul>
+  <li><strong>Thân yêu cầu dùng id thật của giảng viên A</strong>, không phải GUID ngẫu nhiên. Ép
+      handler trả lời "anh có quyền không", chứ không phải "có bản ghi này không".</li>
+  <li><strong>Đối chứng dương:</strong> mọi dòng GET bắn lại dưới danh nghĩa chính chủ và phải khác
+      404. Thiếu bước này thì một route gõ sai sẽ xanh vĩnh viễn nhờ 404 của tầng định tuyến.</li>
+  <li><strong>Chốt sổ được seed thật:</strong> <code>GET /api/gradebook/snapshots/{id}</code> nhận
+      id bản chốt chứ không đi qua <code>offeringId</code> trên route, nên phải chứng minh nó 404
+      <em>vì lọc quyền sở hữu</em>, không phải vì id không tồn tại.</li>
+</ul>
+
+<p>Rà <code>/openapi/v1.json</code> đối chiếu từng route còn tìm ra một nợ cũ chưa ai để ý:
+<code>POST /api/offerings</code> nhận <code>subject_id</code> trong thân yêu cầu, nên về nguyên tắc
+giảng viên B có thể mở lớp trên môn của A. Mã hiện tại lọc đúng, nhưng trước đó không có gì canh.</p>
+
+<h2 id="con-no">5. Còn nợ</h2>
+
+<div class="card flag">
+<h3 style="margin-top:0">1. Chưa có ma trận cách ly sinh viên ↔ sinh viên</h3>
+<p style="margin-bottom:0"><strong>Đây là mục đáng lo nhất.</strong> Ma trận hiện có chỉ canh hướng
+giảng viên ↔ giảng viên. 25 endpoint <code>Policies.Student</code> nằm ngoài phạm vi, vì giảng viên
+B bị chặn ở tầng policy trước khi handler chạy. Nhưng <strong>sinh viên B qua được tầng policy</strong>
+(cùng vai), nên mỗi handler phải tự lọc <code>enrollment_id</code>/<code>offering_id</code> — và
+hiện không có gì canh việc đó. Một khác biệt khiến nó không phải bản sao của ma trận cũ: khi hai
+client cùng vai Student, nhiều endpoint trả <strong>200 với thân rỗng</strong> chứ không phải 404,
+nên ma trận đó phải khẳng định cả nội dung chứ không chỉ mã trạng thái.</p>
+</div>
+
+<div class="card flag">
+<h3 style="margin-top:0">2. Chưa có endpoint chấm câu hỏi nhúng</h3>
+<p style="margin-bottom:0">Trắc nghiệm nhúng trong bài học hiện được câu hỏi và cho chọn, nhưng
+<strong>không chấm và không lưu</strong> — và màn hình nói thẳng điều đó với sinh viên. Cố ý:
+payload chỉ có <code>{index, text, options}</code>, đáp án đúng không rời máy chủ. Chấm ở client
+thì phải gửi đáp án xuống, tức là cả lớp mở DevTools ra đọc. Kèm theo, khi làm endpoint này phải
+thêm <strong>cờ phân biệt chọn-một / chọn-nhiều</strong> vào <code>InlineQuestionDto</code>: domain
+lưu <code>CorrectIndexes</code> là danh sách nên câu nhiều đáp án có thật, còn DTO hiện không nói
+được câu nào là loại nào — thiếu cờ đó thì câu nhiều đáp án bị chấm sai một cách lặng lẽ.</p>
+</div>
+
+<div class="card flag">
+<h3 style="margin-top:0">3. Chưa có endpoint đóng lớp</h3>
+<p style="margin-bottom:0">Plan Phase 4b giả định lớp chuyển sang <code>Closed</code> thì tự chốt
+một bản sổ điểm, nhưng repo không có endpoint đổi <code>OfferingStatus</code>. Nên
+<code>TakeGradeSnapshotCommand</code> hiện là hành động tường minh, chưa nối vào việc đóng lớp.
+Đi kèm mục này: thẻ lớp ở <code>offerings/page.tsx</code> in thẳng giá trị enum tiếng Anh cho mọi
+trạng thái khác <code>active</code>, nên sẽ hiện chữ "closed" ngay khi endpoint đóng lớp tồn tại.</p>
+</div>
+
+<div class="card flag">
+<h3 style="margin-top:0">4. Hai chỗ thiếu test</h3>
+<p style="margin-bottom:0"><code>GenerateThumbnailJob</code> chưa có test đầu-cuối phần đọc–ghi
+(CSDL → lưu trữ → ghi <code>thumbnail_path</code>); phần xử lý ảnh và phần luật thì đã có test
+thuần. Ngoài ra CI trên GitHub <strong>chưa từng chạy</strong> — repo có remote thật, nhưng đẩy mã
+lên là hành động hướng ra ngoài nên tôi để lại cho anh quyết.</p>
+</div>
+
+<h3>Vì sao Phase 9 chưa làm</h3>
+<p>Roadmap xếp Phase 9 là P2, "chỉ lập kế hoạch chi tiết khi đã tới lúc". Quan trọng hơn:
+phần lớn hạng mục của nó <strong>còn thiếu quyết định nghiệp vụ</strong>, không phải thiếu công sức.
+Điểm danh QR chưa từng được đặc tả (Gap #13 trong tài liệu kiến trúc), còn chấm bài tự động cần một
+môi trường chạy mã không tin cậy — đó là một quyết định hạ tầng và bảo mật riêng, không phải một
+task. Viết mã trước khi có những quyết định đó là đoán thay người dùng.</p>
+
+<h2>6. Ghi chú về cách làm</h2>
+
+<p>Ba agent chạy song song trên ba lát cắt không giao nhau. Một điểm buộc phải tuần tự:
+<strong>migration</strong>. EF dùng chung một <code>AppDbContextModelSnapshot</code>, nên ba lệnh
+<code>dotnet ef migrations add</code> chạy đồng thời sẽ làm hỏng nó, và migration <em>kế tiếp</em>
+sẽ sinh lệnh sai trên cơ sở dữ liệu đã có điểm thật. Vì vậy agent bị cấm chạm
+<code>AppDbContext</code> và cấm chạy <code>dotnet ef</code>; họ báo DbSet cần thêm, tôi gộp thành
+từng migration đơn lẻ. Mã của cả ba biên dịch chung được ngay lần đầu.</p>
+
+<p>Hệ quả cần đề phòng của cách chia này: agent làm xong lát của mình nhưng <strong>không có gì gọi
+tới nó</strong>. Bốn điểm nối tôi tự làm: xếp hàng lấy vân tay sau khi xử lý tệp, sinh câu ôn tập
+ngay khi nộp bài trắc nghiệm (thay vì đợi job chạy đêm), điểm thành viên cho bài nộp nhóm trong sổ
+điểm, và đăng ký các job định kỳ.</p>
+
+<div class="card">
+<p style="margin:0"><strong>Một điểm về độ tin cậy của báo cáo.</strong> Trong phiên này có hai lần
+một agent khẳng định điều mình chưa kiểm — một lần suy từ "build xanh" ra kết luận về nội dung một
+kiểu dữ liệu, một lần báo cơ sở dữ liệu không có dữ liệu trong khi thực tế có 9 bài nộp và 161 vân
+tay. Cả hai đều được phát hiện bằng cách kiểm lại bằng lệnh thay vì tin lời. Mọi con số trong báo
+cáo này đều có lệnh chạy kèm theo.</p>
+</div>
+
+</main>
+</body>
+</html>
