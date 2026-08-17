@@ -33,7 +33,7 @@ import {
 } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 
-/** Icon cho từng loại phần — đọc loại bằng một cái liếc thay vì phải đọc nhãn chữ. */
+/** Icon for each component type — read the type at a glance instead of parsing the text label. */
 const COMPONENT_TYPE_ICONS: Record<LessonComponentType, React.ComponentType<{ className?: string }>> = {
   recap: RotateCcw,
   hook: Sparkles,

@@ -11,15 +11,15 @@ public class AuthTests(TeachHubApiFactory factory)
     private HttpClient Client => factory.CreateClient();
 
     [Fact]
-    public async Task Dang_nhap_dung_thi_tra_ve_access_va_refresh_token()
+    public async Task Logging_in_with_the_right_credentials_returns_an_access_token_and_a_refresh_token()
     {
         var res = await Client.PostAsJsonAsync("/api/auth/login",
             new { email = "instructor@teachhub.local", password = "Teach@123" });
 
         res.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Đọc bằng JsonElement với khoá snake_case tường minh: map vào DTO thì
-        // System.Text.Json khớp không phân biệt hoa thường và bỏ AddJsonOptions vẫn xanh.
+        // Read through JsonElement with explicit snake_case keys: mapping into a DTO lets
+        // System.Text.Json match case-insensitively, so this stays green even with AddJsonOptions removed.
         var body = await res.Content.ReadFromJsonAsync<JsonElement>();
         body.GetProperty("access_token").GetString().ShouldNotBeNullOrWhiteSpace();
         body.GetProperty("refresh_token").GetString().ShouldNotBeNullOrWhiteSpace();
@@ -27,7 +27,7 @@ public class AuthTests(TeachHubApiFactory factory)
     }
 
     [Fact]
-    public async Task Sai_mat_khau_tra_ve_401_dang_problem_details_va_khong_lo_email_co_ton_tai_hay_khong()
+    public async Task A_wrong_password_returns_401_as_problem_details_and_never_leaks_whether_the_email_exists()
     {
         var res = await Client.PostAsJsonAsync("/api/auth/login",
             new { email = "instructor@teachhub.local", password = "sai-mat-khau" });
@@ -36,7 +36,7 @@ public class AuthTests(TeachHubApiFactory factory)
         res.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         var text = await res.Content.ReadAsStringAsync();
-        // Thông báo phải chung chung — không được tiết lộ email nào tồn tại
+        // The message must stay generic — it must not reveal which emails exist
         text.ShouldNotContain("không tìm thấy", Case.Insensitive);
     }
 

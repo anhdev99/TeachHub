@@ -7,11 +7,11 @@ namespace TeachHub.Api.Tests;
 public class JobDashboardTests(TeachHubApiFactory factory)
 {
     [Fact]
-    public async Task Dashboard_hangfire_tu_choi_nguoi_chua_dang_nhap()
+    public async Task The_hangfire_dashboard_rejects_an_anonymous_visitor()
     {
-        // Chấp nhận NotFound vì môi trường Testing tắt Hangfire — điều quan trọng là
-        // KHÔNG BAO GIỜ trả 200. Dashboard Hangfire để lộ tên job, tham số job và
-        // cho phép bấm chạy lại job; công khai nó là công khai luôn nội bộ hệ thống.
+        // NotFound is acceptable because the Testing environment turns Hangfire off — what
+        // matters is that it NEVER returns 200. The Hangfire dashboard exposes job names, job
+        // arguments and lets anyone re-run a job; making it public makes the system internals public.
         var res = await factory.CreateClient().GetAsync("/jobs");
 
         res.StatusCode.ShouldBeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.NotFound);
